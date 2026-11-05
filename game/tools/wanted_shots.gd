@@ -89,6 +89,9 @@ func _main() -> void:
 	_run = root.get_node("Run")
 	_reg = root.get_node("Registry")
 	_save = root.get_node("Save")
+	# pass 127 (lane DOCS): no debug surfaces on a capture, whatever the PC's save holds (in memory only)
+	for k in ["debug_panel", "debug_modal_buttons", "free_revive_button", "hit_log", "debug_mode"]:
+		root.get_node("Settings").set(k, false)
 	# the captures fill the save with the mocks' numbers: the PC's own save goes back as it was at the end
 	var kept := FileAccess.get_file_as_string("user://save.json")
 	var in_run := ["hud", "hud_boss", "hud_full", "hud_levels", "hud_mutation", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results", "hud_stage", "hud_kills"]
@@ -423,6 +426,15 @@ func _in_run() -> void:
 	# the arena opens with its own banner: let it pass
 	g.set_paused(false)
 	await _wait(3.2)
+	# pass 127 (lane DOCS): a capture shows the game, not the arena: no banner, no quick buttons, real creatures for the dummies
+	g.hud._banner.visible = false
+	g.hud._banner_text = ""
+	if g.get("arena_panel") and g.arena_panel:
+		g.arena_panel.call("_clear_field")
+		for c in g.arena_panel.get_children():
+			c.visible = false
+		g.arena_panel.visible = false
+	_crowd()
 	if _want("hud"):
 		await _hud_basic()
 	if _want("hud_boss"):
@@ -470,6 +482,19 @@ func _in_run() -> void:
 		await _stage_clear()
 	if _want("results"):
 		await _results()
+
+
+## Pass 127 (lane DOCS): creatures standing still up the screen where the arena's dummies stood, tough enough to last the captures.
+func _crowd() -> void:
+	var at: Vector3 = g.player.global_position
+	var rows := [["goblin", 7, -5.5], ["skeleton", 6, -7.5], ["fire_ant", 7, -9.5], ["lesser_scorpion", 5, -11.5]]
+	for row in rows:
+		for k in int(row[1]):
+			var off := Vector3((k - int(row[1]) / 2.0) * 1.15 + randf_range(-0.2, 0.2), 0, float(row[2]) + randf_range(-0.5, 0.5))
+			var i: int = g.enemies.spawn(str(row[0]), at + off, null, 1.0, 1.0)
+			if i >= 0:
+				g.enemies.speed[i] = 0.0
+				g.enemies.hp[i] = 200000.0
 
 
 func _build(items: Array) -> void:

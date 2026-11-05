@@ -1,6 +1,9 @@
 ## Windowed (not headless) capture tool: opens the game at phone aspect, plays for a few seconds with a
 ## simulated thumb, and saves screenshots of the run, the card screen, the pause screen and the title.
 ## godot --path game --script res://tools/screenshot_run.gd -- out=D:/path/dir
+## Pass 127 (lane DOCS): Blood Moon is stage index 3, The Dust Bowl index 2 (74_dust_bowl); the hero drawer and sheet are gone, so
+## 65_heroes is the Heroes screen and 65b_hero_sheet its Hero details pop-up. Staged pictures with a real crowd come from
+## game/tools/store_shots.gd (tools/dl/p127/DOCS/caps2.sh has the list); wanted_shots.gd is the better source of the menus.
 extends SceneTree
 
 var _out := "user://shots"
@@ -836,7 +839,7 @@ func _tick() -> void:
 	elif _step == 1040 and _t > _mark + 1.6:
 		_shot("60_nightfall")
 		_game.enemies.kill_all(false)
-		load("res://core/systems/StageLook.gd").of(_game).show_stage(2, 0.0)
+		load("res://core/systems/StageLook.gd").of(_game).show_stage(3, 0.0)
 		for id in ["imp", "hellhound", "hammer_giant"]:
 			if root.get_node("Registry").enemies.has(id):
 				_game.enemies.spawn_pack(id, _game.player.global_position + Vector3(randf_range(-4, 4), 0, -6.0), 3 if id == "hammer_giant" else 7)
@@ -917,21 +920,15 @@ func _tick() -> void:
 		_step = 7
 	elif _step == 7 and _t > 82.4:
 		_shot("06_title")
-		# pass 104: the hero drawer open, then the hero's Wanted sheet
+		# pass 127: the Heroes screen, then its Hero details pop-up
 		_mark = _t
-		if current_scene and current_scene.has_method("open_drawer"):
-			current_scene.open_drawer()
+		change_scene_to_file("res://ui/HeroesScreen.tscn")
 		_step = 7001
 	elif _step == 7001 and _t > _mark + 1.0:
-		_shot("65_hero_drawer")
-		if current_scene and current_scene.has_method("close_drawer"):
-			current_scene.close_drawer()
-		_step = 7002
-	elif _step == 7002 and _t > _mark + 1.8:
-		if current_scene and current_scene.has_method("open_sheet"):
-			current_scene.open_sheet()
+		_shot("65_heroes")
+		load("res://ui/wanted/WHeroSheet.gd").open(current_scene, root.get_node("Registry").character("drifter"))
 		_step = 7003
-	elif _step == 7003 and _t > _mark + 2.8:
+	elif _step == 7003 and _t > _mark + 2.0:
 		_shot("65b_hero_sheet")
 		_t = 82.41
 		change_scene_to_file("res://ui/HomesteadScreen.tscn")
@@ -966,7 +963,7 @@ func _tick() -> void:
 		# pass 104: the Stages menu, stage 1 beaten and the King met (the save goes back after the run, godot.sh)
 		_mark = _t
 		var sv2 = root.get_node("Save")
-		sv2.data["stages_beaten"] = {"red_canyon": [true, false, false]}
+		sv2.data["stages_beaten"] = {"red_canyon": [true, false, false, false]}
 		sv2.data["last_map"] = "red_canyon"
 		sv2.data["seen"] = {"enemy": ["tumbleweed_king"]}
 		change_scene_to_file("res://ui/StagesScreen.tscn")

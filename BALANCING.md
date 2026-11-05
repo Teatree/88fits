@@ -7435,7 +7435,7 @@ as well, but they do it all together. Same attack distance ... They spawn in gro
 a bright, very noticeable blue energy sphere. Does not touch other enemies. The range of the projectile is about 25%
 further than that of Drifter's Revolver." Content: content/enemies/monk (brain `squad`, its `squad` block); code:
 core/systems/Squads.gd (the squads), core/systems/EnergyOrbs.gd + core/shaders/energy_orb.gdshader (the spheres). The
-Monk is on **no stage's roster**: Garry places it in the Level Editor.
+Monk was on no stage's roster when this was written. Garry has placed it since: rows r62, r64, r66, d5b and s3c1 (read from the map in pass 127).
 
 **The Monk's numbers** (content/enemies/monk/monk.json; every one Garry's to change there or in the Level Editor):
 - HP **14** (the Spit Cactus 18), walk **1.3** m/s (the cactus 1.15), bite and sphere damage **8** (the cactus's spit),

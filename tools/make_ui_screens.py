@@ -1,11 +1,10 @@
 """The UI reference (2026-10-27): every screen of 88fits with its captures, what it is for, when it appears and what each
-control does. The successor of the pass 38 redesign pack (docs/ui_review/, kept as it was).
+control does. The successor of the pass 38 redesign pack (docs/ui_review/, kept as it was). Pass 127: every record and capture brought up to the Royale UI.
 
     python tools/make_ui_screens.py [--pdf]
 
 Reads docs/ui_screens/src/screens.json (one record per screen: when, purpose, controls, shows, rules, states; gathered
-from the code) and the captures named in SHOTS below (game/tools/wanted_shots.gd, game/tools/uidoc_shots.gd, the one
-pager's captures, the design bible's), writes docs/ui_screens/screens/*.jpg and docs/ui_screens/index.html; --pdf prints
+from the code) and the captures named in SHOTS below (game/tools/wanted_shots.gd and the set folders named there), writes docs/ui_screens/screens/*.jpg and docs/ui_screens/index.html; --pdf prints
 docs/ui_screens/88fits_ui_screens.pdf through headless Edge."""
 import html
 import json
@@ -23,71 +22,75 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(REPO, "docs", "ui_screens")
 SRC = os.path.join(OUT, "src", "screens.json")
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-W = "tools/dl/uidoc/wanted/"
-X = "tools/dl/uidoc/extra/"
-U = "tools/dl/onepager/shots/ui/"
-BCH = "tools/dl/p116/UIREVIEW/bosschest/"
-B = "docs/design/img/"
+W = "tools/dl/uidoc/wanted/"          # game/tools/wanted_shots.gd
+S = "tools/dl/p127/DOCS/set/"          # pass 127 (lane DOCS): each set from its own capture tool (bosschest: _p118_BOSSCHEST_shots.gd,
+                                       # bounty: _p112_wanted_shots.gd, loading: load_shots.gd, startgo: _p120_STARTGO_shots.gd, g: store_shots.gd)
+B = "tools/dl/p127/DOCS/set/bible/"    # game/tools/screenshot_run.gd
 
 # screen id -> [(capture, caption)]
 SHOTS = {
-    # pass 119 (lane LOADUI): the title slam, from game/tools/load_shots.gd (tools/dl/p116/UIREVIEW/loading/load_t*.png)
-    "boot_loading": [(X + "boot_loading_slam.png", "the title punching in (0.40 s)"), (X + "boot_loading_hit.png", "the hit (0.43 s): the impact frame"),
-                     (X + "boot_loading_after.png", "after the hit (0.55 s): ring, dust, chips"), (X + "boot_loading.png", "settled: the strips scroll while the title loads")],
+    "boot_loading": [(S + "loading/load_t0417.png", "the wordmark punching in (0.42 s)"), (S + "loading/load_t0433.png", "the hit: the impact frame"),
+                     (S + "loading/load_t0550.png", "after the hit: ring, dust, chips"), (S + "loading/load_t1000.png", "settled: the strips scroll while the title loads")],
     "consent_card": [(W + "19-consent.png", "first launch")],
-    "title": [(W + "01-title.png", "an owned hero"), (W + "02-title-astro.png", "a hero on sale: BUY"),
+    "run_curtain": [(S + "startgo/painted_1080x1920_b_wipe_12.png", "the cylinder closing on the title"), (S + "startgo/painted_1080x1920_d_load_t0700.png", "the loading screen between"),
+                    (S + "startgo/painted_1080x1920_e_open_07.png", "the cylinder opening on the spawn beam")],
+    "title": [(W + "01-title.png", "an owned hero"), (W + "01d-title-buyable.png", "a hero on sale: BUY"), (W + "01e-title-buy-short.png", "short of gold"),
               (W + "01c-title-locked-hero.png", "a locked hero: the requirement")],
-    "hero_drawer": [(U + "65_hero_drawer.png", "the drawer over the title")],
-    "hero_sheet": [(U + "65b_hero_sheet.png", "the Drifter's sheet")],
-    "stages_menu": [(W + "18-stages.png", "stage 2 open, stage 3 locked"), (W + "18c-stages-all-beaten.png", "every stage beaten")],
+    "heroes": [(W + "40-heroes.png", "the shown hero selected"), (W + "40b-heroes-onsale.png", "a hero on sale"), (W + "40c-heroes-locked.png", "a locked hero"),
+               (W + "40g-heroes-scrolled.png", "the page scrolled, the picker fixed"), (W + "40e-heroes-buy-confirm.png", "the buy question")],
+    "hero_details": [(W + "41-hero-details.png", "the Drifter's details"), (W + "41b-hero-details-items.png", "his items"), (W + "41c-hero-details-looks.png", "skins in the details"),
+                     (W + "41e-hero-details-locked.png", "a locked hero")],
+    "skins": [(W + "40h-heroes-looks-popup.png", "the pop-up"), (W + "40l-heroes-looks-short.png", "short of gold"), (W + "40i-heroes-buy-look-confirm.png", "the buy question")],
+    "stages_menu": [(W + "18-stages.png", "two stages open, the rest locked"), (W + "18c-stages-all-beaten.png", "every stage beaten"), (W + "18d-stages-first-visit.png", "the first visit")],
     "upgrade_board": [(W + "03-mirror.png", "the board"), (W + "03b-mirror-talent-open.png", "a talent's sheet"),
-                      (W + "03c-mirror-talent-full.png", "three ranks bought")],
+                      (W + "03d-mirror-many-held.png", "many ranks held"), (W + "03f-mirror-choose-maxed.png", "a form near full"), (W + "03g-mirror-reset-confirm.png", "Reset Upgrades?")],
     "collection": [(W + "04-collection.png", "Weapons"), (W + "04h-collection-enemies.png", "Enemies, with danger badges"),
-                   (W + "04b-collection-weapon-page.png", "a weapon's page"), (W + "04d-collection-locked-page.png", "a locked item's page")],
-    "settings": [(W + "05-settings.png", "Settings"), (W + "05b-settings-wipe-confirm.png", "Wipe the save?")],
+                   (W + "04b-collection-weapon-page.png", "a weapon's page"), (W + "04l-collection-passive-page.png", "a passive item's page"), (W + "04d-collection-locked-page.png", "a locked item's page")],
+    "settings": [(W + "05-settings.png", "Settings"), (W + "05b-settings-wipe-confirm.png", "Wipe the save?"), (W + "05d-settings-debug.png", "with the Debug panel")],
     "dev_menu": [(W + "17-developer-menu.png", "the developer menu")],
-    "hud": [("tools/dl/onepager/shots/r2/play_drifter_hud.png", "a fight on a phone"), (W + "06c-hud-full-build.png", "a full build, a boss bar"),
-            (W + "06d-hud-levels.png", "plates in their levels' colours"), (W + "06e-hud-mutation-next.png", "MUTATION NEXT"),
-            (W + "06b-hud-boss-banner.png", "a banner, edge pointers")],
+    "spawn_beam": [(S + "startgo/painted_1080x1920_f_run_042.png", "the hero coming down the beam")],
+    "bounty_posters": [(S + "bounty/posters_hang.png", "three posters on strings"), (S + "bounty/taken_stamp.png", "a poster taken"), (S + "bounty/taken_flight.png", "flying to the plate")],
+    "hud": [(S + "g/01_play.png", "a fight on a phone"), (W + "06c-hud-full-build.png", "a full build, a boss bar"), (W + "06e-hud-mutation-next.png", "MUTATION NEXT"),
+            (W + "06b-hud-boss-banner.png", "a banner, edge pointers"), (W + "06i-hud-kills-hot.png", "the kill counter hot"), (S + "bounty/taken_plate.png", "a bounty plate")],
     "damage_numbers": [(W + "06e-hud-phoenix.png", "hits, crits, heals; the Phoenix banner")],
     "level_up": [(W + "07-level-up.png", "three cards"), (W + "07b-level-up-spent.png", "no skips or banishes left")],
     "resume_gate": [(W + "09-gate-tap-to-go.png", "TAP TO GO")],
     "mutation_offer": [(W + "29b-path-reel.png", "the weapon reel"), (W + "08-path-offer.png", "the mutations"),
                        (W + "08b-path-no-skips.png", "no skips left")],
     "chest": [(W + "10c-chest-opening.png", "the chest opening"), (W + "10-chest.png", "landed"),
-              (W + "10b-chest-boss.png", "the boss's mutation chest"), (W + "10e-chest-gold.png", "landed on gold")],
-    # pass 118 (lane BOSSCHEST): game/tools/_p118_BOSSCHEST_shots.gd -> tools/dl/p116/UIREVIEW/bosschest/
-    "boss_chest": [(BCH + "popup_tumbleweed_king_b_knock.png", "the King's chest knocking (x2)"), (BCH + "popup_tumbleweed_king_d_burst.png", "the burst"),
-                   (BCH + "popup_tumbleweed_king_f_spew_late.png", "the spew, BIG WIN!"), (BCH + "popup_tumbleweed_king_h_claim.png", "JACKPOT! and CLAIM"),
-                   (BCH + "popup_brander_h_claim.png", "the Brander's, a slow kill (x1)"), (BCH + "world_solo_gila_grande.png", "the Gila's chest in the world")],
-    "shop": [(W + "11-shop.png", "short of gold"), (W + "11b-shop-22.png", "a long build")],
-    "stranger": [(W + "12-stranger.png", "an item for max HP"), (U + "26_stranger_deal.png", "a weapon offer")],
-    "totem": [(U + "ui_totem.png", "three gifts")],
-    "drum_moment": [(X + "drum_moment_late.png", "the drum's last hit")],
-    "pause": [(W + "13-pause-build.png", "Build, a row opened"), (W + "13b-pause-stats.png", "Stats and a stat's sources"),
+              (W + "10b-chest-boss.png", "the purple chest's mutation"), (W + "10e-chest-gold.png", "landed on gold")],
+    "boss_chest": [(S + "bosschest/popup_tumbleweed_king_b_knock.png", "the King's chest knocking (x2)"), (S + "bosschest/popup_tumbleweed_king_d_burst.png", "the burst"),
+                   (S + "bosschest/popup_tumbleweed_king_f_spew_late.png", "the spew"), (S + "bosschest/popup_tumbleweed_king_h_claim.png", "JACKPOT! and CLAIM"),
+                   (S + "bosschest/popup_black_sunday_h_claim.png", "Black Sunday's Collection Box"), (S + "bosschest/popup_brander_h_claim.png", "the Brander's, a slow kill (x1)")],
+    "shop": [(W + "11-shop.png", "short of gold"), (W + "11b-shop-22.png", "a long build"), (W + "11c-shop-held.png", "a held card's upgrade")],
+    "stranger": [(W + "12-stranger.png", "an item for max HP"), (B + "26_stranger_deal.png", "a weapon offer")],
+    "totem": [(W + "30-totem.png", "three gifts"), (W + "30c-totem-4th.png", "the fourth of the map's poles")],
+    "drum_moment": [(W + "30-drum-slap.png", "a slap"), (W + "30b-drum-words.png", "the last hit and the boost in words")],
+    "grind_moment": [(W + "31-grind-sparks.png", "sharpening"), (W + "31b-grind-level.png", "a level"), (W + "31c-grind-evolved.png", "evolved")],
+    "pause": [(W + "13-pause-build.png", "Build, a row opened"), (W + "13e-pause-build-passives.png", "Build: cards and passive items"), (W + "13b-pause-stats.png", "Stats and a stat's sources"),
               (W + "13c-pause-options.png", "Options"), (W + "13d-pause-abandon-confirm.png", "Abandon the run?")],
-    "down_revive": [(W + "14-down.png", "one chance left"), (W + "14b-down-hits.png", "with the debug hit log")],
+    "down_revive": [(W + "14c-down-plain.png", "one chance left"), (W + "14d-down-no-chance.png", "no chances left"), (W + "14b-down-hits.png", "with the debug hit log")],
     "portal": [(W + "15-stage-clear.png", "the countdown to Endless"), (W + "15b-stage-clear-last-seconds.png", "its last seconds")],
     "endless": [(W + "06f-hud-portal.png", "ENDLESS IN"), (W + "06g-hud-endless.png", "Endless, WAVE 3")],
     "results": [(W + "16-results.png", "extracted"), (W + "16c-results-sources.png", "every damage source, an unlock"),
                 (W + "16b-results-down.png", "run over")],
     "survey": [(W + "19b-survey.png", "a rating page"), (W + "19c-survey-text-focused.png", "a text page")],
     "confirm": [(W + "13d-pause-abandon-confirm.png", "Abandon the run?")],
-    "debug_arena": [(B + "57_arena_enemy.webp", "the ENEMY tab"), (B + "57b_arena_items.webp", "the ITEMS tab")],
+    "debug_arena": [(B + "57_arena_enemy.png", "the ENEMY tab"), (B + "57b_arena_items.png", "the ITEMS tab"), (B + "57c_arena_waves.png", "the WAVES tab")],
 }
 GROUPS = [
-    ("Before the game", ["boot_loading", "consent_card"]),
-    ("The hub", ["title", "hero_drawer", "hero_sheet", "stages_menu", "upgrade_board", "collection", "settings"]),
-    ("In a run: always on", ["spawn_beam", "hud", "hints", "damage_numbers", "last_stand_fx"]),
-    ("In a run: screens that pause", ["level_up", "mutation_offer", "chest", "boss_chest", "resume_gate", "shop", "stranger", "totem", "drum_moment", "pause", "down_revive"]),
+    ("Before the game", ["boot_loading", "consent_card", "run_curtain"]),
+    ("The hub", ["title", "heroes", "hero_details", "skins", "stages_menu", "upgrade_board", "collection", "settings"]),
+    ("In a run: always on", ["spawn_beam", "bounty_posters", "hud", "hints", "damage_numbers", "last_stand_fx"]),
+    ("In a run: screens that pause", ["level_up", "mutation_offer", "chest", "boss_chest", "resume_gate", "shop", "stranger", "totem", "drum_moment", "grind_moment", "pause", "down_revive"]),
     ("The end of a stage", ["portal", "endless", "results", "survey"]),
     ("Shared pieces", ["confirm"]),
     ("For testers only", ["player_debug_mode", "dev_menu", "debug_arena", "debug_panel", "debug_hand", "shop_screen_legacy"]),
 ]
 CODE = re.compile(r"\s*\((?:[^()]|\(\w*\))*?(?:\.gd|\b[A-Z][a-z]+[A-Z][A-Za-z]+\b|\b[A-Z][A-Za-z0-9]+\.[A-Za-z_]\w*|\b[a-z]+_[a-z_]+\b)(?:[^()]|\(\w*\))*\)")
 # the names the doc shows (the records keep the screens' own titles)
-NAMES = {"boot_loading": "Loading", "consent_card": "Play data question", "title": "Title", "hero_drawer": "Hero drawer",
-         "hero_sheet": "Hero sheet", "stages_menu": "Stages", "upgrade_board": "Upgrade board", "level_up": "Level-up cards",
+NAMES = {"boot_loading": "Loading", "consent_card": "Play data question", "title": "Title", "heroes": "Heroes", "run_curtain": "Revolver wipe",
+         "hero_details": "Hero details", "skins": "Skins", "bounty_posters": "Bounty posters", "grind_moment": "Grindstone moment", "stages_menu": "Stages", "upgrade_board": "Upgrade board", "level_up": "Level-up cards",
          "resume_gate": "Tap to go", "mutation_offer": "Mutation offer", "chest": "Chest", "boss_chest": "Boss chest", "shop": "The Shop",
          "stranger": "The Stranger", "totem": "Totem (Spirit Pole)", "pause": "Pause", "down_revive": "Down!",
          "portal": "Stage clear (the portal)", "results": "Results", "survey": "Survey card", "confirm": "Question card",

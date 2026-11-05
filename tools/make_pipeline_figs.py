@@ -28,6 +28,7 @@ PROPS_RAW = os.path.join(DL, "ai_raw_props")
 ANIM = os.path.join(DL, "ai_anim")
 DRIVERS = os.path.join(DL, "drivers")
 CAPS = os.path.join(DL, "pipeline_caps")
+REPO_CONTENT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game", "content")
 CONTENT = os.path.join(REPO, "game", "content")
 
 # the bible's palette (docs/design/src/bible.css)
@@ -235,7 +236,7 @@ def goblin():
             x += 44
         rows_.append(r)
     save(stack([panel(W2, 26, BG2)] + rows_, 4), "ap_gob_strip")
-    save(crop_cap("close_a", (0, 425, 585, 640), W2), "ap_gob_game")
+    save(crop_cap("close_a", (0, 400, 720, 660), W2), "ap_gob_game")
     # the finished walk, front and back, and the fall, at the game's rates (walk 15 fps; the fall 12 fps, then held)
     frames = []
     for k in range(24):
@@ -279,7 +280,7 @@ def drifter():
             x += 78
         rows_.append(r)
     save(stack([panel(W2, 26, BG2)] + rows_, 2), "ap_dr_strip")
-    save(crop_cap("close_a", (200, 560, 600, 920), W2 // 2 + 40), "ap_dr_game")
+    save(crop_cap("close_a", (180, 500, 540, 860), W2 // 2 + 40), "ap_dr_game")
     # the five run cycles side by side at the game's 36 fps
     frames = []
     names = ("run_s", "run_fd", "run_f", "run_bd", "run")
@@ -298,13 +299,13 @@ def big_mouth():
                                             ("no text", not m["text"]), ("clear of the edges", "touches-edge" not in m["problems"])]), "ap_bm_qa")
     icon = Image.open(os.path.join(CONTENT, "weapons", "big_mouth", "big_mouth_icon.png")).convert("RGBA")
     save(fit(icon, S, S, BG3, 30), "ap_bm_icon")
-    save(crop_cap("close_a", (20, 100, 270, 200), S), "ap_bm_hud")
+    save(crop_cap("close_a", (0, 40, 260, 140), S), "ap_bm_hud")
     # pass 34: the mouth is a Blender model again (tools/blender_mouth.py): its previews shut, open and gold, and in play
     mouth = os.path.join(DL, "mouth")
     prev = [Image.open(os.path.join(mouth, n)).convert("RGB").crop((96, 150, 416, 400)) for n in
             ("big_mouth_preview_shut.png", "big_mouth_preview_open.png", "loud_mouth_preview_open.png")]
     save(row(prev, 236, 190, 8, BG2, BG3, ["shut", "open", "evolved"], 18), "ap_mouth_model")
-    save(crop_cap("mouth_3d", (330, 1000, 850, 1340), S), "ap_mouth_game")
+    save(crop_cap("mouth_3d", (430, 900, 950, 1240), S), "ap_mouth_game")
 
 
 def tommy():
@@ -312,13 +313,13 @@ def tommy():
     save(fit(raw("tommy_gun_icon3"), S, S), "ap_tg_raw")
     ics = [Image.open(os.path.join(CONTENT, k, i, i + "_icon.png")).convert("RGBA") for k, i in (("weapons", "tommy_gun"), ("evolutions", "chicago_typewriter"))]
     save(row(ics, 178, 178, 8, BG2, BG3, ["Tommy Gun", "evolved"], 18), "ap_tg_icons")
-    save(crop_cap("close_b", (196, 846, 446, 1096), S), "ap_tg_game")
+    save(crop_cap("close_b", (235, 590, 485, 840), S), "ap_tg_game")
 
 
 def others():
     views = [raw("sun_prophet_" + v) for v in ("front", "fd", "side", "bd", "back")]
     save(row(views, 140, 200, 6, BG2, BG3, ["front", "¾ f", "side", "¾ b", "back"], 17), "ap_sp_views")
-    save(crop_cap("extra_a", (0, 560, 420, 1100), 280), "ap_sp_game")
+    save(crop_cap("extra_a", (200, 120, 620, 660), 280), "ap_sp_game")
     zb = Image.open(os.path.join(DRIVERS, "walk_zombie_low", "back", "driver_03.png")).convert("RGB").crop((120, 80, 520, 600))
     zf = Image.open(os.path.join(DRIVERS, "walk_zombie_high", "front", "driver_03.png")).convert("RGB").crop((120, 80, 520, 600))
     sk = strip_cells("enemies", "skeleton", ENEMY_ORDER)
@@ -423,8 +424,44 @@ def fire_ant():
         anim_webp(frames, "ap_ant_walk", fps)
 
 
+def _frames_of(folder, id_, code, idxs):
+    """Pass 127: frames of look `code` of a character or creature, cut from its sheet (frame_px, strip_cols of the JSON or the look)."""
+    root = os.path.join(REPO_CONTENT, folder, id_)
+    d = json.load(open(os.path.join(root, id_ + ".json"), encoding="utf-8"))
+    v = d["variants"][code]
+    im = Image.open(os.path.join(root, v["sprite"])).convert("RGBA")
+    cell = int(v.get("frame_px") or d.get("frame_px", 128))
+    cols = int(v.get("strip_cols") or d.get("strip_cols", im.width // cell))
+    return [im.crop(((i % cols) * cell, (i // cols) * cell, (i % cols) * cell + cell, (i // cols) * cell + cell)) for i in idxs]
+
+
+def extras():
+    """Pass 127 (lane DOCS): the figures that had been made by hand once: the blue skeletons, Solenne's title, sheet and looks,
+    the style anchor. Each is cut from what the game holds today."""
+    sand = (214, 178, 122)
+    picks = [("enemies", "skeleton", "SK-A"), ("enemies", "skeleton", "SK-E"), ("enemies", "skeleton_knight", "KN-A"), ("enemies", "skeleton_knight", "KN-E")]
+    save(row([_frames_of(f, i, c, [0])[0] for f, i, c in picks], 234, 240, 8, sand, sand, [c for _, _, c in picks]), "ap_skel_blue")
+    save(fit(Image.open(os.path.join(os.path.dirname(REPO_CONTENT), "art", "ui", "wanted", "hero_solenne.png")).convert("RGBA"), 330, 444, BG3, 6), "ap_sol_title")
+    # her sheet: rows of the played look, every 3rd frame of its first 64 frames
+    fr = _frames_of("characters", "solenne", "SOL-B", list(range(0, 62)))
+    rows = [row(fr[k:k + 8], 136, 136, 8) for k in (0, 8, 16, 24, 32)]
+    out = panel(rows[0].width, sum(r.height for r in rows) + 8 * (len(rows) - 1), BG2)
+    y = 0
+    for r in rows:
+        out.paste(r, (0, y))
+        y += r.height + 8
+    save(out, "ap_sol_strip")
+    looks = []
+    for c in ["SOL-B", "SOL-C", "SOL-E", "SOL-H"]:
+        looks.append(row(_frames_of("characters", "solenne", c, [0, 6, 12]), 108, 200, 4))
+    save(row(looks, looks[0].width, 200, 12), "ap_sol_looks")
+    im = Image.open(os.path.join(os.path.dirname(REPO_CONTENT), "art", "style", "style_anchor.png")).convert("RGB")
+    save(im.resize((1200, 600), Image.LANCZOS), "style_anchor")
+
+
 def main():
     os.makedirs(IMG, exist_ok=True)
+    extras()
     goblin()
     drifter()
     big_mouth()

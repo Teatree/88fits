@@ -65,6 +65,13 @@ func _frames_wait(n: int) -> void:
 
 
 func _shot(path: String) -> void:
+	# pass 127 (lane DOCS): a picture of the game: the arena's own buttons and banner stay out of it, the HUD stays
+	if g != null and g.get("arena_panel") != null and not A.has("arena_ui"):
+		g.arena_panel.set("_hide_hud", false)
+		g.arena_panel.call("set_clean", true)
+		g.arena_panel.get("_hint").visible = false
+		if g.hud and g.hud.banner_text() == "DEBUG ARENA":
+			g.hud._banner.visible = false
 	await RenderingServer.frame_post_draw
 	var img: Image = root.get_texture().get_image()
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())

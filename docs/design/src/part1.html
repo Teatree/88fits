@@ -1,13 +1,13 @@
 <meta charset="utf-8">
-<title>88fits Design Bible</title>
+<title>Outlaw Survivors Design Bible</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
 {{CSS}}
 </style>
 <div class="page">
 <nav class="toc" aria-label="Contents">
-  <p class="brand">88fits</p>
-  <p class="sub">Design bible · v0.88 · what the build is</p>
+  <p class="brand">Outlaw Survivors</p>
+  <p class="sub">Design bible · v1.00 · what the build is</p>
   <ol>
     <li><a href="#vision"><span class="n">01</span>Vision &amp; pillars</a></li>
     <li><a href="#refs"><span class="n">02</span>Reference games</a></li>
@@ -40,22 +40,23 @@
     <span class="tag">Godot 4.7 · GDScript</span>
     <span class="tag">Android + PC</span>
     <span class="tag">Red Canyon</span>
+    <span class="tag">Four stages</span>
   </div>
-  <h1>88fits <span class="thin">/ design bible</span></h1>
+  <h1>Outlaw Survivors <span class="thin">/ design bible</span></h1>
   <p class="pitch"><b>Drag to run. The guns aim themselves.</b> A portrait, third-person survivor-shooter in the Megabonk mould: anime-styled heroes in a painted desert on 3D ground, a crowd of creatures on screen, level-ups that hand you three cards, chests that spin a reel, builds that grow mutations and evolve, structures and totems worth crossing the map for, and a meta that keeps you unlocking between runs.</p>
   <div class="meta">
-    <span>version <b>0.88</b></span>
-    <span>pass <b>103</b></span>
-    <span>date <b>2026-10-24</b></span>
+    <span>version <b>1.00</b></span>
+    <span>pass <b>127</b></span>
+    <span>date <b>2026-11-05</b></span>
     <span>status <b>playable, iterated from the phone</b></span>
     <span>engine <b>Godot 4.7.2</b></span>
   </div>
   <div class="callout" style="border-left-color:var(--info)">
     <div class="lab">How to read this</div>
     <p>This describes the game <b>as it is built</b>, not a plan. Every number is the number in the content files, every screenshot is a capture of the current build, and every creature and item pictured was painted by the art pipeline (section 15b).</p>
-    <p>Each section opens with what is true now. Where a rule changed, the old version and the reason sit in a folded <b>How this got here</b> block at the end of the section; open it when you want the story. A change from passes 80 to 103 is labelled with its pass number. The full log of every pass is <code>docs/HISTORY.md</code>.</p>
+    <p>Each section opens with what is true now. Where a rule changed, the old version and the reason sit in a folded <b>How this got here</b> block at the end of the section; open it when you want the story. A change from pass 80 on is labelled with its pass number. The name on screen is <b>Outlaw Survivors</b> (pass 115); the code, the packages and the files stay 88fits. The full log of every pass is <code>docs/HISTORY.md</code>.</p>
   </div>
-  <div class="fig-frame">{{IMG:01_play|The build: Astro in the middle of a goblin and fire ant pack under the slim HUD strip, damage numbers rising}}</div>
+  <div class="fig-frame">{{IMG:01_play|The build: the Drifter in a ring of creatures under the slim HUD strip, damage numbers rising}}</div>
 </header>
 
 <!-- ============================================================ 01 -->
@@ -64,8 +65,8 @@
   <p class="lede">The question this project answers: <b>does a Megabonk-style run work in portrait with one thumb?</b> The build says yes. What follows is the game that answer became, and the rules that keep it growing without turning into code.</p>
 
   <h3>The pitch in three sentences</h3>
-  <p>You are a small goofy hero in a very big, very hot desert, and the desert hates you. Goblins, fire ants, skeletons, scorpions, mummies and beetles pour in from every side while your weapons fire on their own, so your only job is to steer through the mess, hoover up XP gems, reach the structures and totems on the map, and pick the best card every time you level up.</p>
-  <p>Each <b>stage is its own run</b> (pass 87): survive to its boss, then walk into the portal and bank your gold, or stay for <b>Endless</b> and see how long you last. Gold comes home whichever way the run ends.</p>
+  <p>You are a small goofy hero in a very big, very hot desert, and the desert hates you. Scorpions, skeletons, goblins, straw men, crows, mummies and beetles pour in from every side while your weapons fire on their own, so your only job is to steer through the mess, hoover up XP gems, reach the structures and totems on the map, and pick the best card every time you level up.</p>
+  <p>There are <b>four stages</b>, and each is its own run: Sundown, Nightfall, The Dust Bowl and Blood Moon. Survive to the stage's boss, open his chest, then walk into the portal and bank your gold, or stay for <b>Endless</b> and see how long you last. Gold comes home whichever way the run ends.</p>
 
   <div class="pillars">
     <div class="pillar"><p class="t">One thumb, zero menus</p><p>Every in-run action is hold, slide, or tap. If a feature needs a second finger or a button cluster, it is cut or automated.</p></div>
@@ -97,7 +98,7 @@
       <dl><dt class="take">We take</dt><dd>Auto-firing weapons. Five weapon slots plus five card slots, and passive items without a cap (Megabonk's weapons, tomes and items). Weapons to level 5. An evolution for a maxed weapon, opened at a chest. XP gems and the magnet. Pick 1 of 3 on level up. Reroll, skip and banish. A pause screen that lists every item you hold. Chests that spin before they reveal.</dd>
       <dt class="skip">We skip</dt><dd>The 30-minute timer, the arcana system, the sheer item count for now.</dd></dl></div>
     <div class="ref"><p class="t">Archero</p><p class="k">portrait · one thumb · mobile pacing</p>
-      <dl><dt class="take">We take</dt><dd>Portrait HUD conventions. Full-width level-up cards sized for thumbs. Short chapters: a stage-run is 7 to 13 minutes with its boss at the end. A title screen that is one big PLAY button.</dd>
+      <dl><dt class="take">We take</dt><dd>Portrait HUD conventions. Full-width level-up cards sized for thumbs. Short chapters: a stage-run is 7 to 16 minutes with its boss at the end. A title screen that is one big START button.</dd>
       <dt class="skip">We skip</dt><dd>Stop-to-shoot. Rooms and doors. Equipment gacha.</dd></dl></div>
     <div class="ref"><p class="t">Brotato</p><p class="k">stat transparency</p>
       <dl><dt class="take">We take</dt><dd>A stats screen that shows every number with where it came from (the pause screen's Stats tab).</dd>
@@ -117,12 +118,12 @@
   <div class="fig-frame">
   <div class="mockups">
     <figure>
-      {{IMG:14_elite|The build: a crowned Elite at the top of the screen, Dynamite Bandits on the left, the hero below the HUD strip}}
+      {{IMG:14_elite|The build: a crowned Elite up the screen, creatures closing round the hero below the HUD strip}}
       <figcaption><b>Play view.</b> The hero sits about 62% down the screen, so most pixels show what is ahead. Every marking on the ground (a charge line, a blast ring, a structure's progress wedge) is draped over the terrain so it never cuts through a dune.</figcaption>
     </figure>
     <figure>
-      {{IMG:02_cards|The build: the level-up screen, LEVEL 2 in the star line, a hero perk, a new weapon and a new passive item on three full-width cards, Reroll, Skip and Banish under them}}
-      <figcaption><b>Level-up.</b> Three full-width cards, each a thumb target, their text generated from the item's data. Each card says <b>NEW</b> or <b>UPGRADE</b> (an upgrade lists the stats that change). Reroll, Skip and Banish stay anchored at the bottom. The game pauses, so there is never pressure to choose fast. Section 10 has the rules.</figcaption>
+      {{IMG:02_cards|The build: the level-up screen, LEVEL 3 over a sunburst, three full-width item cards, Reroll, Skip and Banish under them}}
+      <figcaption><b>Level-up.</b> Three full-width cards in the Royale kit (section 12), each a thumb target, their text generated from the item's data. Each card says <b>NEW</b> or <b>UPGRADE</b> (an upgrade lists the stats that change). Reroll, Skip and Banish stay anchored at the bottom. The game pauses, so there is never pressure to choose fast. Section 10 has the rules.</figcaption>
     </figure>
   </div>
   </div>
@@ -130,9 +131,11 @@
   <h3>HUD anatomy</h3>
   <dl class="kv">
     <dt>XP rail</dt><dd>A 65 px ink rail across the top edge with a purple fill (<code>HUD.RAIL_H</code>, the fill 11 px in). The level-up screen's rainbow rail is the same height. When a mutation offer is due, <b>MUTATION NEXT</b> sits on the rail's right end: the next level-up will be a mutation pick (pass 79, section 10).</dd>
-    <dt>top row</dt><dd>Paper plates: the <b>LV</b> badge, the <b>clock</b> in the middle and <b>gold</b> with its coin, and the round brass <b>pause disc</b> at the right end. The clock is the <b>stage's own clock</b> (pass 87): 0:00 at the landing, the stage's length at its boss. After the boss it counts the portal's 60 seconds down with ENDLESS IN under it, and in Endless it shows Endless's time with the wave number (WAVE 3). Tapping anywhere on the strip pauses.</dd>
-    <dt>slots</dt><dd>One row of ten equal 72 px slots: <b>five weapons</b> against the left edge, <b>five cards</b> against the right (<code>WEAPON_SLOTS</code>, <code>LINE_SLOTS</code>). Each held item is a see-through plate in its level's rarity colour with a level tag; a weapon shows a dot per mutation and glows when it is ready to evolve. Empty slots are dashed. Passive items are not on the HUD; the pause screen's Build tab lists them.</dd>
-    <dt>buffs</dt><dd>A row of plates under the slots while a timed effect runs (Berserk, Sprint, Shield, the Magnet, the War Drum), each with its seconds left.</dd>
+    <dt>top row</dt><dd>The <b>LV</b> badge, the <b>clock</b> in the middle and <b>gold</b> with its coin, and the <b>pause square</b> at the right end. The clock is the <b>stage's own clock</b> (pass 87): 0:00 at the landing, the stage's length at its boss. After the boss it counts the portal's 60 seconds down with ENDLESS IN under it, and in Endless it shows Endless's time with the wave number (WAVE 3). Tapping anywhere on the strip pauses.</dd>
+    <dt>kill counter</dt><dd>Under the clock (pass 109, <code>ui/wanted/WKillCount.gd</code>): a jawless skull and the run's kills. It dings on kills, each ding bigger the faster they come, with no sound. It keeps its Wanted look on purpose, as the boss bar, the toasts, the banners and TAP TO GO do.</dd>
+    <dt>slots</dt><dd>One row of ten equal 72 px slots: <b>five weapons</b> against the left edge, <b>five cards</b> against the right (<code>WEAPON_SLOTS</code>, <code>LINE_SLOTS</code>). Each held item is a frame in its level's rarity colour with a level tag (<code>Settings.hud_slot_rarity</code>, locked on since pass 124); a weapon shows a dot per mutation and glows when it is ready to evolve. Empty slots are see-through. Passive items are not on the HUD; the pause screen's Build tab lists them.</dd>
+    <dt>buffs</dt><dd>A row of plates under the slots while a timed effect runs (Berserk, Sprint, Shield, the Magnet, the War Drum in its own red), each with its seconds left.</dd>
+    <dt>bounty plate</dt><dd>A taken Wanted poster (section 13) sits on the right under the item row with its task and how far along it is (pass 112).</dd>
     <dt>boss</dt><dd>While a boss lives, its name (paper with an ink outline) and its bar sit under the slots.</dd>
     <dt>banners and toasts</dt><dd>A banner pops in at 38% of the screen's height for 2 s (NUKE, SWARM!, PHOENIX FEATHER); toasts queue under the clock (PORTAL OPEN: extract before Endless).</dd>
     <dt>on the hero</dt><dd>His health bar under his feet, drawn by the HUD at a fixed spot under him and scaled with the zoom; the Energy Shield's thin blue bar above it. When he is hurt the bar <b>jiggles</b> instead of the screen shaking (pass 82, <code>HUD.shake_hp_bar</code>). "+N XP" and "+N" gold rise from him, batched so a sweep through a gem field reads as one reward.</dd>
@@ -142,7 +145,7 @@
     <dt>safe areas</dt><dd>The HUD keeps clear of the camera cutout (<code>W.safe_top()</code>) and the gesture bar. Gameplay renders edge to edge.</dd>
   </dl>
   <figure>
-    <div class="fig-frame"><div class="fig-grid">{{IMG:15_boss_arrow|The build: the Tumbleweed King's name and bar under the slots, a red chevron at the left edge reading BOSS 44 m}}{{IMG:54_portal_arrow|The build: the boss dead, PORTAL OPEN: extract before Endless, a green chevron at the left edge reading PORTAL 45 m}}{{IMG:52_badges|The build: a crown over the Dune Scorpion Elite, gears over the Harpoon Troglodyte and the Vulture Raider, none over the goblins}}</div></div>
+    <div class="fig-frame"><div class="fig-grid">{{IMG:15_boss_arrow|The build: the Tumbleweed King's name and bar under the slots, a chevron at the screen's edge reading how far he is}}{{IMG:54_portal_arrow|The build: the boss dead, the portal off screen, a green chevron at the edge reading how far it is}}{{IMG:52_badges|The build: a crown over an Elite, gears over the special types, none over the fodder}}</div></div>
     <figcaption><b>The pointers and the badges.</b> Left: the boss is somewhere off the screen; the chevron sits on the edge along the line to it and says how far. Middle: the boss is dead and the marker has moved to its portal, green. Right: a crown over an Elite, gears over the special types.</figcaption>
   </figure>
   <details><summary>How this got here (history)</summary>
@@ -166,11 +169,11 @@
     <dt>touch down</dt><dd>The joystick base appears under the thumb, anywhere below the top strip. No fixed position to find, no acceleration ramp: the first frame of drag already moves. Touch is raw screen touch, never mouse emulation.</dd>
     <dt>drag</dt><dd>Direction of the stick = direction of travel on screen (north is up, because the camera never turns). Dead zone 6 px. Throttle ramps to full speed at about half deflection, so a small nudge creeps through a gap and a full push sprints. The hero faces where he runs.</dd>
     <dt>long drag</dt><dd>Past the rim the base trails the thumb, so a thumb that wandered keeps steering from where it is. Joystick size is a slider in Settings (0.6 to 1.4).</dd>
-    <dt>lift</dt><dd>Stop on the spot. Standing still is a legitimate tactic. Weapons keep firing.</dd>
+    <dt>lift</dt><dd>Stop on the spot. Standing still is a legitimate tactic. Weapons keep firing. After a pause the stick <b>carries its push</b> for a thumb that comes back within a second (pass 119, <code>PlayerInput.CARRY_WINDOW</code>), so no step is lost after a level-up.</dd>
     <dt>auto-fire</dt><dd>Every weapon fires on its own cooldown and aims itself: the nearest creature, the strongest nearby, the thickest crowd, the nearest <i>healthy</i> creature for poison, or a cone at the nearest. Weapons take <b>the nearest special, Elite or boss within 10 m first</b> (pass 73, the map's <code>target_priority</code>). Ranged weapons fire only at what is on the screen (a metre of margin); homing ones still hunt off it. Every hit pushes: each weapon carries a <code>knockback</code> stat, and heavier creatures budge less.</dd>
     <dt>stand to use</dt><dd>Structures and totems are used by standing inside their ring; a wedge fills on the ground and drains if you walk out. Chests and pickups are used by walking over them.</dd>
-    <dt>tap a card</dt><dd>Level-up, mutation, the chest's Take, Skip or Banish, the shop's three items, a totem's gifts. Big targets, no drag, no confirm step. After a pick the game <b>stays paused until the next tap</b> ("TAP TO GO"), and the hero is immune for a moment after that tap, so a card is never claimed straight into a bite; the tap that resumes can be the thumb landing to move.</dd>
-    <dt>pause</dt><dd>The round brass disc at the right end of the HUD strip (tapping anywhere on the strip works too): the build, the stats and the options (section 12). The run also pauses when the phone sends the app to the background. It does <b>not</b> pause on Android's back gesture: a thumb steering near the edge made one by accident. Settings lists the last system events that paused a run or could have.</dd>
+    <dt>tap a card</dt><dd>Level-up, mutation, the chest's Take, Skip or Banish, the shop's three items, a totem's gifts, a Wanted poster. Big targets, no drag, no confirm step. After a pick the game <b>stays paused until the next tap</b> ("TAP TO GO"), and the hero is immune for a moment after that tap, so a card is never claimed straight into a bite; the tap that resumes can be the thumb landing to move.</dd>
+    <dt>pause</dt><dd>The pause square at the right end of the HUD strip (tapping anywhere on the strip works too): the build, the stats and the options (section 12). The run also pauses when the phone sends the app to the background. It does <b>not</b> pause on Android's back gesture: a thumb steering near the edge made one by accident. Settings lists the last system events that paused a run or could have.</dd>
     <dt>keyboard, PC only</dt><dd><b>WASD or the arrow keys</b> move the hero like a full stick push; the four actions (<code>move_left/right/up/down</code>) live in the project's Input Map. Escape pauses or closes an overlay. Phones never see them.</dd>
     <dt>reserved</dt><dd>Double-tap dash and a second-thumb ability button are ideas for later.</dd>
   </dl>
@@ -194,8 +197,8 @@
   <p class="lede">A fixed camera, north always up, the way Archero and Survivor.io frame the fight: the world never rotates, so the stick maps straight to the screen and the map stays learnable. It is bolted to the hero (no lead, no lag) and only big blasts and slams shake it; the hero's own hurt jiggles his health bar instead (pass 82).</p>
 
   <figure>
-    <div class="fig-frame">{{IMG:01c_mesa|The build: the fixed camera looking north at the sandstone fort wall, a Teleport with its pink portal by the hero}}</div>
-    <figcaption><b>Camera framing.</b> Pitch 46°, distance 22.5 m with the focus 3.3 m north of the hero, vertical FOV 55°: a three-quarter view that shows faces and coats rather than hats, and enough field that a charge from the top of the screen can be read and dodged. Here the hero stands at the western fort wall (pass 80) beside a Teleport.</figcaption>
+    <div class="fig-frame">{{IMG:01c_mesa|The build: the fixed camera looking north at the sandstone fort wall, the hero on the sand below it}}</div>
+    <figcaption><b>Camera framing.</b> Pitch 46°, distance 22.5 m with the focus 3.3 m north of the hero, vertical FOV 55°: a three-quarter view that shows faces and coats rather than hats, and enough field that a charge from the top of the screen can be read and dodged. Here the hero stands at the western fort wall (pass 80).</figcaption>
   </figure>
 
   <dl class="kv">
@@ -224,19 +227,26 @@
     <dt>the edge</dt><dd>Sand runs right up to a <b>western sandstone fort wall</b> (pass 80, <code>CanyonWalls.gd</code>: battlements, posts, seamless painted stone) with the red-rock cliffs behind it; an invisible fence on the wall's inner face stops the hero at the stone. The rim and the wall take their colours from the map (<code>rock_color</code>, <code>wall_colors</code>).</dd>
     <dt>scenery</dt><dd>Twenty painted plant, rock and bone kinds (<code>art/sprites/props/props.json</code>: saguaros, barrel cactus, agave, ocotillo, fan palms, Joshua trees, mesquite, palo verde, bushes, rocks, skulls, bones...), placed <b>by region</b>: palms and green round the water, cactus and tree stands, bush patches, dead trees and shrubs on the river's banks with bones in its bed, rock fields near the rim. Many kinds have <b>painted variants</b> (pass 83, <code>variant_of</code>, picked by a hash of the spot) and a <b>natural random tint</b> per spot (pass 85, <code>tint</code>). Every prop, structure, barrel and sign stands on a <b>ground shadow</b> (pass 83). Cacti, trees and rocks collide through a cylinder smaller than the painting, so the hero can stand behind one and be read through it; bushes and bones do not collide.</dd>
     <dt>structures</dt><dd>Nine landmarks drawn by weight, at least 22 m apart (the map's <code>structures</code>), plus <b>3 or 4 Teleports</b> (4 a third of the time, 40 m apart, landing 15 m clear of any; pass 85) and <b>10 to 12 Totem Poles</b> (pass 73) placed on their own. All are paintings with a spent painting swapped in once used. Section 07 has what each does.</dd>
-    <dt>barrels and signs</dt><dd>Wooden <b>barrels</b> stand about the map and burst into XP gems when walked into; black ones hold 1 to 5 coins (pass 87). Four to six weathered <b>signposts</b> point their arrow boards at the nearest structures not used yet. Both are 3D.</dd>
-    <dt>moving bits</dt><dd>Tumbleweeds stay 3D because they roll; the dust devil is a 3D cone of sand that roams the flats and throws creatures and hero alike; gusts of dust sweep across the sand now and then (a look, nothing else). The greenery sways in the vertex shader.</dd>
+    <dt>barrels</dt><dd><b>Three painted billboards</b> (pass 116, <code>timeline_data.barrels</code>): <b>EXP</b> (weight 64.8%: 8 small gems), <b>EXP + Coins</b> (22%: 10 small and 4 medium gems, 1 to 5 coins) and <b>Power-up</b> (13.2%: a power-up thrown 5 to 7 m). Smashed, a barrel comes apart into a stump, a lid and staves that lie 6 s (pass 117). They come back off screen: first at 45 s, then every 40 to 60 s, up to 35 lying, 20 to 40 m from the hero, also in a boss fight, never in the portal count or Endless.</dd>
+    <dt>signs</dt><dd>Four to six weathered 3D <b>signposts</b> point their arrow boards at the nearest structures not used yet.</dd>
+    <dt>the dressing</dt><dd>Pass 126 (<code>core/systems/MapDressing.gd</code>, <code>timeline_data.dressing</code>, JSON only, on its own dice off the map seed), and none but the cart has a collider. <b>One broken telephone line</b> crossing the map: poles 9 to 12 m apart, one to three bends, gaps, snapped and leaning poles, sagging wire that sways (<code>TelephoneLine.gd</code>; the wire sways harder in the Dust Bowl). <b>A toppled wagon</b> in 75% of runs (pass 127: painted from a real Blender model, <code>tools/blender_cart.py</code>) with 1 or 2 loose 3D wheels on the sand. <b>2 to 6 grave sites</b>: a cross, or three of them, some of two sticks.</dd>
+    <dt>moving bits</dt><dd>Tumbleweeds stay 3D because they roll. <b>Dust devils</b> (pass 113, <code>core/systems/DustDevils.gd</code>, <code>TornadoFx.gd</code>) are tornado-shaped and come now and then: first at 1:30 of a stage, then every 2 to 3 minutes, each standing 60 to 90 s, one at a time, on the screen where they form, throwing creatures and hero alike; in Blood Moon they are <b>fire tornadoes</b> (pass 122). Gusts of dust sweep across the sand now and then (a look, nothing else). The greenery sways in the vertex shader.</dd>
   </dl>
   <figure>
-    <div class="fig-frame"><div class="fig-grid">{{IMG:36_oasis|The build: the hero by an oasis, damp earth and green round the water, fan palms on the shore}}{{IMG:01b_props|The build: the hero running past an XP Beacon below the sandstone fort wall, a red ring and a telegraphed line draped over the dunes}}{{IMG:62_totem|The build: a Totem Pole in its turquoise ring on the sand, the hero beside it}}</div></div>
-    <figcaption><b>The oasis, the wall and a totem.</b> Left: one of the two or three oases, wadeable and 10% slow. Middle: the sandstone fort wall at the map's edge, an XP Beacon in front of it; the red ring and the line show how every marking drapes over the ground. Right: one of the ten to twelve Totem Poles; stand in its ring for a gift (section 07).</figcaption>
+    <div class="fig-frame"><div class="fig-grid">{{IMG:36_oasis|The build: the hero by an oasis, damp earth and green round the water, fan palms on the shore}}{{IMG:01b_props|The build: the hero on the sand below the sandstone fort wall, a structure in its ring, ground marks draped over the dunes}}{{IMG:62_totem|The build: a Totem Pole in its turquoise ring on the sand, the hero beside it}}</div></div>
+    <figcaption><b>The oasis, the wall and a totem.</b> Left: one of the two or three oases, wadeable and 10% slow. Middle: the sandstone fort wall at the map's edge; every marking drapes over the ground. Right: one of the ten to twelve Totem Poles; stand in its ring for a gift (section 07).</figcaption>
+  </figure>
+
+  <figure>
+    <div class="fig-frame"><div class="fig-grid">{{IMG:78_dress_line|The build: a broken telephone line across the sand, poles leaning, sagging wire}}{{IMG:78b_dress_cart|The build: the toppled wagon on the sand with a loose wheel beside it}}{{IMG:78c_dress_graves|The build: a grave site, wooden crosses on the sand}}{{IMG:79_barrels|The build: the three painted barrels side by side, EXP, EXP and Coins, Power-up}}</div></div>
+    <figcaption><b>The map's dressing and the barrels.</b> The telephone line, the toppled wagon with its wheels and the graves (pass 126), and the three barrels (pass 116). The plain barrel pays gems, the gold-banded one pays coins too, the third throws a power-up.</figcaption>
   </figure>
 
   <h3>Stage looks</h3>
-  <p>Each of the four stages has its own look over the same map (pass 87, <code>StageLook</code>, the stage's <code>filter</code> in <code>stage_list</code>): <b>Sundown</b> plays the plain golden hour, <b>Nightfall</b> lays a blue filter over the world (#3D55C8 at 0.48), <b>The Dust Bowl</b> (pass 126) a brown one with a storm's fog, rolling haze, streaming wind and plants bent over, and <b>Blood Moon</b> a dark red one (#6A1A28 at 0.6) with <b>hell</b>: the sand turns red and the hell crowd comes on top of the regular one. The look is set before the hero's spawn beam lands, so the landing is already in the stage's light (pass 100).</p>
+  <p>Each of the four stages has its own look over the same map (pass 87, <code>StageLook</code>, the stage's <code>filter</code> in <code>stage_list</code>): <b>Sundown</b> plays the plain golden hour, <b>Nightfall</b> lays a blue filter over the world (#3D55C8 at 0.48), <b>The Dust Bowl</b> (pass 126) a brown one with a storm's fog, rolling haze, streaming wind and plants bent over, and <b>Blood Moon</b> a dark red one (#6A1A28 at 0.42; pass 122 lightened it so the stage reads) with <b>hell</b>: the sand turns red and the hell crowd comes on top of the regular one. The look is set before the hero's spawn beam lands, so the landing is already in the stage's light (pass 100).</p>
   <figure>
-    <div class="fig-frame"><div class="fig-grid">{{IMG:60_nightfall|The build: Nightfall, the world under a blue filter, a pack of skeletons and goblins closing on the hero}}{{IMG:61_blood_moon|The build: Blood Moon, the red hell ground and filter, imps, hellhounds and hammer giants coming at the hero}}</div></div>
-    <figcaption><b>Nightfall and Blood Moon.</b> The same canyon in the second and third stage-runs. Section 07 has the stages' lengths, bosses and multipliers.</figcaption>
+    <div class="fig-frame"><div class="fig-grid">{{IMG:60_nightfall|The build: Nightfall, the world under a blue filter, a pack of skeletons and goblins closing on the hero}}{{IMG:74_dust_bowl|The build: The Dust Bowl, brown haze and wind over the sand, Straw Men and Dust Bunnies closing on the hero}}{{IMG:61_blood_moon|The build: Blood Moon, the red hell ground and filter, imps, hellhounds and giants coming at the hero}}</div></div>
+    <figcaption><b>Nightfall, The Dust Bowl and Blood Moon.</b> The same canyon in the second, third and fourth stage-runs. The Dust Bowl's weather is only a look: nothing in the rules reads it (<code>stage_list[k].weather</code>, <code>world/features/DustHaze.gd</code>, <code>RedCanyon.set_weather</code>). Section 07 has the stages' lengths, bosses and multipliers.</figcaption>
   </figure>
 
   <h3>Theme rules</h3>
@@ -248,7 +258,7 @@
 
   <h3>Blender's role</h3>
   <ul>
-    <li><b>The movers and a few solid things.</b> Tumbleweeds, barrels and signposts are Blender meshes (<code>tools/blender_props.py</code>, <code>blender_barrel.py</code>, <code>blender_sign.py</code>); the structures and the scenery are paintings.</li>
+    <li><b>The movers and a few solid things.</b> Tumbleweeds, signposts and the dressing (telephone poles, wagon wheels, grave crosses) are Blender meshes (<code>tools/blender_props.py</code>, <code>blender_sign.py</code>, <code>blender_telephone.py</code>, <code>blender_wheel.py</code>, <code>blender_grave_cross.py</code>); the structures, the barrels, the cart and the scenery are paintings.</li>
     <li><b>Weapon meshes.</b> Saw blades, guns, grenades and dynamite, the turret, the basketball, the salt shaker, the gem, the coin, the portal ring, mostly built from Garry's reference models in <code>_REFERENCES/</code>.</li>
     <li><b>References and drivers.</b> Characters and creatures are 2D painted sprites. Blender renders their pose skeletons, depth drivers and icon references (section 15b).</li>
   </ul>
@@ -259,6 +269,7 @@
       <li><b>v0.18:</b> the layout began rolling per run; the fan palm, the ocotillo and the yucca joined. <b>v0.35:</b> the yucca and the signpost prop were hidden (<code>"hidden": true</code> in props.json). <b>v0.40 to v0.47:</b> the sand and the river were lightened and made less orange several times, bush patches came (5 to 7 a run), signposts arrived (v0.40, with name tags; v0.41 "just let them be pointers") and grew 1.4 times taller.</li>
       <li><b>The lake:</b> one small oasis from v0.18, wadeable since v0.19, a flat half-transparent disc since v0.21 (a wavy shader read as a patterned lid); the hero wades as deep as a creature since v0.42. Pass 80 made two or three of them and slowed walking in them; pass 81 gave them the water shader and the damp shore.</li>
       <li><b>The boundary:</b> a stacked-stone wall with battlements (v0.15) in front of a ring of noise-height cliffs; pass 80 replaced it with the sandstone fort wall in the west and real red rock behind (Garry: "make the edges of the map just sand ... Make the walls look like sandstone castle walls (but western)").</li>
+      <li><b>Barrels</b> were 3D with rare black ones holding coins (passes 48 to 87); pass 116 made them the three painted kinds, and pass 112 brought them back during a run.</li>
       <li><b>The sand:</b> pass 81 made it calmer and Megabonk-like; pass 82 painted four more from Garry's reference; Garry chose ripples with pebbles in pass 83 ("Sand - I am choosing Rip+P").</li>
     </ul>
   <figure>

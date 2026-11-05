@@ -28,7 +28,7 @@ for a in sys.argv[1:]:
 SHOT_W = 720   # pass 104: captures are 1080 wide; 720 is plenty for the page and its zoom, and halves the bytes
 
 
-def to_webp(png, name, quality=80):
+def to_webp(png, name, quality=68):   # pass 127: 80 pushed the page past 16 MB with the new pictures
     im = Image.open(png).convert("RGB")
     if im.width > SHOT_W:
         im = im.resize((SHOT_W, round(im.height * SHOT_W / im.width)), Image.LANCZOS)
@@ -227,6 +227,36 @@ def hero_cycles():
         row.paste(fr, (150 + k * (S + 4), 3), fr)
     rows.append(row)
     stack(rows, "hero_cycles")
+
+
+def skins_sheet():
+    """Pass 127: every skin on sale as its full-figure still (tools/skin_stills.py), with the hero's name and the skin's."""
+    D = _load_type("characters")
+    tiles = []
+    for id_ in sorted(D, key=lambda k: int(D[k].get("price", 0) or 0)):
+        for code, v in (D[id_].get("variants") or {}).items():
+            sk = v.get("skin") if isinstance(v, dict) else None
+            if not isinstance(sk, dict) or not sk.get("purchasable", True):
+                continue
+            p = os.path.join(CONTENT, "characters", id_, "%s_still_%s.png" % (id_, code.lower().replace("-", "_")))
+            if os.path.exists(p):
+                tiles.append((p, D[id_].get("name", id_), sk.get("name", code)))
+    if not tiles:
+        return
+    W_, H_, cols = 200, 300, 7
+    rows = (len(tiles) + cols - 1) // cols
+    out = Image.new("RGB", (cols * (W_ + 8) + 8, rows * (H_ + 8) + 8), (26, 24, 34))
+    dr = ImageDraw.Draw(out)
+    f, f2 = font(19), font(16)
+    for k, (p, hero, name) in enumerate(tiles):
+        im = Image.open(p).convert("RGBA")
+        sc = min((W_ - 8) / im.width, (H_ - 56) / im.height)
+        im = im.resize((max(1, int(im.width * sc)), max(1, int(im.height * sc))), Image.LANCZOS)
+        x, y = 8 + (k % cols) * (W_ + 8), 8 + (k // cols) * (H_ + 8)
+        out.paste(im, (x + (W_ - im.width) // 2, y + 4), im)
+        dr.text((x + 4, y + H_ - 48), name, fill=(240, 236, 248), font=f)
+        dr.text((x + 4, y + H_ - 24), hero, fill=(135, 127, 158), font=f2)
+    out.save(os.path.join(IMG, "skins.webp"), "WEBP", quality=74, method=6)
 
 
 def _sheet_icons():
@@ -1360,6 +1390,114 @@ def unlock_rows():
     return "\n".join(rows)
 
 
+def _row_clock(t, a):
+    t = max(float(t) - a, 0.0)
+    return "%d:%02d" % (int(t) // 60, int(t) % 60)
+
+
+def _row_who(r):
+    e = r.get("enemy")
+    if e == "roster":
+        return "a creature from the mix"
+    ids = e if isinstance(e, list) else [e]
+    return ", ".join(_esc(_creature_name(x)) for x in ids if x)
+
+
+def _row_how(r):
+    """A roster row in words (pass 127): how it paces, how many, in what pattern, and its flags."""
+    bits = []
+    pace = r.get("pace", "continuous")
+    n = r.get("count", r.get("pack"))
+    every = r.get("every", r.get("interval"))
+    if isinstance(every, list) and len(every) == 2:
+        every = "%g to %g" % (every[0], every[1])
+    elif isinstance(every, (int, float)):
+        every = "%g" % every
+    if pace == "once":
+        bits.append("once%s" % ((", %d" % n) if n else ""))
+    elif pace == "waves":
+        bits.append("%s every %s s" % (n if n else "a wave", every))
+    else:
+        bits.append(("%s at a time" % n if n else "drawn by weight") + ((", every %s s" % every) if every else ""))
+    if r.get("pattern"):
+        bits.append(str(r["pattern"]).replace("_", " "))
+    if r.get("channel") == "hell":
+        bits.append("hell channel")
+    if r.get("elite"):
+        bits.append("wearing %s" % ("a random modifier" if r["elite"] == "random" else str(r["elite"])))
+    if r.get("special"):
+        bits.append("special")
+    if r.get("variant"):
+        bits.append(str(r["variant"]))
+    if r.get("banner"):
+        bits.append("<b>%s</b>" % _esc(r["banner"]))
+    return ", ".join(bits)
+
+
+def roster_rows():
+    """Pass 127: every row of the map's timeline, stage by stage on the stage's own clock, with its Elite and boss events and
+    the stage's boss fight rows; generated, since Garry edits the rows while passes run."""
+    tl = _timeline()
+    out = []
+    rows = [r for r in tl.get("roster", []) if isinstance(r, dict)]
+    events = [e for e in tl.get("events", []) if isinstance(e, dict)]
+    stages = tl.get("stage_list", [])
+    for k, (name, a, b) in enumerate(stage_windows(tl)):
+        out.append('      <tr class="grp"><td colspan="3">%s (%d to %d s on the map clock)</td></tr>' % (_esc(name), a, b))
+        here = [(float(r.get("t", 0)), 0, r) for r in rows if a <= float(r.get("t", 0)) < b]
+        here += [(float(e.get("t", 0)), 1, e) for e in events if a <= float(e.get("t", 0)) <= b]
+        for t, kind, x in sorted(here, key=lambda q: (q[0], q[1])):
+            if kind == 1:
+                who = "the Elite" if x.get("type") == "elite_boss" else _esc(_creature_name(str(x.get("enemy", x.get("id", "")))))
+                out.append('      <tr><td class="num">%s</td><td>%s</td><td>event</td></tr>' % (_row_clock(t, a), who))
+                continue
+            when = _row_clock(t, a)
+            if x.get("until") is not None:
+                when += " to " + _row_clock(x["until"], a)
+            label = _row_who(x)
+            if x.get("name") and x.get("role") in ("elite", "special"):
+                label = _esc(x["name"])
+            out.append('      <tr><td class="num">%s</td><td>%s</td><td>%s</td></tr>' % (when, label, _row_how(x)))
+        bf = stages[k].get("boss_fight") if k < len(stages) else None
+        if isinstance(bf, dict) and bf.get("enabled"):
+            who = []
+            for r in bf.get("roster", []):
+                nm = _creature_name(str(r.get("enemy", "")))
+                if nm not in who:
+                    who.append(nm)
+            out.append('      <tr><td class="num">boss fight</td><td>%s</td><td>a %d s loop, at most %d alive</td></tr>' % (
+                _esc(", ".join(who)), int(bf.get("length", 120)), int(bf.get("max_count", 0))))
+    return "\n".join(out)
+
+
+def roster_count():
+    tl = _timeline()
+    return "%d" % len([r for r in tl.get("roster", []) if isinstance(r, dict)])
+
+
+def skin_rows():
+    """Pass 127: every skin on sale, from the heroes' JSON and their goal quests."""
+    D = _items()
+    out = []
+    for cid in [str(h.get("id")) for h in _hero_order()]:
+        c = D["characters"].get(cid, {})
+        for code, v in (c.get("variants") or {}).items():
+            sk = v.get("skin") if isinstance(v, dict) else None
+            if not isinstance(sk, dict) or not sk.get("purchasable", True):
+                continue
+            q = D["quests"].get(str(sk.get("unlock_quest", "")))
+            goal = _esc(quest_text(q)) if q else "none: on sale"
+            out.append('      <tr><td><span class="name">%s</span></td><td><span class="name">%s</span><span class="sub">%s</span></td><td>%s</td><td class="num">%s %s</td></tr>' % (
+                _esc(c.get("name", cid)), _esc(sk.get("name", code)), _esc(code), goal, "{:,}".format(int(sk.get("price", 0))), _esc(sk.get("currency_type", "gold"))))
+    return "\n".join(out)
+
+
+def _hero_order():
+    D = _items()
+    hs = [dict(d, id=i) for i, d in D["characters"].items()]
+    return sorted(hs, key=lambda h: int(h.get("price", 0) or 0))
+
+
 def main():
     os.makedirs(IMG, exist_ok=True)
     if SHOTS:
@@ -1371,6 +1509,7 @@ def main():
     cast_sheet()
     hero_cycles()
     icon_sheet()
+    skins_sheet()
     props_sheet()
     html = "".join(open(os.path.join(SRC, "part%d.html" % k), encoding="utf-8").read() for k in range(1, 5))
     html = html.replace("{{CREATURES}}", creature_rows())
@@ -1388,6 +1527,7 @@ def main():
     html = html.replace("{{ITEM_HERO}}", item_hero_rows())
     html = html.replace("{{CSS}}", open(os.path.join(SRC, "bible.css"), encoding="utf-8").read())
     html = html.replace("{{SOUND_ROWS}}", sound_rows())
+    html = html.replace("{{ROSTER_ROWS}}", roster_rows()).replace("{{ROSTER_COUNT}}", roster_count()).replace("{{SKIN_ROWS}}", skin_rows())
     missing = []
 
     def img(m):
@@ -1407,6 +1547,7 @@ def main():
             return '<img alt="%s (capture missing)">' % alt
         return '<img src="data:image/gif;base64,%s" alt="%s" style="width:360px;max-width:100%%;height:auto;border-radius:12px">' % (base64.b64encode(open(p, "rb").read()).decode("ascii"), alt)
     html = re.sub(r"\{\{GIF:([^|}]+)\|([^}]*)\}\}", gif, html)
+    html = html.replace(" — ", ": ").replace("—", "-")   # pass 127: no em dashes on the page, generated words included
     open("docs/design/design-bible.html", "w", encoding="utf-8", newline="\n").write(html)
     print("bible written, %d KB, missing images: %s" % (len(html.encode("utf-8")) // 1024, missing or "none"))
 

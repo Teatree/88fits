@@ -41,6 +41,8 @@
 ##   weather=<parts>       pass 126: only these parts of the stage's weather (fog, haze, gust, wind, comma-separated; 0 = none)
 ##   tornado=1             a dust devil called in (DustDevils.call_one: on the screen by the map's rules, or at
 ##                         tornado_at=<dx,dz> metres from the hero, east and south); formed by advance=4
+##   series=<n>:<dt>       pass 127: n more pictures dt game seconds apart after the first, <out>_1.png, _2.png ...
+##   near=<structure id>   pass 127: the hero stood inside that structure's ring (the first of its kind on the map)
 ##   quads=<names>         only these of the stage filter's quads stay drawn (sand, scenery, actors, structures, items;
 ##                         StageLook.all_quads), the others hidden: a probe of which quad lands on what
 ## Prints "store_shots: saved <path> (WxH)" and "store_shots: perf ..." ; the save in memory goes back as it was (the arena's
@@ -228,6 +230,14 @@ func _main() -> void:
 			var z := float(xz[1])
 			g.player.global_position = Vector3(x, g.map.height_at(x, z) + 0.5, z)
 			g.camera.snap_to(g.player)
+	# pass 127 (lane DOCS): beside a structure (near=teleport), inside its ring
+	if A.has("near"):
+		for st in g.structures.items:
+			if st.def.id == _s("near", ""):
+				var nq: Vector3 = st.global_position + Vector3(0.9, 0.5, 1.1)
+				g.player.global_position = nq
+				g.camera.snap_to(g.player)
+				break
 	if A.has("weapons"):
 		run.debug_clear_items()
 		for w in _s("weapons", "").split(","):
@@ -401,6 +411,13 @@ func _main() -> void:
 		_log("could not save %s (error %d)" % [out, err])
 		_finish(1)
 		return
+	# pass 127 (lane DOCS): a series, so a moment can be picked by eye afterwards
+	var ser: PackedStringArray = _s("series", "").split(":")
+	if ser.size() == 2:
+		for k in range(int(ser[0])):
+			await _game_wait(float(ser[1]))
+			await RenderingServer.frame_post_draw
+			root.get_texture().get_image().save_png(out.get_basename() + "_%d.png" % (k + 1))
 	var p: Vector3 = g.player.global_position
 	var sp: Vector2 = g.camera.camera.unproject_position(p + Vector3(0, 0.9, 0))
 	_log("hero's middle on screen at %.0f, %.0f of %s (%.1f%% from the top)" % [sp.x, sp.y, str(root.get_visible_rect().size), 100.0 * sp.y / maxf(root.get_visible_rect().size.y, 1.0)])

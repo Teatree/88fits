@@ -53,6 +53,8 @@ func _quests_of(c) -> Array:
 
 
 func _main() -> void:
+	# pass 127 (lane DOCS): no ARENA button on a capture (in memory only)
+	root.get_node("Settings").set("debug_mode", false)
 	DirAccess.make_dir_recursive_absolute(_out)
 	_save = root.get_node("Save")
 	_reg = root.get_node("Registry")

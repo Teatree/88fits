@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>88fits Screens</title>
+<title>Outlaw Survivors Screens</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -9,20 +9,21 @@
 {{CSS}}
 </style>
 <div class="wrap">
-  <div class="eyebrow">88fits · build 0.91 · 27 October 2026</div>
-  <h1>88fits Screens</h1>
-  <p class="lede">Every screen of 88fits as it is today: what it is for, when it appears, what each control does and the rules behind it, with captures from the current build. It replaces the pass 38 UI review, which showed the game before the Wanted redesign.</p>
+  <div class="eyebrow">Outlaw Survivors · version 1.00 · pass 127 · 5 November 2026</div>
+  <h1>Outlaw Survivors Screens</h1>
+  <p class="lede">Every screen of the game as it is today: what it is for, when it appears, what each control does and the rules behind it, with captures from the current build. One design runs through all of it, Royale, the only UI since pass 124.</p>
   <p class="meta">{{COUNTS}}</p>
 
   <section class="box">
     <h2>How the screens connect</h2>
     <div class="flow">
       <div><b>Start</b>Loading, then the play-data question on a first launch.</div>
-      <div><b>Title</b>Pick a hero (swipe, the drawer or the sheet), then PLAY. Upgrade, Collection and Settings hang off it.</div>
-      <div><b>Stages</b>Once Sundown is beaten, PLAY opens the stage list; each stage is its own run.</div>
-      <div><b>The run</b>The spawn beam, then the HUD. Level-ups, chests, structures and pause stop the run one screen at a time.</div>
-      <div><b>The stage's end</b>The boss falls, a portal opens: extract within 60 s or Endless begins.</div>
-      <div><b>Results</b>The gold banked, the run's story; then Play again, Upgrade or the title.</div>
+      <div><b>The tab bar</b>STORE (locked), HEROES, BATTLE, UPGRADE, COLLECTIONS on every hub screen. Settings is the menu square on the title.</div>
+      <div><b>Battle (the title)</b>A hero on the vista (swipe, or pick him on the Heroes tab), then START.</div>
+      <div><b>Stages</b>Once Sundown is beaten, START opens the list of four stages; each is its own run.</div>
+      <div><b>The run</b>The revolver wipe, the spawn beam, the Wanted posters, then the HUD. Level-ups, chests, structures and pause stop the run one screen at a time.</div>
+      <div><b>The stage's end</b>The boss falls and leaves his chest, a portal opens: extract within 60 s or Endless begins.</div>
+      <div><b>Results</b>The gold banked, the run's story, a bounty paid; then PLAY AGAIN, UPGRADE or MAIN MENU.</div>
     </div>
   </section>
 
@@ -32,9 +33,11 @@
     <div class="tbl"><table class="prio">
       <tr><td>70</td><td>Down!</td></tr>
       <tr><td>60</td><td>The portal (stage clear)</td></tr>
+      <tr><td>55</td><td>The Grindstone's moment</td></tr>
       <tr><td>45 / 40</td><td>A boss's chest / a chest</td></tr>
       <tr><td>35</td><td>The War Drum's moment</td></tr>
       <tr><td>30</td><td>Level-up cards</td></tr>
+      <tr><td>25</td><td>The Wanted posters</td></tr>
       <tr><td>20</td><td>A mutation offer</td></tr>
       <tr><td>10</td><td>The shop, the Stranger, a Totem</td></tr>
     </table></div>
@@ -53,12 +56,12 @@
       <li><b>The Totem has no way out.</b> A gift must be picked; there is no close button.</li>
       <li><b>The War Drum's moment cannot be skipped.</b> Every touch is swallowed for its 2.2 seconds.</li>
       <li><b>The back gesture does nothing in a run.</b> It is only logged; Esc on a PC opens and closes the pause.</li>
-      <li><b>The title's map line does nothing yet.</b> It steps through maps, and Red Canyon is the only one.</li>
+      <li><b>The STORE tab is locked.</b> Nothing is sold yet.</li>
       <li><b>NEW BEST needs an earlier best.</b> A first run never shows the seal.</li>
-      <li><b>Small text slips:</b> Settings' wipe row says "asks twice" but asks once; the Upgrade board's code notes still describe free form switching (gone since pass 63); the in-run debug panel's notes point to a switch that now lives in the developer menu.</li>
+      <li><b>Small text slips:</b> the Upgrade board's code notes still describe free form switching (gone since pass 63); the in-run debug panel's notes point to a switch that now lives in the developer menu; the code keeps the old words "Mirror" and "Looks" where a player never reads them.</li>
       <li><b>One dead screen:</b> the old meta shop only forwards to Upgrade, and nothing in the game opens it.</li>
     </ul>
   </section>
 
-  <footer>Built by <code>tools/make_ui_screens.py</code> from <code>docs/ui_screens/src/</code>. Captures: <code>game/tools/wanted_shots.gd</code> (every Wanted screen state), <code>game/tools/uidoc_shots.gd</code> (the War Drum), the one pager's captures and the design bible's. Some captures show the small debug buttons a tester build has on (the "debug" tab on the cards, "hold time" and "respawn" on Down!); players never see them.</footer>
+  <footer>Built by <code>tools/make_ui_screens.py</code> from <code>docs/ui_screens/src/</code>. Captures: <code>game/tools/wanted_shots.gd</code> (every screen state), and for the rest the tools named in <code>tools/make_ui_screens.py</code>, all retaken on pass 127's build with debug surfaces off, except the screens under "For testers only".</footer>
 </div>

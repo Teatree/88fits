@@ -16,10 +16,10 @@
       <tr><td><span class="name">Weapons, familiars and their effects</span></td><td><span class="chip b">3D mesh + particles</span></td><td>Saw blades on a tilted orbit, a grenade on a real arc, a pea pod with flapping leaves. Sprites of these would look flat and wrong from above.</td></tr>
       <tr><td><span class="name">Pickups: gems, coins, chests, power-ups</span></td><td><span class="chip b">3D mesh</span> spinning; power-ups a billboard icon on a plinth</td><td>Cheap, readable from any angle, hundreds on screen through a MultiMesh.</td></tr>
       <tr><td><span class="name">Ground, water, the fort wall, the cliffs</span></td><td><span class="chip b">3D</span> a noise heightmap with a painted sand, a water shader on the oases, a sandstone fort wall with the red-rock cliffs behind it</td><td>The ground is 3D by definition. The wall and the rock are textured from paintings made seamless (pass 80).</td></tr>
-      <tr><td><span class="name">Barrels, signs, a few movers</span></td><td><span class="chip b">3D</span> Blender GLBs</td><td>They break, turn or roll: the barrels burst, the sign's arms point, tumbleweeds roll the way they fly.</td></tr>
+      <tr><td><span class="name">Signs, the map's dressing, a few movers</span></td><td><span class="chip b">3D</span> Blender GLBs (barrels are three paintings since pass 116, the cart a painting of a real model)</td><td>They turn or roll: the sign's arms point, tumbleweeds roll the way they fly.</td></tr>
       <tr><td><span class="name">Scenery and structures: cacti, trees, rocks, bones, the Shop, the Teleport, the Totem Pole</span></td><td><span class="chip p">2.5D sprite</span> one painting each, base-pivot billboards in a MultiMesh</td><td>They match the cast's line, cost one draw call per kind, and hundreds scatter for nothing. Structures stay paintings (Garry rejected a 3D Strongbox). Muted so they read as background.</td></tr>
       <tr><td><span class="name">Telegraphs, progress wedges, poison clouds, spit trails</span></td><td><span class="chip b">draped meshes</span> on the ground</td><td>They must hug the dunes; a flat disc cuts through a slope.</td></tr>
-      <tr><td><span class="name">Icons, cards, HUD, menus</span></td><td><span class="chip w">2D</span></td><td>Screen-space UI, built from the Wanted kit.</td></tr>
+      <tr><td><span class="name">Icons, cards, HUD, menus</span></td><td><span class="chip w">2D</span></td><td>Screen-space UI, built from the Royale kit (<code>ui/wanted/</code>).</td></tr>
       <tr><td><span class="name">Shadows</span></td><td><span class="chip b">3D blob</span> under every creature on screen and the hero; a soft ground shadow under every painting, barrel, sign and structure (pass 83)</td><td>Grounds a flat sprite in a 3D world: the single most important trick for 2.5D.</td></tr>
     </tbody>
   </table></div>
@@ -36,7 +36,7 @@
       <tr class="grp"><td colspan="3">Creatures</td></tr>
       <tr><td><span class="name">Goblin · Goblin Runt</span></td><td class="id">GOB-D · RUN-D</td><td>the swagger walk; the runt on Mixamo's run</td></tr>
       <tr><td><span class="name">Red Goblin · Red Goblin Runt</span></td><td class="id">RG-A · RR-A</td><td>the goblins' strips recoloured frame by frame</td></tr>
-      <tr><td><span class="name">Fire Ant</span></td><td class="id">ANT-A</td><td>the classic worker, walked on a Blender blockout</td></tr>
+      <tr><td><span class="name">Fire Ant</span></td><td class="id">ANT-E</td><td>the Fire Ant with its own shadow (pass 107), walked on a Blender blockout</td></tr>
       <tr><td><span class="name">Blue Slime</span></td><td class="id">SL-C</td><td>a rounded jelly cube with a skull inside</td></tr>
       <tr><td><span class="name">Skeleton · Skeleton Knight</span></td><td class="id">SK-A · KN-A</td><td>arms down on Mixamo's plain walk</td></tr>
       <tr><td><span class="name">Tumbleweed Minion</span></td><td class="id">TM-C</td><td>a red fez, a mean glare with gritted teeth</td></tr>
@@ -46,12 +46,23 @@
       <tr><td><span class="name">Bull Beetle</span></td><td class="id">BB-C</td><td>a cartoon rhino beetle with angry white eyes</td></tr>
       <tr><td><span class="name">Werewolf</span></td><td class="id">WW-D</td><td>the realistic beast with a matching back walk</td></tr>
       <tr><td><span class="name">Dust Mummy</span></td><td class="id">DM-G</td><td>from Garry's mummy.png: a serious heavy lurch, arms always up (pass 87, played since pass 88)</td></tr>
-      <tr><td><span class="name">Spit Cactus</span></td><td class="id">SC-A <span class="sub">fresh</span></td><td>the Dynamite Bandit from Garry's picture, throwing red dynamite (pass 85)</td></tr>
+      <tr><td><span class="name">Bomb Guy (id spit_cactus)</span></td><td class="id">SC-B <span class="sub">fresh</span></td><td>the Bombmaker (pass 114), throwing a black bomb; before it SC-A, the Dynamite Bandit from Garry's picture, throwing red dynamite (pass 85)</td></tr>
       <tr><td><span class="name">Saiga Sniper</span></td><td class="id">SS-A <span class="sub">fresh</span></td><td>from Garry's picture (pass 73)</td></tr>
       <tr><td><span class="name">Buckshot Dwarf</span></td><td class="id">BD-A <span class="sub">fresh</span></td><td>the Bandit from Garry's turnaround (pass 70)</td></tr>
       <tr><td><span class="name">Cactus Walker</span></td><td class="id">CW-C <span class="sub">fresh</span></td><td>made from Garry's front and back pictures (pass 91)</td></tr>
       <tr><td><span class="name">Desert Spider</span></td><td class="id">SP-G <span class="sub">fresh</span></td><td>light purple, painted on Klein, walked on Garry's 3D spider (pass 99); on roster row r23, 2:25-3:57 into Nightfall</td></tr>
       <tr class="grp"><td colspan="3">Heroes</td></tr>
+      <tr><td><span class="name">Armadillo</span></td><td class="id">ARM-F <span class="sub">fresh</span></td><td>repainted in pass 109, the front walk without the leg-tail in pass 119 (zombie and devil looks ARM-H to M wait)</td></tr>
+      <tr><td><span class="name">Cyclopean Mummy</span></td><td class="id">CM-F</td><td>a squat bandaged goblin with one eye; left-heading frames of its own, so it never mirrors (pass 111)</td></tr>
+      <tr><td><span class="name">Monk</span></td><td class="id">MK-A</td><td>brown; MK-B white in Blood Moon, MK-C dark blue (pass 112)</td></tr>
+      <tr><td><span class="name">Straw Man</span></td><td class="id">SM-A, SM-B</td><td>a Mixamo walk, a limping shamble; Black Sunday's ring wears both (pass 127)</td></tr>
+      <tr><td><span class="name">Carrion Crow</span></td><td class="id">CC-B</td><td>near-black, on the new <code>fly</code> walk and <code>fall</code> death (pass 127)</td></tr>
+      <tr><td><span class="name">Dust Bunny</span></td><td class="id">DB-A, DB-C, DB-D</td><td>charcoal, sandy tan and rust, recoloured frame by frame (pass 127)</td></tr>
+      <tr class="grp"><td colspan="3">Stage recolours</td></tr>
+      <tr><td><span class="name">Nightfall</span></td><td class="id">BB-E/F, ANT-G/H, LS-D/E</td><td>white and pearl beetles, gold and rose ants, bone and gold scorpions (pass 107, <code>recolour_strip.py --mode lift</code>)</td></tr>
+      <tr><td><span class="name">Blood Moon</span></td><td class="id">IMP-A, RG-C, RR-C, HG-E, KN-F, DM-J, BD-B</td><td>looks that read on the red ground (pass 122)</td></tr>
+      <tr class="grp"><td colspan="3">Heroes</td></tr>
+      <tr><td><span class="name">Drifter · Astro · Calavera · Ironwood</span></td><td class="id">DRI-A · AST-A · CAL-A · IRN-A</td><td>their base looks named in pass 126, each with two skins</td></tr>
       <tr><td><span class="name">Solenne</span></td><td class="id">SOL-B</td><td>Garry's turnaround, walking on his walk fitted to her body</td></tr>
       <tr><td><span class="name">Jeżyk</span></td><td class="id">BUC-F</td><td>the bald blue Slav in a tracksuit</td></tr>
       <tr><td><span class="name">Fadeaway</span></td><td class="id">FAD-E</td><td>the precise prompt, run on the Puppet's guide with the shoulders squared (pass 87, played since pass 88)</td></tr>
@@ -107,7 +118,7 @@
 
   <h3>The pipeline in short</h3>
   <figure>
-    <div class="fig-frame">{{IMG:style_anchor|The style anchor sheet: hero, goblin, cactus, shotgun and stopwatch in the anime style}}</div>
+    <div class="fig-frame">{{IMG:style_anchor|The style anchor sheet: hero, fox, cactus, shotgun and stopwatch in the anime style}}</div>
     <figcaption><b>One reference picture keeps the whole roster in one style.</b> The style anchor goes with every hero and creature render. Regenerate with <code>gen_art.py --anchor</code>, install with <code>--pick=N</code>.</figcaption>
   </figure>
   <ol>
@@ -249,6 +260,8 @@
     </tbody>
   </table></div>
   <p><b>Deaths</b> are chosen per look: a free tilt into the painted dead still, a Wan fall between two paintings (≈ 2 min), a driven fall on a Mixamo death (≈ 1 min), a squash (blobs), a collapse into a painted heap, a <b>shatter</b> into a pile of pieces (pass 91: nothing painted, the death that really ends as a pile), or a 3D model's own death clip.</p>
+
+  <p><b>A walk with no legs.</b> Pass 127 added the walk <b>Fly</b> and the death <code>fall</code> (<code>tools/gen_art.py</code>, <code>artkit.py</code>: <code>wing_poses</code>, <code>fly_cycle</code>, <code>fly_stand</code>, <code>fly_fall</code>; the Level Editor's walks list). Klein would not move a crow's wings, so they are cut from the painting and turned about the shoulders under a still body: three beats in twelve frames, no blur, never a third wing. Pass 126 added <code>tools/gen_skin_views.py</code> (a skin's stills as edits of the source look's, view by view, so its build and pose stay), <code>tools/skin_recolour.py</code> and <code>tools/skin_stills.py</code> (the tiles' full-figure stills). Pass 111's <code>tools/add_left_sets.py</code> gives a look left-heading frames of its own.</p>
 
   <h3>Checking, repairing and the art-production loop</h3>
   <p><b>A look is checked frame by frame before it can play.</b> Three layers sit on the queue (passes 95-98); none of them can put a look into the game without Garry's one approval.</p>
@@ -492,7 +505,7 @@
     <dt>the engine</dt><dd><b>Stable Audio 3</b> on the server's ComfyUI (<code>tools/comfy_audio.py</code>): the small model for effects, the medium one for music and jingles. <code>tools/ai_sfx.py</code> paints candidates per id, picks or takes <code>--pick id=k</code>, sets volumes and binds them in the sound map; <code>tools/make_sfx_review.py</code> builds the review page. Garry's own Stable Audio app (<code>http://127.0.0.1:7861/</code>) is the second engine, AudioGen the alternate.</dd>
     <dt>synthesised</dt><dd>A few sounds are made in code because exact timing matters more than texture (<code>tools/synth_sfx.py</code>): the gem dings, the hero's hurt, the slot machine, the salt shaker, the decoy, the Saiga Sniper's aim, lock and shot.</dd>
     <dt>mixing rules</dt><dd>Voice limits per id, so forty fire ants dying is one sound with a pitch spread. A non-killing hit sounds at most once every 120 ms per id (a crit always; pass 102). Player and UI always audible. Creature sounds attenuate with distance from the camera.</dd>
-    <dt>music</dt><dd>Six looping tracks (<code>tools/ai_music.py</code>, pass 64; Garry: "as close to MegaBonk as possible, but slightly more Western style"): the title, one run track per stage (<code>mu_run_1</code> to <code>mu_run_3</code>, climbing in energy), the boss's over them while a boss lives, and the results. Each is cut to a seamless loop of whole bars and levelled. <code>Audio.gd</code> plays <b>one track at a time</b>, crossfading 1.5 s when the stage or the boss changes it.</dd>
+    <dt>music</dt><dd>Six looping tracks (<code>tools/ai_music.py</code>, pass 64; Garry: "as close to MegaBonk as possible, but slightly more Western style"): the title, a run track for each stage (<code>mu_run_1</code> to <code>mu_run_3</code>, climbing in energy; The Dust Bowl and Blood Moon share the third), the boss's over them while a boss lives, and the results. Each is cut to a seamless loop of whole bars and levelled. <code>Audio.gd</code> plays <b>one track at a time</b>, crossfading 1.5 s when the stage or the boss changes it.</dd>
     <dt>placeholders</dt><dd>A brand-new id gets a synthesised placeholder from <code>tools/gen_sfx.py</code> so the game is never silent: correct in timing and volume, ugly on purpose. Five still play one: the basketball's throw, bounce and catch, the Timeout perk and the buzzer.</dd>
   </dl>
 
@@ -511,16 +524,22 @@
 <!-- ============================================================ 17 -->
 <section id="tech">
   <div class="sec-head"><span class="num">17</span><h2>Tech &amp; performance budgets</h2></div>
-  <p class="lede">Godot 4.7.2 with the Compatibility renderer, held at 60 fps on a phone. The crowd is packed arrays drawn by one MultiMesh per creature type, only what the camera can see is drawn, and a slow frame slows the world instead of spiralling (passes 101-102).</p>
+  <p class="lede">Godot 4.7.2 with the Compatibility renderer, held at 60 fps on a phone. The crowd is packed arrays whose hottest loops run in compiled code (pass 125), drawn by one MultiMesh per creature type; only what the camera can see is drawn, a slow frame slows the world instead of spiralling (passes 101-102), and every run is deterministic and recorded (pass 114).</p>
+  <div class="callout change">
+    <div class="lab">pass 125 · the crowd in compiled code</div>
+    <p>Garry: "Since I want to have lots of enemies on the screen at the same time I'm willing to try this." <code>EnemyManager.gd</code> owns the rules and the data; a GDExtension (<code>native/</code>, class <code>CrowdCore</code>, <code>game/bin/</code>) reads and writes its packed arrays in place and runs the grids, who is drawn, a plain walker's and a dying body's tick, the push and most of the draw. A run plays the same with it or without it (proved checkpoint for checkpoint by <code>_p125_NATIVE_proof.gd</code>). At 300 creatures the crowd's cost went from 4.2 to 0.7 ms on the PC, and 800 creatures cost what 300 did. <b>No phone number exists yet</b>: run records carry <code>native</code>, and the developer menu's Compiled crowd compares. The pool stays 320 until that number is in.</p>
+  </div>
   <div class="callout change">
     <div class="lab">pass 101-102 · the phone at 300 creatures</div>
     <p>Garry's Pixel 8 Pro held 60 fps up to 300 creatures until late Endless, then fell to 15-27 fps: Endless creatures stop dying, crowd round the hero burning and poisoned, and once a frame passes 16.7 ms the 60 Hz physics catch-up spiralled. Pass 101 drew only what is seen and capped the frame rate; pass 102 capped the catch-up and made hits in a huge crowd cheaper. No damage, burn, poison or Endless number changed.</p>
   </div>
   <dl class="kv">
-    <dt>engine</dt><dd><b>Godot 4.7.2, GDScript.</b> The Compatibility renderer for the widest Android reach. Phones render the 3D view at 80% and the UI at full size.</dd>
+    <dt>replays</dt><dd>Pass 114: the full game is deterministic. Rule rolls run on <code>core/systems/Dice.gd</code>, seeded by <code>Run.run_seed</code> (the global stream only for looks), and rule timers and <code>_process</code> deltas go through <code>core/systems/Lockstep.gd</code>. <code>core/systems/RunReplay.gd</code> records every run (frames, the stick, the hero's place, decisions by id, taps, checksums), and it goes to PostHog as <code>run_replay</code> with consent. <code>game/replay/ReplayViewer.gd</code> plays it on the build that made it (ship.sh keeps the exe in <code>builds/&lt;id&gt;/</code>; <code>python tools/replay.py --latest</code>, <code>tools\replay.cmd</code>): a drift light, 0.1x to 8x, a seekable reel, finger rings, the board panel.</dd>
+    <dt>a new rule</dt><dd>New rule timers use <code>Lockstep.after</code>, new rule dice <code>Dice.r</code>. A rule changed in the plain walker's path must change in <code>native/src/crowd_core.cpp</code> too.</dd>
+    <dt>engine</dt><dd><b>Godot 4.7.2, GDScript</b>, with one compiled library for the crowd. The Compatibility renderer for the widest Android reach. Phones render the 3D view at 80% and the UI at full size.</dd>
     <dt>targets</dt><dd>Android first, on Garry's phone through a signed release APK in Google Drive, and a Windows exe beside it; PC for testing with WASD. A phone plays at a <b>60 fps cap</b> (pass 101, <code>Settings.frame_cap</code>; the world moves 60 times a second, so a 120 Hz phone drew every picture twice), the PC at its screen's rate; the developer menu's Frame rate row switches it.</dd>
     <dt>frame pacing</dt><dd>While the game plays, a long frame runs at most <b>two</b> world steps (<code>Game.CATCH_UP_STEPS</code>, pass 102; Godot's 8 in the menus), so an overloaded frame slows the world instead of spiralling: modelled on the pinned late-Endless crowd for a phone 2.2 times slower than the PC, about 13 fps became 24 fps at 79% world speed, and nothing at 30 fps or better slows. Every gameplay timer reads the frames' own clock (<code>Run.play_clock</code>), and <code>core/systems/WorkClock.gd</code> records each second's world steps and milliseconds into the run record.</dd>
-    <dt>creatures</dt><dd>The live cap counts <b>load</b> (a creature counts its <code>cap_share</code>): Red Canyon's cap curve is cut at <code>cap_max</code> <b>150</b>; the hard cap counts <b>bodies</b>, <b>300</b>; the arrays and MultiMeshes are sized for 320. Logic is data-oriented: positions, velocities, HP, burn and poison sources and frame index live in packed arrays, not one node per creature. A regular creature more than 40 m from the hero, off the screen and older than 6 s <b>despawns</b> with no drop (pass 95), and its row spawns again near him.</dd>
+    <dt>creatures</dt><dd>The live cap counts <b>load</b> (a creature counts its <code>cap_share</code>): 500 on Red Canyon; the hard cap counts <b>bodies</b>, 500; the arrays and MultiMeshes are sized for <b>320</b> (<code>EnemyManager.MAX</code>), which is what really holds, and a boss or Elite always gets a slot (pass 107). Logic is data-oriented: positions, velocities, HP, burn and poison sources and frame index live in packed arrays, not one node per creature. A regular creature more than 40 m from the hero, off the screen and older than 6 s <b>despawns</b> with no drop (pass 95), and its row spawns again near him.</dd>
     <dt>drawing the crowd</dt><dd>One MultiMeshInstance3D per creature type, billboarded in a shared shader, with the frame, flip, flash and squash as per-instance data. Since pass 101 only creatures whose <b>whole drawn picture can reach the view</b> are drawn (<code>drawn_vis</code>: a sphere round the quad at its own size, squash, lift and badge, and one round its shadow, against the camera's view grown by a border, held 6 ticks after leaving); proven on 304 captures with 0 differing pixels. On the PC at 300 creatures the crowd's draw went from 1.55 to 0.92 ms.</dd>
     <dt>movement</dt><dd>Creatures are not physics bodies. Separation runs on its own grid of <b>1.25 m cells</b> (pass 101; neighbours checked fell from about 49 to 15, with no one-sided overlap); the weapons' queries keep the 2.5 m grid. Half the crowd steers each tick; a creature that is not drawn steers every 4th tick and pushes at half rate for as long. Each creature checks only the obstacles whose circle reaches its cell. The hero is one CharacterBody3D against the terrain and the static colliders.</dd>
     <dt>hits in a crowd</dt><dd>Pass 102. From 40 damage numbers in the air a hit joins its creature's number or is let go (crits always show; the hero's never thin); burns and poisons run their clocks lazily; flames are drawn every 0.18 s up to 80 burning creatures and none off screen; the hero's crit and execute numbers are read once a tick. Measured at Endless wave 48: 10.13 to 9.64 ms a frame on the PC.</dd>
@@ -536,7 +555,13 @@
     <dt>terrain</dt><dd>One heightmap mesh, 140 m, noise terrain with one dry river and two or three oases rolled per run, a height-blended shader with the chosen sand, the sandstone fort wall and the cliffs at the edge. Collision from the heightmap.</dd>
     <dt>save</dt><dd>One JSON save file: gold, the Upgrade board's picks, heroes owned, stages beaten, quest progress, settings, best runs, hint flags, one-time migrations.</dd>
     <dt>audio</dt><dd>A sound map resource binds every id from section 16 to a file. Voice-limited pools per id; one music track at a time.</dd>
-    <dt>testing</dt><dd><code>bash tools/ship.sh</code> runs the import, <code>import_json</code>, a parse check of every script and scene, all gdUnit4 tests (about 1,731 in <code>game/tests/passNN_*_test.gd</code>), a headless smoke run, the debug-arena check and the touch audit, then builds the signed APK and the PC exe and drops both in Drive. Beside them: <code>hell_check.gd</code> after stage-3 changes, the late-game benchmark <code>tools/perf_late.gd</code>, <code>steady_check.gd</code> (pass 102: game time, world time and the rules' clock agree in every phase), frame times every second in the run record (pass 101), and a silent screenshot pass for this document.</dd>
+    <dt>testing</dt><dd><code>bash tools/ship.sh</code> runs the import, <code>import_json</code>, a parse check of every script and scene, all gdUnit4 tests (about 3,030 in <code>game/tests/passNN_*_test.gd</code>), a headless smoke run, the debug-arena check and the touch audit, then builds the signed APK, the PC exe and the Google Play bundle and drops them in Drive. Beside them: <code>hell_check.gd</code> after Blood Moon changes, the late-game benchmark <code>tools/perf_late.gd</code>, <code>steady_check.gd</code> (pass 102: game time, world time and the rules' clock agree in every phase), frame times every second in the run record (pass 101), and a silent screenshot pass for this document.</dd>
+  </dl>
+  <h3>Analytics</h3>
+  <dl class="kv">
+    <dt>PostHog</dt><dd><code>core/autoload/Analytics.gd</code> to PostHog EU with a write-only key and a consent card first; persons named by the generated player name, never an email. <code>run_summary</code> per-minute curves, gold sources and sinks, surveys with <code>[after N]</code> and <code>[run N]</code> tags. Nine boards from <code>python tools/posthog_boards.py</code>, one by stage. Events carry <code>build: dev|prod</code>.</dd>
+    <dt>whole runs</dt><dd><code>run_record</code> (pass 78: gzip and base64 parts, about 140 KB for 25 minutes) and <code>run_replay</code> (pass 114), never from tools, headless runs, the sim or without consent. <code>tools/posthog_runs.py</code> downloads them for the dashboard's Remote runs.</dd>
+    <dt>local</dt><dd><code>analytics/dashboard.html</code> reads run files (record schema 5 since pass 115: the Upgrade board, hero level and items, each weapon's real DPS, health 5 s at a time; schema 3 and 4 added frame times and the work clock; run records carry <code>native</code>). A phone keeps its newest 50; the PC every one. <code>analytics/howto/</code> has the walk-throughs.</dd>
   </dl>
   <details><summary>How this got here (history)</summary>
     <ul>
@@ -552,19 +577,22 @@
 <!-- ============================================================ 18 -->
 <section id="milestones">
   <div class="sec-head"><span class="num">18</span><h2>Where it stands</h2></div>
-  <p class="lede">Version 0.88 (pass 103, 2026-10-24). One map, three stages that are each their own run and end in Endless, eight playable heroes, and a Level Editor in which Garry tunes the timeline and makes the art himself. The game is iterated from his phone; every change ends in a build in Google Drive.</p>
+  <p class="lede">Version 1.00 (pass 127, 2026-11-05). One map, four stages that are each their own run and end in Endless, eight playable heroes with skins, one UI, and a Level Editor in which Garry tunes the timeline and makes the art himself. The game is iterated from his phone; every change ends in a build in Google Drive.</p>
 
   <h3>The game today</h3>
   <dl class="kv">
-    <dt>the map</dt><dd><b>Red Canyon</b>, rolled per run: noise terrain, one dry river, two or three oases, sand to a sandstone fort wall with the red-rock cliffs behind it.</dd>
-    <dt>the stages</dt><dd>Three, each a fresh level-1 run from its window of the one timeline (pass 87): <b>Sundown</b> 7:10 to the Tumbleweed King (Easy), <b>Nightfall</b> 10:00 to the Gila Grande (Medium, a blue filter), <b>Blood Moon</b> 13:00 to the Brander (Hard, hell: a red ground and a hell channel of creatures). After the boss a 60 s portal countdown with only EXTRACT, then <b>Endless</b>: a big wave, then a stronger one every 10 s (pass 103: HP ×1.15 and ATK ×1.095 a wave; after 90 s creatures shrug off every push but explosions). Each stage opens when the one before is beaten.</dd>
-    <dt>heroes</dt><dd>Eight playable: the Drifter (free), Astro and Ironwood (300 gold), Calavera, Solenne, Fadeaway, Jeżyk and May (an unlock quest, then gold); Mira and Dad are hidden. Each has a trait that grows per level, a favourite item, perks and a hero mutation.</dd>
-    <dt>items</dt><dd>24 weapons in play (5 slots, 5 levels, three path mutations and an evolution each; 6 more hidden), about a hundred path and hero mutations, 21 Cards (the lines, each evolving into "&lt;card&gt; Risen"), 34 passive items climbing the rarity ladder to Evolved (the Phoenix Feather one-shot), 17 perks in play.</dd>
-    <dt>creatures</dt><dd>32 kinds, 4 Elite modifiers, 3 bosses with custom attacks as content; specials with a glowing rim; 9 structures in play, the Totem Poles among them.</dd>
-    <dt>meta</dt><dd>The Upgrade board (eight talents, two forms, six ranks; Stakes since pass 88), 30 quests (unlock and build quests), gold banked at every end of a run, the Collection.</dd>
-    <dt>tools</dt><dd>The Level Editor (timeline, roster, creatures, heroes, items, boss attacks, art jobs, frames, drivers, the run sim), the Watch (a bot-played run in a window), the debug arena.</dd>
-    <dt>analytics</dt><dd>PostHog EU with consent: per-run summaries and whole run records, nine dashboards, local run files and <code>analytics/dashboard.html</code>.</dd>
-    <dt>builds</dt><dd>The dev build after every change (<code>bash tools/ship.sh</code>: Android APK and Windows exe to <code>E:/My Drive/88fits builds/</code>); the production build, without debug surfaces and with only the art the game shows, only when Garry asks (<code>bash tools/ship_prod.sh</code>).</dd>
+    <dt>the name</dt><dd><b>Outlaw Survivors</b> on screen (pass 115); the code, the packages and the files stay 88fits.</dd>
+    <dt>the map</dt><dd><b>Red Canyon</b>, rolled per run: noise terrain, one dry river, two or three oases, sand to a sandstone fort wall with the red-rock cliffs behind it, a broken telephone line, a toppled wagon, graves.</dd>
+    <dt>the stages</dt><dd>Four, each a fresh level-1 run from its window of the one timeline: <b>Sundown</b> 7:10 to the Tumbleweed King (Easy), <b>Nightfall</b> 10:00 to Gila Grande (Medium, a blue filter), <b>The Dust Bowl</b> 13:00 to Black Sunday (Hard, weather and bigger tornadoes), <b>Blood Moon</b> 16:00 to the Brander (Brutal, hell: a red ground and a hell channel of creatures). Each boss fight has its own rows, a bullet heaven behind a barrier and its own chest. After the boss a 60 s portal countdown with only EXTRACT, then <b>Endless</b>: a big wave, then a stronger one every 10 s.</dd>
+    <dt>heroes</dt><dd>Eight playable: the Drifter (free), Ironwood and Astro (gold only: 1,000, 1,500), Calavera, Solenne, Fadeaway, Jeżyk and May (an unlock quest, then gold); Mira and Dad are hidden. Each has a trait that grows per level, a favourite item, perks, a hero mutation and skins earned by goals.</dd>
+    <dt>items</dt><dd>24 weapons in play (5 slots, 5 levels, three path mutations and an evolution each; 6 more hidden), 99 path and hero mutations, 21 Cards (the lines, each evolving into "&lt;card&gt; Risen"), 45 passive items climbing the rarity ladder to Evolved (two one-shots, six legendaries), 18 perks in play.</dd>
+    <dt>creatures</dt><dd>33 kinds on the map's rows and clocks (the Monk, Desert Spider, Straw Man, Carrion Crow and Dust Bunny the newest), 4 Elite modifiers, 4 bosses with custom attacks as content; specials with a glowing rim; 9 structures in play, the Totem Poles among them.</dd>
+    <dt>meta</dt><dd>The Upgrade board (eight talents, two forms, seven ranks; Stakes among them), 44 quests (unlocks, build quests, skin goals), the Bounty Board's Wanted posters, gold banked at every end of a run, the Collection.</dd>
+    <dt>UI</dt><dd>One design since pass 124, Royale (section 12): a five-tab bar, the painted vista, the Heroes screen, the moments.</dd>
+    <dt>tools</dt><dd>The Level Editor (Timeline, Enemies, Heroes and Skins, Items, Boss attacks, Wanted, Mirror, Sim, Jobs, Frames, Drivers), the Watch (a bot-played run in a window, with "You play"), the replay viewer, the debug arena.</dd>
+    <dt>performance</dt><dd>The compiled crowd (pass 125; no phone number yet), looks loaded on demand, the 60 fps cap, two catch-up steps a frame.</dd>
+    <dt>analytics</dt><dd>PostHog EU with consent: per-run summaries, whole run records and replays, nine dashboards, local run files and <code>analytics/dashboard.html</code>.</dd>
+    <dt>builds</dt><dd>The dev build after every change (<code>bash tools/ship.sh</code>: Android APK, Windows exe and a Google Play bundle to <code>E:/My Drive/88fits builds/</code>; Play is Internal testing only, package <code>com.outlawsurvivors.game</code>); the production build, without debug surfaces and with only the art the game shows, only when Garry asks (<code>bash tools/ship_prod.sh</code>).</dd>
   </dl>
 
   <h3>Recent passes</h3>
@@ -596,16 +624,43 @@
       <tr><td class="id">101 · v0.86</td><td>Six performance fixes: only what is seen drawn, finer separation cells, a slower far steer, the 60 fps cap, frame times recorded, only the run's looks loaded.</td></tr>
       <tr><td class="id">102 · v0.87</td><td>The late-Endless slowdown: two catch-up steps a frame, the work clock, cheaper hits in a huge crowd; the Level Editor's cap made clear.</td></tr>
       <tr><td class="id">103 · v0.88</td><td>Endless harder and its creatures past pushing after 90 s; the fire breath's push and Powder Keg's damage toned down.</td></tr>
+      <tr><td class="id">104</td><td>Docs: the design bible brought up to pass 103.</td></tr>
+      <tr><td class="id">105</td><td>The stage filter tells six kinds of thing apart.</td></tr>
+      <tr><td class="id">106</td><td>Endless speed growth; the War Drum's moment and boost; the Watch's "You play".</td></tr>
+      <tr><td class="id">107</td><td>Nightfall's recolour looks and its XP; a boss or Elite always gets a slot.</td></tr>
+      <tr><td class="id">109</td><td>The kill counter, the first Dynamite offer, slower weapons at levels 1 and 2, the Raider's striped rocket, the Dragon's Breath as particles.</td></tr>
+      <tr><td class="id">110</td><td>Chests rarer, specials rarer and stronger, purses halved, k × k Upgrade prices, hero prices, boss fight windows, the arena's SHOTS tab, the store screenshots.</td></tr>
+      <tr><td class="id">111</td><td>The Bounty Board, skins, the currency layer, left-heading strips.</td></tr>
+      <tr><td class="id">112</td><td>The Monk and squads; barrels come back during a run; the floating posters.</td></tr>
+      <tr><td class="id">113</td><td>Seven new task types; boss bullet heaven; tornado-shaped, rarer dust devils.</td></tr>
+      <tr><td class="id">114</td><td>Replays and determinism; editable JSON windows in the Level Editor.</td></tr>
+      <tr><td class="id">115</td><td>The name Outlaw Survivors; the dashboard's new cards; the barrier; the King's reach and the Gila's wait; Nerve's Second Wind.</td></tr>
+      <tr><td class="id">116</td><td>Three painted barrels, Endless slower with a poster open, May's box, a new Blood Moon, the app icon.</td></tr>
+      <tr><td class="id">117</td><td>A smashed barrel's pieces; the Weapon DPS tab; the Google Play bundle and the privacy page.</td></tr>
+      <tr><td class="id">118</td><td>The loading screen, the purple chest, each boss's own chest, onlookers, Jade Key, Ruby Key, the Grindstone, guest weapons.</td></tr>
+      <tr><td class="id">119</td><td>The title punch, the stick's carried push, six legendary items (Iron Horse, Personal Storm, Lightning in a Bottle, Undertaker's Shovel, Fool's Gold, Pocket Bible).</td></tr>
+      <tr><td class="id">120</td><td>The ghost and its bolts, the revolver wipe, the legendaries retuned, replays made stricter.</td></tr>
+      <tr><td class="id">121</td><td>The one-shot Grindstone and its show, a plain sheet ghost, the 4:30 legendary hold.</td></tr>
+      <tr><td class="id">122</td><td>Blood Moon reads: a lighter ground, fire tornadoes, seven recolours; the Royale theme's first checkpoint.</td></tr>
+      <tr><td class="id">123</td><td>Every screen in Royale, the tab bar, the Heroes screen, the seventh Upgrade rank, a wider barrier, the Gila's Poison Rain.</td></tr>
+      <tr><td class="id">124</td><td>One UI: the old look and the switch removed; the hero's diagonal run, silhouette shadows, the mutations' frame, the dark loading screen; the performance report and the ideas book.</td></tr>
+      <tr><td class="id">125</td><td>The crowd in compiled code.</td></tr>
+      <tr><td class="id">126 · v1.00</td><td>The Dust Bowl with Black Sunday and three creatures, twelve skins, the map's dressing, Assayer's Scale and Canteen, life steal cut, the Heroes screen's two lists.</td></tr>
+      <tr><td class="id">127</td><td>Black Sunday smaller and pulling (Come Here), Straw Men in two looks, the toppled cart from a real model, the walk Fly and the flying crow, Dust Bunny colours, the hero's feet on his shadow, the Heroes screen's sheet and tray, the tab bar's tint, Skins everywhere, these docs.</td></tr>
     </tbody>
   </table></div>
 
   <h3>Next</h3>
-  <p>Only what the project notes name as open or parked:</p>
+  <p>Only what the project notes name as open or parked. Everything under <b>waiting on Garry</b> is a proposal, not what is true.</p>
   <ul>
-    <li><b>The tooling plan's Phases 3 and 4</b> (<code>docs/tooling/assessment_2026-10-21.md</code>): the evaluators' depth and the loop's polish, then the Frames view's long tail and an event stream (SSE) for the page.</li>
-    <li><b>Gemini's own verdicts, live</b>: pass 98's proof ran the fallback for real and Gemini only through a fake, because the benchmark had spent Garry's weekly quota (it resets 2026-10-29).</li>
-    <li><b>Fresh looks waiting for Garry's word</b>: SOL-F, SOL-G, FAD-D, FAD-F, MAY-B, MAY-C, MAY-Q, MAY-R, DM-E, DM-F, DM-H, DM-I, SP-A to SP-F, SP-H, CW-A, CW-D, and the played-but-fresh SC-A, SS-A, BD-A, CW-C, SP-G, MAY-P. SP-I (his request of 2026-10-22) is untouched.</li>
-    <li><b>Parked</b>: a second map (Dry Gulch is shelved in <code>tools/dl/backup/</code>); the Strongbox, hidden and out of play; real ads behind the Down! screen's stand-in; iOS (dropped: it needs a paid Apple developer account).</li>
+    <li><b>Waiting on Garry: the Upgrade restructure.</b> Three proposals in the ideas book (<a href="https://claude.ai/artifact/PNss4jA7mfqngzVbSZNpMH">docs/ideas/outlaw_ideas.html</a>): <b>A The Tree</b> (recommended), <b>B The Gunbelt</b>, <b>C Main Street</b>; four questions if A. The board stays as section 13 says until he picks.</li>
+    <li><b>Waiting on Garry: pay.</b> Blood Moon's raised pay (an Elite 337, the boss 850, from moving to index 3) and The Dust Bowl's coins at ×3.</li>
+    <li><b>Waiting on Garry: performance.</b> His pick from the performance report (<a href="https://claude.ai/artifact/QtndhuRSrhw7ym6wHQBZAN">docs/perf/stage2_slowdown.html</a>; options B, G, A, C, I first, C done), and a phone run with the compiled crowd, the number that decides raising the 320 pool (<code>python tools/posthog_runs.py</code>, compare <code>native</code>).</li>
+    <li><b>Waiting on Garry: the rarity tiers.</b> The weapon and Card rarity tiers proposed in pass 122 (<code>tools/dl/p122/LEAD/rarity_tiers.md</code>).</li>
+    <li><b>Fresh looks waiting for his word</b>: the twelve skins, Solenne's, Fadeaway's and May's other looks, the armadillo's and mummies', the spider's, and the played-but-fresh ones. The Level Editor's look grid marks each <code>fresh</code>.</li>
+    <li><b>Known small gaps</b>: the Dust Bowl's haze turns the crow dark brown past about 5 m; Black Sunday's trickle row <code>bfd-1</code> still wears the Straw Man's played look; <code>PRICE_BASE_BY_STAGE</code> has three entries, so The Dust Bowl and Blood Moon share the Shop's top price.</li>
+    <li><b>Parked</b>: a second map (Dry Gulch is shelved in <code>tools/dl/backup/</code>); the Strongbox, hidden and out of play; real ads behind the Down! screen's stand-in; Google Play past Internal testing; iOS (dropped: it needs a paid Apple developer account).</li>
+    <li><b>The STORE tab</b> is locked: nothing is sold yet.</li>
     <li><b>Known</b>: about one headless game run in four to eight exits 0xC0000005 in the scene tree's teardown after its result is printed; results are unaffected.</li>
   </ul>
 
@@ -664,22 +719,26 @@
     <li><b>Death ends the run.</b> One life; the Down! screen offers GET UP once on a watched ad (a stand-in: no ads yet) and the revives stat adds chances (the Phoenix Feather, one-shot since pass 100). A death still banks the purse (pass 70).</li>
     <li><b>Weapons are 3D, characters are sprites.</b> The hero never visibly holds a weapon in the sprite; a held gun fires from its muzzle as drawn (pass 95).</li>
     <li><b>Chests pause the game.</b> The reel is the price of making a chest an event; the regular-creature odds are set so a run sees a handful, not a dozen.</li>
-    <li><b>Endless grows by the lead's numbers.</b> Pass 103's HP ×1.15 and ATK ×1.095 a wave are an assumption (Garry asked for a harder ramp and gave no numbers).</li>
-    <li><b>Game name.</b> "88fits" is the folder name, the working title and the production build's label.</li>
+    <li><b>Endless grows by the lead's numbers.</b> Pass 103's HP ×1.15 and ATK ×1.095 a wave are an assumption (Garry asked for a harder ramp and gave no numbers); a third of that while a Wanted poster is open (pass 116) is new to him.</li>
+    <li><b>Come Here does no damage.</b> Garry named none, so it only brings you to what comes next.</li>
+    <li><b>Bounties, skins and pay are first numbers.</b> Wanted rewards, skin goals and prices, and the later stages' pay all want real play.</li>
+    <li><b>Game name.</b> <b>Outlaw Survivors</b> on screen; "88fits" stays the folder name, the packages' first name and the launcher labels of the dev and production builds.</li>
   </ul>
   <h3>Only playing can answer</h3>
   <ul>
-    <li>Whether each stage reads as its difficulty (Easy, Medium, Hard) for a fresh level-1 hero with the board he has (retuned for fresh runs in pass 87).</li>
+    <li>Whether each stage reads as its difficulty (Easy, Medium, Hard, Brutal) for a fresh level-1 hero with the board he has.</li>
+    <li>Whether The Dust Bowl's weather is too much on a phone, in looks and in frames.</li>
+    <li>How many creatures the phone holds with the compiled crowd.</li>
     <li>Whether the chest reel should ever offer a new weapon instead of a level.</li>
     <li>How long Endless stays interesting now that it ramps harder and its creatures stop being pushed after 90 s.</li>
   </ul>
   <details><summary>Answered since (history)</summary>
     <ul>
       <li><b>The starter pick</b>: the hero lands with his own weapon; there is no starter pick (pass 45; before it, the pick happened every run).</li>
-      <li><b>Creature cap 25 to 60</b>: the cap now counts load, 150 on Red Canyon, with a 300-body hard cap (passes 84-103).</li>
+      <li><b>Creature cap 25 to 60</b>: the cap now counts load, 500 on Red Canyon, with the engine's pool of 320 what really holds.</li>
       <li><b>Selling a chest for a fifth of the shop price</b>: SELL is gone from the chest screen (pass 47: skips and banishes instead).</li>
       <li><b>Fire spreading at a flat 40% a generation</b>: a fire that jumps from a burning creature keeps its own odds (<code>fire_spread</code>); the Prairie Fire evolution jumps a burn or poison on up to 3 times.</li>
-      <li><b>One Elite per map</b>: an Elite (a mini-boss: the Dune Scorpion, the Sun Prophet or the Stone Golem) comes in each stage (3:35 into Sundown, 5:00 into Nightfall, 6:30 into the Blood Moon), plus an "Elites every" roster row and Elite modifiers on ordinary creatures.</li>
+      <li><b>One Elite per map</b>: an Elite (a mini-boss: the Dune Scorpion, the Sun Prophet or the Stone Golem) comes in each stage (3:35 into Sundown, 5:00 into Nightfall, 3:00 and 9:15 into The Dust Bowl, 8:00 into the Blood Moon), plus an "Elites every" roster row and Elite modifiers on ordinary creatures.</li>
       <li><b>The coyote pack's sound</b>: the coyote was replaced by the Roadrunner in v0.8.</li>
       <li><b>Stage 2 a wall or a cliff</b>: since pass 87 each stage is its own run, retuned for a fresh hero (above).</li>
     </ul>
@@ -761,48 +820,49 @@
   })();
 
   (function(){
-    // pass 104: the stage-runs model from Red Canyon's timeline_data (pass 103). Each stage is its own run on a window of
-    // the one timeline: Sundown 0-430 s, Nightfall 430-1030 s, Blood Moon 1030-1810 s (stage_list). An ordinary
-    // creature's HP = stage_mults [1, 2.2, 3.34] x the HP curve (1 + 0.0977 x minutes)^1.25 (hp_curve, formula power);
+    // pass 127: the stage-runs model from Red Canyon's timeline_data. Each stage is its own run on a window of
+    // the one timeline: Sundown 0-430 s, Nightfall 430-1030 s, The Dust Bowl 1030-1810 s, Blood Moon 1810-2770 s (stage_list). An ordinary
+    // creature's HP = stage_mults [1, 2.2, 2.05, 2.05] x the HP curve (1 + 0.0977 x minutes)^1.35 (hp_curve, formula power);
     // its bite = the stage multiplier x damage_curve (points, linear between them, a step at each stage's start).
     // Before each row's own multipliers, creature_hp_mult, the hero-level factor and Endless. Illustrative only.
     var svg=document.getElementById('threatChart'); if(!svg) return;
-    svg.setAttribute('aria-label','Illustrative chart from Red Canyon\'s timeline: an ordinary creature\'s HP and bite multipliers through the three stage-runs, Sundown 7:10, Nightfall 10:00 and Blood Moon 13:00, on a log scale, with the Elites, the bosses and the mutation offers marked');
+    svg.setAttribute('aria-label','Illustrative chart from Red Canyon\'s timeline: an ordinary creature\'s HP and bite multipliers through the four stage-runs, Sundown 7:10, Nightfall 10:00, The Dust Bowl 13:00 and Blood Moon 16:00, on a log scale, with the Elites, the bosses and the mutation offers marked');
     var W=760,H=270,pl=56,pr=24,pt=30,pb=50;
     var STAGES=[{n:'Sundown',a:0,b:430,m:1.0,boss:'King',elite:215,paths:[79,140,200,260,315,365,405]},
                 {n:'Nightfall',a:430,b:1030,m:2.2,boss:'Gila',elite:730,paths:[70,147,223,300,377,453,530,572]},
-                {n:'Blood Moon',a:1030,b:1810,m:3.34,boss:'Brander',elite:1420,paths:[91,190,290,390,490,590,689,744]}];
-    var T=1810, GAP=14, span=W-pl-pr-2*GAP;
-    var x=function(t){var si=t<430?0:(t<1030?1:2); return pl+si*GAP+t/T*span;};
-    var Y0=Math.log(0.5), Y1=Math.log(25);
+                {n:'The Dust Bowl',a:1030,b:1810,m:2.05,boss:'Black Sunday',elite:1210,paths:[91,190,290,390,490,590,689,744]},
+                {n:'Blood Moon',a:1810,b:2770,m:2.05,boss:'Brander',elite:2290,paths:[91,190,290,390,490,590,689,790,880,925]}];
+    var T=2770, GAP=14, span=W-pl-pr-3*GAP;
+    var x=function(t){var si=t<430?0:(t<1030?1:(t<1810?2:3)); return pl+si*GAP+t/T*span;};
+    var Y0=Math.log(0.5), Y1=Math.log(32);
     var y=function(v){return pt+(1-(Math.log(v)-Y0)/(Y1-Y0))*(H-pt-pb);};
-    var hp=function(t){return Math.pow(1+0.0977*t/60,1.25);};
-    var ATK=[[0,1.21],[430,1.21],[430,0.36],[900,0.95],[1030,0.8],[1030,0.28],[1700,0.72],[1810,0.56]];
-    var atk=function(t,si){var lo=si===0?0:(si===1?2:5), hi=si===0?1:(si===1?4:7);
+    var hp=function(t){return Math.pow(1+0.0977*t/60,1.35);};
+    var ATK=[[0,1.21],[430,1.21],[430,0.36],[900,0.95],[1030,1.09],[1030,0.4],[1700,1.08],[1810,1.1],[1810,0.456],[2635,1.173],[2770,0.912]];
+    var atk=function(t,si){var lo=[0,2,5,8][si], hi=[1,4,7,10][si];
       for(var k=lo;k<hi;k++){var p=ATK[k],q=ATK[k+1]; if(t<=q[0]){return p[1]+(q[1]-p[1])*(t-p[0])/Math.max(q[0]-p[0],1);}}
       return ATK[hi][1];};
     var g=el('g',{});
     STAGES.forEach(function(s,i){
       if(i%2===1) g.appendChild(el('rect',{x:x(s.a),y:pt,width:x(s.b-0.01)-x(s.a),height:H-pt-pb,fill:'#241F31'}));
       g.appendChild(el('text',{x:(x(s.a)+x(s.b-0.01))/2,y:pt-10,'text-anchor':'middle','class':'m'},s.n+' · '+Math.floor((s.b-s.a)/60)+':'+('0'+((s.b-s.a)%60)).slice(-2)));
-      for(var mm=0;mm*60<s.b-s.a;mm+=2){g.appendChild(el('text',{x:x(s.a+mm*60),y:H-pb+18,'text-anchor':'middle','class':'m'},mm+':00'));}
+      for(var mm=0;mm*60<s.b-s.a;mm+=3){g.appendChild(el('text',{x:x(s.a+mm*60),y:H-pb+18,'text-anchor':'middle','class':'m'},mm+':00'));}
       g.appendChild(el('line',{x1:x(s.b-0.01),x2:x(s.b-0.01),y1:pt,y2:H-pb,stroke:'#EE4A5C','stroke-dasharray':'3 4','stroke-opacity':.6}));
       g.appendChild(el('text',{x:x(s.b-0.01)-4,y:H-pb-12,'text-anchor':'end','class':'m'},s.boss));
       g.appendChild(el('line',{x1:x(s.elite),x2:x(s.elite),y1:pt,y2:H-pb,stroke:'#FA9E40','stroke-dasharray':'2 4','stroke-opacity':.5}));
       g.appendChild(el('text',{x:x(s.elite)+4,y:pt+14,'class':'m',style:'fill:#FA9E40'},'Elite'));
       s.paths.forEach(function(p){var px=x(s.a+p); g.appendChild(el('path',{d:'M'+(px-4)+' '+(H-pb)+' L'+px+' '+(H-pb-7)+' L'+(px+4)+' '+(H-pb)+' Z',fill:'#8A69F2','fill-opacity':.8}));});
     });
-    [0.5,1,2,5,10,20].forEach(function(v){g.appendChild(el('line',{x1:pl,x2:W-pr,y1:y(v),y2:y(v),stroke:'#312B44'}));
+    [0.5,1,2,5,10,20,30].forEach(function(v){g.appendChild(el('line',{x1:pl,x2:W-pr,y1:y(v),y2:y(v),stroke:'#312B44'}));
       g.appendChild(el('text',{x:pl-8,y:y(v)+4,'text-anchor':'end','class':'m'},'×'+v));});
     var hpLine=function(si){var s=STAGES[si],pts=[];for(var t=s.a;t<=s.b;t+=10){pts.push(x(Math.min(t,s.b-0.01))+','+y(s.m*hp(t)));}return pts.join(' ');};
     var atkLine=function(si){var s=STAGES[si],pts=[];for(var t=s.a;t<=s.b;t+=10){pts.push(x(Math.min(t,s.b-0.01))+','+y(s.m*atk(t,si)));}return pts.join(' ');};
-    [0,1,2].forEach(function(si){
+    [0,1,2,3].forEach(function(si){
       g.appendChild(el('polyline',{points:hpLine(si),fill:'none',stroke:'#EE4A5C','stroke-width':2.4,'stroke-linejoin':'round'}));
       g.appendChild(el('polyline',{points:atkLine(si),fill:'none',stroke:'#FA9E40','stroke-width':2,'stroke-dasharray':'6 3','stroke-linejoin':'round'}));
     });
-    var s2=STAGES[2];
-    g.appendChild(el('text',{x:x(1809)-4,y:y(s2.m*hp(1810))+16,'text-anchor':'end','class':'m',style:'fill:#FF8590'},'HP ×'+(s2.m*hp(1810)).toFixed(1)));
-    g.appendChild(el('text',{x:x(1809)-4,y:y(s2.m*atk(1810,2))+16,'text-anchor':'end','class':'m',style:'fill:#FA9E40'},'bite ×'+(s2.m*atk(1810,2)).toFixed(1)));
+    var s2=STAGES[3];
+    g.appendChild(el('text',{x:x(2769)-4,y:y(s2.m*hp(2770))+16,'text-anchor':'end','class':'m',style:'fill:#FF8590'},'HP ×'+(s2.m*hp(2770)).toFixed(1)));
+    g.appendChild(el('text',{x:x(2769)-4,y:y(s2.m*atk(2770,3))+16,'text-anchor':'end','class':'m',style:'fill:#FA9E40'},'bite ×'+(s2.m*atk(2770,3)).toFixed(1)));
     var lg=el('g',{transform:'translate('+pl+','+(H-8)+')'});
     lg.appendChild(el('line',{x1:0,x2:18,y1:-4,y2:-4,stroke:'#EE4A5C','stroke-width':2.4}));lg.appendChild(el('text',{x:24,y:0,'class':'m'},'creature HP × (stage × HP curve)'));
     lg.appendChild(el('line',{x1:250,x2:268,y1:-4,y2:-4,stroke:'#FA9E40','stroke-width':2,'stroke-dasharray':'6 3'}));lg.appendChild(el('text',{x:274,y:0,'class':'m'},'bite × (stage × ATK curve)'));
