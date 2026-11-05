@@ -61,6 +61,8 @@ var fx: TornadoFx
 var ring: MeshInstance3D
 ## Pass 122: true when it formed on a hell stage and wears the fire look.
 var burning := false
+## Pass 126 (lane STAGE): how far it flings a creature (the block's `fling`; 1 = as every dust devil did; EnemyManager.swirl).
+var fling := 1.0
 var _player_cd := 0.0
 var _burst := false
 var _seed := 0
@@ -77,6 +79,7 @@ func setup(p_cfg: Dictionary, at: Vector3, dir: Vector3, p_life: float, seed_v: 
 	cfg = p_cfg
 	radius = float(cfg.get("radius", 2.4))
 	speed = float(cfg.get("speed", 1.4))
+	fling = float(cfg.get("fling", 1.0))
 	wander = str(cfg.get("wander", "cross"))
 	form_seconds = float(cfg.get("form_seconds", 2.5))
 	fade_seconds = float(cfg.get("fade_seconds", 2.0))
@@ -262,7 +265,7 @@ func _grab(delta: float) -> void:
 	var em = game.get("enemies")
 	if not catching():
 		if em != null and fading():
-			em.swirl(global_position, radius, delta)
+			em.swirl(global_position, radius, delta, fling)
 		return
 	_player_cd = maxf(_player_cd - delta, 0.0)
 	var pl = game.get("player")
@@ -280,7 +283,7 @@ func _grab(delta: float) -> void:
 		var secs := float(cfg.get("lift", 1.7))
 		if secs > 0.0:
 			lifted += int(em.lift_radius(global_position, radius, secs, float(cfg.get("lift_height", EnemyManager.TORNADO_LIFT_H))))
-		em.swirl(global_position, radius, delta)
+		em.swirl(global_position, radius, delta, fling)
 
 
 ## The ring's mesh, made once: a disc from the middle (UV.x 0) to the rim (UV.x 1), UV.y round it; the shader lays it on

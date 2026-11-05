@@ -1,0 +1,369 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a lean young mariachi man with his face painted as a white sugar-skull calavera, wearing a white charro jacket with gold embroidery down the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with gold embroidery and a band of orange marigold flowers, a marigold-orange bow tie and sash, white boots, standing straight with his hands relaxed at his sides",
+ "renders": {
+  "front": {
+   "seed": 2010337,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of the same lean mariachi man with the same white sugar-skull face paint, in a new costume: a white charro jacket with gold embroidery down the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with gold embroidery on its brim and a band of orange marigold flowers, a marigold-orange bow tie and a marigold-orange sash, white boots. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep his exact painted skull face, his build, height and proportions, his straight standing pose with both hands relaxed at his sides. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/calavera_b_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 368,
+     "right": 371,
+     "top": 36,
+     "bottom": 33,
+     "height": 954,
+     "width": 284
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 28302,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a white charro jacket, tight white trousers with a row of gold studs down each side, WHITE boots and white heels (no black anywhere on the feet), a wide white sombrero with a band of orange marigold flowers round its crown, a marigold-orange sash. Seen directly from behind, no face visible. Keep his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/calavera_b_front_ref.png",
+    "88fits/calavera_b_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 371,
+     "right": 373,
+     "top": 36,
+     "bottom": 38,
+     "height": 949,
+     "width": 279
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 20384,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a white charro jacket with gold embroidery on the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with a band of orange marigold flowers round its crown, a marigold-orange bow tie and a marigold-orange sash, white boots, the same white sugar-skull face paint. In strict side profile facing right. Keep his exact painted skull face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/calavera_b_front_ref.png",
+    "88fits/calavera_b_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 364,
+     "right": 392,
+     "top": 37,
+     "bottom": 37,
+     "height": 949,
+     "width": 267
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 20385,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a white charro jacket with gold embroidery on the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with a band of orange marigold flowers round its crown, a marigold-orange bow tie and a marigold-orange sash, white boots, the same white sugar-skull face paint. In three-quarter front view. Keep his exact painted skull face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/calavera_b_front_ref.png",
+    "88fits/calavera_b_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 364,
+     "right": 370,
+     "top": 39,
+     "bottom": 31,
+     "height": 953,
+     "width": 289
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 20386,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a white charro jacket with gold embroidery on the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with a band of orange marigold flowers round its crown, a marigold-orange bow tie and a marigold-orange sash, white boots, the same white sugar-skull face paint. In three-quarter back view, turned away from the viewer, no face visible. Keep his exact painted skull face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/calavera_b_front_ref.png",
+    "88fits/calavera_b_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 365,
+     "right": 366,
+     "top": 32,
+     "bottom": 35,
+     "height": 956,
+     "width": 292
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 20387,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a white charro jacket with gold embroidery on the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with a band of orange marigold flowers round its crown, a marigold-orange bow tie and a marigold-orange sash, white boots, the same white sugar-skull face paint. Seen directly from behind, no face visible, jumping for joy with both arms raised high, feet together. Keep his exact painted skull face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/calavera_b_front_ref.png",
+    "88fits/calavera_b_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 255,
+     "right": 255,
+     "top": 79,
+     "bottom": 87,
+     "height": 857,
+     "width": 513
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 20389,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a white charro jacket with gold embroidery on the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with a band of orange marigold flowers round its crown, a marigold-orange bow tie and a marigold-orange sash, white boots, the same white sugar-skull face paint. Seen directly from behind, no face visible, flinching from a hit, feet fully visible. Keep his exact painted skull face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/calavera_b_front_ref.png",
+    "88fits/calavera_b_hurt_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 363,
+     "right": 359,
+     "top": 36,
+     "bottom": 38,
+     "height": 949,
+     "width": 301
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 20388,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a white charro jacket with gold embroidery on the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with a band of orange marigold flowers round its crown, a marigold-orange bow tie and a marigold-orange sash, white boots, the same white sugar-skull face paint. Facing the viewer, flinching in pain, feet fully visible. Keep his exact painted skull face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/calavera_b_front_ref.png",
+    "88fits/calavera_b_hurt_front_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 358,
+     "right": 353,
+     "top": 35,
+     "bottom": 33,
+     "height": 955,
+     "width": 312
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 20390,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a white charro jacket with gold embroidery on the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with a band of orange marigold flowers round its crown, a marigold-orange bow tie and a marigold-orange sash, white boots, the same white sugar-skull face paint. In strict side profile facing right, flinching in pain, feet fully visible. Keep his exact painted skull face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/calavera_b_front_ref.png",
+    "88fits/calavera_b_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 364,
+     "right": 389,
+     "top": 35,
+     "bottom": 37,
+     "height": 951,
+     "width": 270
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 20392,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a white charro jacket with gold embroidery on the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with a band of orange marigold flowers round its crown, a marigold-orange bow tie and a marigold-orange sash, white boots, the same white sugar-skull face paint. In three-quarter back view, no face visible, flinching from a hit, feet fully visible. Keep his exact painted skull face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/calavera_b_front_ref.png",
+    "88fits/calavera_b_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 370,
+     "right": 367,
+     "top": 37,
+     "bottom": 40,
+     "height": 946,
+     "width": 286
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 20391,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a white charro jacket with gold embroidery on the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with a band of orange marigold flowers round its crown, a marigold-orange bow tie and a marigold-orange sash, white boots, the same white sugar-skull face paint. In three-quarter front view, flinching in pain, feet fully visible. Keep his exact painted skull face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/calavera_b_front_ref.png",
+    "88fits/calavera_b_hurt_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 339,
+     "right": 371,
+     "top": 37,
+     "bottom": 33,
+     "height": 953,
+     "width": 313
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 20393,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a white charro jacket with gold embroidery on the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with a band of orange marigold flowers round its crown, a marigold-orange bow tie and a marigold-orange sash, white boots, the same white sugar-skull face paint. Lying flat on the ground on the back, knocked out, limbs sprawled, the whole body visible. Keep his exact painted skull face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/calavera_b_front_ref.png",
+    "88fits/calavera_b_dead_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 145,
+     "right": 152,
+     "top": 193,
+     "bottom": 100,
+     "height": 730,
+     "width": 726
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "method": "hero_pose5",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "stills": "b",
+  "art_prompt": "a lean young mariachi man with his face painted as a white sugar-skull calavera, wearing a white charro jacket with gold embroidery down the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with gold embroidery and a band of orange marigold flowers, a marigold-orange bow tie and sash, white boots, standing straight with his hands relaxed at his sides",
+  "anim_hint": "a mariachi in a white and gold charro suit with a marigold-orange sash and a wide white sombrero, his face painted as a white sugar skull"
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

@@ -829,6 +829,17 @@ JOBS = {
                        "subject": "one small round dark slate-grey storm cloud with a deep purple underside, puffy and "
                                   "menacing, and one big jagged bright yellow-white lightning bolt striking straight down out "
                                   "of it, a few short slanted blue rain streaks beside the bolt"},
+    # pass 126 (set 126, lane ITEMS; Garry: "Assayer's Scale - I like this one, make it a Rare Passive Item", "Canteen ...
+    # can be an Uncommon"; the words are the ideas book's art prompts, docs/ideas/content.py new_scale, new_canteen)
+    "assayers_scale": {"set": "126", "kind": "passives", "id": "assayers_scale",
+                       "subject": "a small old brass balance scale standing on a round brass foot with a straight central post and "
+                                  "a level crossbeam, two round brass pans hanging from the beam on thin brass chains, the left "
+                                  "pan holding a small heap of chunky shiny gold nuggets, the right pan holding one white playing "
+                                  "card with a single big red heart on it, the card clearly showing"},
+    "canteen": {"set": "126", "kind": "passives", "id": "canteen",
+                "subject": "an old round flat metal water canteen covered in worn tan felt with a stitched seam round its edge, a "
+                           "short dented tin neck on top closed with a brown cork, a thick brown leather strap looping up from "
+                           "both sides of it, three big clear bright blue droplets of water falling beside it"},
 }
 
 

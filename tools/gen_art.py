@@ -1558,8 +1558,35 @@ def process(type_, folder, id_):
             # colours are the painting's and no frame can clip; the video clips moved the slimes' mouths, greyed them
             # mid-hop and grew the minion legs
             hh = float(d.get("hop_height", 0.13))
-            run_f = artkit.hop_cycle(base, cell, CREATURE_RUN_FRAMES, hh)
-            run_b = artkit.hop_cycle(back_cell, cell, CREATURE_RUN_FRAMES, hh)
+            # pass 126 (lane BESTIARY, the Dust Bunny): `hop_top_lag` makes the top `hop_top_frac` of the figure (the ears) lag
+            lag, lagf = float(d.get("hop_top_lag", 0.0)), float(d.get("hop_top_frac", 0.3))
+            run_f = artkit.hop_cycle(base, cell, CREATURE_RUN_FRAMES, hh, top_lag=lag, top_frac=lagf)
+            run_b = artkit.hop_cycle(back_cell, cell, CREATURE_RUN_FRAMES, hh, top_lag=lag, top_frac=lagf)
+            clip = ""
+            kinds["front"] = kinds["back"] = "procedural"
+        elif str(d.get("walk", "")) == "flap":
+            # pass 126 (lane BESTIARY, the Carrion Crow; the brief: "wings don't multiply and it isn't blurred"): a hop with two
+            # wing beats from painted poses (JSON "flap": {"height", "hints": {up, mid, down, upb, midb, downb}}: each hint
+            # edits the front or the back painting), each pose laid on the standing body by its head (artkit.laid_cell), so
+            # no video model draws a frame
+            fl = d.get("flap") if isinstance(d.get("flap"), dict) else {}
+            fhints = fl.get("hints") or {}
+            fpx = max(1, int(round(cell * CF)))
+
+            def flap_poses(stand_rgb, stand_cell, stand_scale, ref, suf, seedk):
+                cells = {"stand": stand_cell}
+                keyed_ref = artkit.punch(artkit.key_background(stand_rgb))
+                for j, nm in enumerate(("up", "mid", "down")):
+                    pim, inf = render(sk + "_" + nm + suf, str(fhints.get(nm + suf, "")) + " " + bg + ".", [ref],
+                                      {"subject": "the same creature", "view": None, "subjects_max": 1}, seed + seedk + j)
+                    info["renders"][nm + suf] = inf
+                    cells[nm] = artkit.laid_cell(artkit.punch(artkit.key_background(pim)), keyed_ref, cell, stand_scale, fpx, CO)
+                return cells
+
+            hf = float(fl.get("height", 0.12))
+            run_f = artkit.flap_cycle(flap_poses(img, base, sc, front_ref, "", 20), cell, hf)
+            bsc = finish(back_img, cell, 0.86, True, None, CF, figure_height_cell(base), CO)[1]
+            run_b = artkit.flap_cycle(flap_poses(back_img, back_cell, bsc, comfy.upload_pil(back_img, sk + "_back.png"), "b", 30), cell, hf)
             clip = ""
             kinds["front"] = kinds["back"] = "procedural"
         elif clip:
@@ -1678,6 +1705,11 @@ def process(type_, folder, id_):
             shards = artkit.shatter(base, int(d.get("death_frames", 6)), seed, int(d.get("shatter_pieces", 14)), max(1, int(round(cell * CF * 0.5))), CO)
             dead_cell = shards[-1]
             info["renders"]["dead"] = {"procedural": "shatter"}
+        elif death == "puff":
+            # pass 126 (lane BESTIARY, the Dust Bunny): a cartoon cloud of its own colour, its eyes hanging in it, then a low heap
+            shards = artkit.puff(base, int(d.get("death_frames", 5)), seed, max(1, int(round(cell * CF * 0.5))), CO, float(d.get("hop_top_frac", 0.3)))
+            dead_cell = shards[-1]
+            info["renders"]["dead"] = {"procedural": "puff"}
         else:
             dead_img, inf = render(sk + "_dead", dead_prompt, [front_ref], dead_expect, seed + 9)
             info["renders"]["dead"] = inf
@@ -1708,6 +1740,10 @@ def process(type_, folder, id_):
         else:
             # the deeper leans are refitted (artkit.fall) so the head never leaves the cell
             frames["die"] = [artkit.transform(base, lean_deg=-14, sy=0.97), artkit.fall(base, 38), artkit.fall(base, 66), dead_cell, dead_cell]
+        # pass 126 (lane BESTIARY): `death_bits` {kind straw|feather, n, colours, start, spread, rise, gravity, length}: loose bits
+        # thrown out of the body over the death strip (the Straw Man's straw, the crow's feathers)
+        if isinstance(d.get("death_bits"), dict):
+            frames["die"] = artkit.death_bits(frames["die"], seed, **d["death_bits"])
         strip, counts, cols = artkit.pack_strip(frames, artkit.ENEMY_ORDER, cell)
         if vcode:
             # a variant's strip and icon sit beside the ones the game uses (its icon is its own painting)
@@ -1735,7 +1771,8 @@ def process(type_, folder, id_):
         # how tall the figure stands in its cell (the game hangs its badge just above; tools/measure_heads.py does the same
         # for strips painted before pass 33.3)
         d["head"] = round(max(figure_top(f) for f in frames.get("idle", []) + frames.get("run", [])) if frames.get("idle") or frames.get("run") else 0.86, 3)
-        d["fps"] = {"run": int(d.get("run_fps", CREATURE_RUN_FPS)) if run_f else 10, "die": 12 if fall else 8}
+        # pass 126 (lane BESTIARY): `die_fps` a death's own rate (a swarm filler's puff is quick)
+        d["fps"] = {"run": int(d.get("run_fps", CREATURE_RUN_FPS)) if run_f else 10, "die": int(d.get("die_fps", 12 if fall else 8))}
     elif type_ == "characters":
         cell = int(d.get("frame_px", 256))
         pose_hint = str(d.get("pose_hint", ""))
@@ -2101,7 +2138,10 @@ def main():
         except Exception as e:
             fails += 1
             log("[%2d/%2d] %-11s %-18s FAIL %s" % (k + 1, len(jobs), t, id_, e))
-    app_icon()
+    # pass 126 (lane SKINS): only when asked. Since pass 117 tools/make_app_icon.py owns the launcher icon; this step wrote the old
+    # painted source over it at the end of every run, a look's too (game/icon*.png reverted by a walk)
+    if "--app-icon" in sys.argv:
+        app_icon()
     review_sheets()
     log("gen_art: done, %d items, %d failures, %.0f min" % (len(jobs), fails, (time.time() - t0) / 60))
     godot = os.path.join(REPO, "Godot_v4.7.2-stable_win64", "Godot_v4.7.2-stable_win64.exe")

@@ -1,0 +1,99 @@
+{
+  "id": "canteen",
+  "name": "Canteen",
+  "flavour": "Fill up. The next one is a long way off.",
+  "text": "Water no longer slows you, and leaving it gives +3 HP a second for 15 s. Evolved: enemies in water take +25% damage from you.",
+  "rarity": "uncommon",
+  "weight": 8,
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "leave_water_regen",
+        "op": "add",
+        "value": 3,
+        "target": "player"
+      },
+      {
+        "stat": "leave_water_seconds",
+        "op": "add",
+        "value": 15,
+        "target": "player"
+      },
+      {
+        "stat": "water_walk",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "leave_water_regen",
+        "op": "add",
+        "value": 0.5,
+        "target": "player"
+      },
+      {
+        "stat": "leave_water_seconds",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "leave_water_regen",
+        "op": "add",
+        "value": 0.5,
+        "target": "player"
+      },
+      {
+        "stat": "leave_water_seconds",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "leave_water_regen",
+        "op": "add",
+        "value": 0.5,
+        "target": "player"
+      },
+      {
+        "stat": "leave_water_seconds",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "leave_water_regen",
+        "op": "add",
+        "value": 0.5,
+        "target": "player"
+      },
+      {
+        "stat": "leave_water_seconds",
+        "op": "add",
+        "value": 2,
+        "target": "player"
+      },
+      {
+        "stat": "water_damage",
+        "op": "add",
+        "value": 0.25,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "art_prompt": "an old round felt-covered metal water canteen with a leather strap and a cork, droplets of water",
+  "placeholder": {
+    "color": "#5E8FB8",
+    "glyph": "star"
+  }
+}

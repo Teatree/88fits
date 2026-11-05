@@ -6,7 +6,8 @@
 ##
 ## A ring of `radius` m round `center`, made of stretches (BarrierMeshes.SEG m each) of 3D pieces (BarrierMeshes.parts:
 ## the King's stakes, tumbleweeds and ropes; the Gila's organ-pipe cactus columns with venom blooms and thorns; the
-## Brander's iron bars with white-hot spear heads, rails and branding irons with glowing brands). One MultiMesh per kind of
+## Brander's iron bars with white-hot spear heads, rails and branding irons with glowing brands; pass 126, Black Sunday's
+## crooked grave crosses, straw and barbed wire). One MultiMesh per kind of
 ## piece and per CHUNK_M m of the ring (so the stretches off the screen are culled), drawn with
 ## core/shaders/boss_barrier.gdshader, which plays the whole animation from two numbers a frame:
 ##   - the rise (setup, at the tell's start): each stretch comes up out of the sand over rise_s with a small overshoot,
@@ -28,7 +29,7 @@ const DUST_EVERY := 2
 const RISE_SOUND := "en_boulder_land"
 const FALL_SOUND := "st_barrel_break"
 ## seconds a kind of piece comes up after its stretch's posts
-const LATE := {"weed": 0.08, "weed_glow": 0.08, "rope": 0.16, "column_glow": 0.12, "thorns": 0.1, "rail": 0.12, "rail_glow": 0.12, "post_glow": 0.04}
+const LATE := {"weed": 0.08, "weed_glow": 0.08, "rope": 0.16, "column_glow": 0.12, "thorns": 0.1, "rail": 0.12, "rail_glow": 0.12, "post_glow": 0.04, "straw": 0.1, "wire": 0.16}
 ## seconds after the last piece is down before the node goes
 const GONE_AFTER := 0.3
 
@@ -260,6 +261,16 @@ func _layout(k: int, chord: float, next_on: bool, rng: RandomNumberGenerator) ->
 			if next_on:
 				out.append(["rail_glow", 0.25, 0, 0, "span"])
 				out.append(["rail", 1.2, 0, 0, "span"])
+		"cross_fence":
+			# pass 126 (lane BOSS): a cross at every stretch, each its own crooked lean, straw at every second foot, two
+			# strands of barbed wire from cross to cross
+			var cr := Basis(Vector3.UP, rng.randf_range(-0.35, 0.35)) * _tilt(rng, 0.11)
+			out.append(["cross", Vector3.ZERO, cr, Vector3.ONE * rng.randf_range(0.92, 1.08)])
+			if k % 2 == 0:
+				out.append(["straw", Vector3(rng.randf_range(-0.1, 0.1), 0.0, rng.randf_range(-0.08, 0.08)), Basis(Vector3.UP, rng.randf() * TAU), Vector3.ONE * rng.randf_range(0.85, 1.15)])
+			if next_on:
+				out.append(["wire", 1.05, 0, 0, "span"])
+				out.append(["wire", 0.5, 0, 0, "span"])
 	return out
 
 

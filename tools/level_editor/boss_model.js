@@ -12,7 +12,7 @@ const BossModel = (() => {
    *  saved without the block still pegs its bosses). */
   const SCALING_DEFAULTS = { enabled: true, exponent: 0.5, window: 45, min: 0.75, max: 3.0 };
   /** WaveTimeline.BOSS_REF_DPS_DEFAULTS: a boss's reference DPS when ref_dps leaves it out (lane BOSS's measurements). */
-  const REF_DEFAULTS = { tumbleweed_king: 600, gila_grande: 4500, brander: 20000 };
+  const REF_DEFAULTS = { tumbleweed_king: 600, gila_grande: 4500, black_sunday: 10000, brander: 20000 };
 
   const num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : (v != null && v !== '' && isFinite(Number(v)) ? Number(v) : d));
   const isObj = (x) => x != null && typeof x === 'object' && !Array.isArray(x);
@@ -43,10 +43,10 @@ const BossModel = (() => {
   // pass 83 (lane SCALE; Garry: "at least 25 seconds of Player's FULL DPS on Tumbleweed king ... 40s for the next and a
   // full minute to the last one"): WaveTimeline.BOSS_HP_MODE_DEFAULT, BOSS_SECONDS_DEFAULTS, boss_seconds_hp
   const MODE_DEFAULT = 'seconds';
-  const SECONDS_DEFAULTS = { tumbleweed_king: 25, gila_grande: 40, brander: 60 };
+  const SECONDS_DEFAULTS = { tumbleweed_king: 25, gila_grande: 40, black_sunday: 50, brander: 60 };
   /** The full DPS on a boss of the probe's tuned builds when it arrives (game/tools/_p83_SCALE_boss_probe.gd, pass 83:
    *  Calavera and the Drifter on difficulty_probe's b1 / b2 / b3): the "a typical build" mark on the seconds chart. */
-  const TYPICAL_FULL_DPS = { tumbleweed_king: 170, gila_grande: 500, brander: 2000 };
+  const TYPICAL_FULL_DPS = { tumbleweed_king: 170, gila_grande: 500, black_sunday: 1000, brander: 2000 };
 
   /** The mode the block plays: 'seconds' or 'dps' (WaveTimeline.boss_hp_mode). */
   function modeOf(tl) {
@@ -124,7 +124,7 @@ const BossModel = (() => {
   // BossAttackDef's tables (selftest_BOSS.py reads them out of the GDScript and checks they agree)
   const KINDS = ['rain', 'volley', 'ring', 'slam', 'script', 'pattern'];
   const SHAPES = ['rings', 'grid', 'spiral', 'random'];
-  const LOOKS = ['spike', 'spit', 'pellet', 'shard', 'rock', 'fire', 'burning_tumbleweed', 'venom_blob', 'brand_fireball'];
+  const LOOKS = ['spike', 'spit', 'pellet', 'shard', 'rock', 'fire', 'burning_tumbleweed', 'venom_blob', 'brand_fireball', 'grit_clod'];
   // pass 113 (lane BOSS): a bullet-heaven pattern's emitter shapes and aims, the boss's wind-up looks, his shells
   // (BossAttackDef.EMITTER_SHAPES, EMITTER_AIMS, TELL_LOOKS, SHELLS; selftest_BOSS113.py checks them)
   const EMITTER_SHAPES = ['spiral', 'ring', 'fan', 'sweep', 'wall', 'rose'];
@@ -134,7 +134,7 @@ const BossModel = (() => {
   // pass 115 (lane BOSS): a pattern's barrier (BossAttackDef.BARRIER_LOOKS, BARRIER_MODES, BARRIER_HOLDS,
   // BARRIER_CREATURES, BARRIER_BULLETS; the hero's body and the reach rule's room BARRIER_HERO_R, BARRIER_KEEP, the
   // smallest wall BARRIER_MIN_R; selftest_BOSS115.py checks them)
-  const BARRIER_LOOKS = ['none', 'tumbleweed_fence', 'cactus_fence', 'iron_fence'];
+  const BARRIER_LOOKS = ['none', 'tumbleweed_fence', 'cactus_fence', 'iron_fence', 'cross_fence'];
   const BARRIER_MODES = ['range', 'fixed'];
   const BARRIER_HOLDS = ['bullets', 'spent'];
   const BARRIER_CREATURES = ['block', 'pass'];
@@ -143,7 +143,7 @@ const BossModel = (() => {
   const BARRIER_KEEP = 0.5;
   const BARRIER_MIN_R = 3.0;
   /** BossAttackFx.BB_RADIUS: a bullet-heaven look's body radius (m) at size 1. */
-  const BB_RADIUS = { burning_tumbleweed: 0.34, venom_blob: 0.5, brand_fireball: 0.4 };
+  const BB_RADIUS = { burning_tumbleweed: 0.34, venom_blob: 0.5, brand_fireball: 0.4, grit_clod: 0.34 };
   const ORDERS = ['out', 'in', 'random', 'sweep'];
   const AIMS = ['hero', 'random', 'fixed'];
   const CENTERS = ['boss', 'hero'];
@@ -151,7 +151,7 @@ const BossModel = (() => {
   // pass 73 (lane GROUND): a rain's landing, BossAttackDef.LANDING_MODES
   const LANDING_MODES = ['stagger', 'volley'];
   const SCRIPTS = ['roll', 'spawn_ring', 'slam_at', 'blink', 'burrow', 'rain', 'erupt', 'spit_volley', 'slam', 'rumble',
-    'brand', 'tumbleweed_volley', 'swoop', 'boulder', 'stomp', 'tail_sniper'];
+    'brand', 'tumbleweed_volley', 'swoop', 'boulder', 'stomp', 'tail_sniper', 'whirl'];
   const DEFAULTS = {
     projectile: { look: 'spike', tint: '#D0242F', size: 1.0, glow: 1.0, flight: 1.0, arc: 6.0, speed: 12.0, range: 18.0, hit_radius: 0.5, trail: true, wobble: 0.0 },
     pattern: { shape: 'rings', center: 'boss', radius_min: 3.0, radius_max: 16.0, spacing: 3.2, count: 0, jitter: 0.2, gap: 1.0, turn: true, order: 'out', spread_deg: 360.0, aim: 'hero', waves: 1, wave_gap: 0.5, width: 1.2 },
@@ -650,7 +650,7 @@ const BossModel = (() => {
         if (num(e.rate, 4) <= 0) warnings.push(`an emitter (${e.shape}) with rate 0 never fires`);
         if (num(e.speed, 3) > 6) warnings.push(`an emitter flies at ${num(e.speed, 3)} m/s: faster than the hero (about 5 m/s) is hard to weave`);
       }
-      if (!Object.keys(BB_RADIUS).includes(String(val(a, 'projectile', 'look')))) warnings.push('a pattern draws one of the bullet looks (burning_tumbleweed, venom_blob, brand_fireball); any other plays the first');
+      if (!Object.keys(BB_RADIUS).includes(String(val(a, 'projectile', 'look')))) warnings.push('a pattern draws one of the bullet looks (burning_tumbleweed, venom_blob, brand_fireball, grit_clod); any other plays the first');
       if (patternDuration(a) < 5) warnings.push('under 5 s of bullets (Garry: "some 5+ seconds during which player is supposed to try and survive")');
       if (num(val(a, 'tell', 'seconds'), 2) < 1.2) warnings.push('a tell under 1.2 s (Garry: "Big foreshadowing")');
       if (num(val(a, 'hit', 'hit_frac'), 0.12) >= 0.34) warnings.push('a bullet takes a third of his HP or more: danger should come from the density, never one-shots');

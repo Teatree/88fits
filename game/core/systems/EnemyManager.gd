@@ -174,6 +174,9 @@ var freeze_t := PackedFloat32Array()
 var stun_t := PackedFloat32Array()
 const STUN_TINT := Color(0.95, 0.9, 0.45, 0.75)
 var _elite_dmg := 0.0
+## Pass 126 (lane ITEMS): the Canteen's Evolved rung: the extra share a creature standing in water takes from the hero
+## (0 without it: one float read a hit; damage() asks the lake only when it is above 0).
+var _water_dmg := 0.0
 var _difficulty := 0.0
 var _fire_vuln := 0.0
 ## Solenne's perks (pass 54): Sunburn's extra share on a burning or poisoned creature (0 without it), Lingering Light's
@@ -331,6 +334,8 @@ var lift_cd := PackedFloat32Array() # seconds before a tornado may grab this one
 var lift_mode := PackedByteArray()
 var lift_peak := PackedFloat32Array()
 var lift_knock := PackedVector3Array()
+## Pass 126 (lane BOSS): the share of its max HP this ride's fall takes (lift_radius's `ride`; 0 = LIFT_LAND, a dust devil's)
+var lift_land := PackedFloat32Array()
 ## Pass 48, per creature: the spawn's running number (`serial`: a weapon can tell a creature from the next one put in its
 ## slot); a slow of its moves AND its attacks (`hamper_f` for `hamper_t` seconds: hamper, attack_clock); a tint held for a
 ## few seconds (`status_tint` for `status_t`: set_status_tint); a blue burn (`fire_blue`: Methanol, Moonshine); and the
@@ -573,6 +578,7 @@ func _size_slots(from: int) -> void:
 	fixed.resize(n); f_stage.resize(n); f_hpt.resize(n); f_lvh.resize(n); f_dmt.resize(n); f_lvd.resize(n)
 	f_bsz.resize(n); f_tu.resize(n)
 	lift_mode.resize(n); lift_peak.resize(n); lift_knock.resize(n)
+	lift_land.resize(n)
 	away.resize(n); view.resize(n); poison_tick.resize(n); flash_green.resize(n)
 	poison_src.resize(n); fire_src.resize(n); fire_tick.resize(n); flash_hot.resize(n); fire_puff.resize(n)
 	# pass 60: everyone starts up on the sand, meaning to go nowhere, free to turn
@@ -653,6 +659,7 @@ func _pstats() -> void:
 	_freeze_chance = clampf(s.get_stat("freeze_chance", 0.0), 0.0, 1.0)
 	_crit_heal = clampf(s.get_stat("crit_heal_chance", 0.0), 0.0, 1.0)
 	_elite_dmg = s.get_stat("elite_damage", 0.0)
+	_water_dmg = maxf(s.get_stat("water_damage", 0.0), 0.0)
 	_difficulty = maxf(s.get_stat("difficulty", 0.0), 0.0)
 	_fire_vuln = s.get_stat("fire_vuln", 0.0)
 	_poison_slow = s.get_stat("poison_slow", 0.0)
@@ -1285,12 +1292,19 @@ func _cam_up() -> Vector3:
 
 ## A tornado's ride at its highest, metres a creature of size 1 goes up (pass 44 to 114's; the bees' old twister keeps it).
 const TORNADO_LIFT_H := 3.2
+## The share of its max HP a plain tornado's fall takes (pass 44's; pass 126: a named number, lift_radius's `ride` may say
+## another).
+const LIFT_LAND := 0.08
 
 
 ## Tornado: every grounded enemy inside the radius is thrown into the air for `duration` seconds, `height` m (x its size)
 ## up at the top of the ride (pass 115, lane POLISH: the map's dust_devils.lift_height).
-func lift_radius(center: Vector3, radius: float, duration: float = 1.6, height: float = TORNADO_LIFT_H) -> int:
+## Pass 126 (lane BOSS, Black Sunday's whirl): `ride` says what the fall takes: {land: the share of its max HP (LIFT_LAND),
+## land_big: that share for a big one, an Elite or a coloured special (land)}. No key = a dust devil's as ever.
+func lift_radius(center: Vector3, radius: float, duration: float = 1.6, height: float = TORNADO_LIFT_H, ride: Dictionary = {}) -> int:
 	var n := 0
+	var land := float(ride.get("land", 0.0))
+	var land_big := float(ride.get("land_big", land))
 	for i in indices_in_radius(center, radius):
 		if lift_t[i] > 0.0 or lift_cd[i] > 0.0 or state[i] == STATE_DYING or i == boss_index:
 			continue
@@ -1300,12 +1314,16 @@ func lift_radius(center: Vector3, radius: float, duration: float = 1.6, height: 
 		lift_peak[i] = maxf(height, 0.0)
 		lift_a[i] = atan2(pos[i].z - center.z, pos[i].x - center.x)
 		kb[i] = Vector3.ZERO
+		lift_land[i] = land_big if elite_idx[i] >= 0 or vspecial[i] == 1 or _t_big[type_idx[i]] == 1 else land
 		n += 1
 	return n
 
 
 ## Tornado: airborne enemies near the centre swirl around it and drift with it.
-func swirl(center: Vector3, radius: float, delta: float) -> void:
+## Pass 126 (lane STAGE; Garry: The Dust Bowl's tornadoes "x2 as strong in terms of how far they throw enemies and
+## heroes"): `fling` scales how far from the middle a creature comes to rest. Measured with the ride's chase and the landing's
+## shove (pass126_STAGE_test): fling 1, a dust devil as ever, rests about 1.1 radii from the middle, fling 2 about 2.2 radii.
+func swirl(center: Vector3, radius: float, delta: float, fling: float = 1.0) -> void:
 	# pass 110 (lane ARENA): nothing drifts in the arena's freeze
 	if crowd_freeze != 0:
 		return
@@ -1314,11 +1332,11 @@ func swirl(center: Vector3, radius: float, delta: float) -> void:
 			continue
 		var d := pos[i] - center
 		d.y = 0.0
-		if d.length() > radius * 2.5:
+		if d.length() > radius * (1.0 + 1.5 * fling):
 			continue
 		# spiral outward as the ride goes on, so the drop lands at the rim, not in the funnel
 		var f := 1.0 - clampf(lift_t[i] / maxf(lift_d[i], 0.01), 0.0, 1.0)
-		var r := clampf(d.length(), 0.6, radius) * (0.7 + 1.4 * f)
+		var r := clampf(d.length(), 0.6, radius) * (0.7 + (0.6 + 0.8 * fling) * f)
 		var target := center + Vector3(cos(lift_a[i]), 0, sin(lift_a[i])) * r
 		var np := pos[i].lerp(target, clampf(delta * 6.0, 0.0, 1.0))
 		np.y = _height(np.x, np.z)
@@ -1676,6 +1694,7 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	lift_cd[i] = 0.0
 	lift_mode[i] = 0
 	lift_peak[i] = 0.0
+	lift_land[i] = 0.0
 	lift_knock[i] = Vector3.ZERO
 	contact_cd[i] = 0.0
 	charge_dir[i] = Vector3.ZERO
@@ -2211,6 +2230,11 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 	_pstats()
 	if _elite_dmg > 0.0 and weapon_id != "revive" and weapon_id != "loose_rocket" and is_big_game(i):
 		dealt *= 1.0 + _elite_dmg
+	# pass 126 (lane ITEMS; the book: "Evolved: enemies in water take +25% damage from you"): the Canteen's Evolved rung,
+	# on a creature standing in a lake (not one in the air over it), from all the hero sends: his burns and poisons too,
+	# never a hit no weapon sent, the revive's flat tenth or a hostile hit
+	if _water_dmg > 0.0 and weapon_id != "" and weapon_id != "revive" and not (weapon_id in HOSTILE_PUSH_IDS) and lift_h[i] <= 0.05 and in_lake(pos[i]):
+		dealt *= 1.0 + _water_dmg
 	# Cauterize: a marked creature takes more from everything while the mark lasts
 	if mark_t[i] > 0.0:
 		dealt *= mark_mult[i]
@@ -4326,7 +4350,10 @@ func _physics_process(delta: float) -> void:
 				flash[i] = 0.6
 				lift_cd[i] = 4.0
 				kb[i] = Vector3(cos(lift_a[i]), 0, sin(lift_a[i])) * 12.0 * hero_knock_mult() * endless_knock_share()
-				damage(i, max_hp[i] * 0.08, "", Vector3.ZERO, 0.0)
+				# pass 126 (lane BOSS): the fall its ride named (lift_radius's `ride`), else a dust devil's
+				var ride_land: float = lift_land[i] if lift_land[i] > 0.0 else LIFT_LAND
+				lift_land[i] = 0.0
+				damage(i, max_hp[i] * ride_land, "", Vector3.ZERO, 0.0)
 			continue
 		if lift_cd[i] > 0.0:
 			lift_cd[i] -= delta
@@ -5623,6 +5650,9 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 	_tick_custom_attacks(delta, ppos)
 	# pass 95 (lane BOSS): the King's stomps under way (the hops and the landings)
 	_tick_stomps(delta, ppos)
+	# pass 126 (lane BOSS): Black Sunday's whirls under way (BossWhirl)
+	if whirls != null:
+		whirls.tick(delta, ppos)
 	# pass 113 (lane BOSS): the bullet-heaven patterns under way (the tell, the bullets, spent)
 	if patterns != null:
 		patterns.tick(delta, ppos)
@@ -5777,6 +5807,9 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 				# Pass 73 (lane GROUND): with a `sink` it sinks out of sight where it stands first; one that `predict`s its
 				# spot shows nothing until its warning (_burrow_begin, _tick_burrows)
 				_burrow_begin(i, atk)
+			elif str(atk.get("name", "")) == "whirl":
+				# pass 126 (lane BOSS): the shell rises through the wind-up (BossWhirl)
+				_whirls_of().wind_up(i, atk, ppos)
 			Audio.play(str(def.sfx.get("attack", "en_boss_attack")), pos[i])
 	elif state[i] == STATE_ATTACK:
 		timer[i] -= delta * attack_clock(i)
@@ -5903,6 +5936,10 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 				"tail_sniper":
 					# pass 95 (lane BOSS): the Scorpion Elite's tail beam, three in a row (_tail_start, _tick_tails: frozen)
 					_tail_start(i, atk, ppos)
+				"whirl":
+					# pass 126 (lane BOSS): Black Sunday becomes the storm (BossWhirl: it moves him, ends the attack and sets his
+					# cooldown; the runner's timer parked at SNIPER_HELD meanwhile)
+					_whirls_of().begin(i, atk, ppos)
 				"rumble":
 					# the Gila (pass 43): every line of the fan becomes a wave of heaving sand running out from the boss
 					var rn := int(atk.get("count", 7))
@@ -7301,6 +7338,16 @@ func _custom_fx_node() -> BossAttackFx:
 var patterns: BossPatterns = null
 ## a def's instance id -> whether its boss.attacks names a pattern (a script without one never makes the runner)
 var _pattern_has: Dictionary = {}
+
+
+## Pass 126 (lane BOSS): the `whirl` attacks (BossWhirl), made the first time a creature's script names one; null until then.
+var whirls: BossWhirl = null
+
+
+func _whirls_of() -> BossWhirl:
+	if whirls == null:
+		whirls = BossWhirl.new(self)
+	return whirls
 
 
 ## The attack runner's first question (_update_attacks): true while a pattern owns creature `i` (the cycle waits) or one

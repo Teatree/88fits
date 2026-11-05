@@ -174,6 +174,8 @@ func load_save() -> void:
 	_migrate_seen()
 	# pass 87 (lane SGAME): the stages this save has beaten, once, from what it did before stages were their own runs
 	_migrate_stages()
+	# pass 126 (lane STAGE): The Dust Bowl went in before the Blood Moon: what was stage 3 is stage 4 now, once
+	_migrate_dust_bowl()
 	# pass 88 (lane MIRROR): Spite's old Thorns / Thirst ranks paid back in full, once
 	_migrate_stakes()
 	# pass 115 (lane META): Nerve's ranks cost less now; what an older save paid over the new price comes back, once
@@ -1229,6 +1231,27 @@ func _migrate_stages() -> void:
 			if once("boss_%s_%d" % [str(map_id), k + 1]) or killed:
 				mark_stage_beaten(str(map_id), k)
 	mark_once("stages_migrated")
+
+
+## Pass 126 (lane STAGE; Garry: The Dust Bowl comes "after Nightfall"): Red Canyon's list went from Sundown, Nightfall, Blood
+## Moon to Sundown, Nightfall, The Dust Bowl, Blood Moon, and everything is kept by index. Once ("stages_dust_bowl"), for a
+## save older than the new list: a save that had beaten the Blood Moon (old index 2; or the Brander in its totals, which
+## _migrate_stages may have put on the new index 3) has all four beaten: never take a stage away, so The Dust Bowl counts as
+## beaten for it. A save at Sundown and Nightfall stays as it is and now opens The Dust Bowl, the Blood Moon locked. The once
+## flags by 1-based stage (boss_<map>_<k>, extract_<map>_<k>: quests read them) that meant the Blood Moon are copied to its
+## new number; the old number stays set (The Dust Bowl counts as beaten). The Wanted boards are keyed by stage but rolled
+## afresh (their config changed with the list). A new save starts with nothing beaten: nothing to move.
+func _migrate_dust_bowl() -> void:
+	if once("stages_dust_bowl"):
+		return
+	const MAP := "red_canyon"
+	if stage_beaten(MAP, 2) or stage_beaten(MAP, 3):
+		for k in range(4):
+			mark_stage_beaten(MAP, k)
+	for key: String in ["boss_%s_%d", "extract_%s_%d"]:
+		if once(key % [MAP, 3]):
+			mark_once(key % [MAP, 4])
+	mark_once("stages_dust_bowl")
 
 
 func hint_seen(id: String) -> bool:

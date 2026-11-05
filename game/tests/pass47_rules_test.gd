@@ -25,9 +25,10 @@ const TIERS := {
 	# pass 70: Prospector and Gold Tooth are lines now
 	"common": ["cake", "beer", "barrel_rush", "pickpocket", "quickdraw", "cold_snap"],
 	"uncommon": ["kindling", "siesta", "ricochet", "overkill", "adrenaline", "hush_money", "vulture", "reach", "venom", "big_game_hunter",
-		"phoenix_feather", "powder_keg", "loose_change", "pocket_watch", "counterpunch"],
-	# pass 119 (lane LEGEND_B): the Grindstone reworked to a free weapon level a rung, rare
-	"rare": ["steady_hand", "guillotine", "desperado", "brimstone_brand", "skedaddle", "hot_streak", "heavyweight", "grindstone"],
+		"phoenix_feather", "powder_keg", "loose_change", "pocket_watch", "counterpunch", "canteen"],
+	# pass 119 (lane LEGEND_B): the Grindstone reworked to a free weapon level a rung, rare; pass 126 (lane ITEMS): the
+	# Assayer's Scale rare, the Canteen uncommon
+	"rare": ["steady_hand", "guillotine", "desperado", "brimstone_brand", "skedaddle", "hot_streak", "heavyweight", "grindstone", "assayers_scale"],
 	"epic": ["sinners_greed", "gas_mask", "magnet", "snake_oil", "hot_springs", "last_stand", "jade_key", "ruby_key"],
 	# pass 118 (lane ITEMS): the Jade Key and the Ruby Key epic, the Grindstone the first legendary item
 	# pass 119 (lanes LEGEND_A and LEGEND_B): the Iron Horse and Personal Storm, Lightning in a Bottle, the Undertaker's
@@ -170,8 +171,9 @@ func test_six_weapons_and_six_lines_all_run_and_passive_items_without_a_cap() ->
 	var tl: WaveTimeline = Run.map.timeline
 	# JSON numbers come through as floats
 	# five and five since pass 52 (Garry: "Reduce the number of Slots for Weapons and Line Items down to 5")
-	assert_array(tl.weapon_cap.map(func(v) -> int: return int(v))).is_equal([5, 5, 5])
-	assert_array(tl.passive_cap.map(func(v) -> int: return int(v))).is_equal([5, 5, 5])
+	# pass 126: one entry a stage, four stages
+	assert_array(tl.weapon_cap.map(func(v) -> int: return int(v))).is_equal([5, 5, 5, 5])
+	assert_array(tl.passive_cap.map(func(v) -> int: return int(v))).is_equal([5, 5, 5, 5])
 	for s in [0, 1, 2, 5]:
 		Run.stage = s
 		assert_int(Run.weapon_cap()).is_equal(5)

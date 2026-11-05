@@ -159,13 +159,16 @@ func test_red_canyon_has_its_stages_as_windows_of_one_timeline() -> void:
 		assert_bool(on_end).override_failure_message("no boss event at stage %d's end" % (k + 1)).is_true()
 	assert_float(tl.total_length()).is_equal_approx(t, 0.001)
 	assert_int(tl.stage_at(t + 500.0)).is_equal(tl.stage_count() - 1)
-	# Garry's lengths (2026-10-17): 7:10, 10:00, 13:00, the Tumbleweed King, the Gila Grande and the Brander
+	# Garry's lengths (2026-10-17): 7:10, 10:00; the Tumbleweed King, the Gila Grande; pass 126: The Dust Bowl (Black Sunday), then
+	# the Blood Moon (the Brander)
 	assert_float(tl.stage_len(0)).is_equal(430.0)
 	assert_str(tl.stage_boss(0)).is_equal("tumbleweed_king")
 	assert_str(tl.stage_boss(1)).is_equal("gila_grande")
-	assert_str(tl.stage_boss(2)).is_equal("brander")
-	# stage 3 is hell; every stage has a name, a line and words for the Stages menu
-	assert_bool(tl.stage_hell(2)).is_true()
+	assert_str(tl.stage_boss(2)).is_equal("black_sunday")
+	assert_str(tl.stage_boss(3)).is_equal("brander")
+	# the last stage is hell; every stage has a name, a line and words for the Stages menu
+	assert_bool(tl.stage_hell(3)).is_true()
+	assert_bool(tl.stage_hell(2)).is_false()
 	assert_bool(tl.stage_hell(0)).is_false()
 	for k in range(tl.stage_count()):
 		var e := tl.stage_entry(k)

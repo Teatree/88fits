@@ -40,7 +40,7 @@ PROPS = {
     "agave": ("a spiky blue-green agave plant with thick pointed leaves fanning out from the ground" + NO_FACE, 1.3, 0.0, 192, 15, "green"),   # radius 0 since pass 54: the hero walks through it
     "dead_shrub": ("a dry dead desert shrub of tangled grey-brown twigs" + NO_FACE, 1.2, 0.0, 192, 16, "blue"),
     "dead_tree": ("a gnarled dead desert tree with bare twisted branches and cracked grey bark" + NO_FACE, 4.2, 0.19, 384, 17, "blue"),
-    "rock_small": ("a small rounded sandstone rock, orange and tan with a few cracks" + NO_FACE, 0.8, 0.22, 128, 18, "blue"),
+    "rock_small": ("a small rounded sandstone rock, orange and tan with a few cracks" + NO_FACE, 0.8, 0.0, 128, 18, "blue"),   # radius 0 since pass 126 (Garry: "Make the smaller Environment Rocks have no collision")
     "rock_big": ("a big rounded sandstone rock, orange and tan with cracks and a flat top" + NO_FACE, 1.6, 0.37, 256, 19, "blue"),
     "boulder": ("a huge sandstone boulder with layered orange and tan bands" + NO_FACE, 2.8, 0.62, 384, 20, "blue"),
     "skull": ("a big bleached cow skull with long curved horns, half buried in sand" + NO_FACE, 0.9, 0.0, 192, 21, "blue"),

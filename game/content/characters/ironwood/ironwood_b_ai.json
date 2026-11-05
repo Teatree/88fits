@@ -1,0 +1,369 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a tall lean Native American Plains warrior man with long straight black hair and one white-and-black eagle feather, two short red paint stripes across his left cheek, a calm stern face, a bare lean muscular chest, a thick white wolf-fur pelt over his shoulders, white fur leggings and a white fur breechcloth, a silver-blue belt set with round silver discs, white fur-trimmed moccasins, standing straight with his hands empty at his sides",
+ "renders": {
+  "front": {
+   "seed": 3010809,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of the same tall lean Native American Plains warrior with the same long black hair and one feather, the same bare chest and red cheek stripes, in a new winter costume: a thick white wolf-fur pelt draped over his shoulders, white fur leggings and a white fur breechcloth with pale grey shading, a silver-blue belt set with round silver discs, white fur-trimmed moccasins. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep his exact face, his build, height and proportions, his straight standing pose with both hands hanging empty at his sides. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/ironwood_b_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 349,
+     "right": 354,
+     "top": 46,
+     "bottom": 28,
+     "height": 949,
+     "width": 320
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 20852,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a thick white wolf-fur pelt over his shoulders, his chest bare, white fur leggings and a fringed white fur breechcloth with pale grey shading, a pale silver-blue belt set with round silver discs, a silver bead choker, brown moccasins trimmed with white fur, the same long black hair and two white-and-black feathers. Seen directly from behind, no face visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_b_front_ref.png",
+    "88fits/ironwood_b_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 350,
+     "right": 352,
+     "top": 46,
+     "bottom": 35,
+     "height": 942,
+     "width": 321
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 20853,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a thick white wolf-fur pelt over his shoulders, his chest bare, white fur leggings and a fringed white fur breechcloth with pale grey shading, a pale silver-blue belt set with round silver discs, a silver bead choker, brown moccasins trimmed with white fur, the same long black hair and two white-and-black feathers. In strict side profile facing right. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_b_front_ref.png",
+    "88fits/ironwood_b_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 375,
+     "right": 408,
+     "top": 48,
+     "bottom": 32,
+     "height": 943,
+     "width": 240
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 20854,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a thick white wolf-fur pelt over his shoulders, his chest bare, white fur leggings and a fringed white fur breechcloth with pale grey shading, a pale silver-blue belt set with round silver discs, a silver bead choker, brown moccasins trimmed with white fur, the same long black hair and two white-and-black feathers. In three-quarter front view. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_b_front_ref.png",
+    "88fits/ironwood_b_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 350,
+     "right": 355,
+     "top": 45,
+     "bottom": 33,
+     "height": 945,
+     "width": 318
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 20855,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a thick white wolf-fur pelt over his shoulders, his chest bare, white fur leggings and a fringed white fur breechcloth with pale grey shading, a pale silver-blue belt set with round silver discs, a silver bead choker, brown moccasins trimmed with white fur, the same long black hair and two white-and-black feathers. In three-quarter back view, turned away from the viewer, no face visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_b_front_ref.png",
+    "88fits/ironwood_b_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 363,
+     "right": 380,
+     "top": 50,
+     "bottom": 40,
+     "height": 933,
+     "width": 280
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 20856,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a thick white wolf-fur pelt over his shoulders, his chest bare, white fur leggings and a fringed white fur breechcloth with pale grey shading, a pale silver-blue belt set with round silver discs, a silver bead choker, brown moccasins trimmed with white fur, the same long black hair and two white-and-black feathers. Seen directly from behind, no face visible, jumping for joy with both arms raised high, feet together. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_b_front_ref.png",
+    "88fits/ironwood_b_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 291,
+     "right": 305,
+     "top": 40,
+     "bottom": 37,
+     "height": 946,
+     "width": 427
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 20858,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a thick white wolf-fur pelt over his shoulders, his chest bare, white fur leggings and a fringed white fur breechcloth with pale grey shading, a pale silver-blue belt set with round silver discs, a silver bead choker, brown moccasins trimmed with white fur, the same long black hair and two white-and-black feathers. Seen directly from behind, no face visible, flinching from a hit, feet fully visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_b_front_ref.png",
+    "88fits/ironwood_b_hurt_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 307,
+     "right": 321,
+     "top": 46,
+     "bottom": 39,
+     "height": 938,
+     "width": 395
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 20857,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a thick white wolf-fur pelt over his shoulders, his chest bare, white fur leggings and a fringed white fur breechcloth with pale grey shading, a pale silver-blue belt set with round silver discs, a silver bead choker, brown moccasins trimmed with white fur, the same long black hair and two white-and-black feathers. Facing the viewer, flinching in pain, feet fully visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_b_front_ref.png",
+    "88fits/ironwood_b_hurt_front_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 349,
+     "right": 354,
+     "top": 46,
+     "bottom": 28,
+     "height": 949,
+     "width": 320
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 20859,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a thick white wolf-fur pelt over his shoulders, his chest bare, white fur leggings and a fringed white fur breechcloth with pale grey shading, a pale silver-blue belt set with round silver discs, a silver bead choker, brown moccasins trimmed with white fur, the same long black hair and two white-and-black feathers. In strict side profile facing right, flinching in pain, feet fully visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_b_front_ref.png",
+    "88fits/ironwood_b_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 358,
+     "right": 382,
+     "top": 48,
+     "bottom": 32,
+     "height": 943,
+     "width": 283
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 20861,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a thick white wolf-fur pelt over his shoulders, his chest bare, white fur leggings and a fringed white fur breechcloth with pale grey shading, a pale silver-blue belt set with round silver discs, a silver bead choker, brown moccasins trimmed with white fur, the same long black hair and two white-and-black feathers. In three-quarter back view, no face visible, flinching from a hit, feet fully visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_b_front_ref.png",
+    "88fits/ironwood_b_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 355,
+     "right": 384,
+     "top": 50,
+     "bottom": 39,
+     "height": 934,
+     "width": 284
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 20860,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a thick white wolf-fur pelt over his shoulders, his chest bare, white fur leggings and a fringed white fur breechcloth with pale grey shading, a pale silver-blue belt set with round silver discs, a silver bead choker, brown moccasins trimmed with white fur, the same long black hair and two white-and-black feathers. In three-quarter front view, flinching in pain, feet fully visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_b_front_ref.png",
+    "88fits/ironwood_b_hurt_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 351,
+     "right": 383,
+     "top": 52,
+     "bottom": 30,
+     "height": 941,
+     "width": 289
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 20862,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a thick white wolf-fur pelt over his shoulders, his chest bare, white fur leggings and a fringed white fur breechcloth with pale grey shading, a pale silver-blue belt set with round silver discs, a silver bead choker, brown moccasins trimmed with white fur, the same long black hair and two white-and-black feathers. Lying flat on the ground on the back, knocked out, limbs sprawled, the whole body visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_b_front_ref.png",
+    "88fits/ironwood_b_dead_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 125,
+     "right": 134,
+     "top": 284,
+     "bottom": 131,
+     "height": 608,
+     "width": 764
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "method": "hero_pose5",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "stills": "b",
+  "art_prompt": "a tall lean Native American Plains warrior man with long straight black hair and one white-and-black eagle feather, two short red paint stripes across his left cheek, a calm stern face, a bare lean muscular chest, a thick white wolf-fur pelt over his shoulders, white fur leggings and a white fur breechcloth, a silver-blue belt set with round silver discs, white fur-trimmed moccasins, standing straight with his hands empty at his sides",
+  "anim_hint": "a tall Native American Plains warrior with long black hair and one feather, red cheek stripes, a bare chest, a white wolf-fur pelt over his shoulders and white fur leggings"
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

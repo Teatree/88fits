@@ -35,6 +35,10 @@ const QUAD_FRAC := 0.5
 ## fractions of the frame from its top, and its width.
 const FIGURE_TOP := 0.08
 const FIGURE_FEET := 0.953
+## Pass 126 (lane UI; Garry: "Move the drop shadow of the Hero just a bit up so it's actually touching their feet"): where the
+## soles truly end in a hero's frames: measured on every played look (game/tools/_p126_UI_soles.gd), standing 0.930..0.945, the
+## planted foot of a run 0.938. FIGURE_FEET stays the figure's box; a shadow starts from here.
+const FIGURE_SOLE := 0.938
 const FIGURE_W := 0.31
 ## Where he stands on each map's title roll (x, z), picked by eye: on Red Canyon's SEED, open ripple sand south of a
 ## saguaro stand, the big saguaro and a bush behind him and nothing between him and the camera (by the oasis the damp

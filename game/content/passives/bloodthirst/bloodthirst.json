@@ -11,7 +11,7 @@
       {
         "stat": "lifesteal",
         "op": "add",
-        "value": 0.08,
+        "value": 0.06,
         "target": "player"
       },
       {
@@ -23,7 +23,7 @@
       {
         "stat": "lifesteal_cap",
         "op": "set",
-        "value": 0.08,
+        "value": 0.06,
         "target": "player"
       }
     ]

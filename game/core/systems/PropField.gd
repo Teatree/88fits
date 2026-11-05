@@ -44,6 +44,11 @@ var _shadow_at := PackedVector3Array()
 var _shadow_k := PackedFloat32Array()
 
 
+## Pass 126 (lane STAGE): the shader's own sway speed, and the wind set now (mult, speed, gust; tests, tools).
+const WIND_SPEED := 1.3
+var wind_now := Vector3(1.0, WIND_SPEED, 0.0)
+
+
 func setup(manifest_path: String = "res://art/sprites/props/props.json") -> void:
 	if not FileAccess.file_exists(manifest_path):
 		return
@@ -81,6 +86,22 @@ func setup(manifest_path: String = "res://art/sprites/props/props.json") -> void
 		_types[id] = {"mm": mm, "n": 0, "height": float(row.get("height", 1.0)), "radius": float(row.get("radius", 0.0))}
 	_build_variants()
 	_build_shadows()
+
+
+## Pass 126 (lane STAGE; Garry: The Dust Bowl, "Make the trees and such bob much more from the wind"): the wind on every
+## painting's material (prop_billboard.gdshader): the lean x `mult`, the sway's speed `speed` (1.3 = as ever) and how much
+## a slow swell comes and goes on it, `gust` (0 = none). A prop whose sway is 0 (rocks, bones) stays still at any wind;
+## (1, 1.3, 0) is the shader's own defaults, to the number. Set once a stage (RedCanyon.set_weather).
+func set_wind(mult: float = 1.0, speed: float = WIND_SPEED, gust: float = 0.0) -> void:
+	if wind_now == Vector3(mult, speed, gust):
+		return
+	wind_now = Vector3(mult, speed, gust)
+	for c in get_children():
+		if c is MultiMeshInstance3D and (c as MultiMeshInstance3D).material_override is ShaderMaterial and (c as Node).name.begins_with("Prop_"):
+			var m := (c as MultiMeshInstance3D).material_override as ShaderMaterial
+			m.set_shader_parameter("wind_mult", mult)
+			m.set_shader_parameter("wind_speed", speed)
+			m.set_shader_parameter("wind_gust", gust)
 
 
 ## The kinds' variant tables: every drawable, unhidden entry with `variant_of` naming a drawable kind.

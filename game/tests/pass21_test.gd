@@ -24,15 +24,15 @@ func test_new_items_are_content() -> void:
 func test_lifesteal_heals_from_damage() -> void:
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 	# lifesteal is Thirst (a line from pass 26, a passive since pass 46); pass 31 cut it to 1.5% a level and capped what
-	# it may heal a second
+	# it may heal a second (re-pinned in pass 126, lane ITEMS: 1.125% a level, whole points come back, 0.25 stays in the pool)
 	Run.add_or_level_passive("thirst")
 	Run.add_or_level_passive("thirst")
 	Run.rebuild_sheets()
-	assert_float(Run.player_sheet.get_stat("lifesteal", 0.0)).is_equal_approx(0.03, 0.0001)
+	assert_float(Run.player_sheet.get_stat("lifesteal", 0.0)).is_equal_approx(0.0225, 0.0001)
 	var healed := [0.0]
 	Run.lifesteal_healed.connect(func(n): healed[0] += n)
 	Run.add_damage("boomstick", 100.0)
-	assert_float(healed[0]).is_equal_approx(3.0, 0.0001)
+	assert_float(healed[0]).is_equal_approx(2.0, 0.0001)
 
 
 func test_momentum_raises_speed_and_might_and_resets() -> void:

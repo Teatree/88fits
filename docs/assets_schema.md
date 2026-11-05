@@ -1702,6 +1702,7 @@ No new JSON keys, params, specials or stats.
   DamageNumbers.EVADE #cdb8ff.
 - New gold source id `barrel` (RunAnalytics.GOLD_SOURCES; a black barrel's coins) for anything that lists gold sources
   (dashboard.html, posthog_boards.py, the Sim's gold breakdown legend); unknown ids already show as their id.
+- Pass 126: new gold source id `skip_pay` (the Assayer's Scale's coins for a spent skip); it shows as its id too.
 
 ### Mummy looks, drivers, gen_art keys (lane MUMMY)
 
@@ -2220,6 +2221,25 @@ the first, then one for the hop, then gap + hop long after each landing). The `s
 | `sfx` | {aim, lock, shot} | the creature's sfx, else en_sniper_aim / en_sniper_lock / en_sniper_shot | |
 Nothing but a stun, a freeze, a launch, a grab, hiding or death drops the run (`tail_cancels`); a hit does not.
 The hero's hit info says `tail beam` (kind ranged, elite true, special_knock true).
+
+##### `whirl` (Black Sunday's; core/systems/BossWhirl.gd, pass 126; any creature with a script may carry it)
+| key | type | default | meaning |
+|---|---|---|---|
+| `windup` | s | 1.0 (he 1.4) | the common wind-up; its `telegraph` "ring" draws the radius round him (x 1/pace); his painting flips faster and faster, the funnel rises |
+| `radius` | m | 5.0 (he 4.5) | a creature this near rides; the hero within radius + 0.5 is thrown |
+| `seconds` | s | 6.0 | how long he is the storm: real seconds, never stretched by the pace knob |
+| `speed` | m/s | 3.2 | he hunts at this x pace (0.81 on Red Canyon: 2.6 m/s, 72% of a fresh hero's 3.6) |
+| `turn` | deg/s | 150 | the most his heading turns towards the hero |
+| `damage` | | 26 | each toss's hit x stage x hero level x host factors |
+| `toss` | {up, out, cooldown} | {13.4, 7.2, 1.6} | the hero's throw (Player.launch, m/s) and the least seconds between two; an evade, the bubble or May's box stops the throw and the hit |
+| `lift`, `lift_height` | s, m | 1.7, 4.5 | a creature's ride and how high (x its size) |
+| `fling` | | 2.0 | how far it comes down (EnemyManager.swirl: 1 = a dust devil's) |
+| `landing_damage` | share | 0.75 | of a creature's max HP, on landing |
+| `landing_damage_big` | share | 0.12 | the same for an Elite, a coloured special, anything big |
+| `dazed` | {seconds, damage_taken} | {2.5, 1.5} | he stands, hits on him x damage_taken, DAZED on the bar, stars (real seconds) |
+| `look` | {color, height, funnel, opacity, skirt_opacity, flip_hz, hover, rim, rim_color, ring_color, ring_alpha, edge_color, dazed_tint, shake} | BossWhirl.DEFAULTS | the funnel and the ground under it (BossPatternFx) |
+| `sound`, `end_sound` | ids | wd_dust_devil, en_boulder_land | the loop while he spins; as he stumbles out |
+He does not bite while he spins and stays a target throughout. The hero's hit info says `whirl`, `thrown` (kind boss, no shove on top of the toss).
 
 #### Common attack key
 | key | type | default | meaning |
@@ -3387,7 +3407,7 @@ Rules: BALANCING.md 56.TASKS. Counting: core/systems/TaskTally.gd.
 | Type | Key | Type | Default | Meaning |
 |---|---|---|---|---|
 | `damage_with_weapon` | `weapon` | weapon id | (required) | the damage the weapon's family deals (it and its evolution; never overkill) |
-| `heal_with_item` | `item` | card or passive item id | (required) | HP the item restores (life steal, regen, Siesta, Vulture, Cake Slices; its share of the stat; its Risen form counts for it) |
+| `heal_with_item` | `item` | card or passive item id | (required) | HP the item restores (life steal, regen, Siesta, Vulture, Cake Slices, the Canteen; its share of the stat; its Risen form counts for it) |
 | `heal_with_source` | `source` | `pickup:<id>` / `structure:<id>` | (required) | HP a power-up (`pickup:heart`) or a structure (`structure:healing_well`) restores; `pickup:` / `structure:` = any of the kind |
 | `element_damage` | `element` | `fire` / `poison` / "" | "" | burn (fire) or poison ticks the hero's side deals; "" both |
 | `barrels_total` | (count only) | | | barrels broken |
@@ -3483,3 +3503,29 @@ Tests: game/tests/pass117_DEBRIS_test.gd. Capture: game/tools/_barrel_debris_sho
 - tools/blender_boss_chests.py `export=<boss,...>`: only these GLBs are written (the others are only rendered). A chest
   built `hollow` (the Gila's, the Brander's) has walls, a floor, a lid shell and dark linings; its open render heaps the
   treasure inside the box.
+
+## Pass 126: art recipe keys (lane BESTIARY; art pipeline only, the game never reads them)
+
+`tools/gen_art.py` + `tools/artkit.py`, all additive, off unless named; creature JSON top level or a look's `recipe`. Level
+Editor catalogue: `tools/level_editor/methods.json` creature_proc, `assets_fields.js` walks and deaths.
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `walk: "flap"` | string | | a hop with two wing beats built from painted poses (artkit.flap_cycle, table FLAP_BEATS: pose, height, squash per frame). No video model draws a frame, so no blur and no third wing. Run the look at `run_fps` 24 |
+| `flap` | object | {} | `height` (0.12 of the cell) and `hints` {up, mid, down, upb, midb, downb}: each hint edits the front painting (the `b` ones the back painting) into that wing pose; cached as `<id>_<slug>_<pose>`. Paint several seeds and pick by eye |
+| `hop_top_lag` | number | 0 | `walk: hop`: the top of the figure lags (pressed down while it rises, thrown up as it falls); 0.22 for the Dust Bunny's ears |
+| `hop_top_frac` | number | 0.3 | how much of the figure, from its top, lags; `death: puff` also cuts that share off as the ears on the heap |
+| `death: "puff"` | string | | a cartoon cloud of the figure's own colour, its painted eyes hanging in it, then a low heap with the ears laid flat (artkit.puff); nothing painted, `dead_hint` unused; `death_frames` 5 + the first squash |
+| `death_bits` | object | none | {kind straw or feather, n, colours, start, spread, rise, gravity, length, outline}: loose bits thrown out of the body over the death strip with any death (artkit.death_bits); landed bits lie under the body, and all are down by the last frame, which the game holds |
+| `die_fps` | int | 12 for a clip, else 8 | the death's own rate |
+
+artkit.align_pose / laid_cell: a keyed pose laid on its reference by its head (OpenCV template match over scales 0.72-1.75 on the top middle of the figure), its neutrals brought to the reference's by a gain per channel, held to the cell's width, slid rather than cut. A wings-up edit from Klein comes out with a smaller head, so its body runs a little longer than the standing one: it reads as a stretch.
+
+The game's fog lifts blacks to a warm taupe, so a charcoal painting reads pale on the sand: Dust Bunny's stills `a2d` are `a2` with its neutral greys darkened x0.62 (tools/dl/p126/BESTIARY/darken.py, the whites and the pink ears left alone).
+
+## Pass 126 (lane SKINS): a skin's art
+
+- A hero's own painting has a code too: `variant_base` and `variant` name it, its entry under `variants` has no `sprite` (it reads the top-level strip, badge and cut-out).
+- `variants[CODE].recipe.recolour` {`from`: a look's code, `passes`: [...]}: a look made by `tools/skin_recolour.py` from another look's strip, badge and cut-out (`mode` hue | tint | lift as artkit's; gates `max_val`, `only` strip|icon|title, `rects`, `keep_rects`). Run again it writes the same files.
+- `variants[CODE].recipe.polish`: passes run on a walked look's own strip (`skin_recolour.py --polish`): the hues the video model smeared on. **gen_art writes the strip afresh, so run the polish again after every walk of that look.**
+- `tools/gen_skin_views.py`: a look's paintings as Klein edits of the source look's own stills, view by view (pose from the source, clothes from the new front).

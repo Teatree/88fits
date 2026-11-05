@@ -494,6 +494,85 @@
         "die": 8
       },
       "fresh": true
+    },
+    "SOL-H": {
+      "note": "pass 126: a white catsuit with gold trim, the same sun for a head: Klein edits of SOL-B's paintings, view by view (tools/gen_skin_views.py), walked on SOL-B's fitted walk",
+      "recipe": {
+        "pose_drivers": {
+          "back": "walk_sun_b_fit_spread",
+          "bd": "walk_sun_b_fit_spread",
+          "side": "walk_sun_b_fit",
+          "fd": "walk_sun_b_fit",
+          "front": "walk_sun_b_fit"
+        },
+        "pose_motion": "walking in place on the spot like on a treadmill, a light confident stride",
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "stills": "h",
+        "art_prompt": "a slender woman in a glossy white catsuit with gold trim and a high gold collar, knee-high gold boots, white gloves with gold cuffs; her head is a bright yellow cartoon sun: a smooth round yellow face with calm half-lidded eyes, thin brows and small red lips, ringed by eight long pointed golden-yellow rays; standing straight",
+        "anim_hint": "a woman in a glossy white catsuit with gold trim and gold boots whose head is a flat round yellow cartoon sun disc with pointed rays all around it, never seen edge-on",
+        "key_sat": 0.35,
+        "key_min_value": 0.2,
+        "key_cut_shadow": true,
+        "key_clamp_screen": false,
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                66,
+                175
+              ],
+              [
+                250,
+                335
+              ]
+            ],
+            "to": 48,
+            "sat": 0.25,
+            "min_sat": 0.05
+          }
+        ]
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Solar Flare",
+        "price": 2500,
+        "currency_type": "gold",
+        "unlock_quest": "skin_solenne_sol_h"
+      },
+      "sprite": "solenne_sprite_h.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "icon": "solenne_icon_h.png",
+      "title": "hero_solenne_h.png"
     }
   },
   "badge": {

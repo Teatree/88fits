@@ -1,0 +1,388 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a slender adult woman with a feminine figure, pale white skin, a short straight black bob haircut with bangs, a black beret with a small heart-shaped tip, dark eyes, a playful smile and a black star painted on her cheek; wearing a harlequin carnival costume: a fitted long-sleeve tunic of large diamonds in bright magenta, black and white, a white ruffled collar, black high-waisted shorts, magenta gloves, white and black diamond stockings and chunky black lace-up boots",
+ "renders": {
+  "front": {
+   "seed": 3003887,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of the same slender woman with the same pale skin, the same short black bob with bangs, the same black beret with a small heart-shaped tip and the same black star on her cheek, in a new harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta, black and white, a white ruffled collar, black high-waisted shorts below the tunic, the same bright magenta gloves, white and black diamond stockings and chunky black lace-up boots. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep her exact face and hair, her slender build, height and proportions, her straight standing pose with both hands relaxed at her sides. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/may_s_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 383,
+     "right": 385,
+     "top": 39,
+     "bottom": 39,
+     "height": 945,
+     "width": 255
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 11140,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta and black, a white ruffled collar, black high-waisted shorts with a black belt, bright magenta gloves, white and black diamond stockings and chunky black lace-up boots, the same black beret with a small heart-shaped tip. Seen directly from behind, no face visible. Keep her exact face and short black bob with bangs, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/may_s_front_ref.png",
+    "88fits/may_s_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 381,
+     "right": 384,
+     "top": 39,
+     "bottom": 39,
+     "height": 945,
+     "width": 258
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 11141,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta and black, a white ruffled collar, black high-waisted shorts with a black belt, bright magenta gloves, white and black diamond stockings and chunky black lace-up boots, the same black beret with a small heart-shaped tip. In strict side profile facing right. Keep her exact face and short black bob with bangs, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/may_s_front_ref.png",
+    "88fits/may_s_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 421,
+     "right": 436,
+     "top": 35,
+     "bottom": 38,
+     "height": 950,
+     "width": 166
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 11142,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta and black, a white ruffled collar, black high-waisted shorts with a black belt, bright magenta gloves, white and black diamond stockings and chunky black lace-up boots, the same black beret with a small heart-shaped tip. In three-quarter front view. Keep her exact face and short black bob with bangs, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/may_s_front_ref.png",
+    "88fits/may_s_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 382,
+     "right": 385,
+     "top": 39,
+     "bottom": 41,
+     "height": 943,
+     "width": 256
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 11143,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta and black, a white ruffled collar, black high-waisted shorts with a black belt, bright magenta gloves, white and black diamond stockings and chunky black lace-up boots, the same black beret with a small heart-shaped tip. In three-quarter back view, turned away from the viewer, no face visible. Keep her exact face and short black bob with bangs, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/may_s_front_ref.png",
+    "88fits/may_s_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 426,
+     "right": 387,
+     "top": 45,
+     "bottom": 36,
+     "height": 942,
+     "width": 210
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 11144,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta and black, a white ruffled collar, black high-waisted shorts with a black belt, bright magenta gloves, white and black diamond stockings and chunky black lace-up boots, the same black beret with a small heart-shaped tip. Seen directly from behind, no face visible, jumping for joy with both arms raised high, feet together. Keep her exact face and short black bob with bangs, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/may_s_front_ref.png",
+    "88fits/may_s_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 349,
+     "right": 350,
+     "top": 72,
+     "bottom": 84,
+     "height": 867,
+     "width": 324
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 11146,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta and black, a white ruffled collar, black high-waisted shorts with a black belt, bright magenta gloves, white and black diamond stockings and chunky black lace-up boots, the same black beret with a small heart-shaped tip. Seen directly from behind, no face visible, flinching from a hit, feet fully visible. Keep her exact face and short black bob with bangs, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/may_s_front_ref.png",
+    "88fits/may_s_hurt_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 371,
+     "right": 325,
+     "top": 40,
+     "bottom": 46,
+     "height": 937,
+     "width": 327
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 11145,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta and black, a white ruffled collar, black high-waisted shorts with a black belt, bright magenta gloves, white and black diamond stockings and chunky black lace-up boots, the same black beret with a small heart-shaped tip. Facing the viewer, flinching in pain, feet fully visible. Keep her exact face and short black bob with bangs, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/may_s_front_ref.png",
+    "88fits/may_s_hurt_front_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 391,
+     "right": 302,
+     "top": 38,
+     "bottom": 76,
+     "height": 909,
+     "width": 330
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 11147,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta and black, a white ruffled collar, black high-waisted shorts with a black belt, bright magenta gloves, white and black diamond stockings and chunky black lace-up boots, the same black beret with a small heart-shaped tip. In strict side profile facing right, flinching in pain, feet fully visible. Keep her exact face and short black bob with bangs, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/may_s_front_ref.png",
+    "88fits/may_s_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 388,
+     "right": 377,
+     "top": 38,
+     "bottom": 36,
+     "height": 949,
+     "width": 258
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 11149,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta and black, a white ruffled collar, black high-waisted shorts with a black belt, bright magenta gloves, white and black diamond stockings and chunky black lace-up boots, the same black beret with a small heart-shaped tip. In three-quarter back view, no face visible, flinching from a hit, feet fully visible. Keep her exact face and short black bob with bangs, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/may_s_front_ref.png",
+    "88fits/may_s_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 296,
+     "right": 370,
+     "top": 37,
+     "bottom": 42,
+     "height": 944,
+     "width": 357
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 11148,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta and black, a white ruffled collar, black high-waisted shorts with a black belt, bright magenta gloves, white and black diamond stockings and chunky black lace-up boots, the same black beret with a small heart-shaped tip. In three-quarter front view, flinching in pain, feet fully visible. Keep her exact face and short black bob with bangs, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/may_s_front_ref.png",
+    "88fits/may_s_hurt_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 358,
+     "right": 360,
+     "top": 64,
+     "bottom": 58,
+     "height": 901,
+     "width": 305
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 11150,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a harlequin carnival costume: a fitted long-sleeve tunic of large simple diamonds in bright magenta and black, a white ruffled collar, black high-waisted shorts with a black belt, bright magenta gloves, white and black diamond stockings and chunky black lace-up boots, the same black beret with a small heart-shaped tip. Lying flat on the ground on the back, knocked out, limbs sprawled, the whole body visible. Keep her exact face and short black bob with bangs, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/may_s_front_ref.png",
+    "88fits/may_s_dead_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 108,
+     "right": 98,
+     "top": 272,
+     "bottom": 198,
+     "height": 553,
+     "width": 817
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "pose_drivers": {
+   "front": "may_puppet_run",
+   "fd": "may_puppet_run",
+   "side": "may_puppet_run",
+   "bd": "may_puppet_run",
+   "back": "may_puppet_run"
+  },
+  "method": "hero_pose5",
+  "seed_offset": 6543,
+  "anim_seed": 4,
+  "remap_hues": {
+   "ranges": [
+    [
+     38,
+     75
+    ]
+   ],
+   "to": 220,
+   "sat": 0.08
+  },
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "stills": "s",
+  "art_prompt": "a slender adult woman with a feminine figure, pale white skin, a short straight black bob haircut with bangs, a black beret with a small heart-shaped tip, dark eyes, a playful smile and a black star painted on her cheek; wearing a harlequin carnival costume: a fitted long-sleeve tunic of large diamonds in bright magenta, black and white, a white ruffled collar, black high-waisted shorts, magenta gloves, white and black diamond stockings and chunky black lace-up boots",
+  "anim_hint": "a mime woman in a harlequin carnival costume of large magenta, black and white diamonds"
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "free"
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

@@ -108,6 +108,10 @@ func show_stage(s: int, seconds: float = -1.0) -> void:
 	var barrels: Node = game.get("barrels") if game else null
 	if barrels != null and barrels.has_method("set_hell"):
 		barrels.set_hell(1.0 if hell else 0.0, maxf(fade, 0.01))
+	# pass 126 (lane STAGE): the stage's weather (RedCanyon.set_weather; {} = as every stage played before it)
+	if map and map.has_method("set_weather"):
+		var w = entry.get("weather")
+		map.set_weather(w if w is Dictionary else {}, fade)
 
 
 ## The run's timeline (Run.map's).

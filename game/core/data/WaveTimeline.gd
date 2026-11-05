@@ -212,7 +212,7 @@ const BOSS_HP_SCALING_DEFAULTS := {"enabled": true, "exponent": 0.5, "window": 4
 const TARGET_PRIORITY_DEFAULTS := {"enabled": true, "reach": 10.0}
 ## The reference DPS of a boss the block's ref_dps does not name (lane BOSS measured them with tools/difficulty_probe.gd:
 ## the DPS over the 45 s before each boss, Calavera and the Drifter on stage builds; pass 72).
-const BOSS_REF_DPS_DEFAULTS := {"tumbleweed_king": 600.0, "gila_grande": 4500.0, "brander": 20000.0}
+const BOSS_REF_DPS_DEFAULTS := {"tumbleweed_king": 600.0, "gila_grande": 4500.0, "black_sunday": 10000.0, "brander": 20000.0}
 ## Growing out of the ground (pass 73, lane GROUND; Garry: "currently the enemies just kind of appear. Let's make it so
 ## that they grow out of the ground"): every creature that spawns rises out of the sand over `seconds` (an Elite or a
 ## boss by its kind over `big_seconds`), at the creatures' pace, the part still under cut by the billboard's ground-clip,
@@ -283,6 +283,9 @@ func far_speed_cfg() -> Dictionary:
 ## (core/systems/DustDevils.gd; read as it is, DustDevils.DEFAULTS fill gaps; no block = the defaults: one every two to
 ## three minutes from 1:30 of a stage, each 20 to 30 s).
 @export var dust_devils: Dictionary = {}
+## Pass 126 (lane DRESS): the map's dressing {telephone, cart, graves} (core/systems/MapDressing.gd; read as it is,
+## MapDressing.DEFAULTS fill gaps; no block = the defaults).
+@export var dressing: Dictionary = {}
 ## Pass 118 (lane BOSSCHEST; Garry: "The faster the Boss was killed the more Gold and Exp flies out"): the boss chest's
 ## speed bonus {fast, slow, max_mult} (core/systems/BossChest.gd; read as it is, BossChest.DEFAULTS fill gaps).
 @export var boss_chest: Dictionary = {}
@@ -385,7 +388,7 @@ func boss_dps_window() -> float:
 ## (exponent, window, min, max, ref_dps); those keys do nothing in "seconds". A boss with no `seconds` (0) keeps its
 ## data HP. The debug arena never scales.
 const BOSS_HP_MODE_DEFAULT := "seconds"
-const BOSS_SECONDS_DEFAULTS := {"tumbleweed_king": 25.0, "gila_grande": 40.0, "brander": 60.0}
+const BOSS_SECONDS_DEFAULTS := {"tumbleweed_king": 25.0, "gila_grande": 40.0, "black_sunday": 50.0, "brander": 60.0}
 
 
 ## The mode boss_hp_scaling plays: "seconds" or "dps" (anything else, or none, = BOSS_HP_MODE_DEFAULT).
@@ -519,7 +522,12 @@ static func curve_mult(c: Dictionary, t: float) -> float:
 	return 1.0
 
 
+## Pass 126 (lane STAGE): a stage entry's own `speed_mult` wins (the Blood Moon moved from index 2 to 3 and must keep the x1.2
+## it was tuned on); without one, as ever, 1 + speed_per_stage x the index.
 func speed_mult(stage_index: int) -> float:
+	var own = _stage_raw(stage_index).get("speed_mult")
+	if own is float or own is int:
+		return float(own)
 	return 1.0 + speed_per_stage * float(stage_index)
 
 
@@ -701,7 +709,7 @@ static func mix_rows(rows: Array) -> Array:
 ## before its boss), "boss" (an enemy id), "description", "difficulty" (the Stages menu's line), "filter" {"color":
 ## "#RRGGBB", "strength": 0..1} (the world's tint, lane SLOOK), "hell" (stage 3's red ground), "shot" (the menu's
 ## picture), "endless" (optional: Endless keys for this stage only)}. Stage k's window starts at the sum of the earlier
-## lengths (Red Canyon 7:10 / 10:00 / 13:00: 0..430, 430..1030, 1030..1810). A run plays one stage (Run.start_stage):
+## lengths (Red Canyon since pass 126 7:10 / 10:00 / 13:00 / 16:00: 0..430, 430..1030, 1030..1810, 1810..2770). A run plays one stage (Run.start_stage):
 ## its clock starts at the window's start and stops at the window's end, where the stage's boss comes. [] = the fallback
 ## for a map without the block: `stages` windows of `stage_length` each, named "Stage k", the boss the boss event at the
 ## window's end, stage 3 and later hell (the pre-87 maps' look). Every index here is 0-based and clamped into the list.
@@ -835,6 +843,43 @@ func stage_filter(i: int) -> Dictionary:
 func stage_xp_mult(i: int) -> float:
 	var e := _stage_raw(i)
 	return maxf(float(e.get("xp_mult", 1.0)), 0.0)
+
+
+## Pass 126 (lane STAGE; Garry: The Dust Bowl "after Nightfall", Hell longer): what the hero's side reads of a stage's
+## strength: the coin factor (round of this, at least 1) and the stage-scaled items (Personal Storm, the Iron Horse). They
+## read stage_mult until pass 126; the Blood Moon's stage_mult fell (its HP curve now starts further along the clock, the
+## creatures' strength is unchanged) and its coins and items must not fall with it. The entry's `reward_mult`, else
+## stage_mult. Red Canyon: Sundown and Nightfall name none, The Dust Bowl 2.75, the Blood Moon 3.34 (what it was).
+func stage_reward_mult(i: int) -> float:
+	var own = _stage_raw(i).get("reward_mult")
+	if own is float or own is int:
+		return maxf(float(own), 0.0)
+	return stage_mult(stage_clamp(i))
+
+
+## Pass 126 (lane STAGE): stage `i`'s weather as the map has it ({}: the stage plays as every stage did; RedCanyon.set_weather).
+## {"fog": {color, density}, "haze": {...}, "gust": {...}, "wind": {mult, speed, gust},
+## "wire_sway"}; every number in JSON, defaults beside what reads them (DustHaze, DustGust, RedCanyon.WEATHER_FOG).
+func stage_weather(i: int) -> Dictionary:
+	var w = _stage_raw(i).get("weather")
+	return w if w is Dictionary else {}
+
+
+## Pass 126 (lane STAGE): the dust devils' block stage `i` plays: the map's `dust_devils` with the entry's own `dust_devils`
+## laid over it key by key (`toss` merged key by key). A stage without one plays the map's block itself.
+func dust_devils_at(i: int) -> Dictionary:
+	var own = _stage_raw(i).get("dust_devils")
+	if not (own is Dictionary) or (own as Dictionary).is_empty():
+		return dust_devils
+	var out: Dictionary = dust_devils.duplicate(true)
+	for k in (own as Dictionary):
+		if k == "toss" and own[k] is Dictionary and out.get("toss") is Dictionary:
+			var t: Dictionary = out["toss"]
+			for tk in (own[k] as Dictionary):
+				t[tk] = own[k][tk]
+		else:
+			out[k] = own[k]
+	return out
 
 
 ## Stage `i`'s entry with every key filled (the Stages menu, analytics): index, id, name, length, boss, description,

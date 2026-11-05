@@ -1,0 +1,13 @@
+{
+  "id": "skin_ironwood_irn_b",
+  "name": "Ironwood · Winter Pelt",
+  "condition": {
+    "type": "totems_total",
+    "count": 40
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "ironwood:IRN-B"
+  },
+  "icon": "res://content/characters/ironwood/ironwood_icon_b.png"
+}

@@ -496,7 +496,11 @@ _STATS = {"max_hp": ("max HP", "num"), "move_speed": ("move speed", "num"), "mig
           "difficulty": ("difficulty", "pct"), "still_regen": ("HP/s standing still", "num"),
           "still_might": ("attack damage a second standing still (to +100%)", "pct"),
           "barrel_speed": ("move speed after a barrel", "pct"), "barrel_seconds": ("barrel boost", "sec"),
-          "xp_drop_chance": ("extra XP gem chance", "pct"), "elite_damage": ("damage to Elites and bosses", "pct")}
+          "xp_drop_chance": ("extra XP gem chance", "pct"), "elite_damage": ("damage to Elites and bosses", "pct"),
+          # pass 126 (lane ITEMS): the Assayer's Scale, the Canteen
+          "skip_coins": ("coins a skip pays", "num"), "skip_xp": ("next level's XP a skip pays", "pct"),
+          "water_walk": ("water no longer slows you", "word"), "leave_water_regen": ("HP a second after leaving water", "num"),
+          "leave_water_seconds": ("healing after leaving water", "sec"), "water_damage": ("damage to enemies in water", "pct")}
 _PREFIX = {"desperado": "up to "}
 
 
@@ -507,7 +511,10 @@ def _describe_effects(effs):
         st, kind = _STATS.get(stat, (stat, "num"))
         v = float(e.get("value", 0))
         sign = "+" if v >= 0 else "−"
-        if e.get("op") == "set":
+        if kind == "word":
+            # pass 126 (lane ITEMS): a stat said in words, never with its number (TextGen's "word")
+            parts.append(st)
+        elif e.get("op") == "set":
             shown = "%g%%" % (v * 100) if kind == "pct" else ("%g s" % v if kind == "sec" else "%g" % v)
             parts.append("%s %s" % (st, shown))
         elif e.get("op") == "mul":

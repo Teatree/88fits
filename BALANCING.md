@@ -333,7 +333,7 @@ god mode off; dying in the arena puts you back on your feet at once (HERO's "Go 
   4:30-7:45). The rule for big hits: a rocket is about half of the Mirror hero's health in each stage, a slam under it.
   Stage 2's fit is reasonable; stage 3's "needs the full Mirror, not half" rests on the per-hit numbers (the bot could
   outrun stage 3's crowd with a full build). `stage_mults` are untouched (they also set coin value and boss HP).
-- **The Mirror's sustain is front-loaded**: Thirst rank 1 already reaches the lifesteal cap (4 % of max HP a second), so
+- **The Mirror's sustain is front-loaded**: Thirst rank 1 already reaches the lifesteal cap (4 % of max HP a second then; 3 % since pass 126, and the Mirror's Thirst went in pass 88), so
   ranks 2-6 of Thirst add almost nothing; worth a look.
 
 ## 10. Pass 63: the Upgrade board's ranks are choices
@@ -1007,7 +1007,7 @@ Every number below is data (the item's JSON `levels`) unless marked **code** (a 
 - With regen alone at level 3: a pulse every 0.5 s of 4 + 2 x 0.6 = 5.2 damage (about 10 a second round him).
 - A known synergy (named so it is not a surprise): the pulse's damage feeds life steal like every damage he deals, and
   life steal's heal sends the next pulse, so with Thirst / Bloodthirst it keeps going while creatures stand in it, bounded
-  by life steal's cap a second (`lifesteal_cap`, 4% of max HP) and the 0.5 s gap: about 4 + 2 x 2.9 = 10 damage every
+  by life steal's cap a second (`lifesteal_cap`, 4% of max HP then, 3% since pass 126) and the 0.5 s gap: about 4 + 2 x 2.9 = 10 damage every
   0.5 s at 145 max HP. The probe (arena, a crowd held round him at 40x HP) saw ~90 pulses a minute.
 
 ## Last Stand (epic, weight 5, 3 levels)
@@ -9388,3 +9388,209 @@ Royale is the only design; there is nothing to choose in Settings, the developer
 - **A creature with an attack script** (`_t_scripted`: a caster or a `boss.attacks` list) spawned by another's script starts running its own on the next tick, not later in the same tick. It is the one order that changed, in both paths.
 - **How often the crowd steers** is now a map setting: `timeline_data.crowd` `{steer_every, steer_far_every}`, absent on Red Canyon, so 2 and 4 as before (WaveTimeline.CROWD_DEFAULTS). A longer cadence holds the crowd's push at 2 / steer_every a tick. Every 3rd / 6th tick was measured and left off: about 0.03-0.05 ms a frame saved, 18-26% more overlap.
 - **The pool** stays `EnemyManager.MAX` 320, so the map's `hard_cap` 500 still can't be reached. Raising it is one number and makes the stages harder: left for Garry to choose once the phone's numbers are in.
+
+### 68.ITEMS Assayer's Scale, Canteen, life steal a quarter less
+
+Garry (2026-11-05): "**Assayer's Scale** - I like this one, make it a Rare Passive Item. Don't make Banish pay too. **Canteen** - Also like this one, this one can be an Uncommon. **Lifesteal** stat - Reduce the Effectiveness of Both the Mirror Upgrade for this and the Card. It's too powerful at the moment. Make it about 25% less effective." The words are the ideas book's (docs/ideas/content.py new_scale, new_canteen). Rules below; both items are available from the start.
+
+**Assayer's Scale** (`content/passives/assayers_scale`, rare, weight 6, four levels on the ladder):
+
+| level | rung | coins a skip | share of the next level's XP |
+|---|---|---|---|
+| 1 | Rare | 25 | 5% |
+| 2 | Epic | 35 | 7% |
+| 3 | Legendary | 45 | 9% |
+| 4 | Evolved | 90 | 18% (the pay doubles) |
+
+- **What pays**: every skip spent: the level-up's SKIP, the mutation offer's SKIP, a chest's SKIP. All three spend through `Run.use_skip`, and that is the one place it pays (`Run._pay_skip`), so each skip pays once. Stats `skip_coins`, `skip_xp`.
+- **What never pays, at any level**: a reroll, a banish (the level-up's and the chest's; Garry's "Don't make Banish pay too" also drops the book's Evolved line), a table a banish emptied (it closes as skipped but spends no skip), a SKIP refused with none left, a chest taken. A chest of gold can't be skipped, as before.
+- **Coins** go into the purse through coin gain, as all gold (`add_gold`, source `skip_pay`): a x1.5 coin gain pays 38 for 25. **XP** is exact: the share of what the next level needs, and Field Notes does not raise it (as a boss chest's XP).
+- **The XP can level him**: the level is banked as any level (`Game._on_level_up`), its cards wait their turn behind the screen closing, never on top of it. Skip, XP, level-up, skip is legal while skips remain; each one costs a charge, so it ends.
+- **Shown**: a toast with the item's icon ("+25 gold +12 XP"), the purse's coin pop and the XP bar.
+- **Replays**: no dice; the recorded skip pays the same.
+
+**Canteen** (`content/passives/canteen`, uncommon, weight 8, five levels on the ladder):
+
+| level | rung | HP a second after leaving water | seconds | total | also |
+|---|---|---|---|---|---|
+| 1 | Uncommon | 3 | 15 | 45 | water no longer slows you |
+| 2 | Rare | 3.5 | 16 | 56 | |
+| 3 | Epic | 4 | 17 | 68 | |
+| 4 | Legendary | 4.5 | 18 | 81 | |
+| 5 | Evolved | 5 | 20 | 100 | +25% damage to enemies in water |
+
+- **Water no longer slows the owner** (`water_walk`, `Player._wade_mult`). Creatures still wade at `water_slow`. The rocketeer's rocket still flies at his dry speed, so with the Canteen he outruns it in water as well as on land.
+- **The heal** (`leave_water_regen`, `leave_water_seconds`, `Player._tick_canteen`): standing in a lake (on its floor, the wading rule) marks him wet and stops any heal; walking out past in_water's edge starts the whole time. Back in, it stops. Out again it starts anew, never on top: there is no stacking, however often he dips in. Flying out of a lake counts when he clears the edge; flying over a lake he never touched does not.
+- It heals in whole points through `Player.heal`, so it counts as a heal everywhere: Afterglow multiplies it, Hot Springs hears it, Snake Oil's overheal takes what a full bar can't, and TaskTally credits it to the item (`HEAL_STATS`, "HP restored with an item"). Nothing heals while he is down.
+- **Buff duration stretches its seconds** (Solenne), as every timed buff on her (`Run.buff_seconds`).
+- **Shown**: a word under the slots, CANTEEN, while it runs, as Skedaddle's (quiet timers have no plate), and the green numbers. The run record names it `canteen` in `healed_by`.
+- **Evolved's +25%** (`water_damage`, `EnemyManager.damage`): on a creature standing in a lake (not one in the air over it), from all the hero sends, his burns and poisons too; never a hit no weapon sent, the revive's flat tenth or a hostile hit (a loose rocket, a body's blast). It multiplies with the rest. The hit path pays one float read when nobody holds the rung. The walker's path is untouched.
+
+**Life steal, 25% less**: Death (`thirst`) 1.5% -> **1.125%** a level (4.5% at level 4, was 6%); Death Risen (`bloodthirst`) +8% -> **+6%**; the cap a second **3%** of max HP (`Run.LIFESTEAL_CAP`, `StatSheet.lifesteal_cap`, HeroPower's default, was 4%), Death Risen's cap **6%** (was 8%). The cap had to fall with the rate, or a strong build, which sits at the cap, would lose nothing. Prices unchanged (-6% max HP a level, -12% on the Risen card). **The Upgrade board has no life steal** since pass 88 (its Thirst went with Spite), so nothing changed there; Poultice is not life steal and was not touched. A hero's life steal through Trick Shot's `proc_mult` keeps its multiple, under the new cap.
+
+**The bot** (Bot.gd, the sim) knows nothing of the new stats: it never presses SKIP and does not seek water, so it scores both items as a plain card (BotCards MISC_PTS).
+
+
+### 68.UI The Heroes screen's two lists, the main menu's hero, the tab bar's one face, the coin on a buy question
+
+No numbers of play change here; these are the screen's rules, named so they do not read as accidents.
+
+**A hero's items no longer list an evolution** (`WHeroSheet.items_of`; Garry: "it's not unique to them everyone gets this now"). The list used to end on the evolution of the weapon he lands with whenever `WeaponDef.hero` named him; since pass 118 anyone may find such a weapon. Both the Heroes screen and the Hero details pop-up follow; the Collection's item page still says how a weapon evolves.
+
+**The Heroes screen is two lists** (`ui/HeroesScreen.gd`). The picker (`HeroScroll`) is locked to the foot over the tab bar and always shows `PICK_ROWS` 2 whole rows of tiles; a third row and on scroll inside it, with their own thumb. The page above it (hero, SELECT, items) is cut off where the picker starts and carries `WScrollThumb` (R.SCROLL_THUMB_W 20 px, in a 6 px gutter given up on the page's right) and a fade while more lies below. A finger moves only the list it came down on (TouchScroll `only_inside`). A tile tapped shows that hero and brings the page back up to him; the picker stays where it was.
+
+**The main menu's hero is `RY_FIGURE_H` 368 px tall** against the Heroes screen's `FIGURE_PX` 320 (x1.15, Garry's number; was 300). **His run-off** takes `RY_RUN_OUT` 0.32 s (was 0.44) and fades to nothing by `RY_RUN_FADE` 0.7 of that (there was no fade before); the run-in is as it was.
+
+**A hero's shadow starts from `TitleStage.FIGURE_SOLE` 0.938 of his frame**, where the paint of his soles truly ends (measured on all eight played looks by `game/tools/_p126_UI_soles.gd`: standing 0.930..0.945, a run's planted foot 0.938), not from `FIGURE_FEET` 0.953, the figure's box, which still places and scales him. The main menu's shadow and contact pool use it; the Heroes screen's disc sits `SHADOW_UP` 6 px over that line.
+
+**The tab bar wears Ultra on every tab, open or not** (Garry: "It's weird that the font changes when I tap that button"), the one place under his 28 px Ultra minimum by his own ask: open 28 px, the rest 22, a word too wide for its tab drops a px at a time until it fits (`WTabBar._fit_word`: COLLECTIONS).
+
+**A question that buys wears the coin** (`WButton.price_parts`, `WConfirm.open`'s `confirm_parts`; Garry: "Buy Look button doesn't have coins icon on it"): "Buy this look?" on the Heroes screen and on the Hero details pop-up, and "Buy this hero?" on the Heroes screen and the main menu, read coin, amount, BUY, as `WButton.price` does. A look's or hero's short price tag now has the amount in red on the grey (`royale_tag` kind "locked": pass 124's rule, `R.SHORT_INK`).
+
+### 68.BOSS Black Sunday, the Dust Bowl's boss, and the whirl
+
+What the three old bosses have in common: `roll`, `spawn_ring` and one rare bullet heaven. What sets each apart is one signature (the King's three stomps; the Gila's burrow and eruption plus the poison rain; the Brander's burning lines plus the shrinking ring). In all three the signature is something you only run from, and it only ever helps the boss.
+
+**Black Sunday** (`content/bosses/black_sunday`, Registry id `black_sunday`): HP 7500, speed 1.5, damage 27, 75 XP multiplier, 44 coins, 2 chests. His `boss_hp_scaling.seconds` is **70** in the map (the design said 50 against King 25 / Gila 40 / Brander 60; the map now holds Garry's 40 / 60 / 80, so 70 keeps him between the Gila and the Brander; `WaveTimeline.BOSS_SECONDS_DEFAULTS` holds the 50 for a map that names none). Rows: `roll` (wind-up 1, speed 13.5, 1.1 s, damage 30), `spawn_ring` of 14 `straw_man` (never specials), `whirl`, `tumbleweed_volley` (14 at speed 10), `black_blizzard`. Cooldown between attacks 2.1 s.
+
+**`whirl`** (`core/systems/BossWhirl.gd`; every number in his row, `DEFAULTS` fill the rest). The twist: it is the only boss attack that hurts his own crowd, and he pays for it. Rules:
+- Wind-up 1.4 s (x 1/pace, as every wind-up) with a ring on the ground and his painting flipping faster and faster. Skipped while the hero is more than `max_range` 20 m away (he would be a storm nobody sees).
+- `seconds` 6 **real seconds** as a storm: not stretched by the pace knob. He hunts at `speed` 3.2 x pace = 2.6 m/s (72% of a fresh hero's 3.6), turning at most `turn` 150 degrees a second, through the crowd (the crowd's push still moves him).
+- He does not bite while he spins; the toss is the only harm his body does then. He stays a target and takes every hit whole.
+- The hero within `radius` 4.5 + 0.5 m is thrown (`toss` up 13.4, out 7.2 m/s by Player.launch, the Dust Bowl's tornado numbers: he lands 1.07 m away, a plain dust devil 0.53 m) and hit (`damage` 26 x stage x level x host), at most once in `toss.cooldown` 1.6 s. **An evade or the Invincibility bubble or May's box stops the throw as well as the hit**, and the cooldown still runs.
+- Every creature within `radius` rides (`lift` 1.7 s, `lift_height` 4.5 m, `fling` 2: EnemyManager.lift_radius / swirl) and comes down hurt: **`landing_damage` 0.75 of its max HP; `landing_damage_big` 0.12 for an Elite, a coloured special or anything big**. A dust devil's fall stays 8% (`EnemyManager.LIFT_LAND`). What dies of the fall drops what it drops; it is credited to no weapon, so it feeds no lifesteal. A creature that landed cannot be taken again for 4 s (as a dust devil's).
+- Then `dazed` 2.5 real seconds: he stands, hits on him x `damage_taken` 1.5 (the bullet heaven's table, `BossPatterns.mult`), the bar says DAZED, stars over his head, a warm tint; his bite as ever. Then his cycle goes on after his cooldown.
+- No dice in its rules; it follows the physics tick, so a replay plays it the same. Its look is BossPatternFx's, as a pattern's (BossWhirl.look_def).
+
+**`black_blizzard`** (`content/boss_attacks/black_blizzard`, kind `pattern`): the rules are every bullet heaven's (56.BOSS, 58.BOSS). 16 s of tumbling grit (`grit_clod`, a new bullet look: a dark clod with a pale edge outside its ink, so it reads on the brown sand): four fast arms (5 m/s, 42 degrees a second, turning back halfway), four slow ones the other way (3.2 m/s, -26 degrees a second), every 3.5 s a wall of grit 17 m wide with a 5 m gap, towards the hero. Guarded 80%, spent 2.5 s at x1.5, first at 60% HP or 45 s, then 45 s after the last one ended. Barrier `cross_fence` (new: crooked grave crosses, straw, barbed wire, 18.9 m).
+
+**The chest**: "Collection Box", shine `#d9a35a` (`tools/blender_boss_chests.py`, `tools/gen_boss_chests.py`).
+
+### 68.DRESS The telephone line, the toppled cart, the grave crosses, small rocks with no collision
+
+Garry (2026-11-05): "I would like to avoid any kinds of generation elements that create big obstacles for players to have trouble traversing. Our enemies don't think so I don't want them to be dealing with A* pathfinding or anything like that. I don't want them to get stuck." Then the telephone poles, the cart and the crosses, and "Make the smaller Environment Rocks have no collision, only the big ones."
+
+Everything here is in the map file's `timeline_data.dressing` {`telephone`, `cart`, `graves`}; `MapDressing.DEFAULTS` fill what it leaves out. Laid last in RedCanyon's scatter on three dice streams of its own off the run's map seed (`hash([seed, "dressing", what])`), so a replay lays the same map and the scatter draws nothing more: every other painting on a seed's map stands where it stood (pinned by the tests). Structures placed later keep 1.6 m off the poles, wheels and crosses (`StructureManager.DRESS_CLEAR`); nothing else reads them.
+
+**Only the cart has a collider.** Poles, wheels, crosses and snapped-off tops have no collider and no obstacle circle: a thin post is what a creature would snag on, and they only steer round circles.
+
+**Small rocks.** `rock_small` radius 0 (was 0.22 m): no collider, no circle. Its keep-out in the scatter was already 0.6 m (`maxf(r, 0.6)`), so spacing and the seed's spots are unchanged. `rock_big` keeps its collider: it is placed at 0.85..1.15 of 1.6 m, so its smallest (1.36 m) stands well over the tallest small rock (0.96 m, 0.8 m x 1.2). No size threshold was needed. Cacti and trees keep theirs. This takes 0.22 m circles off the rock fields: tell Garry if creatures now walk through what reads as a rock field.
+
+**The telephone line** (`core/systems/TelephoneLine.gd`, the map's child "TelephoneLine"): exactly one a map, from `edge_in` 2.6 m inside the wall to the same on the far side, on a chord passing within `through` 0.45 of the radius of the middle (always at least 1.6 x the radius long). `bends` 1-3 (none with `straight_chance` 0.1), swinging up to `bend_offset` 9 m off the chord; every turn is under `max_bend_deg` 14 (offsets shrink until it is). `span` 9-12 m. A spot's dice: a run of `gap_run` 1-3 poles missing starts with `gap_chance` 0.15; snapped short with `snap_chance` 0.12, its top lying beside it with `fallen_chance` 0.55; leaning 9-26 degrees with `lean_chance` 0.3 (every other pole up to 3 off true). The two end poles always stand. A pole skips the water (0.8 m), the hero's start (5 m) and what stands on the map (nudged up to 2.4 m along the line, else missing). A span between two standing poles carries wire with `wire_chance` 0.9, which with the gaps and snaps leaves **about half of all spans bare** (54% over 200 seeds; the lead's reading of "often doesn't have a line at all"; 23% of the spots have no pole, 6.5% a snapped one, 18.5% a leaning one). `dangle_chance` 0.35: a bare span may have a loose end hanging from its pole.
+
+The wire: `wires` 2 a span, a catenary sagging `sag` 0.55-1 m, a camera-facing ribbon (`wire_width` 0.0016 of the camera distance: the same thin width at every zoom), `wire_alpha` 0.5, `wire_color`, dimmed by the stage's filter with the ground under it. It moves by its shader alone (`sway` 0.07 m mid span at `sway_speed` 1.1); `set_wind(mult)` scales it (lane STAGE's `weather.wire_sway`; above 1 a quicker flutter comes in too).
+
+**The cart** (`cart_toppled` in props.json, a painted prop like any other, its own natural tint): `chance` 0.75 of runs (76.5% of 200 seeds). Biggest rock: `boulder` 0.62 m radius and 2.8 m tall x its largest placed scale 1.15 (`RedCanyon.BOULDER_SCALE_MAX`) = 0.713 m and 3.22 m; x 1.1 = **0.784 m collider, 3.54 m painting**. `flat_radius` 5 m, `flat_max` 0.55 m: over a 10 m disc round its foot the ground rises and falls at most 0.55 m, which is about the flattest 4% of the open land (an open spot's median is 1.1 m; `tries` 900; the flattest found if none passes). It also keeps its footprint (`keep` 1.8 m) out of the lakes, the river bed, the flats and the wall, and off anything standing there, so it may stand close to other props without touching them.
+
+**Its wheels** (3D, `art/props/wagon_wheel.glb`, three models): `wheels` 1-2 (1.47 on average), each `wheel_dist` 1.9-5 m from the cart, two at least `wheel_apart` 0.9 m different, never hidden just north of the painting; `wheel_lean_deg` 15-70 from lying flat, leaning towards the camera give or take `wheel_face_deg` 70 (a wheel leaning away shows only its rim), spun on its axle, `wheel_sink` 0.05-0.5 of the wheel's height under the sand, `wheel_scale` 1-1.2.
+
+**The graves** (3D, `art/props/grave_cross.glb`: ten crosses, two sticks): `sites` 2-6 a map (4.1 on average), `site_apart` 12 m (6 m when the map is crowded), a site is one cross, or `lump_count` 3 within `lump_spread` 1.1-1.9 m with `lump_chance` 0.25 (23% of 824 sites). `stick_chance` 0.05 a bare stick (5.6% of 1,196). Every cross leans `tilt_deg` 3-9, or `crooked_deg` 10-18 with `crooked_chance` 0.4; `size` 1-1.35, `sink` 0-0.12 m, turned at most `yaw_deg` 50 off facing south so none shows only its edge. No model twice on a map until all ten are out.
+
+**Drawing.** Poles, wheels, tops and crosses are one merged mesh (`core/shaders/dress_depth.gdshader`: each vertex carries its thing's foot, sorted as the signs are, stencil 4), the wire one more mesh, the cart its prop's MultiMesh: at most three draw calls (measured in the windowed captures: the mesh +1, the wire +1 while its box is in view, the cart +1). About 7,000 vertices at most in the mesh, which is drawn whole (no culling by piece). Their ground shadows lie in the props' one shadow MultiMesh. The title builds no map since pass 124, so none of it shows there.
+
+### 68.STAGE The Dust Bowl, a longer Blood Moon, a stage's weather
+
+Garry (2026-11-05): "**The Dust Bowl** ... Don't add any extra mechanics to this though. This map will have Tornadoes a bit more often than usual, they will be visually a bit bigger and x2 as strong in terms of how far they throw enemies and heroes. Add a brown fog effect (without damping the view distance too much or killing performance) to imitate a dust storm. Make the wind visual vfx effect stronger looking on this map only. Make the trees and such bob much more from the wind. Set this level to come after **Nightfall** and give it the same duration as what Hell does now, while increasing Hell duration accordingly. Come up with a wave structure for this new Dust Bowl Map and adjust the Hell one accordingly."
+
+**The order.** `stage_list`: Sundown `s1` 430 s, Nightfall `s2` 600 s, The Dust Bowl `dust` 780 s (index 2, Hard), Blood Moon `s3` 960 s (index 3, Brutal). Windows on the one clock 0, 430, 1030, 1810, end 2770. `stages` 4; `weapon_cap`, `passive_cap` four entries. Sundown's and Nightfall's rows and entries are untouched to the number.
+
+**Why the stage multipliers fell.** `hp_curve` runs on the absolute clock, and it is the formula that plays, b = 1.35: 1, 2.05, 3.78, 6.38, 10.01 at 0, 430, 1030, 1810, 2770 s (its `points`, on the pass 54 ramp b = 1.25, play only in "points" mode; one more added at 2770, 8.41). So the Blood Moon moved later would be 1.6 x as strong at the old 3.34. `stage_mults` [1, 2.2, 2.05, 2.05]: a Blood Moon row's strength (curve at its start x stage) was 12.6, 15.5, 18.9 at its start, middle and last rows, and is 13.1, 15.6, 18.5. Nothing else moved its creatures:
+- `damage_curve`: the Blood Moon's points moved and stretched and x 3.34 / 2.05, so curve x stage is what it was at every point. Its bite is unchanged.
+- `boss.hp_mult_per_stage` and `elite.hp_mult_per_stage` read the index, which grew: the Brander's event `hp_mult` 0.15 -> 0.1222 (2^3 x 2.05 for 2^2 x 3.34; data HP still 21,803), the Elite event's 0.45 -> 0.407. The seconds floor is his as before.
+- `speed_per_stage` reads the index too: a stage entry's new `speed_mult` wins. The Blood Moon names its 1.2, The Dust Bowl 1.15 (Nightfall's 1.1 stays computed).
+- The Brander's ring of fire reads the damage curve with no stage multiplier: its `burn` 0.07 -> 0.043 (x 0.56 / 0.912), so the same share of max HP a second outside the ring.
+- **`reward_mult`** (new, a stage entry's; absent = `stage_mults[k]`): what the hero's side reads of the stage: the coin factor (round of it, at least 1), Personal Storm and the Iron Horse when stage-scaled, their words in TextGen (`WaveTimeline.stage_reward_mult`, `Run.reward_mult`). The Blood Moon 3.34 (as it was), The Dust Bowl 2.75 (coins x3, what the third stage paid). Sundown and Nightfall name none.
+- **What did change for the Blood Moon, and Garry may want to look at:** `Game.elite_purse` and `boss_purse` read the index, so it pays one stage more than it did: an Elite 337 (was 262), the boss 850 (was 675). The Dust Bowl pays what the Blood Moon paid. `PRICE_BASE_BY_STAGE` has three entries: The Dust Bowl and the Blood Moon both price at 700 as the Blood Moon did. Wanted's progress counts stages beaten, so an old save with all four beaten reads P 4.
+
+**The Blood Moon, stretched.** Every s3* row's `t`, `until` and weights' x and its Elite event x 960/780 onto the new window; `every` and `count` stay, so a waves row brings as many a minute for longer, and there are no holes (every window grew with it). Set pieces came 8 in 780 s; two more of its own (s3x1 a Red goblin ring at 4:55, s3x2 a second Blood Moon pack at 13:05, in long gaps; 2:15 was tried first and fell on the hellhounds' arrival: five of eight half-board bots died there) keep it at 10 in 960 s. `path_times`: one offer every 100 s as it had, 10 instead of 8 (91 ... 880, 925), the last 35 s before the boss. `xp_mult` 0.8 (it had none): about the same level at the boss over the longer clock. Legendary hold left at 4:30 (Garry's "of any stage"). Boss fight window and `hell_cap` 0.4 unchanged; `hell_cap` [0, 0.3, 0, 0.4]; the cap curve is flat 500 anyway.
+
+**The Dust Bowl's waves** (rows d1a..d6j, `boss_fight` bfd-1..6, `tools/dl/p126/STAGE/make_stage.py` has the commented table; times are the stage's own):
+| from | what it is | rows |
+|---|---|---|
+| 0:00 | The dry wind, a trickle for a fresh hero | Straw Men 6 every 5 s, Dust Bunnies 6 every 4 s, a first flock of 12 Crows at 1:10 |
+| 2:10 | The field closes in | Straw Men 8 every 5 s, a ring of 18 at 2:20, Crow flocks every 30 s, Gunmen 2 every 20 s from 2:30, Horned Toads, **the first Elite at 3:00** |
+| 4:30 | Ranged pressure | Bombers 2 every 12 s, Gunmen 3 every 18 s, Mummies, Crow flocks, a Bunny swarm of 36 at 5:30 (SWARM!) |
+| 6:20 | **The storm surge** (DUST STORM!) | a ring of 40 Straw Men, 24 Bunnies every 6 s and 20 Crows every 14 s for 70 s, a second ring of 30 at 7:00, 3 Beetles out of it at 7:24 |
+| 7:40 | Guns in the dust | tougher Straw Men, a squad of 20 Monks at 7:50, Bombers, Gunmen, Giants every 35 s, Crow flocks |
+| 9:30 | The black wall, the hard stretch | Big Straw Men (size 1.15 to 1.8), flocks of 20 every 15 s, Bunnies, Giants, Gunmen, Mummies, 5 Beetles at 10:40, **a second Elite at 9:15**, a ring of 36 at 11:40, 40 Crows at 12:25 (THE SKY GOES BLACK!) |
+| 13:00 | Black Sunday | boss fight: max 35 bodies; Straw and Bunny trickles, Buckshot pairs, Crow flocks, 2 Beetles, a Bunny ring |
+Row HP on the creature's JSON hp (curve x stage x `hp_mult`): 1.15 at the opening, 2.1 at 2:10, 3 at 4:30, 3.4 in the surge, 4.6 at 7:40, 6.6 then 8 in the last stretch (the Blood Moon's are 1.5, 2.5, 3.4, then 9.5). Row ATK on its JSON damage x 0.7 up to x 1.9. Elites and specials by the same rules as every stage (`r7` Elites every 2:09, the specials' pool, `colour_after_kills`). The event's boss `hp_mult` 0.2: data HP 12,300 (Gila 6,336, Brander 21,803); his `boss_hp_scaling.seconds` is lane BOSS's. `xp_mult` 1.15: its fodder drops little XP. `hell_cap` 0.
+
+**Tornadoes** (`stage_list[k].dust_devils`, key by key over the map's; `WaveTimeline.dust_devils_at`; only The Dust Bowl has one): first 90 -> 60 s, every [120, 180] -> [80, 120] s, size 1.25 -> 1.6, radius 3.0 -> 3.6, `fling` 2, toss up 13.4, out 7.2, cooldown 1.55. **The hero's throw measured in the game** (`game/tools/_p126_STAGE_throw.gd`, Player's physics, no stick): every other stage 0.60 m along the ground, 1.96 m high, 0.82 s up; The Dust Bowl 1.20 m, 3.85 m, 1.15 s. His shove fades at 6/s, so `out` x2 is the ground x2 and `up` x sqrt(2) is the height x2; the cooldown grows with the time up, so he lands before the next. **A creature** (`dust_devils.fling`, new, 1 = as ever; `EnemyManager.swirl`): at radius 3.6 it comes to rest 3.78 m from the middle at fling 1, 7.59 m at fling 2 (pass126_STAGE_test, the real ride and landing's shove). Landing damage and lift height as ever.
+
+**The weather** (`stage_list[k].weather`; only the look, nothing reads it; a stage without one draws and sets nothing; keys in docs/waves_schema.md "Pass 126"; `RedCanyon.set_weather`, called by `StageLook.show_stage`):
+- Filter #B08A60 at 0.34, `actors` 0.15.
+- Fog: Environment fog #A67F52 at 0.014 (the map's #EDA86B at 0.004): about 27% at the hero 22 m off, far things wash into dust rather than go dark.
+- Haze (`world/features/DustHaze.gd`, `core/shaders/dust_haze.gdshader`): one full-screen quad, one 128 px noise (art/fx/fire_noise.png) sampled twice sliding along the wind, alpha 0.46 at most, 0.42 of that between the bands, x 0.45 at the hero coming back by 15 m. Under the filter, the gusts and the tornado. Never over the creatures and the hero (stencil 1). The node is empty until a stage asks and hidden with `_process` off on any other.
+- Gusts (`DustGust.set_storm`, `weather.gust`): instead of a front of 22 every 9 to 16 s, a stream of 64 thin streaks, 10 to 20 m long at 24 m/s, each on its own clock, the whole swelling and dipping by 30%; a puff of sand every 0.1 s; the sigh every 5 to 9 s. Still the one MultiMesh. Drawn by `core/shaders/gust_streak.gdshader`: alpha 0 at both ends and both sides, no depth test (a flat 20 m quad was cut off where the dunes rose through it), never over the creatures and the hero. The map's ordinary gusts keep their material and painting.
+- Plants (`PropField.set_wind`, `prop_billboard.gdshader` uniforms `wind_mult`, `wind_speed`, `wind_gust`): lean x 3.4, sway at 2.5 (1.3 elsewhere), a slow swell of 0.4 on it. Sway 0 (rocks, bones) never moves, the foot stays put. The defaults are the shader as it was.
+- Telephone wire x 2.5 (`weather.wire_sway`, lane DRESS's node).
+- What it costs (`game/tools/_p126_STAGE_perf.gd`: one process, one map, 100 creatures held, 300 frames a measure, on the PC at 1080 x 1920): off 2.09 ms a frame and 170.7 draw calls (four measures), on 2.23 ms and 172.8 (three). One draw for the haze, one for the streaks; no part alone shows past the noise. Not measured on the phone: a full-screen blend there is what one of the stage filter's quads is.
+
+**Saves** (`Save._migrate_dust_bowl`, once, "stages_dust_bowl"): a save with the old index 2 beaten (or the Brander killed in its totals) has all four beaten: never take a stage away, so The Dust Bowl counts as beaten for it. [true, true] stays, opens The Dust Bowl, the Blood Moon locked. Once flags `boss_red_canyon_3`, `extract_red_canyon_3` are copied to `_4`. What meant the Blood Moon keeps meaning it: `from_stage` 3 -> 4 on Brimstone Brand and Sinner's Greed, `unlock_evade` (The Ghost, reach_stage) 3 -> 4. Quests naming stages 1 and 2 are unchanged. Wanted: every `n` has four entries (a third between the old second and third), `reward.stage_mult` [1, 1.25, 1.4, 1.5]; its boards re-roll by themselves (their hash reads the config). Analytics: `stage` is 3 for The Dust Bowl and 4 for the Blood Moon from here on; `stage_id` (`dust`, `s3`) is the steady key.
+
+**Calibration** (the run sim, Drifter, 8 bots, explorer preset, first death ends the run, seed 1; "old" is pass 125's map on this pass's code):
+| stage | board | reached the boss | killed him | median end | level at the boss | HP lost a minute (max HP) | kills | gold |
+|---|---|---|---|---|---|---|---|---|
+| old Blood Moon | a quarter | 0 of 8 | 0 | 2:12 | - | 0.73 | 620 | 458 |
+| old Blood Moon | half | 1 | 0 | 6:05 | 36.0 | 0.55 | 1,903 | 1,684 |
+| old Blood Moon | three quarters | 3 | 0 | 9:55 | 40.7 | 0.60 | 3,328 | 4,174 |
+| The Dust Bowl | a quarter | 1 | 0 | 4:57 | 28.0 | 0.46 | 1,101 | 1,120 |
+| **The Dust Bowl** | **half** | **4** | **1** | **10:02** | 26.2 | 0.35 | 2,138 | 2,373 |
+| The Dust Bowl | three quarters | 6 | 2 | 14:37 | 27.7 | 0.28 | 3,580 | 3,780 |
+| new Blood Moon | half | 1 | 0 | 3:11 | 34.0 | 0.73 | 1,926 | 1,972 |
+| **new Blood Moon** | **three quarters** | **2** | **0** | **8:59** | 42.5 | 0.52 | 3,449 | 4,417 |
+| new Blood Moon | full | 6 | 0 | 16:43 | 42.5 | 0.35 | 6,462 | 7,129 |
+| Nightfall, old and new | a quarter | 0 | 0 | 1:03, 1:01 | - | 1.45, 1.52 | 10, 10 | 14, 7 |
+| Nightfall, old and new | half | 0 | 0 | 1:12, 1:04 | - | 1.20, 1.30 | 57, 32 | 112, 94 |
+
+The expert bot: old Blood Moon at half 0 of 8 reached the boss (5:17); The Dust Bowl at half 3, 1 killed him (10:50); the new Blood Moon at three quarters 3, 1 killed him (8:30). So The Dust Bowl plays about half the board and the new Blood Moon about three quarters. The bot rarely kills the Brander at any board, in the old list too. Nightfall's rows are Garry's and unchanged: its spiders and gunmen end every bot run about a minute in at a quarter and at half, before this pass and after it; the Upgrade board's "stage 2 with a quarter" no longer holds for this bot. Black Sunday's own numbers were lane BOSS's, still moving when these ran.
+
+### 68.BESTIARY
+
+Pass 126 (lane BESTIARY; Garry: "Come up with 3 fodder enemies that would fit this level and implement them already"). The Dust Bowl's fodder. All three are plain walkers (`chase` or `flock`, no `charge`), so the compiled crowd walks them; no rule changed. The base numbers below sit with Stage 2 and 3 fodder; the map's `stage_mults`, curves and each row's `stats` do the scaling, as for every creature.
+
+| creature | brain | HP | speed | bite | shove | radius | size | pack | cap share | XP x | drops | blood |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Straw Man `straw_man` | chase | 15 | 1.5 | 4 | 3.4 | 0.52 | 1.8 | 5 | 0.5 | 2.0 | small 1, medium 0.05, gold 0.02 | straw gold #C89A3A |
+| Carrion Crow `carrion_crow` | flock | 8 | 3.0 | 4 | 3.4 | 0.4 | 1.5 | 8 | 0.5 | 1.6 | small 0.9, medium 0.04, gold 0.015 | dark red #B01C3C |
+| Dust Bunny `dust_bunny` | chase | 4 | 2.1 | 2 | 2.5 | 0.32 | 1.05 | 10 | 0.33 | 0.8 | small 0.7, gold 0.008 | pale dust #C9BFAE |
+
+- **Straw Man**: the Skeleton Knight's numbers (15 / 1.5 / 4), the stage's main walker. Half a slot.
+- **Carrion Crow**: between the Jackalope (9 HP, 3.3) and the Goblin Runt (6 HP, bite 4): fast, weak, in flocks. It has no flight rule: a body on the ground, hit where it is drawn; the hop and the wing beats are only its picture (`size` 1.5 because the cell leaves room for raised wings: the bird itself stands about 0.9 m).
+- **Dust Bunny**: the weakest creature in the game, a third of a slot, so a wave of them is many bodies for little load. Its bite 2 is below the shove rule's floor, so the shove is the floor (2.5, EnemyDef.default_knockback).
+- Specials as the family: `special_chance` 0.0111 (the bunny 0.0074), x1.5 size, x15 HP, x3.5 bite, x3 XP.
+- Sounds reuse existing ids: Straw Man `en_goblin_hit` / `en_mummy_die`; Crow `en_ant_hit` / `en_lizard_die`; Bunny `en_slime_hit` / `en_slime_die`. No new sound.
+
+### 68.SKINS A wave of skins: twelve looks, each earned and then bought
+
+Garry: "A wave of skins ... Make a skin for every hero that we have, based on the ones that are selected right now. For Drifter, Ironwood, Astra and Cavalero do 2 skins. Come up with Unlock requirements that are based on either Reaching a certain level with an item or doing some run activity that should take at least 5 very good runs (like the one that I had on my phone in Stage 1 recently). Come up with prices as well."
+
+Everything is 54.SKINS's: earn the goal, then buy, bought = worn. Content: `variants[CODE].skin` in the hero JSON and `content/quests/skin_<hero>_<code>/`; Garry edits all of it in the Level Editor's Skins section. Mira and Dad are hidden and get none.
+
+| hero | skin | code | goal | price | why |
+|---|---|---|---|---|---|
+| Drifter | Black Hat | DRI-B | Deal 320,000 damage with the Revolver | 3,000 | 5x the Revolver's 62k in his run |
+| Drifter | Dust Walker | DRI-C | Get the Revolver to level 5 in one run | 1,500 | his run had it at level 2 |
+| Astro | Event Horizon | AST-B | Evolve the Gravity Gun into the Singularity | 3,000 | one run: level 5, its three paths, a chest |
+| Astro | Mission Control | AST-C | Get the Gravity Gun to level 5 in one run | 1,500 | his run had it at level 1 |
+| Calavera | Marigold | CAL-B | Restore 7,000 HP with Death | 3,000 | 5x Death's 1,824 after this pass's 25% cut |
+| Calavera | Sangre | CAL-C | Get the Guitarra to level 5 in one run | 1,500 | his best weapon reached level 4 |
+| Ironwood | Winter Pelt | IRN-B | Take 40 Totem gifts | 3,000 | 5x the 8 of his run |
+| Ironwood | Thunderbird | IRN-C | Get the Spear to level 5 in one run | 1,500 | his best weapon reached level 4 |
+| Solenne | Solar Flare | SOL-H | Deal 405,000 fire damage | 2,500 | 5x the 80.4k of his run |
+| Fadeaway | Streetball | FAD-G | Kill 3,000 creatures with the Basketball | 2,500 | 5x about 600, what one gun killed (605-621; the best weapon 1,033) |
+| Jeżyk | Czerwony | BUC-G | Break 150 barrels | 2,500 | 5x the 30 of his run |
+| May | Carnival | MAY-S | Evolve the Tommy Gun into the Chicago Typewriter | 2,500 | one run, her favourite weapon |
+
+The figures are Garry's run of 2026-11-04 (analytics/remote/Hungry_Outlaw_94/2026-11-04T19-26-26_01a1a799.json: Drifter, Stage 1, level 30, 13:06 into Endless, 1,138 gold banked). Prices: a very good run banks about 1,140 gold, so 1.3, 2.2 and 2.6 runs; the easier of two 1,500, a hero's only skin 2,500, the harder of two 3,000.
+
+**New rules.**
+- 68.SKINS.1 The four heroes who had one painting now have a code for it (DRI-A, AST-A, CAL-A, IRN-A, the JSON's `variant_base` and `variant`), the look every player owns: same strip, badge and cut-out. Their sheets and the LOOKS pop-up now show a Looks section; a run record's `hero_look` for them reads the code instead of "".
+- 68.SKINS.2 A goal counts with any hero: a career total adds up whoever plays, and a weapon found as a guest counts for its item goal. So a goal can be done for a hero the player does not own. It stays done, with no banner and no line on the Results (QuestTracker.skin_of_a_hero_not_owned: a locked hero stays "Unknown"); once he is owned the skin is on sale.
+- 68.SKINS.3 What already counted carries over: a career goal reads the save's totals from before this pass (56.TASKS), so an old save may find one nearly done or done on the first check.
+- 68.SKINS.4 Worth knowing, older rules: kills count for the exact weapon only (56.TASKS.1), so Slam Dunk's kills do not count for Streetball, while damage counts the whole family; Death is itself locked behind evolving Temperance (`unlock_thirst`), so Marigold's goal starts after that; healing past a full bar does not count.
+- 68.SKINS.5 A new look is `fresh` (the Level Editor's NEW chip until Approve); the game ignores that word, so the skins are earned and bought as soon as they ship. The production build keeps every one (54.SKINS).
+- 68.SKINS.6 `gen_art.py` no longer writes the launcher icon at the end of a run unless asked (`--app-icon`): since pass 117 tools/make_app_icon.py owns it, and every walk of a look had put the old picture back.
+
+Tests: game/tests/pass126_SKINS_test.gd; re-pinned pass123_HEROES_test (the Drifter has looks now) and selftest_PLE (a base look's paintings).

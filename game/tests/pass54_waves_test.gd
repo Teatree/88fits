@@ -641,7 +641,7 @@ func test_red_canyon_in_the_pass_54_shape() -> void:
 	for t: float in [0.0, 300.0, 430.0, 900.0, 1290.0]:
 		assert_float(tl.hp_mult_at(t)).is_equal_approx(pow(1.0 + fa * t / 60.0, fb), 0.00001)
 	var pts: Array = tl.hp_curve.get("points", [])
-	assert_int(pts.size()).is_equal(4)
+	assert_int(pts.size()).is_equal(5)   # pass 126: one more stage mark, 2770
 	for p in pts:
 		var at := float(p[0])
 		# (the points stay as the pass 54 ramp drew them: they play only in "points" mode)
@@ -653,7 +653,7 @@ func test_red_canyon_in_the_pass_54_shape() -> void:
 		assert_bool(row.has("weights")).override_failure_message(str(row)).is_true()
 		assert_bool(row.has("weight") or row.has("weight_late")).override_failure_message(str(row)).is_false()
 		var rid := str(row.get("id", ""))
-		assert_bool(rid.begins_with("r") or rid.begins_with("s3")).override_failure_message(str(row)).is_true()  # pass 116: stage 3 rows s3a1..s3g2
+		assert_bool(rid.begins_with("r") or rid.begins_with("s3") or rid.begins_with("d")).override_failure_message(str(row)).is_true()  # pass 116: stage 3 rows s3a1..s3g2; pass 126: The Dust Bowl's d1a..d6j
 		assert_bool(ids.has(rid)).override_failure_message("two rows are " + rid).is_false()
 		ids[rid] = true
 	# and the director draws from them

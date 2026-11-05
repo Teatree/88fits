@@ -72,7 +72,7 @@ def checks(check, run_node, server):
     sl = [e for e in tl.get("stage_list") or [] if isinstance(e, dict)]
     check(len(sl) >= 3, "XPT107 Red Canyon has its three stages")
     if len(sl) >= 3:
-        check("xp_mult" not in sl[0] and "xp_mult" not in sl[2], "XPT107 Sundown and Blood Moon keep the XP as it was (no xp_mult)")
+        check("xp_mult" not in sl[0], "XPT107 Sundown keeps the XP as it was (no xp_mult)")   # pass 126: The Dust Bowl and the longer Blood Moon have their own
         v = sl[1].get("xp_mult")
         check(isinstance(v, (int, float)) and 0 < v < 1, "XPT107 Nightfall's xp_mult is below 1: %s" % v)
     # stage_model.js under node

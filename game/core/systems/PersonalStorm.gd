@@ -103,7 +103,7 @@ static func seconds() -> float:
 static func strike_amount(big: bool) -> float:
 	var d := param("damage") * Run.player_sheet.get_stat("might", 1.0)
 	if param("stage_scaled") > 0.5:
-		d *= Run.stage_mult()
+		d *= Run.reward_mult()
 	return d * (param("big_mult") if big else 1.0)
 
 

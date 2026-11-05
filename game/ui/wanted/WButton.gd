@@ -212,10 +212,6 @@ func _cut_colour(ink: Color) -> Color:
 static func price(amount: int, word: String = "", p_role: String = GREEN, px: int = R.PRICE_PX, short: int = 0,
 		currency: String = "gold", keep_word: bool = false, height: float = R.PRICE_H) -> WButton:
 	var is_short := short > 0
-	var label := W.num(amount)
-	if word != "" and (not is_short or keep_word):
-		label += " · " + word
-	var coin := maxf(R.PRICE_COIN * float(px) / float(R.PRICE_PX), 16.0)
 	var variant := SECONDARY
 	match p_role:
 		GOLD, GREEN:
@@ -226,7 +222,7 @@ static func price(amount: int, word: String = "", p_role: String = GREEN, px: in
 			variant = DANGER
 	var border := R.BUTTON_EDGE
 	var pad_v := maxf((height - 2.0 * border - float(px)) * 0.5, 0.0)
-	var b := make([{"coin": coin, "fill": W.BRASS, "currency": currency}, label], px, variant, border, R.BUTTON_BASE,
+	var b := make(price_parts(amount, word if not is_short or keep_word else "", px, currency), px, variant, border, R.BUTTON_BASE,
 		pad_v, 22.0, float(px), LOCKED if is_short else p_role)
 	b.name = "PriceButton"
 	if is_short:
@@ -236,3 +232,13 @@ static func price(amount: int, word: String = "", p_role: String = GREEN, px: in
 		b.set_meta("short", short)
 	b.set_meta("price", amount)
 	return b
+
+
+## A price's label as a button's parts (pass 126, lane UI; Garry: "Buy Look button doesn't have coins icon on it"): the coin (or
+## `currency`'s icon) sized to `px`, the amount, and `word` after a " · ". WButton.price wears it, and so does a question's
+## deed that buys (WConfirm.open's `confirm_parts`).
+static func price_parts(amount: int, word: String = "", px: int = R.PRICE_PX, currency: String = "gold") -> Array:
+	var label := W.num(amount)
+	if word != "":
+		label += " · " + word
+	return [{"coin": maxf(R.PRICE_COIN * float(px) / float(R.PRICE_PX), 16.0), "fill": W.BRASS, "currency": currency}, label]

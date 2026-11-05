@@ -252,6 +252,8 @@ func _ready() -> void:
 	# pass 119 (lane LEGEND_B): the Grindstone's toast, the Pocket Bible's block
 	Run.grindstone_worked.connect(_on_grindstone_worked)
 	Run.bible_blocked.connect(_on_bible_blocked)
+	# pass 126 (lane ITEMS): the Assayer's Scale's pay for a spent skip
+	Run.skip_paid.connect(_on_skip_paid)
 	# the run recorder (pass 45): a row a second for analytics/dashboard.html; the arena never records, and a tool's
 	# launch file may say "analytics": false (perf_late's A/B of the recorder's cost)
 	if not arena and bool(debug_launch.get("analytics", true)): RunAnalytics.create(self, debug_launch)
@@ -1496,6 +1498,21 @@ func _on_evolved(id: String) -> void:
 	Audio.play("w_evo_reveal")
 	hud.banner("EVOLVED · " + (def.display_name if def else id).to_upper(), UiKit.TYPE_COLORS["evolution"], def.icon if def else null)
 	camera.shake(1.2)
+
+
+## Pass 126 (lane ITEMS): the Assayer's Scale paid a spent skip (Run._pay_skip): what it paid, in a toast with its icon
+## (the purse's coin pop and the XP bar follow by their own signals; a level the XP reached banks through _on_level_up).
+func _on_skip_paid(coins: int, xp: float) -> void:
+	if hud == null:
+		return
+	var parts: Array = []
+	if coins > 0:
+		parts.append("+%d gold" % coins)
+	if xp > 0.0:
+		parts.append("+%d XP" % maxi(roundi(xp), 1))
+	var d: PassiveDef = Registry.passive("assayers_scale")
+	hud.toast(" ".join(parts), UiKit.ACCENT, d.icon_at(Run.passive_level(d.id)) if d else null)
+	Audio.play("pk_coin")
 
 
 ## Pass 119 (lane LEGEND_B): a Grindstone level raised the weakest weapon or evolved it (Run._grindstone). Pass 121 (lane

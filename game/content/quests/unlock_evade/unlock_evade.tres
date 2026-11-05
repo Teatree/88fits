@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_x0a22")
 condition = {
-"stage": 3.0,
+"stage": 4.0,
 "type": "reach_stage"
 }
 unlocks = {

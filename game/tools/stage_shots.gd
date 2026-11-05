@@ -267,7 +267,12 @@ func _stage_shot(s: int, tl, list: Array, cfg: Dictionary, out_abs: String) -> v
 	var img: Image = _vp.get_texture().get_image()
 	if _ss > 1:
 		img.resize(_w, _h, Image.INTERPOLATE_LANCZOS)
-	var name := "%s_s%d" % [_map, s]
+	# pass 126 (lane STAGE): the file the stage's own `shot` names (The Dust Bowl, index 2, is red_canyon_dust; the Blood Moon, index
+	# 3, keeps red_canyon_s3), else <map>_s<k>
+	var shot_of: Dictionary = list[s - 1] if s - 1 < list.size() and list[s - 1] is Dictionary else {}
+	var name := str(shot_of.get("shot", "")).get_file().get_basename()
+	if name == "":
+		name = "%s_s%d" % [_map, s]
 	var path := out_abs.path_join(name + ".jpg")
 	var err := img.save_jpg(path, 0.88)
 	print("stage_shots: ", path, " ", err)

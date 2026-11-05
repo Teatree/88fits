@@ -10,52 +10,52 @@
   "currency_type": "gold",
   "trait": [],
   "trait_per_level": [
-	{
-	  "stat": "might",
-	  "op": "mul",
-	  "value": 0.01,
-	  "target": "player"
-	}
+    {
+      "stat": "might",
+      "op": "mul",
+      "value": 0.01,
+      "target": "player"
+    }
   ],
   "favourite_weapon": "skull_rain",
   "start_weapon": "guitarra",
   "favourite_bonus": {
-	"type": "level",
-	"value": 2
+    "type": "level",
+    "value": 2
   },
   "specials": [],
   "unlock_quest": "",
   "frame_px": 256,
   "anims": {
-	"idle": 4,
-	"run": 24,
-	"hit": 4,
-	"die": 5,
-	"cheer": 1,
-	"idle_f": 4,
-	"run_f": 24,
-	"idle_s": 4,
-	"run_s": 24,
-	"idle_bd": 4,
-	"run_bd": 24,
-	"idle_fd": 4,
-	"run_fd": 24,
-	"hit_f": 4,
-	"hit_s": 4,
-	"hit_bd": 4,
-	"hit_fd": 4
+    "idle": 4,
+    "run": 24,
+    "hit": 4,
+    "die": 5,
+    "cheer": 1,
+    "idle_f": 4,
+    "run_f": 24,
+    "idle_s": 4,
+    "run_s": 24,
+    "idle_bd": 4,
+    "run_bd": 24,
+    "idle_fd": 4,
+    "run_fd": 24,
+    "hit_f": 4,
+    "hit_s": 4,
+    "hit_bd": 4,
+    "hit_fd": 4
   },
   "fps": {
-	"run": 36,
-	"hit": 12,
-	"die": 8
+    "run": 36,
+    "hit": 12,
+    "die": 8
   },
   "strip_cols": 62,
   "placeholder": {
-	"color": "#1A1A22",
-	"hat": "#101014",
-	"eyes": 2,
-	"shape": "blob"
+    "color": "#1A1A22",
+    "hat": "#101014",
+    "eyes": 2,
+    "shape": "blob"
   },
   "art_prompt": "a lean young mariachi man with his face painted as a white sugar-skull calavera: white face paint with black hollow eye sockets ringed with small red petals and stitched black teeth painted over his lips, wearing a wide black sombrero with silver embroidery, a fitted black charro jacket with silver buttons and silver embroidery down the sleeves, tight black trousers with a row of silver studs down each side, a red bow tie and a red sash, black boots, standing straight with his hands relaxed at his sides",
   "motion": "running in place at a light quick jog, arms and legs swinging naturally, the sombrero staying on his head",
@@ -68,7 +68,192 @@
   "trait_name": "Last Dance",
   "trait_text": "Gain 1% attack damage per level.",
   "pose_drivers": {
-	"back": "run_spread",
-	"bd": "run_spread"
+    "back": "run_spread",
+    "bd": "run_spread"
+  },
+  "variant_base": "CAL-A",
+  "variant": "CAL-A",
+  "variants": {
+    "CAL-A": {
+      "note": "The hero's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it)."
+    },
+    "CAL-B": {
+      "note": "pass 126: a white and gold Day of the Dead charro with marigolds: Klein edits of his own paintings, view by view (tools/gen_skin_views.py), walked on his own drivers",
+      "recipe": {
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "stills": "b",
+        "art_prompt": "a lean young mariachi man with his face painted as a white sugar-skull calavera, wearing a white charro jacket with gold embroidery down the sleeves and gold buttons, tight white trousers with a row of gold studs down each side, a wide white sombrero with gold embroidery and a band of orange marigold flowers, a marigold-orange bow tie and sash, white boots, standing straight with his hands relaxed at his sides",
+        "anim_hint": "a mariachi in a white and gold charro suit with a marigold-orange sash and a wide white sombrero, his face painted as a white sugar skull",
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                66,
+                175
+              ],
+              [
+                250,
+                335
+              ]
+            ],
+            "to": 45,
+            "sat": 0.2,
+            "min_sat": 0.05
+          }
+        ]
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Marigold",
+        "price": 3000,
+        "currency_type": "gold",
+        "unlock_quest": "skin_calavera_cal_b"
+      },
+      "sprite": "calavera_sprite_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "icon": "calavera_icon_b.png",
+      "title": "hero_calavera_b.png"
+    },
+    "CAL-C": {
+      "note": "pass 126: a crimson suit: a recolour of his strip, badge and cut-out (tools/skin_recolour.py)",
+      "recipe": {
+        "recolour": {
+          "from": "CAL-A",
+          "passes": [
+            {
+              "mode": "lift",
+              "ranges": [
+                [
+                  342,
+                  360
+                ],
+                [
+                  0,
+                  12
+                ]
+              ],
+              "to": 44,
+              "set_sat": 0.78,
+              "v_lo": 0.45,
+              "v_hi": 1.0,
+              "min_sat": 0.5,
+              "min_val": 0.35,
+              "src_hi": 1.0
+            },
+            {
+              "mode": "lift",
+              "ranges": [
+                [
+                  0,
+                  360
+                ]
+              ],
+              "to": 352,
+              "set_sat": 0.86,
+              "v_lo": 0.3,
+              "v_hi": 0.8,
+              "max_sat": 0.24,
+              "min_val": 0.085,
+              "src_hi": 0.3,
+              "max_val": 0.34,
+              "soft": 0.03
+            },
+            {
+              "mode": "lift",
+              "only": "icon",
+              "rects": [
+                [
+                  0.45,
+                  0.62,
+                  1.0,
+                  1.0
+                ]
+              ],
+              "ranges": [
+                [
+                  0,
+                  360
+                ]
+              ],
+              "to": 352,
+              "set_sat": 0.86,
+              "v_lo": 0.22,
+              "v_hi": 0.3,
+              "max_sat": 0.3,
+              "min_val": 0.03,
+              "src_hi": 0.085,
+              "max_val": 0.1,
+              "soft": 0.02
+            }
+          ]
+        }
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Sangre",
+        "price": 1500,
+        "currency_type": "gold",
+        "unlock_quest": "skin_calavera_cal_c"
+      },
+      "sprite": "calavera_sprite_c.png",
+      "icon": "calavera_icon_c.png",
+      "title": "hero_calavera_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
+    }
   }
 }

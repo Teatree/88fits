@@ -1,0 +1,84 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a tiny round fluffy ball of charcoal-grey dust with a fuzzy outline, two long floppy rabbit ears on top, two big angry round white eyes with small black pupils under slanted brows, a small mouth with two tiny white teeth showing, no arms, no legs, no feet, a goofy mean cartoon dust ball, facing the viewer",
+ "renders": {
+  "front": {
+   "seed": 136481,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a small perfectly round cartoon puffball of dark charcoal dust with wispy tufts all round its edge, two long thin floppy dark rabbit ears flopping out to either side from the top of its head, two big bright white round eyes with tiny black pupils and angry slanted brows, a little frown with two tiny white buck teeth, no arms, no legs, no feet, nothing else, facing the viewer. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 111,
+     "right": 115,
+     "top": 224,
+     "bottom": 217,
+     "height": 582,
+     "width": 797
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 34291,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. seen directly from behind: the same round fuzzy charcoal-grey dust ball with its two long floppy ears on top, no eyes, no teeth, no face at all isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/dust_bunny_b1_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 111,
+     "right": 114,
+     "top": 224,
+     "bottom": 217,
+     "height": 582,
+     "width": 798
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "procedural": "puff"
+  }
+ },
+ "recipe_ran": {
+  "stills": "b1",
+  "seed_offset": 2,
+  "hop_top_lag": 0.0
+ },
+ "clip_kind": {
+  "front": "procedural",
+  "back": "procedural",
+  "die": "procedural"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": ""
+ },
+ "qa_online": null
+}

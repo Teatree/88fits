@@ -101,7 +101,7 @@ def checks(check, run_node, server):
     check(em.index("_tick_snipers(delta, ppos)") < em.index("_tick_tails(delta, ppos)"), "BOSS95: the tails tick after the Saiga's aims (SniperFx.begin())")
     enemies_js = _read(HERE, "enemies.js")
     check("r.type === 'json'" in enemies_js, "BOSS95: enemies.js attackField renders a json row (the nested blocks)")
-    check("the 16 names EnemyManager knows" in enemies_js, "BOSS95: the add-attack hint counts 16 names")
+    check("the 17 names EnemyManager knows" in enemies_js, "BOSS95: the add-attack hint counts 17 names (pass 126: whirl)")
     # 3. the page's tables under Node
     res = run_node({"names": list(NEW)}, RUNNER)
     if not res:

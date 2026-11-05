@@ -116,7 +116,7 @@ static func ehp(sheet: StatSheet, dps: float) -> float:
 	var mh := sheet.get_stat("max_hp", 100.0)
 	var hp := mh + maxf(sheet.get_stat("shield_max", 0.0), 0.0)
 	var regen := maxf(sheet.get_stat("regen", 0.0), 0.0)
-	var ls := minf(maxf(sheet.get_stat("lifesteal", 0.0), 0.0) * maxf(dps, 0.0), mh * sheet.get_stat("lifesteal_cap", 0.04))
+	var ls := minf(maxf(sheet.get_stat("lifesteal", 0.0), 0.0) * maxf(dps, 0.0), mh * sheet.get_stat("lifesteal_cap", float(StatSheet.PLAYER_DEFAULTS["lifesteal_cap"])))
 	var dr := clampf(sheet.get_stat("damage_reduction", 0.0), 0.0, 0.8)
 	var ev := clampf(sheet.get_stat("evade", 0.0), 0.0, 0.9)
 	return (hp + SUSTAIN_SECONDS * (regen + ls)) / ((1.0 - dr) * (1.0 - ev))

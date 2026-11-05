@@ -64,11 +64,11 @@ func test_red_canyon_stage_looks() -> void:
 	assert_float(m2.b).is_greater_equal(m2.r)
 	assert_float(m2.get_luminance()).is_less(0.95)
 	# stage 3: a reddish blood moon over the hell ground (red kept most)
-	var m3: Color = LOOK.filter_mults(list[2])[0]
+	var m3: Color = LOOK.filter_mults(list[3])[0]   # pass 126: the Blood Moon is index 3
 	assert_float(m3.r).is_greater_equal(m3.b)
 	assert_float(m3.r).is_greater_equal(m3.g)
 	assert_float(m3.get_luminance()).is_less(0.95)
-	assert_bool(LOOK.hell_of(tl, 2)).is_true()
+	assert_bool(LOOK.hell_of(tl, 3)).is_true()
 	# the creatures are tinted less than the world, so they stay brighter than the ground
 	for e: Dictionary in list:
 		var mm: Array = LOOK.filter_mults(e)
@@ -161,7 +161,9 @@ func test_stage_pictures() -> void:
 	var tl := _tl()
 	var list: Array = LOOK.stage_list_of(tl)
 	for k in range(list.size()):
-		var path := "res://art/ui/stages/red_canyon_s%d.jpg" % (k + 1)
+		# pass 126: the picture a stage names (The Dust Bowl's red_canyon_dust, the Blood Moon keeps s3), else by its place
+		var named := str((list[k] as Dictionary).get("shot", ""))
+		var path := named if named != "" else "res://art/ui/stages/red_canyon_s%d.jpg" % (k + 1)
 		assert_bool(FileAccess.file_exists(path)).override_failure_message("no picture " + path).is_true()
 		var img := Image.load_from_file(ProjectSettings.globalize_path(path))
 		assert_object(img).is_not_null()

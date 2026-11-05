@@ -21,7 +21,8 @@ const PLAYER_DEFAULTS := {
 	# the protective lines and drops (pass 33.2): Evade and Ghost Step, the Energy Shield and Aegis, Second Wind's
 	# shorter wait, Bloodthirst's higher lifesteal cap, Cake and Pickpocket
 	"evade": 0.0, "evade_invuln": 0.0, "shield_max": 0.0, "shield_delay": 3.0, "shield_rate": 0.5,
-	"regen_delay": 3.0, "lifesteal_cap": 0.04, "heal_drop": 0.0, "coin_drop": 0.0,
+	# (pass 126, lane ITEMS: Garry: "Lifesteal stat - Reduce the Effectiveness ... about 25% less": the cap 4% -> 3%, Run.LIFESTEAL_CAP)
+	"regen_delay": 3.0, "lifesteal_cap": 0.03, "heal_drop": 0.0, "coin_drop": 0.0,
 	# pass 46: the untouchable seconds after a hit, the share of max HP a revive stands up with, and Desperado (up to
 	# this much more attack damage as health falls)
 	"hit_invuln": 0.25, "revive_hp": 0.5, "desperado": 0.0,
@@ -82,6 +83,11 @@ const PLAYER_DEFAULTS := {
 	"crit_arcs": 0.0, "crit_arc_pct": 0.0, "crit_arc_stun": 0.0, "grave_every": 0.0, "grave_max": 0.0, "grave_seconds": 0.0,
 	"grave_damage_pct": 0.0, "purse_might_per": 0.0, "purse_might_cap": 0.0, "purse_hp_per": 0.0, "purse_hp_cap": 0.0,
 	"hit_cap_pct": 0.0, "boss_hit_cap_pct": 0.0, "hit_block_every": 0.0,
+	# pass 126 (lane ITEMS), each read by the system it names (0 = not held): the Assayer's Scale's pay for a spent skip,
+	# coins and a share of the next level's XP (Run._pay_skip); the Canteen's walk through water, its heal after leaving
+	# water and its seconds (Player._wade_mult, _tick_canteen), the Evolved rung's damage to creatures in water
+	# (EnemyManager.damage)
+	"skip_coins": 0.0, "skip_xp": 0.0, "water_walk": 0.0, "leave_water_regen": 0.0, "leave_water_seconds": 0.0, "water_damage": 0.0,
 }
 
 ## The least a hero's stat can come to, however many sources pull it down (pass 61: Ironwood's regen delay shrinks every

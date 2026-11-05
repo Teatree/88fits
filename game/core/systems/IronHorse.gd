@@ -129,7 +129,7 @@ static func hit_amount(max_hp: float, big: bool) -> float:
 static func flat_damage() -> float:
 	var d := param("damage") * Run.player_sheet.get_stat("might", 1.0)
 	if param("stage_scaled") > 0.5:
-		d *= Run.stage_mult()
+		d *= Run.reward_mult()
 	return d
 
 

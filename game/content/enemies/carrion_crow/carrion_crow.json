@@ -1,0 +1,125 @@
+{
+  "id": "carrion_crow",
+  "name": "Carrion Crow",
+  "flavour": "It has been circling for days. It got bored.",
+  "archetype": "runner",
+  "brain": "flock",
+  "hp": 8,
+  "speed": 3.0,
+  "damage": 4,
+  "knockback": 3.4,
+  "radius": 0.4,
+  "size": 1.5,
+  "blood": "#B01C3C",
+  "pack_size": 8,
+  "cap_share": 0.5,
+  "drops": {
+    "small": 0.9,
+    "medium": 0.04,
+    "gold": 0.015,
+    "chest": 0.0002
+  },
+  "frame_px": 176,
+  "xp_mult": 1.6,
+  "sfx": {
+    "hit": "en_ant_hit",
+    "die": "en_lizard_die"
+  },
+  "placeholder": {
+    "color": "#23252E",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "art_prompt": "a big fat cartoon black crow with an oversized head and a thick pale ivory beak, an angry brow and two small pale yellow eyes, ragged black feathers with a clear blue sheen on the wings, both wings held half open and low at its sides like arms, two thin pale grey legs with big clawed feet, a short ragged black tail, one single crow, exactly two wings, facing the viewer",
+  "anim_negative": "extra wings, a third wing, four wings, two heads, two beaks, extra legs, flying up, flying away, leaving the frame, feathers flying off, motion blur, smeared wings, a second crow",
+  "back_hint": "seen directly from behind: the black feathered back and the tail, the two wings half open and held low with a touch of blue sheen, the head turned away so no beak and no eyes show, two thin legs below",
+  "dead_hint": "lying flat on the ground on its side, dead: the black crow stretched out sideways across the picture with its head on the left and its tail on the right, one wing spread limp, its pale beak open, its eye shut as a small cross, legs curled up; it lies on nothing, with no ground, no sand and no shadow under it",
+  "stand": "still",
+  "death": "clip",
+  "death_frames": 8,
+  "variance": {
+    "size": 0.16,
+    "speed": 0.18,
+    "tints": [
+      "#FFFFFF",
+      "#DCE4FF",
+      "#E8E0F0",
+      "#D8D8D8"
+    ],
+    "tint_strength": 0.2,
+    "special_chance": 0.0111,
+    "special": {
+      "size": 1.5,
+      "hp": 15.0,
+      "damage": 3.5,
+      "xp": 3.0,
+      "tint": "#8A1420",
+      "tint_strength": 0.6
+    }
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 8,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "strip_cols": 43,
+  "fps": {
+    "run": 24,
+    "die": 12
+  },
+  "doc": "The Dust Bowl's runner: a big black crow that hops and flaps low over the ground in flocks of eight, fast and weak. A flock that arrives before the crowd does, gone at the first sweep.",
+  "head": 0.915,
+  "retired": false,
+  "screen": "green",
+  "stills": "b2",
+  "walk": "flap",
+  "flap": {
+    "height": 0.12,
+    "hints": {
+      "up": "This exact crow in the same front view, at the top of a wing beat: both of its two wings raised high up and spread out above its shoulders, the feathers fanned, its legs hanging straight down under it with the claws loose, its head and body exactly as in the reference. Exactly two wings. Keep the same colors, proportions and art style.",
+      "mid": "This exact crow in the same front view, in the middle of a wing beat: both of its two wings held straight out level to the sides at shoulder height, the feathers fanned, its legs hanging down under it with the claws loose, its head and body exactly as in the reference. Exactly two wings. Keep the same colors, proportions and art style.",
+      "down": "This exact crow in the same front view, at the bottom of a wing beat: both of its two wings swept down close to its body with the wing tips pointing at the ground, its legs bent under it, its head and body exactly as in the reference. Exactly two wings. Keep the same colors, proportions and art style.",
+      "upb": "This exact crow seen from behind, at the top of a wing beat: both of its two wings raised high up and spread out above its shoulders, the feathers fanned, its legs hanging straight down under it, no face visible, the same back and tail as in the reference. Exactly two wings. Keep the same colors, proportions and art style.",
+      "midb": "This exact crow seen from behind, in the middle of a wing beat: both of its two wings held straight out level to the sides at shoulder height, the feathers fanned, its legs hanging down under it, no face visible, the same back and tail as in the reference. Exactly two wings. Keep the same colors, proportions and art style.",
+      "downb": "This exact crow seen from behind, at the bottom of a wing beat: both of its two wings swept down close to its body with the wing tips pointing at the ground, its legs bent under it, no face visible, the same back and tail as in the reference. Exactly two wings. Keep the same colors, proportions and art style."
+    }
+  },
+  "cell_fill": 0.62,
+  "run_fps": 24,
+  "death_bits": {
+    "kind": "feather",
+    "n": 9,
+    "colours": [
+      "#2A2B33",
+      "#33353F",
+      "#2A2B33",
+      "#27405F"
+    ],
+    "start": 3,
+    "spread": 0.42,
+    "rise": 0.5,
+    "gravity": 0.7,
+    "length": 0.075
+  },
+  "variant_base": "CC-A",
+  "variant": "CC-A",
+  "variants": {
+    "CC-A": {
+      "note": "a fat crow with blue on its wings; hops with two wing beats from three painted poses a view (walk flap: no video model draws a frame, so no blur and never a third wing); falls on its side, feathers fly"
+    }
+  },
+  "outline_frac": 0.018,
+  "key_clamp_screen": true,
+  "shadow": {
+    "scale": [
+      0.72,
+      0.72
+    ],
+    "up": 0.1,
+    "drop": 0.05
+  }
+}

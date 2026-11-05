@@ -168,6 +168,8 @@ def py_config(gd, block):
     o["lift_height"] = max(_num(o["lift_height"], 4.5), 0.0)
     o["size"] = min(max(_num(o["size"], 1.25), 0.25), 4.0)
     o["opacity"] = min(max(_num(o["opacity"], 0.7), 0.5), 1.0)
+    # pass 126 (lane STAGE): how far a creature is flung
+    o["fling"] = min(max(_num(o["fling"], 1.0), 0.0), 6.0)
     for k in ("warn", "in_boss", "in_portal", "in_endless"):
         o[k] = _bool(o[k])
     return o

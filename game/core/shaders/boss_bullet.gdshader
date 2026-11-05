@@ -5,6 +5,8 @@
 //   look 0 burning_tumbleweed: a tan ball of twigs that rolls, a flame licking off its back, embers trailing
 //   look 1 venom_blob:         a wobbling purple jelly with a gloss and bubbles, drips trailing
 //   look 2 brand_fireball:     a white-hot core in an orange ball branded with a horseshoe, flames and see-through smoke trailing
+//   look 3 grit_clod:          pass 126 (lane BOSS, Black Sunday's blizzard): a tumbling dark clod of grit (tint) with a pale edge outside its ink,
+//                              so it reads on the Dust Bowl's brown sand, see-through dust puffs trailing
 // Instance: the transform's origin = (x, metres over the ground, z) and its x column's length the body's radius (m);
 // INSTANCE_CUSTOM = (flight x, flight z, seed, scale 0..1: the pop out of the boss and the burn-out). The ground under it
 // comes from the map's height grid, read as Telegraphs' marks read it (heights, grid_n, half_size, resolution); grid_n 0
@@ -131,6 +133,39 @@ void fragment() {
 				}
 			} else {
 				col = tint.rgb * 0.75;
+			}
+		}
+	} else if (look == 3) {
+		// ---- the grit clod (pass 126): an angular lump that tumbles, dust trailing, a pale edge outside its ink
+		vec2 rb = rot(b, TIME * 6.0 * (mod(sd, 2.0) < 1.0 ? -1.0 : 1.0) + sd);
+		float ra = atan(rb.y, rb.x);
+		float r_edge = 0.92 + 0.14 * sin(ra * 3.0 + sd * 2.0) + 0.09 * sin(ra * 5.0 + sd) + 0.05 * sin(ra * 11.0);
+		float d_body = length(rb) - r_edge;
+		if (d_body < 0.0) {
+			hit = true;
+			if (d_body > -OUT) {
+				col = ink.rgb;
+			} else {
+				col = tint.rgb;
+				// the shaded side away from the sky, and pale flecks of sand that tumble with it
+				col = mix(tint.rgb * 1.5, tint.rgb * 0.7, smoothstep(0.5, -0.6, b.y));
+				float f1 = sin(rb.x * 6.3 + sd) * sin(rb.y * 5.7 + sd * 1.7);
+				if (f1 > 0.55) {
+					col = min(tint.rgb * 2.6, vec3(1.0));
+				}
+			}
+		} else if (d_body < OUT * 0.8) {
+			// the pale edge outside the ink: what makes a dark clod read on brown sand
+			hit = true;
+			col = vec3(0.98, 0.92, 0.76);
+		} else if (trail > 0.0) {
+			// dust: see-through (every other pixel), no ink, so it never reads as a shot
+			float drift = mod(TIME * 1.6 + sd * 0.37, 0.5);
+			float d_p = min(length(fb - vec2(-1.5 - drift, 0.12 * sin(TIME * 3.0 + sd))) - (0.36 - drift * 0.2),
+				length(fb - vec2(-2.05 - drift, -0.14 * sin(TIME * 2.6 + sd))) - (0.24 - drift * 0.2));
+			if (d_p < 0.0 && mod(floor(FRAGCOORD.x) + floor(FRAGCOORD.y), 2.0) < 1.0) {
+				hit = true;
+				col = vec3(0.86, 0.76, 0.58);
 			}
 		}
 	} else if (look == 2) {

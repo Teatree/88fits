@@ -11,7 +11,7 @@
       {
         "stat": "lifesteal",
         "op": "add",
-        "value": 0.015,
+        "value": 0.01125,
         "target": "player"
       },
       {

@@ -402,6 +402,8 @@ func _physics_process(delta: float) -> void:
 	was_on_floor = on_floor
 	_tick_still(delta, planar, stepped, on_floor)
 	_tick_regen(delta)
+	# pass 126 (lane ITEMS): the Canteen's heal after leaving water
+	_tick_canteen(delta)
 	# Hot Springs (pass 69): the heals since the last pulse go out
 	_tick_heal_pulse(delta)
 	# the Energy Shield: back up once he has gone shield_delay without a hit, shield_rate of it a second
@@ -1384,7 +1386,57 @@ func _wade_mult() -> float:
 		return 1.0
 	if m.has_method("height_at") and at.y > float(m.call("height_at", at.x, at.z)) + WADE_AIR:
 		return 1.0
+	# pass 126 (lane ITEMS): with the Canteen water never slows him (creatures still wade: EnemyManager._wade_mult)
+	if sheet != null and sheet.get_stat("water_walk", 0.0) > 0.0:
+		return 1.0
 	return 1.0 - water_slow()
+
+
+## Pass 126 (lane ITEMS; Garry: "Canteen - Also like this one, this one can be an Uncommon"; the book: "Water no longer
+## slows you, and leaving it gives +3 HP a second for 15 s"): the heal after leaving water. Standing in a lake (the wading
+## rule above: on its floor, not in the air) marks him wet and stops any heal; walking out past in_water's edge starts
+## `leave_water_seconds` (Run.buff_seconds: Solenne's Buff duration stretches it) of `leave_water_regen` HP a second, in
+## whole points as life steal comes, the last part when the time is up. Going back in stops it; coming out again starts it
+## anew, never on top. Flying out counts when he clears the edge; flying over a lake he never touched does not. Credited
+## to the item (TaskTally, HEAL_STATS). Nothing to ask without the item (one stat read a tick, as regen's).
+var _canteen_wet := false
+var _canteen_pool := 0.0
+
+
+func _tick_canteen(delta: float) -> void:
+	var secs := sheet.get_stat("leave_water_seconds", 0.0)
+	if secs <= 0.0:
+		return
+	var m := _wade_map()
+	if m == null or not m.has_method("in_water"):
+		return
+	var at := global_position
+	var over := bool(m.call("in_water", at))
+	if over and not airborne and not (m.has_method("height_at") and at.y > float(m.call("height_at", at.x, at.z)) + WADE_AIR):
+		_canteen_wet = true
+		Run.canteen_left = 0.0
+		_canteen_pool = 0.0
+		return
+	if _canteen_wet and not over:
+		_canteen_wet = false
+		Run.canteen_left = Run.buff_seconds(secs)
+		_canteen_pool = 0.0
+		# the heart's sound as the heal starts, when he has room for it
+		if hp < max_hp:
+			Audio.play("pk_heart", at)
+	if Run.canteen_left <= 0.0:
+		return
+	var dt := minf(delta, Run.canteen_left)
+	Run.canteen_left -= dt
+	_canteen_pool += maxf(sheet.get_stat("leave_water_regen", 0.0), 0.0) * dt
+	var done: bool = Run.canteen_left <= 0.0
+	if _canteen_pool >= 1.0 or done:
+		var pts := _canteen_pool if done else floorf(_canteen_pool)
+		_canteen_pool -= pts
+		if pts > 0.0:
+			heal(pts, "", "stat:leave_water_regen")
+			# the run record's healed_by: the unnamed heal just recorded was this (as life steal's and the level-up's)
+			if RunAnalytics.I: RunAnalytics.I._name_heal("canteen")
 
 
 ## The map's water_slow (pass 80): its timeline's, else WaveTimeline.WATER_SLOW_DEFAULT; held to 0..0.95.

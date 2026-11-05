@@ -8,6 +8,8 @@ extends Node3D
 ## The Strongbox's coin stream (pass 58, core/systems/CoinStream.gd; by path: a new script's class name is unknown until
 ## the editor imports it)
 const COIN_STREAM := preload("res://core/systems/CoinStream.gd")
+## Pass 126 (lane DRESS): metres a structure's spot keeps off the map's poles, wheels and crosses (start_spot_ok)
+const DRESS_CLEAR := 1.6
 ## Where the coins go into the Strongbox: this share of its painting's height up the picture (the lid's top is at 0.44 of
 ## st_gold_bank.png), and this far in front of it, so a coin drops onto the lid rather than through the picture
 const LID := 0.4
@@ -369,6 +371,9 @@ func start_spot_ok(p: Vector3, placed: Array, spacing: float, relax: float = 1.0
 		if Vector2(p.x - o.x, p.z - o.y).length() < o.z + 3.5:
 			return false
 	if map.has_method("bush_patches") and not clear_of_bushes(Vector2(p.x, p.z), map.call("bush_patches")):
+		return false
+	# pass 126 (lane DRESS): off the poles, wheels and crosses, which have no obstacle circle
+	if map.has_method("dress_clear") and not map.call("dress_clear", Vector2(p.x, p.z), DRESS_CLEAR * relax):
 		return false
 	if _wet(p, 3.0):
 		return false

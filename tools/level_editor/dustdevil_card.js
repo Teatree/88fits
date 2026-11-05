@@ -10,7 +10,7 @@ const DustDevilCard = (() => {
     radius: 3, speed: 1.4, wander: 'cross', miss: 3, form_dist: [7, 11],
     form_seconds: 2.5, fade_seconds: 2,
     toss: { up: 9.5, out: 3.6, cooldown: 1.2 }, lift: 1.7, lift_height: 4.5,
-    size: 1.25, opacity: 0.7,
+    size: 1.25, opacity: 0.7, fling: 1,
     warn: true, in_boss: false, in_portal: false, in_endless: false,
   };
   const WANDERS = ['cross', 'drift', 'loop'];
@@ -57,6 +57,8 @@ const DustDevilCard = (() => {
     o.lift_height = Math.max(num(o.lift_height, 4.5), 0);
     o.size = Math.min(Math.max(num(o.size, 1.25), 0.25), 4);
     o.opacity = Math.min(Math.max(num(o.opacity, 0.7), 0.5), 1);
+    // pass 126 (lane STAGE): how far a creature is flung past its grab radius, x this
+    o.fling = Math.min(Math.max(num(o.fling, 1), 0), 6);
     for (const k of ['warn', 'in_boss', 'in_portal', 'in_endless']) o[k] = bool(o[k]);
     return o;
   }
@@ -70,11 +72,22 @@ const DustDevilCard = (() => {
   const mmss = (s) => { const m = Math.floor(s / 60); const r = Math.round(s - m * 60); return `${m}:${String(r).padStart(2, '0')}`; };
   const span = (r, unit) => (r[0] === r[1] ? `${r[0]} ${unit}` : `${r[0]} to ${r[1]} ${unit}`);
 
+  /** Pass 126 (lane STAGE): the map's block with a stage entry's own `dust_devils` laid over it key by key (toss key by key). */
+  function overStage(block, own) {
+    const o = JSON.parse(JSON.stringify(isObj(block) ? block : {}));
+    for (const k of Object.keys(isObj(own) ? own : {})) {
+      if (k === 'toss' && isObj(own.toss) && isObj(o.toss)) Object.assign(o.toss, own.toss);
+      else o[k] = own[k];
+    }
+    return o;
+  }
+
   /** One paragraph: how many a stage, when, how long, how big, what the reach is. `stages` [{name, length}]. */
   function summaryText(block, stages) {
     const c = configOf(block);
     if (!c.enabled) return 'Off: no dust devils on this map.';
-    const per = (stages || []).map((w) => `${countIn(c, w.length)} in ${w.name}`).join(', ');
+    // pass 126 (lane STAGE): a stage's own block over the map's (WaveTimeline.dust_devils_at)
+    const per = (stages || []).map((w) => `${countIn(isObj(w.dust_devils) ? configOf(overStage(block, w.dust_devils)) : c, w.length)} in ${w.name}`).join(', ');
     const ev = c.every[0] === c.every[1] ? `every ${mmss(c.every[0])}` : `every ${mmss(c.every[0])} to ${mmss(c.every[1])}`;
     const extra = [c.in_boss ? 'the boss fight' : '', c.in_portal ? 'the portal countdown' : '', c.in_endless ? 'Endless' : ''].filter(Boolean);
     return `About ${per || 'a few a stage'} (each stage's own time${extra.length ? ` plus ${extra.join(', ')}` : ''}): the first at ${mmss(c.first)}, then one ${ev}, ` +
@@ -87,7 +100,7 @@ const DustDevilCard = (() => {
   /** The card's extra block: the paragraph and any warnings (drawn under the rows by settings.js). */
   function block(tl) {
     const { el } = U;
-    const stages = (typeof App !== 'undefined' && App.stageList) ? App.stageList().map((w) => ({ name: w.name, length: w.length })) : [];
+    const stages = (typeof App !== 'undefined' && App.stageList) ? App.stageList().map((w) => ({ name: w.name, length: w.length, dust_devils: (w.entry || {}).dust_devils })) : [];
     const wrap = el('div', { class: 'dustdevil-card' });
     wrap.appendChild(el('p', { class: 'muted small dustdevil-summary', text: summaryText(tl.dust_devils, stages) }));
     for (const w of issues(tl)) wrap.appendChild(el('p', { class: 'warn-text small', text: w }));
@@ -107,7 +120,7 @@ const DustDevilCard = (() => {
     return out;
   }
 
-  const api = { DEFAULTS, WANDERS, EVERY_MIN, HERO_REACH, configOf, countIn, summaryText, block, issues };
+  const api = { DEFAULTS, WANDERS, EVERY_MIN, HERO_REACH, configOf, overStage, countIn, summaryText, block, issues };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;
 })();

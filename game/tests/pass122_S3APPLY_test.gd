@@ -24,8 +24,9 @@ func _stage3_rows(d: Dictionary) -> Dictionary:
 		if r is Dictionary and str((r as Dictionary).get("id", "")).begins_with("s3"):
 			out[str(r["id"])] = r
 	var sl: Array = td.get("stage_list", [])
-	if sl.size() > 2 and sl[2] is Dictionary:
-		var bf = (sl[2] as Dictionary).get("boss_fight", {})
+	# pass 126 (lane STAGE): the Blood Moon is the last entry
+	if not sl.is_empty() and sl[sl.size() - 1] is Dictionary:
+		var bf = (sl[sl.size() - 1] as Dictionary).get("boss_fight", {})
 		if bf is Dictionary:
 			for r in (bf as Dictionary).get("roster", []):
 				if r is Dictionary and str((r as Dictionary).get("id", "")).begins_with("bf3-"):
@@ -121,7 +122,7 @@ func test_the_tres_carries_the_files_codes() -> void:
 	for r in tl.roster:
 		if r is Dictionary and str((r as Dictionary).get("id", "")).begins_with("s3"):
 			seen[str(r["id"])] = str((r as Dictionary).get("variant", ""))
-	for r in tl.boss_fight_rows(2):
+	for r in tl.boss_fight_rows(tl.stage_count() - 1):
 		if r is Dictionary and str((r as Dictionary).get("id", "")).begins_with("bf3-"):
 			seen[str(r["id"])] = str((r as Dictionary).get("variant", ""))
 	assert_array(seen.keys()).override_failure_message("the .tres and the JSON hold different stage-3 rows").contains_exactly_in_any_order(rows.keys())

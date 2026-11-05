@@ -239,7 +239,7 @@
   "shows": [
    "Header 'Stages', the chosen hero's badge on the right",
    "'Red Canyon · <hero>' and the call 'Choose a Stage'",
-   "A card per stage of timeline_data.stage_list (Sundown, Nightfall, Blood Moon): its picture (art/ui/stages/<map>_s<k>.jpg; striped until it exists) with STAGE k and the name, 'Difficulty: Easy / Medium / Hard / Extremely Hard' in the stage's colour (sage the first, rock the last and hell stages, brass between), the description, the time to its boss and the boss",
+   "A card per stage of timeline_data.stage_list (Sundown, Nightfall, The Dust Bowl, Blood Moon): its picture (art/ui/stages/<map>_s<k>.jpg; striped until it exists) with STAGE k and the name, 'Difficulty: Easy / Medium / Hard / Extremely Hard' in the stage's colour (sage the first, rock the last and hell stages, brass between), the description, the time to its boss and the boss",
    "A sage BEATEN stamp on a beaten stage"
   ],
   "rules": [
@@ -597,6 +597,7 @@
   "states": [
    "Sundown (no filter)",
    "Nightfall (blue filter)",
+   "The Dust Bowl (brown filter, fog, haze, a storm of wind)",
    "Blood Moon (red ground, red filter)"
   ]
  },

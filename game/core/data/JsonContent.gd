@@ -833,6 +833,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 113 (lane TWISTER): the dust devils' clock and numbers (DustDevils.DEFAULTS fill gaps)
 	var ddv = t.get("dust_devils", {})
 	w.dust_devils = ddv if ddv is Dictionary else {}
+	# pass 126 (lane DRESS): the telephone line, the cart and the graves (MapDressing.DEFAULTS fill gaps)
+	var drs = t.get("dressing", {})
+	w.dressing = drs if drs is Dictionary else {}
 	# pass 118 (lane BOSSCHEST): the boss chest's speed bonus (BossChest.DEFAULTS fill gaps)
 	var bch = t.get("boss_chest", {})
 	w.boss_chest = bch if bch is Dictionary else {}

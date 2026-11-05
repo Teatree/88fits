@@ -1,0 +1,15 @@
+{
+  "id": "skin_ironwood_irn_c",
+  "name": "Ironwood · Thunderbird",
+  "condition": {
+    "type": "item_level",
+    "kind": "weapon",
+    "id": "pike",
+    "level": 5
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "ironwood:IRN-C"
+  },
+  "icon": "res://content/characters/ironwood/ironwood_icon_c.png"
+}

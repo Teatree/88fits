@@ -1433,7 +1433,7 @@ func _drops_tab() -> void:
 	_buttons([["A chest", func(): _act("chest", func() -> void: game.pickups.spawn_chest(_drop_point(3.0))); close()],
 		["A purple chest", func(): _act("purple chest", func() -> void: game.pickups.spawn_chest(_drop_point(3.0), true)); close()]])
 	var boss_rows: Array = []
-	for bid: String in ["tumbleweed_king", "gila_grande", "brander"]:
+	for bid: String in ["tumbleweed_king", "gila_grande", "black_sunday", "brander"]:
 		if Registry.enemy(bid) == null:
 			continue
 		var nm := str(BossChest.look(bid)["name"])

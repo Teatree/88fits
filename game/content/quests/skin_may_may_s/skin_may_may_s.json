@@ -1,0 +1,14 @@
+{
+  "id": "skin_may_may_s",
+  "name": "May · Carnival",
+  "condition": {
+    "type": "evolve_item",
+    "kind": "weapon",
+    "id": "tommy_gun"
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "may:MAY-S"
+  },
+  "icon": "res://content/characters/may/may_icon_s.png"
+}

@@ -93,7 +93,7 @@ def ehp(st, dps, sustain):
     mh = st.get("max_hp", 100.0)
     hp = mh + max(st.get("shield_max", 0.0), 0.0)
     regen = max(st.get("regen", 0.0), 0.0)
-    ls = min(max(st.get("lifesteal", 0.0), 0.0) * max(dps, 0.0), mh * st.get("lifesteal_cap", 0.04))
+    ls = min(max(st.get("lifesteal", 0.0), 0.0) * max(dps, 0.0), mh * st.get("lifesteal_cap", 0.03))
     dr = min(max(st.get("damage_reduction", 0.0), 0.0), 0.8)
     ev = min(max(st.get("evade", 0.0), 0.0), 0.9)
     return (hp + sustain * (regen + ls)) / ((1.0 - dr) * (1.0 - ev))
@@ -127,7 +127,7 @@ def checks(check, run_node, server):
     check(not bad, "SCALE83: boss_model.secondsHp == WaveTimeline.boss_seconds_hp: %s" % bad)
     check(res["secondsHp"][:5] == [7500, 1440, 1440, 1440, 6000], "SCALE83: the hand-worked seconds pass83_scale_test.gd pins: %s" % res["secondsHp"][:5])
     check(res["modes"] == ["seconds", "dps", "seconds", "seconds"], "SCALE83: the mode as the game reads it (none or nonsense = seconds): %s" % res["modes"])
-    check(res["secondsOf"] == {"tumbleweed_king": 25, "gila_grande": 90, "brander": 60}, "SCALE83: a boss the block names takes its seconds, the others the game's: %s" % res["secondsOf"])
+    check(res["secondsOf"] == {"tumbleweed_king": 25, "gila_grande": 90, "black_sunday": 50, "brander": 60}, "SCALE83: a boss the block names takes its seconds, the others the game's: %s" % res["secondsOf"])
     bad = [(a, r) for a, r in zip(facs, res["factor"]) if abs(power_factor(*a) - r) > 1e-9 * max(1, abs(r))]
     check(not bad, "SCALE83: power_model.hpFactor == WaveTimeline.power_hp_factor over %d cases: %s" % (len(facs), bad[:4]))
     check(all(abs(r - 1) < 1e-12 for a, r in zip(facs, res["factor"]) if a[0] == 1), "SCALE83: scaling 1 is x1 at every power")

@@ -33,7 +33,7 @@
       "min_radius": 8.0,
       "shrink": 42.0,
       "hold": 8.0,
-      "burn": 0.07,
+      "burn": 0.043,
       "creature_burn": 0.12
     },
     "attacks": [

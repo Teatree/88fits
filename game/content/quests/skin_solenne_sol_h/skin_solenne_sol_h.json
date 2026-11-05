@@ -1,0 +1,14 @@
+{
+  "id": "skin_solenne_sol_h",
+  "name": "Solenne · Solar Flare",
+  "condition": {
+    "type": "element_damage",
+    "element": "fire",
+    "count": 405000
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "solenne:SOL-H"
+  },
+  "icon": "res://content/characters/solenne/solenne_icon_h.png"
+}

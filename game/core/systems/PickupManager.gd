@@ -1102,7 +1102,7 @@ func capture_swap(c):
 ## gem's XP before Field Notes. A vacuum gem packs nothing (only Elites drop one).
 func _captured(k: int, v: float) -> void:
 	if k == KIND_COIN:
-		_capture["gold"] = float(_capture.get("gold", 0.0)) + v * float(maxi(int(round(Run.stage_mult())), 1))
+		_capture["gold"] = float(_capture.get("gold", 0.0)) + v * float(maxi(int(round(Run.reward_mult())), 1))
 	elif k <= KIND_GEM_L:
 		_capture["xp"] = float(_capture.get("xp", 0.0)) + v
 
@@ -2107,7 +2107,7 @@ func _collect(i: int, quiet: bool = false) -> void:
 	if quiet:
 		match kind[i]:
 			KIND_COIN:
-				Run.add_gold(int(value[i]) * max(int(round(Run.stage_mult())), 1), str(coin_from.get(i, "coins")))
+				Run.add_gold(int(value[i]) * max(int(round(Run.reward_mult())), 1), str(coin_from.get(i, "coins")))
 			KIND_VACUUM:
 				# taken unseen while a pull runs: no second pull, no sound (only one the hero reaches starts a pull)
 				pass
@@ -2117,7 +2117,7 @@ func _collect(i: int, quiet: bool = false) -> void:
 		return
 	match kind[i]:
 		KIND_COIN:
-			Run.add_gold(int(value[i]) * max(int(round(Run.stage_mult())), 1), str(coin_from.get(i, "coins")))
+			Run.add_gold(int(value[i]) * max(int(round(Run.reward_mult())), 1), str(coin_from.get(i, "coins")))
 			Audio.play("pk_coin")
 		KIND_VACUUM:
 			vacuum_all()

@@ -1,0 +1,159 @@
+{
+  "id": "straw_man",
+  "name": "Straw Man",
+  "flavour": "Stuffed by nobody. Walking anyway.",
+  "archetype": "walker",
+  "brain": "chase",
+  "hp": 15,
+  "speed": 1.5,
+  "damage": 4,
+  "knockback": 3.4,
+  "radius": 0.52,
+  "size": 1.8,
+  "blood": "#C89A3A",
+  "pack_size": 5,
+  "cap_share": 0.5,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.05,
+    "gold": 0.02,
+    "chest": 0.0002
+  },
+  "frame_px": 160,
+  "xp_mult": 2.0,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_mummy_die"
+  },
+  "placeholder": {
+    "color": "#C8A860",
+    "eyes": 2,
+    "shape": "tall"
+  },
+  "screen": "green",
+  "art_prompt": "a shambling scarecrow come to life: a stuffed burlap sack head tied at the neck with rope, a crude stitched mouth and two black button eyes, a battered floppy straw hat, patched faded blue denim dungarees over a ragged tan shirt, tufts of yellow straw sticking out of both cuffs, the collar and the boot tops, two arms and two legs, both arms hanging limp at its sides, standing slightly hunched and facing the viewer, no weapon",
+  "motion": "shambling forward in place with limp dragging steps, its stuffed arms swinging loosely",
+  "gait": "shambling in place on the spot with limp dragging steps, its stuffed arms swinging loosely, straw shaking at its cuffs",
+  "anim_negative": "extra arms, a third arm, extra legs, extra hands, two heads, a human face, skin, a weapon appearing, a hat appearing or changing",
+  "back_hint": "seen from behind: the back of the burlap sack head and the floppy straw hat, the crossed straps of the dungarees over the tan shirt, both arms hanging at its sides, straw at the cuffs, no face",
+  "dead_hint": "slumped flat on the ground, dead: the whole limp scarecrow lying sideways across the picture with its burlap head on the left and its boots on the right, deflated and empty, arms flopped limp, loose tufts of yellow straw spilling out of its cuffs and collar; it lies on nothing, with no ground, no sand and no shadow under it",
+  "pose": "strawman_limp",
+  "pose_front": "strawman_limp",
+  "stand": "still",
+  "death": "clip",
+  "death_frames": 8,
+  "variance": {
+    "size": 0.16,
+    "speed": 0.14,
+    "tints": [
+      "#FFFFFF",
+      "#FFF0CC",
+      "#E8DCC0",
+      "#D0D8E0"
+    ],
+    "tint_strength": 0.2,
+    "special_chance": 0.0111,
+    "special": {
+      "size": 1.5,
+      "hp": 15.0,
+      "damage": 3.5,
+      "xp": 3.0,
+      "tint": "#5E2A10",
+      "tint_strength": 0.55
+    }
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 8,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "strip_cols": 43,
+  "fps": {
+    "run": 15,
+    "die": 12
+  },
+  "doc": "The Dust Bowl's main walker: a burlap scarecrow half again as tough as a skeleton and a touch slower, half a slot against the cap. It slumps and spills its straw when it dies.",
+  "head": 0.956,
+  "retired": false,
+  "stills": "a1",
+  "death_bits": {
+    "kind": "straw",
+    "n": 14,
+    "colours": [
+      "#F2C744",
+      "#E3A92B",
+      "#FFE27A"
+    ],
+    "start": 3,
+    "spread": 0.5,
+    "rise": 0.5,
+    "gravity": 0.85,
+    "length": 0.075,
+    "outline": "#5A3A14"
+  },
+  "variant_base": "SM-A",
+  "variant": "SM-A",
+  "variants": {
+    "SM-A": {
+      "note": "hat, button eyes, blue dungarees, boots; a limping shamble (Mixamo Walking, right leg swing x0.4, leaning 12 degrees); falls and spills its straw"
+    },
+    "SM-B": {
+      "note": "no hat, straw out of the top of the sack, brown dungarees, bare feet; the same shamble (Garry may prefer the creepier one; brown reads less on the sand)",
+      "fresh": true,
+      "sprite": "straw_man_sprite_b.png",
+      "icon": "straw_man_icon_b.png",
+      "recipe": {
+        "stills": "b2",
+        "seed_offset": 2,
+        "art_prompt": "a gaunt creepy living scarecrow: a lumpy burlap sack for a head, cinched with a rope at the neck, a wide crude stitched grin and two mismatched black button eyes, no hat, straw poking out of the top of the sack, patched brown dungarees with one strap over a torn pale shirt, thick tufts of bright yellow straw bursting from both sleeves and both trouser cuffs, stuffed floppy hands of straw, two arms and two legs, both arms hanging limp at its sides, standing a little hunched with its head tilted to one side, facing the viewer, no weapon",
+        "back_hint": "seen from behind: the back of the lumpy burlap sack head with the straw poking out of its top, the crossed straps of the dungarees over the pale shirt, both arms hanging at its sides, straw at the cuffs, no face"
+      },
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.944
+    }
+  },
+  "remap_hues": {
+    "ranges": [
+      [
+        62,
+        170
+      ],
+      [
+        285,
+        350
+      ]
+    ],
+    "to": 38,
+    "sat": 0.55,
+    "min_sat": 0.12
+  },
+  "shadow": {
+    "scale": [
+      0.85,
+      0.85
+    ],
+    "up": 0.22,
+    "drop": 0.06
+  },
+  "run_scale": {
+    "front": 0.94,
+    "back": 0.94
+  }
+}

@@ -1,0 +1,118 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a shambling scarecrow come to life: a stuffed burlap sack head tied at the neck with rope, a crude stitched mouth and two black button eyes, a battered floppy straw hat, patched faded blue denim dungarees over a ragged tan shirt, tufts of yellow straw sticking out of both cuffs, the collar and the boot tops, two arms and two legs, both arms hanging limp at its sides, standing slightly hunched and facing the viewer, no weapon",
+ "renders": {
+  "front": {
+   "seed": 133478,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a shambling scarecrow come to life: a stuffed burlap sack head tied at the neck with rope, a crude stitched mouth and two black button eyes, a battered floppy straw hat, patched faded blue denim dungarees over a ragged tan shirt, tufts of yellow straw sticking out of both cuffs, the collar and the boot tops, two arms and two legs, both arms hanging limp at its sides, standing slightly hunched and facing the viewer, no weapon. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 271,
+     "right": 280,
+     "top": 56,
+     "bottom": 38,
+     "height": 929,
+     "width": 472
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 135953,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. seen from behind: the back of the burlap sack head and the floppy straw hat, the crossed straps of the dungarees over the tan shirt, both arms hanging at its sides, straw at the cuffs, no face isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/straw_man_a1_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 272,
+     "right": 281,
+     "top": 59,
+     "bottom": 41,
+     "height": 923,
+     "width": 470
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 135872,
+   "prompt": "This exact creature slumped flat on the ground, dead: the whole limp scarecrow lying sideways across the picture with its burlap head on the left and its boots on the right, deflated and empty, arms flopped limp, loose tufts of yellow straw spilling out of its cuffs and collar; it lies on nothing, with no ground, no sand and no shadow under it, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/straw_man_a1_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 99,
+     "right": 84,
+     "top": 307,
+     "bottom": 270,
+     "height": 446,
+     "width": 840
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": null,
+ "clip_kind": {
+  "front": "pose",
+  "back": "pose",
+  "die": "flf"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": "strawman_limp"
+ },
+ "remap_hues": {
+  "ranges": [
+   [
+    62,
+    170
+   ],
+   [
+    285,
+    350
+   ]
+  ],
+  "to": 38,
+  "sat": 0.55,
+  "min_sat": 0.12
+ },
+ "qa_online": null
+}

@@ -69,8 +69,10 @@ func test_still_a_step_up_stage_by_stage_in_play() -> void:
 	var s1 := tl.stage_mult(0) * tl.damage_mult_at(tl.stage_start(0) + tl.stage_len(0) * 0.5)
 	var s2 := tl.stage_mult(1) * tl.damage_mult_at(tl.stage_start(1) + tl.stage_len(1) * 0.5)
 	var s3 := tl.stage_mult(2) * tl.damage_mult_at(tl.stage_start(2) + tl.stage_len(2) * 0.5)
+	var s4 := tl.stage_mult(3) * tl.damage_mult_at(tl.stage_start(3) + tl.stage_len(3) * 0.5)   # pass 126: The Dust Bowl, then the Blood Moon
 	assert_float(s2).is_greater(s1)
 	assert_float(s3).is_greater(s2)
+	assert_float(s4).is_greater(s3)
 	# the Gila fights on stage 2's ATK x (the clock stands at its window's end), the Brander on stage 3's end (pass 68:
 	# Garry's stage 2 slopes, so the second before is a near neighbour, not an equal)
 	var gila := tl.stage_end(1)

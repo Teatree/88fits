@@ -40,6 +40,13 @@
 ##                  ground, glow: the warm point light's energy at full strength (0 = none; only where Fx.want_lights(),
 ##                  never on a phone)}. HELL_DEFAULTS fill what the block leaves out, so a map without the key burns too.
 ##                  Only the look: it throws, lifts and times as the dust one does, and burns nothing.
+##   fling          pass 126 (lane STAGE; Garry: The Dust Bowl's tornadoes "a bit more often than usual, they will be visually
+##                  a bit bigger and x2 as strong in terms of how far they throw enemies and heroes"): how far a creature
+##                  it rides is flung past its grab radius, x this (EnemyManager.swirl; 1 = as ever). A stage entry's own
+##                  `dust_devils` block is laid over the map's key by key (`toss` key by key; WaveTimeline.dust_devils_at),
+##                  so The Dust Bowl names only what it changes: first, every, size, radius, fling, toss. The hero's throw is
+##                  `toss`: he goes up at `up` under 24 m/s2 (up^2 / 48 m high, up / 12 s in the air) and out at `out`, which
+##                  fades at 6/s (out / 6 m in all), so x2 up is up x 1.414 and x2 out is out x 2: tests pin the landing.
 ## The clock counts only the seconds of the phases it runs in; the debug arena runs no clock (its WORLD tab calls one in).
 class_name DustDevils
 extends Node3D
@@ -49,7 +56,7 @@ const DEFAULTS := {
 	"radius": 3.0, "speed": 1.4, "wander": "cross", "miss": 3.0, "form_dist": [7.0, 11.0],
 	"form_seconds": 2.5, "fade_seconds": 2.0,
 	"toss": {"up": 9.5, "out": 3.6, "cooldown": 1.2}, "lift": 1.7, "lift_height": 4.5,
-	"size": 1.25, "opacity": 0.7,
+	"size": 1.25, "opacity": 0.7, "fling": 1.0,
 	"warn": true, "in_boss": false, "in_portal": false, "in_endless": false,
 }
 const WANDERS := ["cross", "drift", "loop"]
@@ -128,6 +135,8 @@ static func config_of(block) -> Dictionary:
 	out["lift_height"] = maxf(_num(out["lift_height"], 4.5), 0.0)
 	out["size"] = clampf(_num(out["size"], 1.25), 0.25, 4.0)
 	out["opacity"] = clampf(_num(out["opacity"], 0.7), 0.5, 1.0)
+	# pass 126 (lane STAGE): how far a creature is flung, x this
+	out["fling"] = clampf(_num(out["fling"], 1.0), 0.0, 6.0)
 	for k in ["warn", "in_boss", "in_portal", "in_endless"]:
 		out[k] = _bool(out[k])
 	return out
@@ -257,6 +266,9 @@ func tick(delta: float, phase: int) -> void:
 func call_one(at: Vector3 = Vector3.INF, dir: Vector3 = Vector3.ZERO) -> DustDevil:
 	if not _set:
 		setup(_block(), _run_seed())
+	elif _is_arena():
+		# pass 126 (lane STAGE): the arena's Stage look row may have changed the stage since (its own numbers)
+		cfg = config_of(_block())
 	var hero := _hero()
 	if at == Vector3.INF:
 		if hero == Vector3.INF:
@@ -368,7 +380,18 @@ func _block():
 	var run: Node = get_tree().root.get_node_or_null("Run") if is_inside_tree() else null
 	var md = run.get("map") if run else null
 	var tl = md.timeline if md != null else null
-	return tl.get("dust_devils") if tl != null else null
+	if tl == null:
+		return null
+	# pass 126 (lane STAGE): the stage's own numbers over the map's (WaveTimeline.dust_devils_at)
+	return tl.dust_devils_at(_stage_shown(run)) if tl.has_method("dust_devils_at") else tl.get("dust_devils")
+
+
+## The stage whose numbers it plays: the look shown (the arena's Stage look row), else the run's.
+func _stage_shown(run: Node) -> int:
+	var sl = game.get_node_or_null(StageLook.NODE_NAME) if game != null and is_instance_valid(game) else null
+	if sl is StageLook and (sl as StageLook).stage >= 0:
+		return (sl as StageLook).stage
+	return int(run.get("stage"))
 
 
 func _run_seed() -> int:

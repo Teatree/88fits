@@ -36,7 +36,7 @@ const WantedModel = (() => {
   const TARGET_FIRST = ['damage_weapon', 'heal_item', 'heal_source', 'element_damage'];
   const ELEMENT_NAMES = { fire: 'Fire', poison: 'Poison' };
   // TaskTally.HEAL_STATS / ELEMENTS; PassiveDef.LADDER
-  const HEAL_STATS = ['lifesteal', 'regen', 'still_regen', 'crit_heal_chance', 'heal_drop'];
+  const HEAL_STATS = ['lifesteal', 'regen', 'still_regen', 'crit_heal_chance', 'heal_drop', 'leave_water_regen'];
   const ELEMENTS = ['fire', 'poison'];
   const LADDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
   // what each type is, in Garry's words (the tab's cards), and what its extras mean
@@ -65,7 +65,7 @@ const WantedModel = (() => {
   };
   const DEFAULTS = {
     enabled: true, choices: 3, rerolls: 0, unlock: { runs: 1 }, creatures_met_only: true, items_seen_only: true,
-    progress: { param_growth: 0.15 }, reward: { base: 40, per_point: 60, progress_growth: 0.5, stage_mult: [1.0, 1.25, 1.5], round: 5, currency: 'gold' },
+    progress: { param_growth: 0.15 }, reward: { base: 40, per_point: 60, progress_growth: 0.5, stage_mult: [1.0, 1.25, 1.4, 1.5], round: 5, currency: 'gold' },
     tasks: [],
   };
   const MAX_CHOICES = 3;

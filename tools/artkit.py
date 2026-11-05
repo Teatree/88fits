@@ -667,13 +667,32 @@ def shatter(cell_img, n_frames=6, seed=0, pieces=14, outline_px=2, outline_color
     return frames
 
 
-def hop_cycle(stand, cell, n=12, height=0.13, ground=0.3):
+def _lag_top(frame, top, base, stretch):
+    """Pass 126: the rows above `base` (cell px) drawn `stretch` times as tall, standing on `base`, the rows below as they are:
+    the ears of a hopping thing lagging behind its body."""
+    cell = frame.width
+    h = base - top
+    if h <= 1 or abs(stretch - 1.0) < 0.01:
+        return frame
+    new_h = max(1, int(round(h * stretch)))
+    band = frame.crop((0, top, cell, base)).resize((cell, new_h), Image.LANCZOS)
+    out = Image.new("RGBA", (cell, cell), (0, 0, 0, 0))
+    out.alpha_composite(frame.crop((0, base, cell, cell)), (0, base))
+    y = base - new_h
+    out.alpha_composite(band, (0, max(y, 0)), (0, max(-y, 0)))
+    return out
+
+
+def hop_cycle(stand, cell, n=12, height=0.13, ground=0.3, top_lag=0.0, top_frac=0.3):
     """A hop drawn from one standing cell (pass 45: the Blue Slime and the Tumbleweed Minion). The painting itself squashes
     as it lands, gathers, stretches as it leaves the ground and rides a parabola `height` of the cell high, so the face
     never changes, the colours are the painting's and nothing can leave the cell (the video clips moved the slimes'
     mouths, greyed them mid-hop and grew the minion legs). `ground` is the share of the cycle spent touching the sand.
-    Frame 0 is the landing; the cycle loops."""
+    Frame 0 is the landing; the cycle loops. Pass 126 (lane BESTIARY, the Dust Bunny's ears): `top_lag` > 0 lets the top
+    `top_frac` of the figure lag: pressed down while it rises, thrown up while it falls and as it lands (0 = as before)."""
     out = []
+    ys_ = np.nonzero(np.asarray(stand)[..., 3].max(axis=1) > 40)[0]
+    top0, bot0 = (int(ys_.min()), int(ys_.max())) if len(ys_) else (0, cell - 1)
     for k in range(n):
         t = k / float(n)
         if t < ground:
@@ -687,7 +706,322 @@ def hop_cycle(stand, cell, n=12, height=0.13, ground=0.3):
             sy = 1.0 + 0.1 * abs(1.0 - 2.0 * v)
             bob = 4.0 * v * (1.0 - v) * height * cell
         sx = 1.0 + (1.0 - sy) * 0.9
-        out.append(transform(stand, bob=bob, sx=sx, sy=sy))
+        f = transform(stand, bob=bob, sx=sx, sy=sy)
+        if top_lag > 0.0:
+            # the body's vertical speed in the air, +1 leaving the ground, -1 coming down; thrown up as it lands
+            vel = 1.0 - 2.0 * (t - ground) / (1.0 - ground) if t >= ground else -1.0 + 2.0 * (t / ground)
+            ys2 = np.nonzero(np.asarray(f)[..., 3].max(axis=1) > 40)[0]
+            if len(ys2):
+                top = int(ys2.min())
+                f = keep_top(_lag_top(f, top, top + int(round((bot0 - top0) * sy * top_frac)), 1.0 - top_lag * vel))
+        out.append(f)
+    return out
+
+
+def align_pose(ref, pose, box=(0.32, 0.0, 0.68, 0.40), scales=(0.72, 1.75, 0.01)):
+    """Pass 126 (lane BESTIARY, the Carrion Crow's wing beat): where a painted pose lies on its reference. Both keyed RGBA at the
+    same size; `box` is the window of the reference's figure (its share of the bbox: the head, which every wing pose keeps)
+    looked for in the pose at each scale (OpenCV's squared difference on grey over mid-grey, at half size). Returns (s, dx, dy):
+    the pose scaled by s and moved by (dx, dy) in reference pixels lies on the reference. Klein's edits redraw a pose at
+    their own size and place, so a beat from the raw paintings would pump and jump."""
+    import cv2
+
+    def grey(im):
+        a = np.asarray(im.convert("RGBA")).astype(np.float32)
+        return (a[..., :3].mean(axis=2) * (a[..., 3] / 255.0) + 128.0 * (1.0 - a[..., 3] / 255.0)).astype(np.float32)
+
+    half = 2
+    gr = grey(ref.resize((ref.width // half, ref.height // half), Image.LANCZOS))
+    ys, xs = np.nonzero(np.asarray(ref)[..., 3] > 40)
+    x0, x1, y0, y1 = int(xs.min()) // half, int(xs.max()) // half, int(ys.min()) // half, int(ys.max()) // half
+    w, h = x1 - x0, y1 - y0
+    tx0, ty0, tx1, ty1 = x0 + int(w * box[0]), y0 + int(h * box[1]), x0 + int(w * box[2]), y0 + int(h * box[3])
+    tpl = gr[ty0:ty1, tx0:tx1]
+    best = (1e18, 1.0, 0, 0)
+    for s in np.arange(scales[0], scales[1], scales[2]):
+        pw, ph = int(pose.width / half * s), int(pose.height / half * s)
+        if pw <= tpl.shape[1] or ph <= tpl.shape[0]:
+            continue
+        gp = grey(pose.resize((pw, ph), Image.BILINEAR))
+        res = cv2.matchTemplate(gp, tpl, cv2.TM_SQDIFF)
+        mn, _, loc, _ = cv2.minMaxLoc(res)
+        if mn < best[0]:
+            best = (mn, float(s), loc[0], loc[1])
+    _, s, lx, ly = best
+    # the pose's (lx, ly) at scale s is the reference's (tx0, ty0)
+    return s, (tx0 - lx) * half, (ty0 - ly) * half
+
+
+def laid_cell(pose, ref, cell, scale, outline_px, outline_color, pad_bottom=0.06, box=(0.32, 0.0, 0.68, 0.40)):
+    """Pass 126: a keyed pose as a cell on its reference's body: `scale` is what fit_cell gave the keyed reference, so the
+    head stays where the reference's head stands in its cell, whatever the wings reach."""
+    s, dx, dy = align_pose(ref, pose, box)
+    # the pose's neutrals brought to the reference's (one edit paints the same black warmer than another, and a wing beat would
+    # flicker brown and blue-black): a gain per channel from the median of each picture's dark greys, its bright parts spared
+    def neutrals(im):
+        a = np.asarray(im).astype(np.float32)
+        mx, mn = a[..., :3].max(axis=2), a[..., :3].min(axis=2)
+        m = (a[..., 3] > 200) & (mx > 28) & (mx < 150) & ((mx - mn) < 0.35 * mx)
+        return np.median(a[..., :3][m], axis=0) if m.any() else np.array([1.0, 1.0, 1.0])
+
+    gain = np.clip(neutrals(ref) / np.maximum(neutrals(pose), 1.0), 0.7, 1.4)
+    pa = np.asarray(pose).astype(np.float32)
+    v = pa[..., :3].max(axis=2, keepdims=True)
+    w = np.clip((200.0 - v) / 60.0, 0.0, 1.0)
+    pa[..., :3] = np.clip(pa[..., :3] * (1.0 + (gain - 1.0) * w), 0, 255)
+    pose = Image.fromarray(pa.astype(np.uint8), "RGBA")
+    ys, xs = np.nonzero(np.asarray(ref)[..., 3] > 40)
+    pad = 6
+    cx0, cx1 = max(int(xs.min()) - pad, 0), min(int(xs.max()) + pad, ref.width - 1) + 1
+    cy1 = min(int(ys.max()) + pad, ref.height - 1) + 1
+    # no wider than the cell: Klein draws wings-up poses with a small head, so a pose laid by its head alone would spread its wings
+    # past the cell's sides; held at the cell's width about the head (the head then a little smaller than the reference's)
+    pxs = np.nonzero(np.asarray(pose)[..., 3].max(axis=0) > 40)[0]
+    if len(pxs):
+        s_max = (cell - 2 * outline_px - 10) / (float(pxs.max() - pxs.min() + 1) * scale)
+        if s > s_max:
+            w_f, h_f = int(xs.max()) - int(xs.min()), int(ys.max()) - int(ys.min())
+            hx = int(xs.min()) + w_f * (box[0] + box[2]) / 2.0
+            hy = int(ys.min()) + h_f * (box[1] + box[3]) / 2.0
+            ppx, ppy = (hx - dx) / s, (hy - dy) / s
+            s = s_max
+            dx, dy = hx - ppx * s, hy - ppy * s
+    S = s * scale
+    small = pose.resize((max(1, int(pose.width * S)), max(1, int(pose.height * S))), Image.LANCZOS)
+    w_ref = int(round((cx1 - cx0) * scale))
+    # the reference's crop origin in the cell: fit_cell centres it and stands it on the foot line
+    ox = (cell - w_ref) // 2 - cx0 * scale
+    oy = cell - int(cell * pad_bottom) - cy1 * scale
+    out = Image.new("RGBA", (cell, cell), (0, 0, 0, 0))
+    x, y = int(round(ox + dx * scale)), int(round(oy + dy * scale))
+    # a pose whose body came out longer than the reference's (wings up) rides up rather than lose its feet at the cell's floor
+    py = np.nonzero(np.asarray(pose)[..., 3].max(axis=1) > 40)[0]
+    if len(py):
+        over = y + int(py.max() * S) - (cell - outline_px - 1)
+        if over > 0:
+            y -= over
+    # and slid sideways rather than cut, when one wing reaches further than the other
+    if len(pxs):
+        lo, hi = x + int(pxs.min() * S), x + int(pxs.max() * S)
+        if lo < outline_px + 5:
+            x += outline_px + 5 - lo
+        elif hi > cell - outline_px - 6:
+            x -= hi - (cell - outline_px - 6)
+    out.alpha_composite(small, (max(x, 0), max(y, 0)), (max(-x, 0), max(-y, 0)))
+    return add_outline(out, outline_px, outline_color)
+
+
+FLAP_BEATS = (("stand", 0.0, 0.88), ("stand", 0.0, 0.95), ("down", 0.3, 1.0), ("mid", 0.58, 1.0), ("up", 0.8, 1.0), ("up", 0.94, 1.0),
+              ("mid", 1.0, 1.0), ("down", 0.94, 1.0), ("down", 0.8, 1.0), ("mid", 0.58, 1.0), ("up", 0.3, 1.0), ("mid", 0.06, 1.0))
+
+
+def flap_cycle(cells, cell, height=0.12, beats=FLAP_BEATS):
+    """Pass 126 (lane BESTIARY, the Carrion Crow): a hop with two wing beats from painted poses, one picture per pose: `cells`
+    {stand, up, mid, down}, each laid on the stand's body (laid_cell). A frame is a pose, how high it rides (a share of `height`
+    of the cell) and how squashed it lands. Nothing can multiply a wing or blur it, since no video model draws a frame; the
+    head and body hold still, only the wings change, and the hop itself moves every frame."""
+    out = []
+    for name, up, sy in beats:
+        sx = 1.0 + (1.0 - sy) * 0.7
+        out.append(transform(cells[name], bob=up * height * cell, sx=sx, sy=sy))
+    return out
+
+
+def _eye_sprites(cell_img, max_eyes=2):
+    """Pass 126: the painted eyes of a figure as loose sprites [(RGBA, x, y)]: its largest pale blobs, the pupils inside them kept."""
+    from scipy import ndimage
+    arr = np.asarray(cell_img).astype(np.float32) / 255.0
+    mx, mn = arr[..., :3].max(axis=2), arr[..., :3].min(axis=2)
+    pale = (arr[..., 3] > 0.5) & (mx > 0.72) & ((mx - mn) < 0.18 * mx + 0.02)
+    lab, n = ndimage.label(pale)
+    if n == 0:
+        return []
+    sizes = ndimage.sum(pale, lab, range(1, n + 1))
+    keep = [i + 1 for i in np.argsort(sizes)[::-1][:max_eyes] if sizes[i] >= 6]
+    src = np.asarray(cell_img)
+    out = []
+    for k in keep:
+        m = ndimage.binary_fill_holes(lab == k)
+        m = ndimage.binary_dilation(m, iterations=1)
+        ys, xs = np.nonzero(m)
+        y0, y1, x0, x1 = int(ys.min()), int(ys.max()) + 1, int(xs.min()), int(xs.max()) + 1
+        im = src[y0:y1, x0:x1].copy()
+        im[..., 3] = np.where(m[y0:y1, x0:x1], 255, 0)
+        out.append((Image.fromarray(im, "RGBA"), x0, y0))
+    return out
+
+
+def _cloud(cell, lumps, fill, light, outline_px, outline_color):
+    """Pass 126: a cartoon dust cloud on a clear cell: discs [(x, y, r)] in cell px, one outline round them all, a paler disc up and to
+    the left on each."""
+    from PIL import ImageDraw
+    ss = 3
+    im = Image.new("RGBA", (cell * ss, cell * ss), (0, 0, 0, 0))
+    dr = ImageDraw.Draw(im)
+    for x, y, r in lumps:
+        if r > 0.3:
+            dr.ellipse(((x - r) * ss, (y - r) * ss, (x + r) * ss, (y + r) * ss), fill=fill)
+    for x, y, r in lumps:
+        if r > 1.0:
+            q = r * 0.68
+            dr.ellipse(((x - r * 0.2 - q) * ss, (y - r * 0.25 - q) * ss, (x - r * 0.2 + q) * ss, (y - r * 0.25 + q) * ss), fill=light)
+    return add_outline(im.resize((cell, cell), Image.LANCZOS), outline_px, outline_color)
+
+
+def puff(cell_img, n_frames=5, seed=0, outline_px=2, outline_color=(14, 8, 12, 255), top_frac=0.32, lumps=9):
+    """Pass 126 (lane BESTIARY, the Dust Bunny; Garry's brief: "a puff"): a death in which the figure goes up in a cartoon cloud of its
+    own colour, its painted eyes hanging in the cloud, then falling onto a low heap of dust with its ears (the top `top_frac` of
+    the figure) laid flat on it: the last frame is the one the game holds. No model paints anything."""
+    import random
+    rng = random.Random(int(seed) * 11 + 126)
+    cell = cell_img.width
+    arr = np.asarray(cell_img)
+    ys, xs = np.nonzero(arr[..., 3] > 40)
+    top, bot, left, right = int(ys.min()), int(ys.max()), int(xs.min()), int(xs.max())
+    h = bot - top
+    ball_top = top + int(h * top_frac)
+    cx = (left + right) / 2.0
+    cy = (ball_top + bot) / 2.0
+    R = (bot - ball_top) / 2.0
+    # the figure's own colours: the body's median and a paler one, outlines and pale eyes left out
+    body = arr[ball_top:bot][arr[ball_top:bot][..., 3] > 200][..., :3].astype(np.float32)
+    v = body.max(axis=1)
+    mid = np.median(body[(v > 40) & (v < 190)], axis=0) if ((v > 40) & (v < 190)).any() else np.array([70.0, 70.0, 74.0])
+    fill = tuple(int(c) for c in mid) + (255,)
+    light = tuple(int(min(255, c * 1.28 + 10)) for c in mid) + (255,)
+    eyes = _eye_sprites(cell_img)
+    ang = [i * math.tau / lumps + rng.uniform(-0.25, 0.25) for i in range(lumps)]
+    size = [rng.uniform(0.75, 1.15) for _ in range(lumps)]
+    ground = bot - 1.0
+    # the heap: low discs on the ground, the ears cut off the top of the figure and laid flat on it
+    heap_w = (right - left) * 0.42
+    heap = [(cx + (i - 2) / 2.0 * heap_w * 0.8, ground - R * 0.2 - (2 - abs(i - 2)) * R * 0.09, R * (0.34 - abs(i - 2) * 0.03)) for i in range(5)]
+    ear_band = cell_img.crop((0, top, cell, ball_top + int(R * 0.1)))
+    ear_h = max(2, int(ear_band.height * 0.5))
+    ears = ear_band.resize((int(cell * 1.08), ear_h), Image.LANCZOS)
+    frames = []
+    k = max(n_frames - 1, 1)
+    for fi in range(n_frames):
+        t = fi / float(k)
+        out = Image.new("RGBA", (cell, cell), (0, 0, 0, 0))
+        if t >= 1.0:
+            # the ears behind the heap, which hides where they were cut
+            ex0 = int(cx - ears.width / 2.0)
+            out.alpha_composite(ears, (max(ex0, 0), max(int(ground - R * 0.72 - ear_h * 0.25), 0)), (max(-ex0, 0), 0))
+        if t >= 0.7:
+            # the heap under what is left of the cloud
+            gh = min(1.0, (t - 0.5) / 0.4)
+            out.alpha_composite(_cloud(cell, [(x, ground - (ground - y) * gh, r * gh) for x, y, r in heap], fill, light, outline_px, outline_color))
+        if fi == 0:
+            out.alpha_composite(transform(cell_img, sx=1.12, sy=1.1))
+        if t < 1.0:
+            # the cloud: starts as a few small puffs round the body, grows to hide it, then flies apart and shrinks to nothing
+            grow = min(1.0, t / 0.34)
+            fly = max(0.0, (t - 0.25) / 0.75)
+            sh = (1.0 - fly) ** 1.3
+            lmp = []
+            for a, s in zip(ang, size):
+                d = R * (1.02 if fi == 0 else 0.45 + 0.35 * grow + 0.85 * fly)
+                r = R * s * (0.2 if fi == 0 else (0.42 + 0.42 * grow) * sh)
+                # never below the ground: a disc cut off by the cell's floor read as a flat-bottomed cloud
+                lmp.append((cx + math.cos(a) * d, min(cy + math.sin(a) * d * 0.85 - fly * R * 0.25, ground - r), r))
+            if t < 0.6 and fi > 0:
+                r = R * (0.55 + 0.45 * grow) * sh
+                lmp.append((cx, min(cy, ground - r), r))
+            out.alpha_composite(_cloud(cell, lmp, fill, light, outline_px, outline_color))
+        # the eyes hang in the cloud, then drop onto the heap
+        drop = max(0.0, (t - 0.45) / 0.55)
+        if t >= 0.2:
+            for im, x, y in eyes:
+                ex = int(cx + (x + im.width / 2.0 - cx) * 0.78 - im.width / 2.0)
+                ey = int(y + (ground - R * 0.62 - y) * drop * drop)
+                out.alpha_composite(im, (max(ex, 0), max(ey, 0)))
+        frames.append(keep_top(out))
+    return frames
+
+
+def _bit_stamp(kind, length, col, rot, outline):
+    """One loose bit, drawn four times too big and brought down: a straw stalk, or a feather's leaf shape."""
+    from PIL import ImageDraw
+    ss = 4
+    size = int(length * 2.4) + 6
+    im = Image.new("RGBA", (size * ss, size * ss), (0, 0, 0, 0))
+    dr = ImageDraw.Draw(im)
+    c = size * ss / 2.0
+    ln = length * ss / 2.0
+    ca, sa = math.cos(math.radians(rot)), math.sin(math.radians(rot))
+    if kind == "feather":
+        pts = []
+        for u, w in ((-1.0, 0.0), (-0.6, 0.30), (0.0, 0.42), (0.6, 0.26), (1.0, 0.0), (0.6, -0.26), (0.0, -0.42), (-0.6, -0.30)):
+            x, y = u * ln, w * ln
+            pts.append((c + x * ca - y * sa, c + x * sa + y * ca))
+        dr.polygon(pts, fill=col)
+        # the quill, a paler line down its length
+        quill = tuple(min(255, c + 70) for c in col[:3]) + (255,)
+        dr.line((c - ln * 1.25 * ca, c - ln * 1.25 * sa, c + ln * 0.8 * ca, c + ln * 0.8 * sa), fill=quill, width=max(1, int(ss * 0.7)))
+    else:
+        dr.line((c - ln * ca, c - ln * sa, c + ln * ca, c + ln * sa), fill=col, width=max(2, int(ss * 1.5)))
+    return add_outline(im.resize((size, size), Image.LANCZOS), 1, outline)
+
+
+def death_bits(frames, seed=0, kind="straw", n=20, colours=("#F2C744", "#E3A92B", "#FFE27A"), start=1, spread=0.32, rise=0.34, gravity=1.0, length=0.075,
+               outline=(14, 8, 12, 255)):
+    """Pass 126 (lane BESTIARY; the Straw Man's "straw flies", the crow's feathers): loose bits thrown out of the body over a death
+    strip, drawn on the frames: each flies from the figure's middle from frame `start` on a little arc, turns as it goes, and lies
+    on the ground for the rest of the strip (the last frame is the one the game holds). `kind` straw (a thin stalk) or feather (a
+    leaf shape). No model paints anything. Sizes are shares of the cell; a higher `gravity` lands them sooner."""
+    import random
+    rng = random.Random(int(seed) * 13 + 126)
+    if not frames:
+        return frames
+    cell = frames[0].width
+    a = np.asarray(frames[0])[..., 3]
+    ys, xs = np.nonzero(a > 40)
+    cx = float(xs.mean()) if len(xs) else cell / 2.0
+    cy = float(ys.mean()) if len(ys) else cell / 2.0
+    floor = float(ys.max()) if len(ys) else cell * 0.94
+    cols = [tuple(int(str(c).lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)) + (255,) for c in colours]
+    if isinstance(outline, str):
+        outline = tuple(int(outline.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)) + (255,)
+    bits = []
+    last = max(len(frames) - 1 - start, 1)
+    for k in range(int(n)):
+        ang = rng.uniform(-math.pi, 0.0)   # up and out
+        v = rng.uniform(0.55, 1.0)
+        bits.append({"x0": cx + rng.uniform(-0.1, 0.1) * cell, "y0": cy + rng.uniform(-0.15, 0.1) * cell,
+                     "vx": math.cos(ang) * v * spread * cell, "vy": math.sin(ang) * v * rise * cell,
+                     "col": rng.choice(cols), "rot0": rng.uniform(0, 360), "spin": rng.uniform(-520, 520),
+                     "len": length * cell * rng.uniform(0.75, 1.3), "t0": start + rng.uniform(0.0, 1.2),
+                     "rest": floor - rng.uniform(0.0, 0.24) * cell})
+    out = []
+    for fi, f in enumerate(frames):
+        # what has landed lies under the body, what still flies over it
+        under = Image.new("RGBA", f.size, (0, 0, 0, 0))
+        over = Image.new("RGBA", f.size, (0, 0, 0, 0))
+        for b in bits:
+            t = (fi - b["t0"]) / float(last)
+            if t < 0.0:
+                continue
+            # a throw up and out, falling onto its own spot on the ground, where it stays
+            x = b["x0"] + b["vx"] * t * 1.6
+            y = b["y0"] + b["vy"] * t * 1.6 + 0.5 * gravity * 2.4 * cell * t * t
+            # all down by the last frame: it is the one the game holds, and a bit left in the air would hang there
+            lying = (y >= b["rest"] and t > 0.05) or fi == len(frames) - 1
+            if lying:
+                y = b["rest"]
+                # flat on the ground, whatever way it was turning
+                rot = (b["rot0"] % 70.0) - 35.0
+            else:
+                rot = b["rot0"] + b["spin"] * t
+            st = _bit_stamp(kind, b["len"], b["col"], rot, outline)
+            # never past the cell's sides: a piece at the edge bleeds into the next frame of the strip through the mipmaps
+            px, py = min(max(int(x - st.width / 2), 3), cell - st.width - 3), int(y - st.height / 2)
+            if py + st.height <= 0 or py >= cell:
+                continue
+            (under if lying else over).alpha_composite(st, (max(px, 0), max(py, 0)), (max(-px, 0), max(-py, 0)))
+        under.alpha_composite(f)
+        under.alpha_composite(over)
+        out.append(under)
     return out
 
 

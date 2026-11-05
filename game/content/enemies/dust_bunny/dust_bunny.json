@@ -1,0 +1,119 @@
+{
+  "id": "dust_bunny",
+  "name": "Dust Bunny",
+  "flavour": "You missed a spot. It noticed.",
+  "archetype": "swarmer",
+  "brain": "chase",
+  "hp": 4,
+  "speed": 2.1,
+  "damage": 2,
+  "knockback": 2.5,
+  "radius": 0.32,
+  "size": 1.05,
+  "blood": "#C9BFAE",
+  "pack_size": 10,
+  "cap_share": 0.33,
+  "drops": {
+    "small": 0.7,
+    "gold": 0.008,
+    "chest": 0.0002
+  },
+  "frame_px": 128,
+  "xp_mult": 0.8,
+  "sfx": {
+    "hit": "en_slime_hit",
+    "die": "en_slime_die"
+  },
+  "placeholder": {
+    "color": "#3A3638",
+    "ears": "pointed",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "screen": "green",
+  "art_prompt": "a tiny round fluffy ball of very dark charcoal-grey dust with a fuzzy outline, two long floppy rabbit ears on top, two big angry round white eyes with small black pupils under slanted brows, a small mouth with two tiny white teeth showing, no arms, no legs, no feet, a goofy mean cartoon dust ball, facing the viewer",
+  "motion": "bouncing up and down in place, the whole ball as one piece, its face completely still",
+  "anim_negative": "arms, legs, hands, feet, extra ears, extra eyes, two balls, the mouth moving, blinking",
+  "back_hint": "seen directly from behind: the same round fuzzy charcoal-grey dust ball with its two long floppy ears on top, no eyes, no teeth, no face at all",
+  "stills": "a2d",
+  "walk": "hop",
+  "stand": "still",
+  "hop_height": 0.16,
+  "hop_top_lag": 0.22,
+  "hop_top_frac": 0.32,
+  "cell_fill": 0.72,
+  "death": "puff",
+  "directions": 2,
+  "variant_base": "DB-A",
+  "variant": "DB-A",
+  "variants": {
+    "DB-A": {
+      "note": "charcoal, floppy ears folded over at the tips, pink inside; it hops (the painting squashes and stretches, the ears lag, its face never moves); goes up in a puff, its eyes hanging in the cloud, a heap left (stills a2d: picked a2 with its greys darkened by tools/dl/p126/BESTIARY/darken.py, the game's fog lifts blacks)"
+    },
+    "DB-B": {
+      "note": "long thin ears drooping out to the sides; the same hop",
+      "recipe": {
+        "stills": "b1",
+        "seed_offset": 2,
+        "hop_top_lag": 0.0
+      },
+      "sprite": "dust_bunny_sprite_b.png",
+      "icon": "dust_bunny_icon_b.png",
+      "fresh": true,
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 6,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 41,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.758
+    }
+  },
+  "variance": {
+    "size": 0.2,
+    "speed": 0.2,
+    "tints": [
+      "#FFFFFF",
+      "#E4D8C8",
+      "#D8D8E0",
+      "#C8C0B8"
+    ],
+    "tint_strength": 0.15,
+    "special_chance": 0.0074,
+    "special": {
+      "size": 1.5,
+      "hp": 15.0,
+      "damage": 3.5,
+      "xp": 3.0,
+      "tint": "#7A2A18",
+      "tint_strength": 0.6
+    }
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 6,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "strip_cols": 41,
+  "fps": {
+    "run": 15,
+    "die": 12
+  },
+  "doc": "The Dust Bowl's swarm filler: a charcoal ball of dust with long ears and a mean little face, tens at a time, a third of a slot against the cap. One hit and it is a puff on the ground.",
+  "head": 0.969,
+  "retired": false,
+  "die_fps": 12,
+  "key_clamp_screen": true
+}

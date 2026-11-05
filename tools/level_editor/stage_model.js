@@ -336,6 +336,11 @@ const StageModel = (() => {
     const e = entries[k];
     if (key === 'filter') e.filter = { color: HEX.test(String(value && value.color)) ? String(value.color).toLowerCase() : FILTER_DEF.color, strength: Math.round(Math.min(1, Math.max(0, num(value && value.strength, 0))) * 100) / 100 };
     else if (key === 'hell') e.hell = !!value;
+    // pass 126 (lane STAGE): the stage's coin factor and creature speed (WaveTimeline.stage_reward_mult, speed_mult): a number >= 0,
+    // empty removes the key (the stage multiplier / 1 + speed per stage x the index again); its weather and its own dust devils:
+    // an object, empty removes the key (as every other stage)
+    else if (key === 'reward_mult' || key === 'speed_mult') { if (value === '' || value == null) delete e[key]; else e[key] = Math.max(0, num(value, 1)); }
+    else if (key === 'weather' || key === 'dust_devils') { if (!isObj(value) || !Object.keys(value).length) delete e[key]; else e[key] = value; }
     // pass 107 (lane XPT): the stage's XP multiplier on every kill (WaveTimeline.stage_xp_mult): a number >= 0, rounded to
     // 0.001; empty or 1 removes the key (1 is the game's default)
     else if (key === 'xp_mult') { const v = value === '' || value == null ? 1 : Math.max(0, num(value, 1)); if (Math.abs(v - 1) < 1e-9) delete e.xp_mult; else e.xp_mult = Math.round(v * 1000) / 1000; }

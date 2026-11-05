@@ -154,7 +154,7 @@ static func sample_pack(boss_id: String, stage: int = 0, fight_s: float = 30.0, 
 	var def: EnemyDef = Registry.enemy(boss_id)
 	if def == null:
 		return {}
-	var coin_k := float(maxi(int(round(Run.stage_mult())), 1))
+	var coin_k := float(maxi(int(round(Run.reward_mult())), 1))
 	var gold := float(Game.boss_purse(stage)) + float(def.drops.get("coins", Game.BOSS_COINS)) * 5.0 * coin_k
 	gold += 2.0 * PickupManager.BIG_COIN_MULT * coin_k * float(def.drops.get("gold", 0.0))
 	var xp := 25.0 * def.xp_mult * float(def.drops.get("large", 0.0))

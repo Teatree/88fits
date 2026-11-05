@@ -2114,7 +2114,7 @@ sold; a shelved or not-yet-painted look cannot be sold either.
 3. Tick **Purchasable**. The row opens: type the **Name** players read (a name is suggested; *Suggest* puts another in
    the box), the **Price** (0 = free once the goal is done) and pick the **Currency**.
 4. For a goal press **+ Add a goal**. It starts as *beat a stage* on Red Canyon, stage 1, with this hero. Change the stage
-   (its name shows beside the number: 1 Sundown, 2 Nightfall, 3 Blood Moon), empty the hero for *any hero*, or pick any
+   (its name shows beside the number: 1 Sundown, 2 Nightfall, 3 The Dust Bowl, 4 Blood Moon), empty the hero for *any hero*, or pick any
    other condition (the same list as a hero's Requirement: kills, levels, items, ...). The words the game shows are under
    the goal and in the line *In the game: ...*.
 5. Press the row's **Save**. Each row saves on its own; the hero's *Save asset* does not write skins.
@@ -2358,3 +2358,7 @@ our guaranteed Elitted Regular enemies".
   naming none, Endless's). An elite row's elites are filed under the row now, so its card, the readout's shares and the
   warnings see what it brought. A creature both coloured and modified sits in the purple layer only.
 - Checks: `tools/level_editor/selftest_EDITOR120.py`; the page reloads to take it (no server change).
+
+## Pass 126: four stages, a stage's weather (lane STAGE)
+
+The Timeline shows Sundown, Nightfall, The Dust Bowl and Blood Moon (nothing in the page counts three; the stage tabs read the list). A stage's card gained **Coins and items x** (`reward_mult`), **Creature speed x** (`speed_mult`) and, under its look, **Weather and dust devils**: two JSON windows (Apply, then Save) for the stage's `weather` block and its own `dust_devils` numbers; `{}` removes the block and the stage plays as every other. Every key is in docs/waves_schema.md "Pass 126". The Settings tab's Dust devils card has **Fling x** and counts each stage with its own numbers. The Wanted tab shows four stages (reward x and each number range) and 0 to 4 stages beaten.

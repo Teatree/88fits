@@ -14,6 +14,8 @@ chest and the 3D one are one thing).
                    cream and pale grey in the gila monster's bands, bone bands, two big amber lizard eyes with slit pupils
                    on the front under scaly brows, a ridge of white spines along the lid (the cacti are gone)
   brander          black iron plates and rivets, red-hot brands glowing on the front and the lid, chains, spikes
+  black_sunday     pass 126: the Collection Box: dark oak planks, iron bands and studs, a brass cross plate, a padlock, a coin
+                   slot on the lid, straw in its seams, an iron cross on top
 
 Pass 119: a chest with `hollow` (the Gila's and the Brander's) has a box with walls, a floor and a dark lining, and a lid
 that is a shell (a half pipe over a frame, lined inside), so the open render shows an empty box the treasure sits down in
@@ -575,7 +577,95 @@ def brander():
     return body, lid, {"shine": (255, 70, 30)}
 
 
-BOSSES = {"tumbleweed_king": king, "gila_grande": gila, "brander": brander}
+# ---------------------------------------------------------------- Black Sunday's
+def black_sunday():
+    """Pass 126 (lane BOSS): the Collection Box: a church collection box of dark oak with iron bands and studs, a brass plate
+    with a plain cross and a padlock on the front, a coin slot in a brass plate on the top of the lid, wisps of straw stuck
+    in its seams. Hollow, lined in worn red felt. No glow: all the warmth is the brass."""
+    HOLLOW["on"] = True
+    oak = mat("box_oak", (86, 56, 34), 0.85)
+    oak_lt = mat("box_oak_light", (112, 76, 46), 0.85)
+    iron = mat("box_iron", (44, 42, 46), 0.55, 0.3)
+    stud = mat("box_stud", (112, 106, 106), 0.45, 0.5)
+    brass = mat("box_brass", (217, 163, 90), 0.35, 0.8)
+    brass_dk = mat("box_brass_dark", (150, 104, 50), 0.4, 0.8)
+    felt = mat("box_felt", (92, 26, 28), 0.95)
+    slot = mat("box_slot", (14, 10, 10), 0.8)
+    straw = mat("box_straw", (226, 188, 92), 0.95)
+    body = Part("Body")
+    body_shell(body, oak, iron, felt)
+    # the planks: raised boards on the front and the back, a narrow gap between
+    for ny in (-1, 1):
+        for k in range(5):
+            x = -W * 0.5 + (k + 0.5) * W / 5
+            body.box((W / 5 - 0.016, 0.018, H - 0.14), (x, ny * (D * 0.5 + 0.006), H * 0.5), oak_lt if k % 2 else oak)
+    for nx in (-1, 1):
+        for k in range(3):
+            y = -D * 0.5 + (k + 0.5) * D / 3
+            body.box((0.018, D / 3 - 0.016, H - 0.14), (nx * (W * 0.5 + 0.006), y, H * 0.5), oak_lt if k % 2 else oak)
+    # two iron bands round the body and iron corners, studs along the bands
+    for z in (0.17, H - 0.17):
+        frame(body, W + 0.03, D + 0.03, 0.03, z, 0.07, iron)
+        for k in range(8):
+            x = -W * 0.5 + 0.08 + k * (W - 0.16) / 7
+            for ny in (-1, 1):
+                body.ball(0.019, (x, ny * (D * 0.5 + 0.024), z), stud, 8, 5)
+        for k in range(5):
+            y = -D * 0.5 + 0.08 + k * (D - 0.16) / 4
+            for nx in (-1, 1):
+                body.ball(0.019, (nx * (W * 0.5 + 0.024), y, z), stud, 8, 5)
+    corner_caps(body, iron)
+    # the front: a brass plate with a plain cross, over it the hasp and the padlock
+    fy = -D * 0.5
+    body.box((0.36, 0.02, 0.26), (0, fy - 0.03, H * 0.42), brass)
+    body.box((0.31, 0.02, 0.21), (0, fy - 0.036, H * 0.42), brass_dk)
+    body.box((0.27, 0.02, 0.17), (0, fy - 0.042, H * 0.42), brass)
+    body.box((0.04, 0.02, 0.14), (0, fy - 0.054, H * 0.42), slot)
+    body.box((0.11, 0.02, 0.035), (0, fy - 0.054, H * 0.42 + 0.03), slot)
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            body.ball(0.016, (sx * 0.16, fy - 0.048, H * 0.42 + sz * 0.105), stud, 8, 5)
+    body.box((0.13, 0.04, 0.1), (0, fy - 0.04, H - 0.05), iron)
+    body.torus(0.04, 0.012, (0, fy - 0.07, H - 0.075), stud, rot=(math.pi * 0.5, 0, 0), segs=12, sides=6)
+    body.box((0.11, 0.05, 0.09), (0, fy - 0.07, H - 0.135), brass)
+    body.cyl(0.013, 0.012, (0, fy - 0.098, H - 0.13), slot, rot=(math.pi * 0.5, 0, 0), segs=8)
+    # iron handles on the sides, and straw stuck in the seams
+    for sx in (-1, 1):
+        body.sweep([(sx * (W * 0.5 + 0.0), -0.15, H * 0.56), (sx * (W * 0.5 + 0.12), -0.15, H * 0.56), (sx * (W * 0.5 + 0.12), 0.15, H * 0.56),
+                    (sx * (W * 0.5 + 0.0), 0.15, H * 0.56)], 0.022, lambda i, j: iron, 6, closed=False)
+    rnd = random.Random(126)
+    for (cx, cy, cz, cnt) in ((-0.52, -D * 0.5 - 0.01, 0.1, 9), (0.47, -D * 0.5 - 0.01, 0.46, 8), (W * 0.5 + 0.01, -0.2, 0.34, 7), (-W * 0.5 - 0.01, 0.15, 0.2, 7)):
+        for _k in range(cnt):
+            a = rnd.uniform(-1.3, 1.3)
+            ln = rnd.uniform(0.12, 0.24)
+            d = Vector((math.sin(a) * 0.7, -0.45 if cy < 0 else rnd.uniform(-0.4, 0.4), math.cos(a) * 0.55)).normalized()
+            q = d.to_track_quat("Z", "Y").to_euler()
+            at = Vector((cx, cy, cz)) + d * ln * 0.5
+            body.cyl(0.009, ln, tuple(at), straw, rot=(q.x, q.y, q.z), segs=4, r2=0.002)
+    lid = Part("Lid")
+    lid_shell(lid, oak, iron, felt)
+    # planks along the barrel, three iron straps with studs, the coin slot in a brass plate on the top
+    for k in range(7):
+        ang = math.pi * (k + 0.5) / 7
+        p = barrel_point(0.0, ang, BARREL_R + 0.008)
+        lid.box((W - 0.06, 0.15, 0.02), p, oak_lt if k % 2 else oak, rot=(math.pi * 0.5 - ang, 0, 0))
+    for x in (-0.46, 0.0, 0.46):
+        barrel(lid, BARREL_R + 0.03, 0.08, x, iron)
+        for k in range(7):
+            ang = math.pi * (k + 0.5) / 7
+            lid.ball(0.018, barrel_point(x, ang, BARREL_R + 0.046), stud, 8, 5)
+    top = H + SLAB + BARREL_R
+    # the coin slots: on the crown of the lid, between the straps
+    for sx in (-0.23, 0.23):
+        lid.box((0.26, 0.15, 0.02), (sx, -0.1, top - 0.015), brass, rot=(0.3, 0, 0))
+        lid.box((0.17, 0.03, 0.02), (sx, -0.1, top - 0.005), slot, rot=(0.3, 0, 0))
+    # a small iron cross standing on top of the lid
+    lid.box((0.04, 0.04, 0.26), (0, 0.02, top + 0.13), iron)
+    lid.box((0.17, 0.04, 0.04), (0, 0.02, top + 0.17), iron)
+    return body, lid, {"shine": (217, 163, 90)}
+
+
+BOSSES = {"tumbleweed_king": king, "gila_grande": gila, "black_sunday": black_sunday, "brander": brander}
 
 
 # ---------------------------------------------------------------- export and renders

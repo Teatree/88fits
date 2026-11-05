@@ -92,7 +92,7 @@ const Model = (() => {
   // strength}, hell, shot}); stage k's window starts at the sum of the earlier lengths and its boss fires at its end (the
   // game's WaveTimeline.stage_window, lane SGAME). A map without one has `stages` windows of `stage_length` (today's
   // play exactly). A malformed entry (not an object) is skipped; a length under 1 s is the old stage_length.
-  const STAGE_LIST_KEYS = ['id', 'name', 'length', 'boss', 'description', 'difficulty', 'filter', 'hell', 'shot', 'xp_mult', 'legendary'];  // pass 107: xp_mult (lane XPT); pass 121: legendary (lane LEGEND)
+  const STAGE_LIST_KEYS = ['id', 'name', 'length', 'boss', 'description', 'difficulty', 'filter', 'hell', 'shot', 'xp_mult', 'legendary', 'reward_mult', 'speed_mult', 'weather', 'dust_devils'];  // pass 107: xp_mult (lane XPT); pass 121: legendary (lane LEGEND); pass 126: reward_mult, speed_mult, weather, dust_devils (lane STAGE)
   /** Whether the map has its own stage_list (the stage tabs edit it; without one they show the fallback windows). */
   const hasStageList = (tl) => Array.isArray(tl && tl.stage_list) && tl.stage_list.some(isObj);
   /** Every stage's window: [{i, id, name, start, end, length, boss, entry (the map's own object, null for the fallback)}]. */
@@ -2676,7 +2676,9 @@ const Model = (() => {
     const mult = hasMult ? Number(st.speed_mult) : 1;
     const base = (setRow ? Number(sv) : own) * mult;
     const s = stageAt(d, num(t, 0));
-    const stageM = 1 + num(d.speed_per_stage, 0) * s;
+    // pass 126 (lane STAGE): a stage entry's own speed_mult wins (WaveTimeline.speed_mult)
+    const stageEntry = (stageList(d)[s] || {}).entry;
+    const stageM = stageEntry && stageEntry.speed_mult != null ? num(stageEntry.speed_mult, 1) : 1 + num(d.speed_per_stage, 0) * s;
     const movePace = Math.max(num(d.move_pace, 1), 0.05);
     const creatureM = num(d.creature_speed_mult, 1);
     const pace = movePace * creatureM;

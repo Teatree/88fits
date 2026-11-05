@@ -1,0 +1,14 @@
+{
+  "id": "skin_fadeaway_fad_g",
+  "name": "Fadeaway · Streetball",
+  "condition": {
+    "type": "kills_with_weapon",
+    "weapon": "basketball",
+    "count": 3000
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "fadeaway:FAD-G"
+  },
+  "icon": "res://content/characters/fadeaway/fadeaway_icon_g.png"
+}

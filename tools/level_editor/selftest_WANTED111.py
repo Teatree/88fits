@@ -37,7 +37,7 @@ process.stdin.on('end', () => {
   const q = JSON.parse(src);
   const out = {};
   const cfg = WM.normalized(q.cfg);
-  out.rewards = [[1, 0, 0], [3, 0, 0], [2.5, 2, 1], [4.5, 3, 2], [1.3, 1, 0]].map(([d, p, s]) => WM.rewardFor(cfg, d, p, s));
+  out.rewards = [[1, 0, 0], [3, 0, 0], [2.5, 2, 1], [4.5, 3, 3], [1.3, 1, 0]].map(([d, p, s]) => WM.rewardFor(cfg, d, p, s));
   out.dif = [WM.difficultyOf(1, 3, 100, [100, 200], false), WM.difficultyOf(1, 3, 200, [100, 200], false), WM.difficultyOf(1, 3, 150, [100, 200], false),
     WM.difficultyOf(1, 3, 100, [100, 200], true), WM.difficultyOf(1, 3, 40, [100, 200], false), WM.difficultyOf(2, 4, 5, [5, 5], false)];
   out.skulls = [0.4, 2.6, 9].map(WM.skullsOf);

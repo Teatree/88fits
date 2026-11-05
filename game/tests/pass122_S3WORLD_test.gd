@@ -234,7 +234,7 @@ func test_a_dust_devil_burns_on_a_hell_stage_and_not_elsewhere() -> void:
 	sl.name = StageLook.NODE_NAME
 	sl.game = s["g"]
 	(s["g"] as Node).add_child(sl)
-	sl.stage = 2
+	sl.stage = 3   # pass 126: the Blood Moon is index 3
 	assert_bool(DustDevils.hell_now(s["g"])).is_true()
 	sl.stage = 0
 	(h["g"] as Node).add_child(StageLook.new())
@@ -307,10 +307,10 @@ func test_the_stage_look_hands_the_hell_to_the_map_and_the_barrels() -> void:
 	var sl := StageLook.of(g)
 	sl.camera = Camera3D.new()
 	add_child(sl.camera)
-	var third := StageLook.hell_of(tl, 2)
-	# stage 3 of the map file is hell (pass 43's red ground): the map's set_hell and the barrels' rim follow it
+	var third := StageLook.hell_of(tl, 3)
+	# the map file's last stage is hell (pass 43's red ground): the map's set_hell and the barrels' rim follow it
 	assert_bool(third).is_true()
-	sl.show_stage(2, 0.0)
+	sl.show_stage(3, 0.0)
 	await await_millis(150)
 	assert_float(float((f["map"] as Node).get("_hell"))).is_equal(1.0)
 	assert_float((f["field"] as BarrelField).rim).is_equal_approx(BarrelField.RIM_HELL, 0.0001)
@@ -341,7 +341,7 @@ func test_the_stage_3_filter_keeps_its_purpose_and_the_ground_tint_is_a_lift() -
 	var d = JSON.parse_string(FileAccess.get_file_as_string(MAP_JSON))
 	var sl: Array = (d["timeline_data"] as Dictionary).get("stage_list", [])
 	assert_int(sl.size()).is_greater_equal(3)
-	var e: Dictionary = sl[2]
+	var e: Dictionary = sl[sl.size() - 1]   # pass 126: the Blood Moon is the last entry
 	assert_bool(bool(e.get("hell", false))).is_true()
 	var f: Dictionary = e.get("filter", {})
 	assert_bool(Color.html_is_valid(str(f.get("color", "")))).is_true()

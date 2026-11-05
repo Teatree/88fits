@@ -1,0 +1,128 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/dust_bunny/dust_bunny_icon.png" id="1_m1vm1"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_ga21j"]
+
+[resource]
+script = ExtResource("2_ga21j")
+archetype = "swarmer"
+doc = "The Dust Bowl's swarm filler: a charcoal ball of dust with long ears and a mean little face, tens at a time, a third of a slot against the cap. One hit and it is a puff on the ground."
+hp = 4.0
+speed = 2.1
+damage = 2.0
+radius = 0.32
+size = 1.05
+pack_size = 10
+drops = {
+"chest": 0.0002,
+"gold": 0.008,
+"small": 0.7
+}
+anims = {
+"attack": 2.0,
+"die": 6.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite_path = "res://content/enemies/dust_bunny/dust_bunny_sprite.png"
+sprite_file = "dust_bunny_sprite.png"
+strip_cols = 41
+fps = {
+"die": 12.0,
+"run": 15.0
+}
+knockback = 2.5
+head = 0.969
+blood = Color(0.7882353, 0.7490196, 0.68235296, 1)
+variants = {
+"DB-A": {
+"anims": {
+"attack": 2.0,
+"die": 6.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.969,
+"icon": "res://content/enemies/dust_bunny/dust_bunny_icon.png",
+"note": "charcoal, floppy ears folded over at the tips, pink inside; it hops (the painting squashes and stretches, the ears lag, its face never moves); goes up in a puff, its eyes hanging in the cloud, a heap left (stills a2d: picked a2 with its greys darkened by tools/dl/p126/BESTIARY/darken.py, the game's fog lifts blacks)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/dust_bunny/dust_bunny_sprite.png",
+"sprite_file": "dust_bunny_sprite.png",
+"strip_cols": 41
+},
+"DB-B": {
+"anims": {
+"attack": 2.0,
+"die": 6.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.758,
+"icon": "res://content/enemies/dust_bunny/dust_bunny_icon_b.png",
+"note": "long thin ears drooping out to the sides; the same hop",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/dust_bunny/dust_bunny_sprite_b.png",
+"sprite_file": "dust_bunny_sprite_b.png",
+"strip_cols": 41
+}
+}
+variant = "DB-A"
+cap_share = 0.33
+sfx = {
+"die": "en_slime_die",
+"hit": "en_slime_hit"
+}
+xp_mult = 0.8
+variance = {
+"size": 0.2,
+"special": {
+"damage": 3.5,
+"hp": 15.0,
+"size": 1.5,
+"tint": "#7A2A18",
+"tint_strength": 0.6,
+"xp": 3.0
+},
+"special_chance": 0.0074,
+"speed": 0.2,
+"tint_strength": 0.15,
+"tints": ["#FFFFFF", "#E4D8C8", "#D8D8E0", "#C8C0B8"]
+}
+id = "dust_bunny"
+display_name = "Dust Bunny"
+flavour = "You missed a spot. It noticed."
+icon = ExtResource("1_m1vm1")
+icon_file = "dust_bunny_icon.png"
+placeholder = {
+"color": "#3A3638",
+"ears": "pointed",
+"eyes": 2.0,
+"shape": "blob"
+}

@@ -1,0 +1,126 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/bosses/black_sunday/black_sunday_icon.png" id="1_xdj5j"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_gw0i4"]
+
+[resource]
+script = ExtResource("2_gw0i4")
+archetype = "boss"
+doc = "The Dust Bowl's boss. A charge down a line, a ring of Straw Men, a volley of tumbleweeds, a rare black blizzard. His own attack is the whirl: he becomes a tornado for six seconds and hunts the hero, flinging his own crowd round him (it hurts them when they land) and throwing the hero; then he stumbles out dazed for two and a half seconds, taking half as much damage again. Pays two chests and forty-four coins."
+brain = "boss"
+hp = 7500.0
+speed = 1.5
+damage = 27.0
+radius = 2.2
+size = 5.6
+drops = {
+"chests": 2.0,
+"coins": 44.0,
+"gold": 1.0,
+"large": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite_path = "res://content/bosses/black_sunday/black_sunday_sprite.png"
+sprite_file = "black_sunday_sprite.png"
+frame_px = 256
+strip_cols = 40
+fps = {
+"die": 8.0,
+"run": 15.0
+}
+knockback = 7.0
+head = 0.996
+blood = Color(0.7882353, 0.6313726, 0.3529412, 1)
+boss = {
+"attacks": [{
+"damage": 30.0,
+"duration": 1.1,
+"name": "roll",
+"speed": 13.5,
+"telegraph": "line",
+"windup": 1.0
+}, {
+"count": 14.0,
+"enemy": "straw_man",
+"name": "spawn_ring",
+"telegraph": "none",
+"windup": 0.8
+}, {
+"damage": 26.0,
+"dazed": {
+"damage_taken": 1.5,
+"seconds": 2.5
+},
+"fling": 2.0,
+"landing_damage": 0.75,
+"landing_damage_big": 0.12,
+"lift": 1.7,
+"lift_height": 4.5,
+"max_range": 20.0,
+"name": "whirl",
+"radius": 4.5,
+"seconds": 6.0,
+"speed": 3.2,
+"telegraph": "ring",
+"toss": {
+"cooldown": 1.6,
+"out": 7.2,
+"up": 13.4
+},
+"turn": 150.0,
+"windup": 1.4
+}, {
+"count": 14.0,
+"damage": 15.0,
+"knockback": 14.0,
+"life": 2.6,
+"lift": 2.5,
+"name": "tumbleweed_volley",
+"speed": 10.0,
+"telegraph": "spokes",
+"trail": {
+"alpha": 0.58,
+"colour": "#5A3F22",
+"life": 0.75,
+"puffs": 0.11,
+"style": "line",
+"width": 0.5
+},
+"windup": 0.8
+}, {
+"name": "black_blizzard"
+}],
+"chest": {
+"art": "res://art/ui/wanted/bosschest/black_sunday_%s.png",
+"model": "res://art/props/meta/boss_chest_black_sunday.glb",
+"name": "Collection Box",
+"shine": "#d9a35a"
+},
+"cooldown_between": 2.1,
+"hp_mult_per_stage": 2.0
+}
+sfx = {
+"attack": "en_boss_attack",
+"die": "en_boss_die",
+"hit": "en_goblin_hit",
+"spawn": "en_boss_roar"
+}
+xp_mult = 75.0
+id = "black_sunday"
+display_name = "Black Sunday"
+flavour = "The day the sky came down. He stayed."
+icon = ExtResource("1_xdj5j")
+icon_file = "black_sunday_icon.png"
+placeholder = {
+"color": "#23201E",
+"eyes": 2.0,
+"shape": "tall"
+}

@@ -9,7 +9,7 @@
 ##   out=<file.png>        where the picture goes (default D:/_projects/88fits/tools/dl/p110/arena/store_shot.png)
 ##   hero=<id> look=<code> the hero and the look he wears (default the save's last hero, his played look)
 ##   weapons=<id:lv,...>   the weapons he holds (else his own starting gun); level=<n> his level (cards off)
-##   stage=1|2|3           the stage's look (its filter, hell on 3) and the arena clock at its window's start
+##   stage=1|2|3|4         the stage's look (its filter, its weather, hell on 4: pass 126's order) and the arena clock at its window's start
 ##   sand=<id>             one of the map's sands; at=<x,z> the hero moved there first (metres)
 ##   crowd=<id[@code][:n],...>  the creatures: an id, a look code after @, a count after : (then the counts are the crowd;
 ##                         without counts count= is split evenly); count=<n> (1000); layout=ring|scatter|chunks (ring);
@@ -37,6 +37,8 @@
 ##                         only); filter_actors= filter_structures= filter_items= its shares
 ##   barrels=<n>           n barrels of each kind laid in three rows below the hero (BarrelField.respawn_at), on the
 ##                         screen; barrel_rim=0 leaves their rim light off
+##   stage_file=<json>     pass 126: keys (filter, weather, dust_devils) laid over the stage's entry in memory, for tuning
+##   weather=<parts>       pass 126: only these parts of the stage's weather (fog, haze, gust, wind, comma-separated; 0 = none)
 ##   tornado=1             a dust devil called in (DustDevils.call_one: on the screen by the map's rules, or at
 ##                         tornado_at=<dx,dz> metres from the hero, east and south); formed by advance=4
 ##   quads=<names>         only these of the stage filter's quads stay drawn (sand, scenery, actors, structures, items;
@@ -191,13 +193,36 @@ func _main() -> void:
 				fd[key] = _f("filter_" + key, 0.0)
 		entry["filter"] = fd
 		_log("filter patched to %s" % str(fd))
+	# pass 126 (lane STAGE): stage_file=<json>: its keys (filter, weather, dust_devils) laid over the stage's entry in memory (a tuning
+	# capture; the map file is never written)
+	if stage >= 0 and tl != null and A.has("stage_file") and tl.stage_list.size() > stage and tl.stage_list[stage] is Dictionary:
+		var sf := FileAccess.open(_s("stage_file", ""), FileAccess.READ)
+		var over = JSON.parse_string(sf.get_as_text()) if sf else null
+		if over is Dictionary:
+			(tl.stage_list[stage] as Dictionary).merge(over, true)
+			_log("stage entry patched: %s" % str((over as Dictionary).keys()))
 	if stage >= 0 and tl != null:
 		panel.call("set_clock", float(tl.stage_start(stage)) / 60.0 + 0.05)
 		load("res://core/systems/StageLook.gd").call("of", g).show_stage(stage, 0.0)
+	# pass 126 (lane STAGE): weather=<parts> keeps only those parts of the stage's weather (fog, haze, gust, wind; 0 = none): the
+	# on-and-off of a performance measure
+	if stage >= 0 and tl != null and A.has("weather") and g.map and g.map.has_method("set_weather"):
+		var keep_parts: PackedStringArray = _s("weather", "0").split(",")
+		var wb: Dictionary = (tl.stage_weather(stage) as Dictionary).duplicate()
+		for wk in wb.keys():
+			if not keep_parts.has(str(wk)):
+				wb.erase(wk)
+		g.map.set_weather(wb, 0.0)
+		_log("weather kept: %s" % str(wb.keys()))
 	if A.has("sand") and g.map and g.map.has_method("set_sand"):
 		g.map.call("set_sand", _s("sand", ""))
 	if A.has("at"):
-		var xz: PackedStringArray = _s("at", "0,0").split(",")
+		# pass 126 (lane STAGE): at=lake: the first oasis's south shore (its palms over the hero), whatever the map's roll
+		var at_s := _s("at", "0,0")
+		if at_s == "lake" and g.map.has_method("lake_center"):
+			var lc: Vector2 = g.map.lake_center()
+			at_s = "%f,%f" % [lc.x, lc.y + float(g.map.lake_radius()) + 6.0]
+		var xz: PackedStringArray = at_s.split(",")
 		if xz.size() == 2:
 			var x := float(xz[0])
 			var z := float(xz[1])

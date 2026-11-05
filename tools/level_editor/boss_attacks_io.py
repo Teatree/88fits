@@ -26,7 +26,7 @@ FOLDER = "boss_attacks"
 KINDS = ["rain", "volley", "ring", "slam", "script", "pattern"]
 # BossAttackDef.SCRIPTS: the built-in attack names (EnemyManager's runner); a custom attack never takes one as its id
 BUILTINS = ["roll", "spawn_ring", "slam_at", "blink", "burrow", "rain", "erupt", "spit_volley", "slam", "rumble",
-            "brand", "tumbleweed_volley", "swoop", "boulder", "stomp", "tail_sniper"]
+            "brand", "tumbleweed_volley", "swoop", "boulder", "stomp", "tail_sniper", "whirl"]
 # BossAttackDef.DEFAULTS (selftest_BOSS.py checks all three tables against the GDScript)
 DEFAULTS = {
     "projectile": {"look": "spike", "tint": "#D0242F", "size": 1.0, "glow": 1.0, "flight": 1.0, "arc": 6.0, "speed": 12.0,
@@ -54,7 +54,7 @@ DEFAULTS = {
 }
 # pass 115 (lane BOSS): BossAttackDef.BARRIER_LOOKS, BARRIER_MODES, BARRIER_HOLDS, BARRIER_CREATURES, BARRIER_BULLETS
 # (selftest_BOSS115.py checks them against the game)
-BARRIER_CHOICES = {"look": ["none", "tumbleweed_fence", "cactus_fence", "iron_fence"], "radius_mode": ["range", "fixed"],
+BARRIER_CHOICES = {"look": ["none", "tumbleweed_fence", "cactus_fence", "iron_fence", "cross_fence"], "radius_mode": ["range", "fixed"],
                    "hold": ["bullets", "spent"], "creatures": ["block", "pass"], "bullets": ["stop", "pass"]}
 # pass 113 (lane BOSS): BossAttackDef.EMITTER_DEFAULTS, one emitter of a pattern (selftest_BOSS113.py checks it)
 EMITTER_DEFAULTS = {"shape": "spiral", "count": 1, "arms": 1, "speed": 3.0, "rate": 4.0, "spin": 0.0, "reverse_at": -1.0,

@@ -1,7 +1,8 @@
 """Pass 124: the ideas document's concept art, by Flux.2 Klein on the AI server (docs/ideas/content.py holds the prompts).
 Each picture is one render in the game's style (the style anchor as a reference; a map variation repaints the Stage 1 picture),
 saved as a 768 px JPEG in docs/ideas/art/<id>.jpg. Fix one with --only <id> [--seed N] --force. A contact sheet goes to
-tools/dl/p124/IDEAS/sheet_<n>.jpg for checking by eye.
+tools/dl/p126/IDEAS/sheet_<n>.jpg for checking by eye. Pass 126: `kind` "building" (the Main Street mock's lots) paints on a blue
+screen and also saves <id>.webp keyed, for the page's mocks.
 
     python tools/gen_ideas_art.py [--only a,b] [--force] [--seed N] [--sheet]
 """
@@ -16,7 +17,7 @@ from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 OUT = os.path.join(REPO, "docs", "ideas", "art")
-SHEETS = os.path.join(REPO, "tools", "dl", "p124", "IDEAS")
+SHEETS = os.path.join(REPO, "tools", "dl", "p126", "IDEAS")
 ARGS = sys.argv[1:]
 ONLY = ARGS[ARGS.index("--only") + 1].split(",") if "--only" in ARGS else None
 FORCE = "--force" in ARGS
@@ -31,7 +32,8 @@ def jobs():
     out = []
     for group, kind in ((C.PAST_FEATURES, None), (C.PAST_CONTENT, None), (C.VARIATIONS, "scene"), (C.GENERATION, None), (C.SNOW_SCENES, "scene"),
                         (C.FODDER, "creature"), (C.SPECIALS, "creature"), (C.UNIQUE, "creature"), (C.OLD_ITEMS, "icon"), (C.NEW_PASSIVES, "icon"),
-                        (C.NEW_CARDS, "card"), (C.NEW_WEAPONS, "icon"), (C.TLE_PVE, "scene"), (C.TLE_PVP, "scene")):
+                        (C.NEW_CARDS, "card"), (C.NEW_WEAPONS, "icon"), (C.TLE_PVE, "scene"), (C.TLE_PVP, "scene"),
+                        (C.NEW_MAP_IDEAS, "scene"), (C.STREET_ART, "building")):
         for it in group:
             k = it.get("kind", kind)
             if k == "diagram" or not it.get("art"):
@@ -52,6 +54,12 @@ def prompt_for(job, ga):
     if k == "icon":
         return (ga.ICON_STYLE.replace("no background, no scene", "no scene") + ". " + job["art"] +
                 ". On a plain dark slate blue background. Do not copy the reference's subject.")
+    if k == "building":
+        return ("Using the same art style, line art, cel shading and palette as the reference image, draw one thing for a western mobile game's town: " + job["art"] +
+                ". Seen from the front and above at a high three quarter angle, all of it inside the picture, standing on its own small patch of pale sand. " + ga.STYLE.replace(". Game asset", "") +
+                ". Isolated on a plain flat solid blue background. No people, no text, no letters on any sign, no watermark. Do not copy the reference's subject.")
+    if k == "charm":
+        return (ga.ICON_STYLE.replace("no background, no scene", "no scene") + ". " + job["art"] + ". On a plain flat solid blue background. Do not copy the reference's subject.")
     if k == "card":
         return ("A mobile game item icon: " + job["art"] + ", the whole card tilted slightly, thick clean black outline, flat cel shading, saturated colours, centred, no words on the card. "
                 "On a plain dark slate blue background.")
@@ -115,6 +123,11 @@ def main():
         t0 = time.time()
         imgs, _ = comfy.run(comfy.klein(prompt_for(job, ga), SEED + k * 131, w, h, refs=refs, prefix="88fits/p124_ideas"))
         img = Image.open(io.BytesIO(imgs[0])).convert("RGB")
+        if job["kind"] in ("building", "charm"):
+            import artkit
+            cut = artkit.crop_alpha(artkit.key_background(img, cut_shadow=False))
+            cut.thumbnail((440, 440), Image.LANCZOS)
+            cut.save(os.path.join(OUT, job["id"] + ".webp"), "WEBP", quality=82, method=6)
         img.thumbnail((768, 768), Image.LANCZOS)
         img.save(path, "JPEG", quality=84, optimize=True)
         done += 1

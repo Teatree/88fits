@@ -253,7 +253,7 @@ func test_the_reward_follows_difficulty_progression_and_stage() -> void:
 	assert_int(WantedBoard.reward_for(cfg, 1.0, 0, 0)).is_equal(100)
 	assert_int(WantedBoard.reward_for(cfg, 3.0, 0, 0)).is_equal(220)
 	assert_int(WantedBoard.reward_for(cfg, 2.5, 2, 1)).is_equal(475)
-	assert_int(WantedBoard.reward_for(cfg, 4.5, 3, 2)).is_equal(1165)
+	assert_int(WantedBoard.reward_for(cfg, 4.5, 3, 3)).is_equal(1165)  # pass 126: the Blood Moon is index 3
 	assert_int(WantedBoard.reward_for(cfg, 1.3, 1, 0)).is_equal(175)
 	var last := 0
 	for d in [1.0, 1.5, 2.0, 3.0, 4.0, 5.0]:

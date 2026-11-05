@@ -33,9 +33,11 @@ func test_the_stage_xp_key_is_read_with_its_default() -> void:
 
 func test_red_canyon_slows_only_nightfall() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
-	# Sundown and Blood Moon untouched (1); Nightfall's XP cut (the value comes from the run sim, see the lane's report)
+	# Sundown untouched (1); Nightfall's XP cut (the value comes from the run sim, see the lane's report); pass 126: The Dust Bowl and
+	# the longer Blood Moon carry their own (from the file), never nothing
 	assert_float(tl.stage_xp_mult(0)).is_equal(1.0)
-	assert_float(tl.stage_xp_mult(2)).is_equal(1.0)
+	assert_float(tl.stage_xp_mult(2)).is_greater(0.0)
+	assert_float(tl.stage_xp_mult(3)).is_greater(0.0)
 	var s2 := tl.stage_xp_mult(1)
 	assert_float(s2).is_greater(0.0)
 	assert_float(s2).is_less(1.0)

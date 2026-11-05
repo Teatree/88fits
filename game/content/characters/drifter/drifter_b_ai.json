@@ -1,0 +1,369 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a lean young man with a calm determined face, wearing a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a blood-red bandana tied at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots, standing straight with his hands relaxed at his sides",
+ "renders": {
+  "front": {
+   "seed": 3009028,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of the same lean young man in a new outfit: a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a blood-red bandana tied at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle showing in the open coat, charcoal trousers and black leather boots. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep his exact face, his build, height and proportions, his straight standing pose with both hands relaxed at his sides. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/drifter_b_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 364,
+     "right": 363,
+     "top": 46,
+     "bottom": 49,
+     "height": 928,
+     "width": 296
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 18513,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a dark blood-red scarf at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots. Seen directly from behind, no face visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_b_front_ref.png",
+    "88fits/drifter_b_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 366,
+     "right": 364,
+     "top": 48,
+     "bottom": 50,
+     "height": 925,
+     "width": 293
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 26433,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a wide-brimmed black cowboy hat with a thin silver band, a long BLACK leather duster coat (black, not brown) with the collar turned up, a dark blood-red scarf at his neck, a charcoal shirt, charcoal trousers and black leather boots. In strict side profile facing right. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_b_front_ref.png",
+    "88fits/drifter_b_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 401,
+     "right": 402,
+     "top": 47,
+     "bottom": 45,
+     "height": 931,
+     "width": 220
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 18515,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a dark blood-red scarf at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots. In three-quarter front view. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_b_front_ref.png",
+    "88fits/drifter_b_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 359,
+     "right": 357,
+     "top": 49,
+     "bottom": 48,
+     "height": 926,
+     "width": 307
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 18516,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a dark blood-red scarf at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots. In three-quarter back view, turned away from the viewer, no face visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_b_front_ref.png",
+    "88fits/drifter_b_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 375,
+     "right": 380,
+     "top": 47,
+     "bottom": 44,
+     "height": 932,
+     "width": 268
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 18517,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a dark blood-red scarf at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots. Seen directly from behind, no face visible, jumping for joy with both arms raised high, feet together. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_b_front_ref.png",
+    "88fits/drifter_b_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 261,
+     "right": 263,
+     "top": 61,
+     "bottom": 79,
+     "height": 883,
+     "width": 499
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 18519,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a dark blood-red scarf at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots. Seen directly from behind, no face visible, flinching from a hit, feet fully visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_b_front_ref.png",
+    "88fits/drifter_b_hurt_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 324,
+     "right": 338,
+     "top": 48,
+     "bottom": 51,
+     "height": 924,
+     "width": 361
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 18518,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a dark blood-red scarf at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots. Facing the viewer, flinching in pain, feet fully visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_b_front_ref.png",
+    "88fits/drifter_b_hurt_front_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 340,
+     "right": 347,
+     "top": 47,
+     "bottom": 65,
+     "height": 911,
+     "width": 336
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 18520,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a dark blood-red scarf at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots. In strict side profile facing right, flinching in pain, feet fully visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_b_front_ref.png",
+    "88fits/drifter_b_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 388,
+     "right": 400,
+     "top": 47,
+     "bottom": 45,
+     "height": 931,
+     "width": 235
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 18522,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a dark blood-red scarf at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots. In three-quarter back view, no face visible, flinching from a hit, feet fully visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_b_front_ref.png",
+    "88fits/drifter_b_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 377,
+     "right": 366,
+     "top": 47,
+     "bottom": 45,
+     "height": 931,
+     "width": 280
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 18521,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a dark blood-red scarf at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots. In three-quarter front view, flinching in pain, feet fully visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_b_front_ref.png",
+    "88fits/drifter_b_hurt_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 356,
+     "right": 356,
+     "top": 54,
+     "bottom": 47,
+     "height": 922,
+     "width": 311
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 18523,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a dark blood-red scarf at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots. Lying flat on the ground on the back, knocked out, limbs sprawled, the whole body visible. Keep his exact face, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_b_front_ref.png",
+    "88fits/drifter_b_dead_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 128,
+     "right": 153,
+     "top": 115,
+     "bottom": 149,
+     "height": 759,
+     "width": 742
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "method": "hero_pose5",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "stills": "b",
+  "art_prompt": "a lean young man with a calm determined face, wearing a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a blood-red bandana tied at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots, standing straight with his hands relaxed at his sides",
+  "anim_hint": "a lean young man in a wide black cowboy hat, a long black leather duster coat and a blood-red bandana, charcoal trousers and black boots"
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

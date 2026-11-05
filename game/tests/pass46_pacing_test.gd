@@ -122,9 +122,10 @@ func _modded(em: EnemyManager) -> int:
 func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void:
 	var tl := _tl()
 	assert_float(tl.stage_length).is_equal(430.0)
-	assert_int(tl.stages).is_equal(3)
+	assert_int(tl.stages).is_equal(4)
 	# every boss exactly at a stage's end, one a stage; every mini-boss half way through one (pass 87, lane SGAME,
-	# re-pinned: the stages are windows of their own lengths now, 7:10 / 10:00 / 13:00, WaveTimeline.stage_window)
+	# re-pinned: the stages are windows of their own lengths now, 7:10 / 10:00 / 13:00 / 16:00, WaveTimeline.stage_window; pass 126:
+	# The Dust Bowl has two, at 3:00 and 9:15)
 	var boss_ks: Array = []
 	var elite_ks: Array = []
 	for ev in tl.events:
@@ -140,8 +141,8 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 				elite_ks.append(float(s) + (t - tl.stage_start(s)) / tl.stage_len(s))
 			"elite_every":
 				assert_float(float(ev.get("interval", 0.0))).is_equal(129.0)
-	assert_array(boss_ks).contains_exactly([1, 2, 3])
-	assert_array(elite_ks).contains_exactly([0.5, 1.5, 2.5])
+	assert_array(boss_ks).contains_exactly([1, 2, 3, 4])
+	assert_array(elite_ks).contains_exactly([0.5, 1.5, 2.0 + 180.0 / 780.0, 2.0 + 555.0 / 780.0, 3.5])
 	# each old second is 430/300 of a new one, rounded to the second (pass 62, lane PC, re-pinned: stages 2 and 3 have
 	# their own events now; stage 1's keep the stretched seconds, and the bosses and Elites are checked above)
 	var old_events := [150, 210, 300]

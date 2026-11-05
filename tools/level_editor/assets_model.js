@@ -26,7 +26,7 @@ const AssetsModel = (() => {
     max_hp: 100, damage_reduction: 0, regen: 0, move_speed: 3.6, might: 1, cooldown: 1, area: 1, projectile_speed: 1, duration: 1, amount: 0, magnet: 1.5, luck: 0,
     freeze_chance: 0, crit_heal_chance: 0, gold_on_hit: 0, greed: 1, lifesteal: 0, revives: 0, turn_rate: 180, rerolls: 1, skips: 2, banishes: 1,
     crit_chance: 0.01, crit_damage: 2, execute_frac: 0, thorns: 0, adrenaline_speed: 0, adrenaline_might: 0, overkill: 0, cooldown_on_kill: 0, xp_gain: 1, ricochet: 0, homing_turn: 1, haste: 1,
-    evade: 0, evade_invuln: 0, shield_max: 0, shield_delay: 3, shield_rate: 0.5, regen_delay: 3, lifesteal_cap: 0.04, heal_drop: 0, coin_drop: 0,
+    evade: 0, evade_invuln: 0, shield_max: 0, shield_delay: 3, shield_rate: 0.5, regen_delay: 3, lifesteal_cap: 0.03, heal_drop: 0, coin_drop: 0,
     hit_invuln: 0.25, revive_hp: 0.5, desperado: 0, debuff_duration: 1, difficulty: 0, still_regen: 0, still_might: 0, barrel_speed: 0, barrel_seconds: 0, xp_drop_chance: 0, elite_damage: 0,
     phoenix_revive: 0, hurt_speed: 0, hurt_speed_seconds: 0, powder_keg_chance: 0, coin_on_hit: 0, gas_mask_cap: 0, kill_might: 0, buff_duration: 1, heal_mult: 1, powerup_duration: 1, powerup_chance: 1,
     // pass 69 (lane PAS): Counterpunch, Heavyweight, Snake Oil, Hot Springs, Last Stand, the Magnet's EXP pulls
@@ -40,6 +40,8 @@ const AssetsModel = (() => {
     crit_arcs: 0, crit_arc_pct: 0, crit_arc_stun: 0, grave_every: 0, grave_max: 0, grave_seconds: 0, grave_damage_pct: 0,
     train_every: 0, train_cross: 0, storm_every: 0, storm_seconds: 0,
     purse_might_per: 0, purse_might_cap: 0, purse_hp_per: 0, purse_hp_cap: 0, hit_cap_pct: 0, boss_hit_cap_pct: 0, hit_block_every: 0,
+    // pass 126 (lane ITEMS): the Assayer's Scale's pay for a spent skip; the Canteen
+    skip_coins: 0, skip_xp: 0, water_walk: 0, leave_water_regen: 0, leave_water_seconds: 0, water_damage: 0,
   };
   // player stats the systems read that are not in PLAYER_DEFAULTS (default 0): Game.gd brand_chance, EnemyManager fire_vuln / poison_slow / poison_pass
   const PLAYER_EXTRA = ['brand_chance', 'fire_vuln', 'poison_slow', 'poison_pass'];
@@ -100,6 +102,10 @@ const AssetsModel = (() => {
     hit_cap_pct: ["most a hit takes", "rule"],
     boss_hit_cap_pct: ["most a boss's hit takes", "rule"],
     hit_block_every: ["seconds between blocks", "rule"],
+    // pass 126 (lane ITEMS)
+    skip_coins: ['coins a skip pays', 'num'], skip_xp: ["next level's XP a skip pays", 'pct'],
+    water_walk: ['water no longer slows you', 'word'], leave_water_regen: ['HP a second after leaving water', 'num'],
+    leave_water_seconds: ['healing after leaving water', 'sec'], water_damage: ['damage to enemies in water', 'pct'],
   };
   // pass 69: what a new stat does, in a line (the effect picker's hover and the line under an effect); vocab.py STAT_HELP
   const STAT_HELP = {
@@ -120,6 +126,13 @@ const AssetsModel = (() => {
     gem_sweep_every: 'Mother Lode: every this many seconds every XP gem on the screen flies to the hero (the first 1 s after it is taken); 0 = none',
     vein_chance: 'Eureka: the chance a kill bursts into 5 more XP gems of its size (rolled with Prospector\'s extra gem, so it needs xp_drop_chance above 0)',
     gold_might: 'Gold Rush: attack damage for every 100 gold gained while held (after coin gain), up to +50% in all; spending takes nothing back',
+    // pass 126 (lane ITEMS; BALANCING 68.ITEMS)
+    skip_coins: 'Assayer\'s Scale: gold into the purse for every skip spent on a level-up, a mutation offer or a chest (through coin gain); a banish or a reroll pays nothing',
+    skip_xp: 'Assayer\'s Scale: XP for every skip spent, this share of what the next level needs (0.05 = 5%, Field Notes does not raise it); it can level the hero, and the cards wait their turn',
+    water_walk: 'Canteen: above 0, water never slows the hero (the map\'s water_slow); creatures still wade. Said in words, never with a number',
+    leave_water_regen: 'Canteen: HP a second while the heal after leaving water runs (through Player.heal, credited to the item); nothing while he is in water',
+    leave_water_seconds: 'Canteen: how long the heal runs after he walks out of a lake (Buff duration stretches it); walking out again starts it anew, it never stacks; 0 = no heal',
+    water_damage: 'Canteen (Evolved): extra damage on a creature standing in water, from everything the hero sends (0.25 = +25%)',
     // pass 118 (lane ITEMS): any stat named chest_<stat> banks <stat> at every chest opened (Run.chest_opened)
     chest_luck: 'Jade Key: every chest opened while it is held banks this much luck (0.01 = +1%) for the rest of the run; a later level raises only the chests after it',
     chest_might: 'Ruby Key: every chest opened while it is held banks this much attack damage (0.02 = +2%, the chests summed) for the rest of the run; a later level raises only the chests after it',
@@ -535,6 +548,8 @@ const AssetsModel = (() => {
       case 'rain': case 'erupt': return Math.max(1, Math.round(num(a.count, 10))) * num(a.interval, 0.3) + num(a.warn, 0.55);
       case 'swoop': return num(a.duration, 0.8) + num(a.fall, 0.45);
       case 'boulder': return num(a.flight, 1.6);
+      // pass 126 (lane BOSS): the storm, then dazed (real seconds: BossWhirl.DEFAULTS)
+      case 'whirl': return num(a.seconds, 6) + num(isObj(a.dazed) ? a.dazed.seconds : 2.5, 2.5);
       default: return 0.3;
     }
   }
@@ -750,7 +765,7 @@ const AssetsModel = (() => {
   }
   /** Pass 113 (lane TASKS): the stats that heal the hero (TaskTally.HEAL_STATS) and whether a passive's levels (an
    *  /api/items record) carry one: the items a heal_with_item quest and a heal_item poster may name. */
-  const HEAL_STATS = ['lifesteal', 'regen', 'still_regen', 'crit_heal_chance', 'heal_drop'];
+  const HEAL_STATS = ['lifesteal', 'regen', 'still_regen', 'crit_heal_chance', 'heal_drop', 'leave_water_regen'];
   function passiveHeals(p) {
     if (!isObj(p)) return false;
     for (const lv of Array.isArray(p.levels) ? p.levels : []) {

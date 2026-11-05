@@ -720,7 +720,7 @@ def expected_stages(method, spec, target, doc=None, phase=1):
             for v in ("side", "bd", "fd"):
                 if k.endswith("_walk_" + v):
                     add("walk_" + v, k, "clip")
-        if str(recipe.get("death", doc.get("death", ""))) != "shatter":   # pass 91: a shatter paints no dead still
+        if str(recipe.get("death", doc.get("death", ""))) not in ("shatter", "puff"):   # pass 91: a shatter paints no dead still; pass 126: nor a puff
             add("dead", stills[2], "still")
         for k in clips:
             if k.endswith("_fall"):

@@ -39,7 +39,9 @@ func test_desert_roster_has_seven_creatures_and_the_elite() -> void:
 func test_stages_get_harder() -> void:
 	var t: WaveTimeline = Registry.map("red_canyon").timeline
 	assert_float(t.stage_mult(1)).is_greater(1.6)
-	assert_float(t.stage_mult(2)).is_greater(t.stage_mult(1) * 1.3)
+	# pass 126 (lane STAGE): a stage's strength is its multiplier x the HP curve at its start (the curve is on the absolute clock)
+	assert_float(t.stage_mult(2) * t.hp_mult_at(t.stage_start(2))).is_greater(t.stage_mult(1) * t.hp_mult_at(t.stage_start(1)) * 1.3)
+	assert_float(t.stage_mult(3) * t.hp_mult_at(t.stage_start(3))).is_greater(t.stage_mult(2) * t.hp_mult_at(t.stage_start(2)) * 1.3)
 	# pass 83 re-pin: the cap's shape is Garry's (his curve starts high and steps down since 2026-10-16): a cap all through
 	assert_int(t.cap_at(300.0, 1)).is_greater(0)
 	assert_float(t.speed_mult(2)).is_greater(t.speed_mult(1))

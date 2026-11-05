@@ -72,5 +72,119 @@
   "hurt_hint": "her round helmet visor stays a completely dark opaque black mirror with no face behind it, the whole body tensing",
   "level_heal": 0.08,
   "trait_name": "Space Suit",
-  "trait_text": "Gain 2 max HP per level, and heal 8% of max HP on every level-up."
+  "trait_text": "Gain 2 max HP per level, and heal 8% of max HP on every level-up.",
+  "variant_base": "AST-A",
+  "variant": "AST-A",
+  "variants": {
+    "AST-A": {
+      "note": "The hero's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it)."
+    },
+    "AST-B": {
+      "note": "pass 126: a black and gold spacesuit: Klein edits of her own paintings, view by view (tools/gen_skin_views.py), walked on her own driver",
+      "recipe": {
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "stills": "b",
+        "art_prompt": "a slim young woman astronaut in a fitted glossy black spacesuit with bright gold stripes, gold gloves and chunky gold boots, a round black helmet with a gold rim around a completely dark opaque mirrored visor that shows no face at all, a compact black backpack, standing straight with hands relaxed at the sides",
+        "anim_hint": "a slim woman astronaut in a glossy black and gold spacesuit, her round helmet visor is a completely dark opaque black mirror with no face behind it"
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Event Horizon",
+        "price": 3000,
+        "currency_type": "gold",
+        "unlock_quest": "skin_astro_ast_b"
+      },
+      "sprite": "astro_sprite_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "title": "hero_astro_b.png",
+      "icon": "astro_icon_b.png"
+    },
+    "AST-C": {
+      "note": "pass 126: her orange turned blue: a recolour of her strip, badge and cut-out (tools/skin_recolour.py)",
+      "recipe": {
+        "recolour": {
+          "from": "AST-A",
+          "passes": [
+            {
+              "mode": "hue",
+              "ranges": [
+                [
+                  4,
+                  48
+                ]
+              ],
+              "to": 216,
+              "sat": 0.95,
+              "min_sat": 0.3
+            }
+          ]
+        }
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Mission Control",
+        "price": 1500,
+        "currency_type": "gold",
+        "unlock_quest": "skin_astro_ast_c"
+      },
+      "sprite": "astro_sprite_c.png",
+      "icon": "astro_icon_c.png",
+      "title": "hero_astro_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
+    }
+  }
 }

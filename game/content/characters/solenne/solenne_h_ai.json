@@ -1,0 +1,381 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a slender woman in a glossy white catsuit with gold trim and a high gold collar, knee-high gold boots, white gloves with gold cuffs; her head is a bright yellow cartoon sun: a smooth round yellow face with calm half-lidded eyes, thin brows and small red lips, ringed by eight long pointed golden-yellow rays; standing straight",
+ "renders": {
+  "front": {
+   "seed": 1009077,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of the same slender woman with the same bright yellow cartoon sun for a head, the same round yellow face and the same eight pointed rays, in a new outfit: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep her exact sun head and face, her slender build, height and proportions, her exact pose. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/solenne_h_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 368,
+     "right": 371,
+     "top": 102,
+     "bottom": 67,
+     "height": 854,
+     "width": 284
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 18568,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots, the same bright yellow cartoon sun for a head. Seen directly from behind, no face visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_h_front_ref.png",
+    "88fits/solenne_h_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 371,
+     "right": 377,
+     "top": 102,
+     "bottom": 68,
+     "height": 853,
+     "width": 275
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 18569,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots, the same bright yellow cartoon sun for a head. In strict side profile facing right. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_h_front_ref.png",
+    "88fits/solenne_h_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 366,
+     "right": 385,
+     "top": 100,
+     "bottom": 87,
+     "height": 836,
+     "width": 272
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 18570,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots, the same bright yellow cartoon sun for a head. In three-quarter front view. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_h_front_ref.png",
+    "88fits/solenne_h_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 371,
+     "right": 360,
+     "top": 95,
+     "bottom": 59,
+     "height": 869,
+     "width": 292
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 18571,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots, the same bright yellow cartoon sun for a head. In three-quarter back view, turned away from the viewer, no face visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_h_front_ref.png",
+    "88fits/solenne_h_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 388,
+     "right": 389,
+     "top": 79,
+     "bottom": 60,
+     "height": 884,
+     "width": 246
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 18572,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots, the same bright yellow cartoon sun for a head. Seen directly from behind, no face visible, jumping for joy with both arms raised high, feet together. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_h_front_ref.png",
+    "88fits/solenne_h_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 280,
+     "right": 280,
+     "top": 103,
+     "bottom": 79,
+     "height": 841,
+     "width": 463
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 18574,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots, the same bright yellow cartoon sun for a head. Seen directly from behind, no face visible, flinching from a hit, feet fully visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_h_front_ref.png",
+    "88fits/solenne_h_hurt_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 355,
+     "right": 358,
+     "top": 103,
+     "bottom": 68,
+     "height": 852,
+     "width": 310
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 18573,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots, the same bright yellow cartoon sun for a head. Facing the viewer, flinching in pain, feet fully visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_h_front_ref.png",
+    "88fits/solenne_h_hurt_front_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 369,
+     "right": 371,
+     "top": 103,
+     "bottom": 67,
+     "height": 853,
+     "width": 283
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 18575,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots, the same bright yellow cartoon sun for a head. In strict side profile facing right, flinching in pain, feet fully visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_h_front_ref.png",
+    "88fits/solenne_h_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 378,
+     "right": 408,
+     "top": 107,
+     "bottom": 90,
+     "height": 826,
+     "width": 237
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 18577,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots, the same bright yellow cartoon sun for a head. In three-quarter back view, no face visible, flinching from a hit, feet fully visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_h_front_ref.png",
+    "88fits/solenne_h_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 385,
+     "right": 388,
+     "top": 81,
+     "bottom": 61,
+     "height": 881,
+     "width": 250
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 18576,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots, the same bright yellow cartoon sun for a head. In three-quarter front view, flinching in pain, feet fully visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_h_front_ref.png",
+    "88fits/solenne_h_hurt_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 371,
+     "right": 372,
+     "top": 98,
+     "bottom": 72,
+     "height": 853,
+     "width": 280
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 18578,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a glossy white latex catsuit with thin gold trim down the sides and a high gold collar, white gloves with gold cuffs and knee-high gold boots, the same bright yellow cartoon sun for a head. Lying flat on the ground on the back, knocked out, limbs sprawled, the whole body visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_h_front_ref.png",
+    "88fits/solenne_h_dead_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 100,
+     "right": 74,
+     "top": 254,
+     "bottom": 269,
+     "height": 500,
+     "width": 849
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "pose_drivers": {
+   "back": "walk_sun_b_fit_spread",
+   "bd": "walk_sun_b_fit_spread",
+   "side": "walk_sun_b_fit",
+   "fd": "walk_sun_b_fit",
+   "front": "walk_sun_b_fit"
+  },
+  "pose_motion": "walking in place on the spot like on a treadmill, a light confident stride",
+  "method": "hero_pose5",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "stills": "h",
+  "art_prompt": "a slender woman in a glossy white catsuit with gold trim and a high gold collar, knee-high gold boots, white gloves with gold cuffs; her head is a bright yellow cartoon sun: a smooth round yellow face with calm half-lidded eyes, thin brows and small red lips, ringed by eight long pointed golden-yellow rays; standing straight",
+  "anim_hint": "a woman in a glossy white catsuit with gold trim and gold boots whose head is a flat round yellow cartoon sun disc with pointed rays all around it, never seen edge-on",
+  "key_sat": 0.35,
+  "key_min_value": 0.2,
+  "key_cut_shadow": true,
+  "key_clamp_screen": false
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

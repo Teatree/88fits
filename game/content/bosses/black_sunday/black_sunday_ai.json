@@ -1,0 +1,104 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a giant gaunt scarecrow preacher boss, very tall and very thin, wearing a long tattered black preacher's coat with a ragged hem, buttoned up to the neck, and a flat wide-brimmed black hat, a pale burlap sack for a head with a crude wide stitched grin and two small glowing amber eyes, dry golden straw poking out of the collar and out of both cuffs, long thin arms hanging at its sides ending in straw hands, thin black trousers and worn black boots, two arms and two legs",
+ "renders": {
+  "front": {
+   "seed": 16564,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a giant gaunt scarecrow preacher boss, very tall and very thin, wearing a long tattered black preacher's coat with a ragged hem, buttoned up to the neck, and a flat wide-brimmed black hat, a pale burlap sack for a head with a crude wide stitched grin and two small glowing amber eyes, dry golden straw poking out of the collar and out of both cuffs, long thin arms hanging at its sides ending in straw hands, thin black trousers and worn black boots, two arms and two legs. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 338,
+     "right": 345,
+     "top": 42,
+     "bottom": 34,
+     "height": 947,
+     "width": 340
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 16302,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. Its back is to the viewer: the long tattered black coat seen from behind with straw at the collar, the flat wide-brimmed black hat from behind, both long thin arms hanging down, no face visible. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/black_sunday_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 337,
+     "right": 340,
+     "top": 46,
+     "bottom": 37,
+     "height": 940,
+     "width": 346
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 16695,
+   "prompt": "This exact creature lying flat on its back, dead: its body stretched out sideways across the picture with its head on the left and its boots on the right, its one flat black hat still on its head and no other hat anywhere, nothing lying beside it, its amber eyes gone dark, straw spilling from its cuffs and collar, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/black_sunday_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 73,
+     "right": 73,
+     "top": 353,
+     "bottom": 330,
+     "height": 340,
+     "width": 877
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": null,
+ "clip_kind": {
+  "front": "free",
+  "back": "free",
+  "die": "procedural"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": ""
+ },
+ "match_still": true,
+ "qa_online": null
+}

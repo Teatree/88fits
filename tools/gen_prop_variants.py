@@ -8,6 +8,7 @@ props.json entry (`variant_of` names the original: PropField mixes it in whereve
 
   python tools/gen_prop_variants.py [--only agave_b,...] [--seeds 4] [--force]      # candidates + review sheets
   python tools/gen_prop_variants.py --pick agave_b=2 boulder_b=0 ...                  # the picks -> game/art/sprites/props
+  python tools/gen_prop_variants.py --warm <src.png> <dst.png>                        # pass 126: grey wood made warm (warm_wood)
 
 Candidates: tools/dl/p83/SCENE/variants/<id>_c<k>.png (finished cells), review sheets <id>_review.png (each candidate on
 sand-coloured ground at the size it shows in a run and twice that), raw renders in tools/dl/ai_raw_props/."""
@@ -17,6 +18,7 @@ import os
 import sys
 import time
 
+import numpy as np
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -83,6 +85,16 @@ VARIANTS = {
     "joshua_tree_e": ("joshua_tree", None,
                       "a clump of three young joshua trees growing together from one spot, different heights, each a shaggy trunk "
                       "with one or two short arms ending in spiky round green leaf balls" + NO_FACE, 4.6, 0.22, 384, 8751, "blue"),
+    # pass 126 (lane DRESS; Garry: "a random toppled over westerny cart"): a new kind the map places once in 75% of runs
+    # (core/systems/MapDressing.gd); its wheels are 3D and lie apart from it, so none painted on it; 3.54 m and 0.784 m
+    # are 1.1 x the biggest boulder a map places (2.8 m and 0.62 m x its largest scale 1.15). Six seeds into --cands
+    # tools/dl/p126/DRESS/cart; the pick is k = 5 (seed 17486) made warm wood: --warm <cands>/cart_toppled_c5.png
+    # game/art/sprites/props/cart_toppled.png (no --pick: the painter gave grey planks); its entry in props.json by hand.
+    "cart_toppled": (None, "st_shop_44.png",
+                     "a broken old western wooden wagon toppled over on its side, lying on the ground, seen from the side: the long plank "
+                     "wagon box tipped on its edge so its underside and one bare broken wooden axle stick out towards us, weathered grey-brown "
+                     "planks with dark iron bands, a few loose boards hanging off, a torn dirty canvas cover trailing on the ground, "
+                     "all the wheels gone, no wheels anywhere on it, wider than it is tall" + NO_FACE, 3.54, 0.784, 384, 12601, "blue"),
 }
 
 ARGS = sys.argv[1:]
@@ -191,8 +203,34 @@ def pick(picks):
     json.dump(manifest, open(manifest_p, "w", encoding="utf-8", newline="\n"), indent=1)
 
 
+def warm_wood(src, dst):
+    """Pass 126 (lane DRESS): a grey-brown wagon painting made warm wood (the painter gave grey planks however it was asked):
+    every pixel keeps its value; the neutral wood takes a warm brown hue, more saturated where it is dark, and the pale cloth
+    (a little yellow-green in the source) stays paler and greyer, so it still reads as canvas. The line art stays as painted."""
+    im = Image.open(src).convert("RGBA")
+    a = np.asarray(im).astype(float) / 255.0
+    rgb = a[..., :3]
+    v = rgb.max(-1)
+    c = v - rgb.min(-1)
+    s = np.clip(c / np.maximum(v, 1e-3), 0.0, 1.0)
+    cloth = np.clip((s - 0.07) / 0.09, 0.0, 1.0) * np.clip((v - 0.3) / 0.15, 0.0, 1.0)
+    wood_sat = np.clip(s * 0.3 + 0.42 * np.clip(1.25 - v * 1.1, 0.0, 1.0), 0.0, 0.6)
+    sat = wood_sat * (1.0 - cloth) + 0.2 * cloth
+    val = np.clip(v * (1.12 + 0.2 * cloth), 0.0, 1.0)
+    hue = 0.078 + 0.03 * cloth
+    # HSV to RGB for hues under a sixth of the wheel (red to yellow): r = v, b = the floor, g between them by the hue
+    low = val * (1.0 - sat)
+    mid = val * (1.0 - sat * (1.0 - hue * 6.0))
+    out = np.stack([val, mid, low, a[..., 3]], -1)
+    Image.fromarray((np.clip(out, 0.0, 1.0) * 255.0).astype("uint8")).save(dst)
+    ga.log("warm_wood: %s -> %s" % (src, dst))
+
+
 if __name__ == "__main__":
-    if "--pick" in ARGS:
+    if "--warm" in ARGS:
+        k = ARGS.index("--warm")
+        warm_wood(ARGS[k + 1], ARGS[k + 2])
+    elif "--pick" in ARGS:
         pick([a for a in ARGS[ARGS.index("--pick") + 1:] if "=" in a])
     else:
         candidates()

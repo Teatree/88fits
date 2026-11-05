@@ -161,11 +161,13 @@ func _make_build() -> void:
 		for p in PASSIVES:
 			_run.debug_set_item("passive", p, 99)
 	_run.level = _level
-	_run.stage = 2
+	# pass 126 (lane STAGE): the last stage, the Blood Moon (index 3 since The Dust Bowl went in before it)
+	var last_stage: int = int(_game.director.timeline.stage_count()) - 1
+	_run.stage = last_stage
 	if _clock < 0.0:
-		# pass 87 (lane SGAME): a third into stage 3's own window
+		# pass 87 (lane SGAME): a third into its own window
 		var tl3 = _game.director.timeline
-		_clock = float(tl3.stage_start(2)) + float(tl3.stage_len(2)) / 3.0
+		_clock = float(tl3.stage_start(last_stage)) + float(tl3.stage_len(last_stage)) / 3.0
 	_run.elapsed = _clock
 	var d = _game.director
 	for k in range(d.timeline.events.size()):

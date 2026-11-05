@@ -1,0 +1,123 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a gaunt creepy living scarecrow: a lumpy burlap sack for a head, cinched with a rope at the neck, a wide crude stitched grin and two mismatched black button eyes, no hat, straw poking out of the top of the sack, patched brown dungarees with one strap over a torn pale shirt, thick tufts of bright yellow straw bursting from both sleeves and both trouser cuffs, stuffed floppy hands of straw, two arms and two legs, both arms hanging limp at its sides, standing a little hunched with its head tilted to one side, facing the viewer, no weapon",
+ "renders": {
+  "front": {
+   "seed": 238242,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a gaunt creepy living scarecrow: a lumpy burlap sack for a head, cinched with a rope at the neck, a wide crude stitched grin and two mismatched black button eyes, no hat, straw poking out of the top of the sack, patched brown dungarees with one strap over a torn pale shirt, thick tufts of bright yellow straw bursting from both sleeves and both trouser cuffs, stuffed floppy hands of straw, two arms and two legs, both arms hanging limp at its sides, standing a little hunched with its head tilted to one side, facing the viewer, no weapon. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 287,
+     "right": 280,
+     "top": 42,
+     "bottom": 46,
+     "height": 935,
+     "width": 456
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 31233,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. seen from behind: the back of the burlap sack head and the floppy straw hat, the crossed straps of the dungarees over the tan shirt, both arms hanging at its sides, straw at the cuffs, no face isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/straw_man_b2_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 280,
+     "right": 284,
+     "top": 40,
+     "bottom": 59,
+     "height": 924,
+     "width": 459
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 31152,
+   "prompt": "This exact creature slumped flat on the ground, dead: the whole limp scarecrow lying sideways across the picture with its burlap head on the left and its boots on the right, deflated and empty, arms flopped limp, loose tufts of yellow straw spilling out of its cuffs and collar; it lies on nothing, with no ground, no sand and no shadow under it, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/straw_man_b2_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 86,
+     "right": 66,
+     "top": 232,
+     "bottom": 205,
+     "height": 586,
+     "width": 871
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "stills": "b2",
+  "seed_offset": 2,
+  "art_prompt": "a gaunt creepy living scarecrow: a lumpy burlap sack for a head, cinched with a rope at the neck, a wide crude stitched grin and two mismatched black button eyes, no hat, straw poking out of the top of the sack, patched brown dungarees with one strap over a torn pale shirt, thick tufts of bright yellow straw bursting from both sleeves and both trouser cuffs, stuffed floppy hands of straw, two arms and two legs, both arms hanging limp at its sides, standing a little hunched with its head tilted to one side, facing the viewer, no weapon",
+  "back_hint": "seen from behind: the back of the lumpy burlap sack head with the straw poking out of its top, the crossed straps of the dungarees over the pale shirt, both arms hanging at its sides, straw at the cuffs, no face"
+ },
+ "clip_kind": {
+  "front": "pose",
+  "back": "pose",
+  "die": "flf"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": "strawman_limp"
+ },
+ "remap_hues": {
+  "ranges": [
+   [
+    62,
+    170
+   ],
+   [
+    285,
+    350
+   ]
+  ],
+  "to": 38,
+  "sat": 0.55,
+  "min_sat": 0.12
+ },
+ "qa_online": null
+}

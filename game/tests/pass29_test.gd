@@ -38,7 +38,8 @@ func test_creatures_grow_with_the_hero() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
 	assert_float(tl.level_hp_per_level).is_greater(0.0)
 	assert_float(tl.level_damage_per_level).is_greater(0.0)
-	assert_float(tl.stage_mult(2)).is_greater(3.0)
+	# pass 126 (lane STAGE): a stage's strength is its multiplier x the HP curve at its start
+	assert_float(tl.stage_mult(2) * tl.hp_mult_at(tl.stage_start(2))).is_greater(3.0)
 
 
 func test_the_nuke_is_a_pickup_as_rare_as_the_shield() -> void:

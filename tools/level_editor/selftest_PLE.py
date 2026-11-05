@@ -571,8 +571,9 @@ def server_checks(check, server):
         if os.path.isfile(os.path.join(server.CONTENT, "characters", "astro", "astro.json")):
             with urllib.request.urlopen(base + "/api/puppet/astro", timeout=30) as r:
                 d = json.loads(r.read().decode("utf-8"))
-            check(d["ok"] and any(l.get("own") and l["stills"].get("front") for l in d["looks"]) or not os.path.isfile(os.path.join(server.DL, "ai_raw_anime", "astro_front.png")),
-                  "PLE server: a hero without looks offers his own paintings as the source")
+            # (pass 126: Astro has looks now; her base code AST-A names her own paintings)
+            check(d["ok"] and any((l.get("own") or l.get("code") == "AST-A") and l["stills"].get("front") for l in d["looks"]) or not os.path.isfile(os.path.join(server.DL, "ai_raw_anime", "astro_front.png")),
+                  "PLE server: a hero's base look offers his own paintings as the source")
     finally:
         httpd.shutdown()
         httpd.server_close()

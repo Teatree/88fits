@@ -1,0 +1,15 @@
+{
+  "id": "skin_drifter_dri_c",
+  "name": "Drifter · Dust Walker",
+  "condition": {
+    "type": "item_level",
+    "kind": "weapon",
+    "id": "revolver",
+    "level": 5
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "drifter:DRI-C"
+  },
+  "icon": "res://content/characters/drifter/drifter_icon_c.png"
+}

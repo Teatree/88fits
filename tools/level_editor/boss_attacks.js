@@ -20,13 +20,13 @@ const BossAttacks = (() => {
   const o = (v, label, help) => ({ v, label: label || v, help: help || '' });
   const LOOK_OPTS = [o('spike', 'spike: a barb, point first'), o('spit', 'spit: the Spit Cactus\'s ball'), o('pellet', 'pellet: a lead ball'), o('shard', 'shard: a golden sliver'), o('rock', 'rock: a stone'), o('fire', 'fire: a glowing ball'),
     // pass 113 (lane BOSS): the bullet-heaven looks (a pattern draws only these: paintings with a thick ink outline)
-    o('burning_tumbleweed', 'burning tumbleweed (pattern)'), o('venom_blob', 'venom blob (pattern)'), o('brand_fireball', 'branded fireball (pattern)')];
+    o('burning_tumbleweed', 'burning tumbleweed (pattern)'), o('venom_blob', 'venom blob (pattern)'), o('brand_fireball', 'branded fireball (pattern)'), o('grit_clod', 'tumbling grit clod (pattern)')];
   // pass 113 (lane BOSS): a pattern's emitter shapes, aims, the boss's wind-up looks and his shells
   const ESHAPE_OPTS = [o('spiral', 'spiral: arms turning as they fire'), o('ring', 'ring: all round, an opening facing its aim'), o('fan', 'fan: a spread of bullets'), o('sweep', 'sweep: a fan swinging left and right (a sprinkler)'), o('wall', 'wall: a line across, an opening in it'), o('rose', 'rose: a ring that opens into petals')];
   const EAIM_OPTS = [o('hero', 'at the hero (as the bullets begin)'), o('track', 'at the hero, every volley'), o('fixed', 'fixed (due east)'), o('random', 'a random way, every volley')];
   const TLOOK_OPTS = [o('none', 'none'), o('spin', 'spin: he spins up (the King)'), o('rear', 'rear: rears up, throat glowing (the Gila)'), o('drive', 'drive: drives his iron into the ground (the Brander)')];
   // pass 115 (lane BOSS): a pattern's barrier (BossAttackDef.BARRIER_LOOKS, BARRIER_MODES, BARRIER_HOLDS, ...)
-  const BLOOK_OPTS = [o('none', 'none (no barrier, no reach rule)'), o('tumbleweed_fence', 'tumbleweed fence: staked tumbleweeds and ropes, smouldering (the King)'), o('cactus_fence', 'cactus fence: spiny organ-pipe cactus with venom blooms (the Gila)'), o('iron_fence', 'iron fence: black bars with white-hot spear heads and branding irons (the Brander)')];
+  const BLOOK_OPTS = [o('none', 'none (no barrier, no reach rule)'), o('tumbleweed_fence', 'tumbleweed fence: staked tumbleweeds and ropes, smouldering (the King)'), o('cactus_fence', 'cactus fence: spiny organ-pipe cactus with venom blooms (the Gila)'), o('iron_fence', 'iron fence: black bars with white-hot spear heads and branding irons (the Brander)'), o('cross_fence', 'cross fence: crooked grave crosses, straw and barbed wire (Black Sunday)')];
   const BMODE_OPTS = [o('range', 'at the bullets\' range (less the Inset)'), o('fixed', 'at a fixed radius')];
   const BHOLD_OPTS = [o('bullets', 'until the bullets end (falls as he is dazed)'), o('spent', 'until his dazed seconds end too')];
   const BCRE_OPTS = [o('block', 'kept on their side'), o('pass', 'walk through it')];
@@ -708,7 +708,7 @@ const BossAttacks = (() => {
     // apart as the bullets end or as he recovers) and the reach rule's circle (dashed: the hero must be inside it for the
     // attack to begin)
     if (M.barrierOn(d)) {
-      const BCOL = { tumbleweed_fence: '#7A5230', cactus_fence: '#3E8A44', iron_fence: '#2E2828' };
+      const BCOL = { tumbleweed_fence: '#7A5230', cactus_fence: '#3E8A44', iron_fence: '#2E2828', cross_fence: '#B09670' };
       const br0 = M.barrierRadius(d), bh = M.barrierHalf(d);
       const rise = Math.max(M.num(M.val(d, 'barrier', 'rise_s'), 0.8), 0.05) + Math.max(M.num(M.val(d, 'barrier', 'spread_s'), 0.6), 0);
       const fallAt = tell + bul + (String(M.val(d, 'barrier', 'hold')) === 'spent' ? spent : 0);
@@ -768,7 +768,7 @@ const BossAttacks = (() => {
     li(`<b>${all.peak}</b> bullets in the air at most (at ${fmtN(all.peak_t, 1)} s), ${all.fired} in all over ${all.volleys} volleys (without a hero to hit)`);
     // pass 115 (lane BOSS): the barrier in words
     if (M.barrierOn(d)) {
-      const lk = { tumbleweed_fence: 'a tumbleweed fence', cactus_fence: 'a cactus fence', iron_fence: 'an iron fence' }[String(M.val(d, 'barrier', 'look'))] || 'a barrier';
+      const lk = { tumbleweed_fence: 'a tumbleweed fence', cactus_fence: 'a cactus fence', iron_fence: 'an iron fence', cross_fence: 'a fence of crosses' }[String(M.val(d, 'barrier', 'look'))] || 'a barrier';
       li(`<b>Barrier:</b> ${lk} ${fmtN(M.barrierRadius(d), 1)} m round him (the hero held within ${fmtN(M.barrierHeroLimit(d), 1)} m of him${M.val(d, 'barrier', 'hero_block') ? '' : ': <b>off</b>, he can walk through it'}); it begins <b>only with the hero within ${fmtN(M.barrierReach(d), 1)} m</b> (the dashed circle: due while he is further off, it waits for him to come in); bullets ${M.barrierStopsBullets(d) ? `vanish at it (${fmtN(M.bulletReach(d), 1)} m)` : 'fly through it'}; creatures ${String(M.val(d, 'barrier', 'creatures')) === 'pass' ? 'walk through it' : 'stay on their side'}; it falls apart ${String(M.val(d, 'barrier', 'hold')) === 'spent' ? 'when his dazed seconds end' : 'as the bullets end'}`);
     }
     li(`a bullet takes <b>${fmtN(M.num(M.val(d, 'hit', 'hit_frac'), 0.12) * 100, 0)}%</b> of the hero's max HP and is gone; the ones left when the bullets end burn out over ${fmtN(M.num(M.val(d, 'timing', 'clear'), 0.6), 1)} s, harmless`);

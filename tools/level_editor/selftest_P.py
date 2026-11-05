@@ -314,8 +314,8 @@ def checks(check, run_node, server):
         check(not t["dup"], "P %s table has no duplicate keys: %s" % (kind, t["dup"]))
         check(t["rules"] > 0, "P %s has rules (%d)" % (kind, t["rules"]))
     check(not res["rulesBad"], "P every rule has key, level, when, msg: %s" % res["rulesBad"][:3])
-    # pass 95 (lane BOSS): 16 built-ins (stomp, tail_sniper)
-    check(len(res["attacks"]) == 16 and all(a["bad"] == 0 for a in res["attacks"].values()), "P 16 attack names with well-formed key sets")
+    # pass 95 (lane BOSS): 16 built-ins (stomp, tail_sniper); pass 126: whirl
+    check(len(res["attacks"]) == 17 and all(a["bad"] == 0 for a in res["attacks"].values()), "P 17 attack names with well-formed key sets")
     check(all(a["telegraph"] in ("line", "ring", "ring_at_hero", "sector", "fan", "spokes", "none") for a in res["attacks"].values()), "P every attack has a default telegraph")
     # pass 73 (lane SNIPER): + the sniper brain's block and flee on hit (any creature)
     # pass 112 (lane MONK): + the squad brain's block (18 rows)

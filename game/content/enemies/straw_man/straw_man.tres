@@ -1,0 +1,141 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/straw_man/straw_man_icon.png" id="1_y3i8f"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_pyrrf"]
+
+[resource]
+script = ExtResource("2_pyrrf")
+doc = "The Dust Bowl's main walker: a burlap scarecrow half again as tough as a skeleton and a touch slower, half a slot against the cap. It slumps and spills its straw when it dies."
+hp = 15.0
+speed = 1.5
+damage = 4.0
+radius = 0.52
+size = 1.8
+pack_size = 5
+drops = {
+"chest": 0.0002,
+"gold": 0.02,
+"medium": 0.05,
+"small": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite_path = "res://content/enemies/straw_man/straw_man_sprite.png"
+sprite_file = "straw_man_sprite.png"
+frame_px = 160
+strip_cols = 43
+fps = {
+"die": 12.0,
+"run": 15.0
+}
+knockback = 3.4
+head = 0.956
+shadow = {
+"drop": 0.06,
+"scale": [0.85, 0.85],
+"up": 0.22
+}
+blood = Color(0.78431374, 0.6039216, 0.22745098, 1)
+variants = {
+"SM-A": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.956,
+"icon": "res://content/enemies/straw_man/straw_man_icon.png",
+"note": "hat, button eyes, blue dungarees, boots; a limping shamble (Mixamo Walking, right leg swing x0.4, leaning 12 degrees); falls and spills its straw",
+"shadow": {
+"drop": 0.06,
+"scale": [0.85, 0.85],
+"up": 0.22
+},
+"shelved": false,
+"sprite": "res://content/enemies/straw_man/straw_man_sprite.png",
+"sprite_file": "straw_man_sprite.png",
+"strip_cols": 43
+},
+"SM-B": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.944,
+"icon": "res://content/enemies/straw_man/straw_man_icon_b.png",
+"note": "no hat, straw out of the top of the sack, brown dungarees, bare feet; the same shamble (Garry may prefer the creepier one; brown reads less on the sand)",
+"shadow": {
+"drop": 0.06,
+"scale": [0.85, 0.85],
+"up": 0.22
+},
+"shelved": false,
+"sprite": "res://content/enemies/straw_man/straw_man_sprite_b.png",
+"sprite_file": "straw_man_sprite_b.png",
+"strip_cols": 43
+}
+}
+variant = "SM-A"
+cap_share = 0.5
+sfx = {
+"die": "en_mummy_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 2.0
+variance = {
+"size": 0.16,
+"special": {
+"damage": 3.5,
+"hp": 15.0,
+"size": 1.5,
+"tint": "#5E2A10",
+"tint_strength": 0.55,
+"xp": 3.0
+},
+"special_chance": 0.0111,
+"speed": 0.14,
+"tint_strength": 0.2,
+"tints": ["#FFFFFF", "#FFF0CC", "#E8DCC0", "#D0D8E0"]
+}
+id = "straw_man"
+display_name = "Straw Man"
+flavour = "Stuffed by nobody. Walking anyway."
+icon = ExtResource("1_y3i8f")
+icon_file = "straw_man_icon.png"
+placeholder = {
+"color": "#C8A860",
+"eyes": 2.0,
+"shape": "tall"
+}

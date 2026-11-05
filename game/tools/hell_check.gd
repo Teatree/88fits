@@ -41,7 +41,8 @@ func _init() -> void:
 func _start() -> void:
 	_wall0 = Time.get_ticks_msec()
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
-	f.store_string(JSON.stringify({"weapon": "guitarra", "level": 4, "character": "calavera", "map": "red_canyon", "stage": 3}))
+	# pass 126 (lane STAGE): the map's hell stage, wherever it stands in the list (the launch's `stage` counts from 1)
+	f.store_string(JSON.stringify({"weapon": "guitarra", "level": 4, "character": "calavera", "map": "red_canyon", "stage": _hell_stage() + 1}))
 	f.close()
 	root.get_node("Save").data["runs_started"] = 1
 	_run = root.get_node("Run")
@@ -51,6 +52,18 @@ func _start() -> void:
 		quit(1)
 		return
 	process_frame.connect(_tick)
+
+
+## Pass 126 (lane STAGE): the index of the map's hell stage (the Blood Moon: 3 since The Dust Bowl went in before it). Read from
+## the map's JSON text: a --script tool must not name an autoload at compile time.
+func _hell_stage() -> int:
+	var f := FileAccess.open("res://content/maps/red_canyon/red_canyon.json", FileAccess.READ)
+	var d = JSON.parse_string(f.get_as_text()) if f else {}
+	var list: Array = d.get("timeline_data", {}).get("stage_list", []) if d is Dictionary else []
+	for k in range(list.size()):
+		if list[k] is Dictionary and bool((list[k] as Dictionary).get("hell", false)):
+			return k
+	return 2
 
 
 func _tick() -> void:
@@ -109,7 +122,8 @@ func _tick() -> void:
 				# pass 87 (lane SGAME): the run is stage 3's own (the launch's `stage`: its clock from the window's start,
 				# the events before it never come); a stage-3 build on top
 				var tl = _game.director.timeline
-				if _run.stage != 2 or _run.elapsed < float(tl.stage_start(2)) or _run.elapsed > float(tl.stage_start(2)) + 10.0:
+				var hs := _hell_stage()
+				if _run.stage != hs or _run.elapsed < float(tl.stage_start(hs)) or _run.elapsed > float(tl.stage_start(hs)) + 10.0:
 					_errors.append("not a stage-3 run at its window's start: stage %d clock %.1f" % [_run.stage + 1, _run.elapsed])
 				for k in range(12):
 					_run.add_xp(_run.xp_to_next() + 1.0)
@@ -121,7 +135,7 @@ func _tick() -> void:
 					elif not _run.perks.has(pk):
 						_run.perks.append(pk)
 				_run.rebuild_sheets()
-				print("hell_check: jumped to stage 3 (event %d), stage mult %.2f, hell cap %.2f, perks %s" % [_game.director._event_i, _run.stage_mult(), tl.hell_cap_at(2), str(_run.perks)])
+				print("hell_check: jumped to stage 3 (event %d), stage mult %.2f, hell cap %.2f, perks %s" % [_game.director._event_i, _run.stage_mult(), tl.hell_cap_at(hs), str(_run.perks)])
 		"stage3":
 			var em = _game.enemies
 			for id in _hell_ids() + ["hammer_giant"]:
@@ -242,7 +256,7 @@ func _hell_ids() -> Array:
 		return ["imp", "hellhound"]
 	# only the rows already open where the check drops in (stage 3 + 3 s): pass 62's stage 3 brings its hellhounds a minute
 	# into the window, and a creature the window may or may not reach made the check flaky (pass 87: its own window)
-	var at: float = float(_game.director.timeline.stage_start(2)) + 3.0
+	var at: float = float(_game.director.timeline.stage_start(_hell_stage())) + 3.0
 	for r in _game.director.timeline.roster:
 		if str(r.get("channel", "")) == "hell" and float(r.get("t", 0.0)) <= at + 5.0:
 			var id := str(r.get("enemy", ""))

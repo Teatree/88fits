@@ -209,8 +209,8 @@ func test_every_row_plays_a_creature_that_is_in_play() -> void:
 
 func test_endless_keeps_a_crowd_of_both_channels() -> void:
 	var tl := _tl()
-	# pass 87 (lane SGAME, re-pinned): Endless draws from the stage's late roster, stage 3's last second here
-	var t := tl.stage_end(2) - 1.0
+	# pass 87 (lane SGAME, re-pinned): Endless draws from the stage's late roster, the hell stage's last second here (pass 126: index 3)
+	var t := tl.stage_end(3) - 1.0
 	var regular := 0
 	var hell := 0
 	for r in tl.roster_at(t):
@@ -242,8 +242,10 @@ func test_the_bosses_keep_their_stage_and_later_stages_hit_harder_in_play() -> v
 	var s1 := tl.stage_mult(0) * tl.damage_mult_at(tl.stage_start(0) + tl.stage_len(0) * 0.5)
 	var s2 := tl.stage_mult(1) * tl.damage_mult_at(tl.stage_start(1) + tl.stage_len(1) * 0.5)
 	var s3 := tl.stage_mult(2) * tl.damage_mult_at(tl.stage_start(2) + tl.stage_len(2) * 0.5)
+	var s4 := tl.stage_mult(3) * tl.damage_mult_at(tl.stage_start(3) + tl.stage_len(3) * 0.5)   # pass 126: The Dust Bowl, then the Blood Moon
 	assert_float(s2).is_greater(s1)
 	assert_float(s3).is_greater(s2)
+	assert_float(s4).is_greater(s3)
 
 
 func test_rows_carry_their_hp_ramp_and_stay_under_the_caps() -> void:

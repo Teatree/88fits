@@ -1,0 +1,387 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a lean young man with a bald head and smooth blue skin, a stern focused face with sharp eyebrows, dark eyes and slightly large ears, wearing a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles; standing straight, both arms relaxed at his sides, empty hands",
+ "renders": {
+  "front": {
+   "seed": 1004819,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of the same lean bald young man with the same smooth blue skin and the same stern face, in a new tracksuit: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep his exact face and blue skin, his build, height and proportions, his straight standing pose with his empty hands relaxed at his sides. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/buck_g_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 363,
+     "right": 358,
+     "top": 21,
+     "bottom": 40,
+     "height": 962,
+     "width": 302
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 12636,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. Seen directly from behind, no face visible. Keep his bald head and smooth blue skin, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_g_front_ref.png",
+    "88fits/buck_g_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 362,
+     "right": 357,
+     "top": 24,
+     "bottom": 37,
+     "height": 962,
+     "width": 304
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 12637,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. In strict side profile facing right. Keep his bald head and smooth blue skin, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_g_front_ref.png",
+    "88fits/buck_g_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 420,
+     "right": 424,
+     "top": 26,
+     "bottom": 29,
+     "height": 968,
+     "width": 179
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 12638,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. In three-quarter front view. Keep his bald head and smooth blue skin, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_g_front_ref.png",
+    "88fits/buck_g_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 376,
+     "right": 357,
+     "top": 26,
+     "bottom": 33,
+     "height": 964,
+     "width": 290
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 12639,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. In three-quarter back view, turned away from the viewer, no face visible. Keep his bald head and smooth blue skin, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_g_front_ref.png",
+    "88fits/buck_g_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 369,
+     "right": 374,
+     "top": 28,
+     "bottom": 35,
+     "height": 960,
+     "width": 280
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 12640,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. Seen directly from behind, no face visible, jumping for joy with both arms raised high, feet together. Keep his bald head and smooth blue skin, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_g_front_ref.png",
+    "88fits/buck_g_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 252,
+     "right": 249,
+     "top": 22,
+     "bottom": 38,
+     "height": 963,
+     "width": 522
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 12642,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. Seen directly from behind, no face visible, flinching from a hit, feet fully visible. Keep his bald head and smooth blue skin, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_g_front_ref.png",
+    "88fits/buck_g_hurt_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 347,
+     "right": 345,
+     "top": 55,
+     "bottom": 44,
+     "height": 924,
+     "width": 331
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 12641,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. Facing the viewer, flinching in pain, feet fully visible. Keep his bald head and smooth blue skin, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_g_front_ref.png",
+    "88fits/buck_g_hurt_front_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 376,
+     "right": 369,
+     "top": 21,
+     "bottom": 40,
+     "height": 962,
+     "width": 278
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 12643,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. In strict side profile facing right, flinching in pain, feet fully visible. Keep his bald head and smooth blue skin, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_g_front_ref.png",
+    "88fits/buck_g_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 420,
+     "right": 387,
+     "top": 37,
+     "bottom": 29,
+     "height": 957,
+     "width": 216
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 12645,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. In three-quarter back view, no face visible, flinching from a hit, feet fully visible. Keep his bald head and smooth blue skin, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_g_front_ref.png",
+    "88fits/buck_g_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 369,
+     "right": 380,
+     "top": 35,
+     "bottom": 34,
+     "height": 954,
+     "width": 274
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 12644,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. In three-quarter front view, flinching in pain, feet fully visible. Keep his bald head and smooth blue skin, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_g_front_ref.png",
+    "88fits/buck_g_hurt_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 400,
+     "right": 358,
+     "top": 34,
+     "bottom": 29,
+     "height": 960,
+     "width": 265
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 12646,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles, no logos and no writing. Lying flat on the ground on the back, knocked out, limbs sprawled, the whole body visible. Keep his bald head and smooth blue skin, his build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_g_front_ref.png",
+    "88fits/buck_g_dead_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 60,
+     "right": 33,
+     "top": 250,
+     "bottom": 187,
+     "height": 586,
+     "width": 930
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "pose_drivers": {
+   "front": "run_dash_f_low",
+   "fd": "run_dash_f",
+   "side": "run_dash_lvl",
+   "bd": "run_dash_lvl",
+   "back": "run_dash_lvl"
+  },
+  "pose_motion": "dashing in place on the spot like on a treadmill, leaning forward with both arms swept straight back behind him",
+  "method": "hero_pose5",
+  "seed_offset": 2437,
+  "screen": "green",
+  "anim_seed": 1,
+  "run_scale": {
+   "back": 1.07,
+   "bd": 1.06,
+   "side": 0.9,
+   "fd": 0.91,
+   "front": 0.9
+  },
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "stills": "g",
+  "art_prompt": "a lean young man with a bald head and smooth blue skin, a stern focused face with sharp eyebrows, dark eyes and slightly large ears, wearing a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles; standing straight, both arms relaxed at his sides, empty hands",
+  "anim_hint": "a bald blue-skinned man in a bright red zip-up tracksuit with two white stripes down the sleeves and down the legs, red sneakers with white soles, a fast determined sprint with the arms pumping"
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_08bgg"]
+[ext_resource type="Texture2D" path="res://content/characters/calavera/calavera_icon_b.png" id="1_jvfud"]
+
+[resource]
+script = ExtResource("1_08bgg")
+condition = {
+"count": 7000.0,
+"item": "thirst",
+"type": "heal_with_item"
+}
+unlocks = {
+"id": "calavera:CAL-B",
+"type": "skin"
+}
+id = "skin_calavera_cal_b"
+display_name = "Calavera · Marigold"
+icon = ExtResource("1_jvfud")
+icon_file = "res://content/characters/calavera/calavera_icon_b.png"

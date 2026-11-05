@@ -1,0 +1,369 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a slim young woman astronaut in a fitted glossy black spacesuit with bright gold stripes, gold gloves and chunky gold boots, a round black helmet with a gold rim around a completely dark opaque mirrored visor that shows no face at all, a compact black backpack, standing straight with hands relaxed at the sides",
+ "renders": {
+  "front": {
+   "seed": 4411,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of the same slim woman astronaut in the same spacesuit shape, now in new colours: the white parts of the suit become matte black fabric, the orange stripes become deep warm metallic gold like an old coin (amber gold with brown-gold shadows, never lemon yellow), deep gold gloves and chunky deep gold boots, a round black helmet with a gold rim around a completely dark opaque mirrored visor that shows no face at all, a compact black backpack, not latex, no shiny rubber. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep her exact slim build, height and proportions, the round bubble helmet shape, the seams and stripes of the suit, her straight standing pose with both hands relaxed at her sides. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/astro_b_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 371,
+     "right": 371,
+     "top": 56,
+     "bottom": 49,
+     "height": 918,
+     "width": 281
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 14658,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: the suit in matte black fabric, the stripes in deep warm metallic gold like an old coin, deep gold gloves with deep gold cuffs and chunky deep gold boots, a round black helmet with a thin gold ring round a completely dark opaque visor that shows no face at all, a compact black backpack with black shoulder pads. Seen directly from behind, no face visible. Keep her exact slim build, height and proportions, the round bubble helmet. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_b_front_ref.png",
+    "88fits/astro_b_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 371,
+     "right": 371,
+     "top": 56,
+     "bottom": 60,
+     "height": 907,
+     "width": 281
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 14659,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: the suit in matte black fabric, the stripes in deep warm metallic gold like an old coin, deep gold gloves with deep gold cuffs and chunky deep gold boots, a round black helmet with a thin gold ring round a completely dark opaque visor that shows no face at all, a compact black backpack with black shoulder pads. In strict side profile facing right. Keep her exact slim build, height and proportions, the round bubble helmet. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_b_front_ref.png",
+    "88fits/astro_b_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 388,
+     "right": 424,
+     "top": 59,
+     "bottom": 50,
+     "height": 914,
+     "width": 211
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 14660,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: the suit in matte black fabric, the stripes in deep warm metallic gold like an old coin, deep gold gloves with deep gold cuffs and chunky deep gold boots, a round black helmet with a thin gold ring round a completely dark opaque visor that shows no face at all, a compact black backpack with black shoulder pads. In three-quarter front view. Keep her exact slim build, height and proportions, the round bubble helmet. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_b_front_ref.png",
+    "88fits/astro_b_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 373,
+     "right": 371,
+     "top": 46,
+     "bottom": 50,
+     "height": 927,
+     "width": 279
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 14661,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: the suit in matte black fabric, the stripes in deep warm metallic gold like an old coin, deep gold gloves with deep gold cuffs and chunky deep gold boots, a round black helmet with a thin gold ring round a completely dark opaque visor that shows no face at all, a compact black backpack with black shoulder pads. In three-quarter back view, turned away from the viewer, no face visible. Keep her exact slim build, height and proportions, the round bubble helmet. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_b_front_ref.png",
+    "88fits/astro_b_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 393,
+     "right": 379,
+     "top": 56,
+     "bottom": 47,
+     "height": 920,
+     "width": 251
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 22581,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: the suit in matte black fabric, the stripes in deep warm metallic gold like an old coin, deep gold gloves and chunky deep gold boots, a round black helmet, a compact plain black backpack with no brown and no orange on it. Seen directly from behind, no face visible, jumping for joy with both arms raised high, feet together. Keep her exact slim build, height and proportions, the round bubble helmet. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_b_front_ref.png",
+    "88fits/astro_b_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 267,
+     "right": 268,
+     "top": 80,
+     "bottom": 89,
+     "height": 854,
+     "width": 488
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 14664,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: the suit in matte black fabric, the stripes in deep warm metallic gold like an old coin, deep gold gloves with deep gold cuffs and chunky deep gold boots, a round black helmet with a thin gold ring round a completely dark opaque visor that shows no face at all, a compact black backpack with black shoulder pads. Seen directly from behind, no face visible, flinching from a hit, feet fully visible. Keep her exact slim build, height and proportions, the round bubble helmet. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_b_front_ref.png",
+    "88fits/astro_b_hurt_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 343,
+     "right": 360,
+     "top": 56,
+     "bottom": 60,
+     "height": 907,
+     "width": 320
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 14663,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: the suit in matte black fabric, the stripes in deep warm metallic gold like an old coin, deep gold gloves with deep gold cuffs and chunky deep gold boots, a round black helmet with a thin gold ring round a completely dark opaque visor that shows no face at all, a compact black backpack with black shoulder pads. Facing the viewer, flinching in pain, feet fully visible. Keep her exact slim build, height and proportions, the round bubble helmet. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_b_front_ref.png",
+    "88fits/astro_b_hurt_front_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 362,
+     "right": 336,
+     "top": 56,
+     "bottom": 49,
+     "height": 918,
+     "width": 325
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 14665,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: the suit in matte black fabric, the stripes in deep warm metallic gold like an old coin, deep gold gloves with deep gold cuffs and chunky deep gold boots, a round black helmet with a thin gold ring round a completely dark opaque visor that shows no face at all, a compact black backpack with black shoulder pads. In strict side profile facing right, flinching in pain, feet fully visible. Keep her exact slim build, height and proportions, the round bubble helmet. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_b_front_ref.png",
+    "88fits/astro_b_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 389,
+     "right": 410,
+     "top": 60,
+     "bottom": 52,
+     "height": 911,
+     "width": 224
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 14667,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: the suit in matte black fabric, the stripes in deep warm metallic gold like an old coin, deep gold gloves with deep gold cuffs and chunky deep gold boots, a round black helmet with a thin gold ring round a completely dark opaque visor that shows no face at all, a compact black backpack with black shoulder pads. In three-quarter back view, no face visible, flinching from a hit, feet fully visible. Keep her exact slim build, height and proportions, the round bubble helmet. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_b_front_ref.png",
+    "88fits/astro_b_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 391,
+     "right": 378,
+     "top": 57,
+     "bottom": 45,
+     "height": 921,
+     "width": 254
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 14666,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: the suit in matte black fabric, the stripes in deep warm metallic gold like an old coin, deep gold gloves with deep gold cuffs and chunky deep gold boots, a round black helmet with a thin gold ring round a completely dark opaque visor that shows no face at all, a compact black backpack with black shoulder pads. In three-quarter front view, flinching in pain, feet fully visible. Keep her exact slim build, height and proportions, the round bubble helmet. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_b_front_ref.png",
+    "88fits/astro_b_hurt_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 362,
+     "right": 368,
+     "top": 46,
+     "bottom": 50,
+     "height": 927,
+     "width": 293
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 14668,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: the suit in matte black fabric, the stripes in deep warm metallic gold like an old coin, deep gold gloves with deep gold cuffs and chunky deep gold boots, a round black helmet with a thin gold ring round a completely dark opaque visor that shows no face at all, a compact black backpack with black shoulder pads. Lying flat on the ground on the back, knocked out, limbs sprawled, the whole body visible. Keep her exact slim build, height and proportions, the round bubble helmet. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_b_front_ref.png",
+    "88fits/astro_b_dead_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 89,
+     "right": 82,
+     "top": 221,
+     "bottom": 152,
+     "height": 650,
+     "width": 852
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "method": "hero_pose5",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "stills": "b",
+  "art_prompt": "a slim young woman astronaut in a fitted glossy black spacesuit with bright gold stripes, gold gloves and chunky gold boots, a round black helmet with a gold rim around a completely dark opaque mirrored visor that shows no face at all, a compact black backpack, standing straight with hands relaxed at the sides",
+  "anim_hint": "a slim woman astronaut in a glossy black and gold spacesuit, her round helmet visor is a completely dark opaque black mirror with no face behind it"
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

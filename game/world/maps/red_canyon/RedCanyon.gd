@@ -136,6 +136,12 @@ var props: PropField
 ## and the bush patches ({center, radius, bushes [{id, pos}]})
 var _stands: Array = []
 var _bush_patches: Array = []
+## Pass 126 (lane DRESS; Garry: telephone poles, a toppled cart, grave crosses): laid last in the scatter on dice of its own
+## (core/systems/MapDressing.gd), so every other thing on a seed's map stands where it stood. Its telephone line is the child
+## "TelephoneLine". The biggest size a boulder is placed at (the cart's size is measured against it: BALANCING 68.DRESS).
+const DRESSING := preload("res://core/systems/MapDressing.gd")
+const BOULDER_SCALE_MAX := 1.15
+var dressing: Node3D
 
 
 func _ready() -> void:
@@ -819,8 +825,8 @@ func _build_sky() -> void:
 	env.ambient_light_energy = 0.75
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.93, 0.66, 0.42)
-	env.fog_density = 0.004
+	env.fog_light_color = FOG_COLOR
+	env.fog_density = FOG_DENSITY
 	var we := WorldEnvironment.new()
 	we.environment = env
 	_env = env
@@ -851,7 +857,76 @@ func _apply_hell(f: float) -> void:
 		_wall_mat.albedo_color = Color.WHITE.lerp(HELL_WALL, f)
 	if _env:
 		_env.ambient_light_color = Color(0.95, 0.80, 0.66).lerp(HELL_AMBIENT, f)
-		_env.fog_light_color = Color(0.93, 0.66, 0.42).lerp(HELL_FOG, f)
+		_refresh_fog()
+
+
+# ---------------------------------------------------------------- a stage's weather (pass 126, lane STAGE)
+
+## Pass 126 (lane STAGE; Garry: The Dust Bowl, "a brown fog effect (without damping the view distance too much or killing
+## performance) to imitate a dust storm", "the wind visual vfx effect stronger looking on this map only", "the trees and
+## such bob much more from the wind"): stage `weather` block as the stage's look is shown (StageLook.show_stage), {} = as
+## every stage always played, restored to the number. Only the look; nothing reads it.
+##   fog   {color, density}: the scene's Environment fog, faded in over `seconds`
+##   haze  the rolling layer (world/features/DustHaze.gd)
+##   gust  the storm's streaks (world/features/DustGust.gd)
+##   wind  {mult, speed, gust}: the plants' lean (PropField.set_wind)
+##   wire_sway  how far the telephone wire swings, x this (the TelephoneLine node, lane DRESS; 1 = its default)
+const FOG_COLOR := Color(0.93, 0.66, 0.42)
+const FOG_DENSITY := 0.004
+var weather: Dictionary = {}
+var haze: DustHaze
+var _fog_w := 0.0
+var _fog_w_color := FOG_COLOR
+var _fog_w_density := FOG_DENSITY
+var _fog_tween: Tween
+
+
+func set_weather(block: Dictionary, seconds: float = 3.0) -> void:
+	weather = block
+	var secs := maxf(seconds, 0.0)
+	var fog = block.get("fog")
+	if _fog_tween:
+		_fog_tween.kill()
+		_fog_tween = null
+	if fog is Dictionary and not (fog as Dictionary).is_empty():
+		_fog_w_color = WaveTimeline.color_of(fog.get("color", ""), FOG_COLOR)
+		_fog_w_density = maxf(float(fog.get("density", FOG_DENSITY)), 0.0)
+		_fog_to(1.0, secs)
+	else:
+		_fog_to(0.0, secs)
+	if haze:
+		haze.apply(block.get("haze", {}), secs)
+	var gust := get_node_or_null("DustGust")
+	if gust != null and gust.has_method("set_storm"):
+		gust.set_storm(block.get("gust", {}))
+	if props != null:
+		var w = block.get("wind")
+		var wd: Dictionary = w if w is Dictionary else {}
+		props.set_wind(float(wd.get("mult", 1.0)), float(wd.get("speed", PropField.WIND_SPEED)), float(wd.get("gust", 0.0)))
+	var line := get_node_or_null("TelephoneLine")
+	if line != null and line.has_method("set_wind"):
+		line.set_wind(float(block.get("wire_sway", 1.0)))
+
+
+func _fog_to(f: float, secs: float) -> void:
+	if secs <= 0.0 or not is_inside_tree():
+		_set_fog_w(f)
+		return
+	_fog_tween = create_tween()
+	_fog_tween.tween_method(_set_fog_w, _fog_w, f, secs)
+
+
+func _set_fog_w(f: float) -> void:
+	_fog_w = f
+	_refresh_fog()
+
+
+## The fog now: the map's, hell's colour on it (pass 43), the stage's weather over both.
+func _refresh_fog() -> void:
+	if _env == null:
+		return
+	_env.fog_light_color = FOG_COLOR.lerp(HELL_FOG, _hell).lerp(_fog_w_color, _fog_w)
+	_env.fog_density = lerpf(FOG_DENSITY, _fog_w_density, _fog_w)
 
 
 func _build_movers() -> void:
@@ -866,6 +941,10 @@ func _build_movers() -> void:
 	gust.name = "DustGust"
 	gust.map = self
 	add_child(gust)
+	# pass 126 (lane STAGE): the rolling haze of a stage's weather (nothing in it until a stage asks)
+	haze = DustHaze.new()
+	haze.name = "DustHaze"
+	add_child(haze)
 	for k in range(tumbleweeds):
 		var tw := Tumbleweed.new()
 		add_child(tw)
@@ -876,7 +955,7 @@ func _build_movers() -> void:
 
 func bind_game(game: Node) -> void:
 	for c in get_children():
-		if c is DustDevils or c is DustGust:
+		if c is DustDevils or c is DustGust or c is DustHaze:
 			c.game = game
 
 
@@ -1051,7 +1130,7 @@ func _scatter_sprites() -> void:
 		for k in range(rng.randi_range(1, 2)):
 			var pt: Vector2 = around.call(centre, 0.0, 4.0, 1.5)
 			if pt != Vector2.INF:
-				place.call("boulder", pt, rng.randf_range(0.85, 1.15), 0.0)
+				place.call("boulder", pt, rng.randf_range(0.85, BOULDER_SCALE_MAX), 0.0)
 		for k in range(rng.randi_range(3, 4)):
 			var pt: Vector2 = around.call(centre, 1.0, 7.0, 0.8)
 			if pt != Vector2.INF:
@@ -1120,6 +1199,18 @@ func _scatter_sprites() -> void:
 				bushes.append({"id": id, "pos": pt})
 		if not bushes.is_empty():
 			_bush_patches.append({"center": centre, "radius": BUSH_PATCH_R, "bushes": bushes})
+	# --- pass 126 (lane DRESS): the dressing, after everything and on its own dice (no draw of `rng` here)
+	var tl_d: WaveTimeline = Run.map.timeline if Run.map else null
+	dressing = DRESSING.new()
+	dressing.name = "Dressing"
+	add_child(dressing)
+	dressing.lay(self, taken, free, run_seed, tl_d.get("dressing") if tl_d else null)
+
+
+## Pass 126 (lane DRESS): is `p` clear by `r` metres of the things that have no obstacle circle (poles, wheels, crosses)?
+## A structure placed later keeps off them (StructureManager.start_spot_ok), since its painting would stand on them.
+func dress_clear(p: Vector2, r: float) -> bool:
+	return dressing == null or dressing.clear_of(p, r)
 
 
 func _sprite_collider(g: Vector3, r: float, h: float) -> void:

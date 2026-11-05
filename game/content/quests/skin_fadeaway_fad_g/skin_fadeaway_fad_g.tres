@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_kh3d1"]
+[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_icon_g.png" id="1_ucgid"]
+
+[resource]
+script = ExtResource("1_kh3d1")
+condition = {
+"count": 3000.0,
+"type": "kills_with_weapon",
+"weapon": "basketball"
+}
+unlocks = {
+"id": "fadeaway:FAD-G",
+"type": "skin"
+}
+id = "skin_fadeaway_fad_g"
+display_name = "Fadeaway · Streetball"
+icon = ExtResource("1_ucgid")
+icon_file = "res://content/characters/fadeaway/fadeaway_icon_g.png"

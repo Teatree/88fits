@@ -61,5 +61,204 @@
   },
   "portrait_prompt": "tipping the brim of his wide hat with two fingers, a confident half-smile, the collar of his brown duster turned up, the red scarf catching the wind",
   "trait_name": "Long Road",
-  "trait_text": "Gain 1% crit chance per level."
+  "trait_text": "Gain 1% crit chance per level.",
+  "variant_base": "DRI-A",
+  "variant": "DRI-A",
+  "variants": {
+    "DRI-A": {
+      "note": "The hero's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it)."
+    },
+    "DRI-B": {
+      "note": "pass 126: black duster and hat, red bandana, silver skull buckle: Klein edits of his own paintings, view by view (tools/gen_skin_views.py), walked on his own driver",
+      "recipe": {
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "stills": "b",
+        "art_prompt": "a lean young man with a calm determined face, wearing a wide-brimmed black cowboy hat with a thin silver band, a long black leather duster coat with the collar turned up, a blood-red bandana tied at his neck, a charcoal shirt, a wide black belt with a round silver skull buckle, charcoal trousers and black leather boots, standing straight with his hands relaxed at his sides",
+        "anim_hint": "a lean young man in a wide black cowboy hat, a long black leather duster coat and a blood-red bandana, charcoal trousers and black boots",
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                42,
+                175
+              ]
+            ],
+            "to": 30,
+            "sat": 0.12,
+            "min_sat": 0.04
+          }
+        ]
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Black Hat",
+        "price": 3000,
+        "currency_type": "gold",
+        "unlock_quest": "skin_drifter_dri_b"
+      },
+      "sprite": "drifter_sprite_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "icon": "drifter_icon_b.png",
+      "title": "hero_drifter_b.png"
+    },
+    "DRI-C": {
+      "note": "pass 126: his coat and hat bleached pale by the sun: a recolour of his strip, badge and cut-out (tools/skin_recolour.py)",
+      "recipe": {
+        "recolour": {
+          "from": "DRI-A",
+          "passes": [
+            {
+              "mode": "lift",
+              "ranges": [
+                [
+                  14,
+                  52
+                ]
+              ],
+              "to": 38,
+              "set_sat": 0.27,
+              "v_lo": 0.42,
+              "v_hi": 0.95,
+              "min_sat": 0.3,
+              "min_val": 0.13,
+              "src_hi": 0.62,
+              "soft": 0.05,
+              "only": "strip",
+              "max_val": 0.78
+            },
+            {
+              "mode": "lift",
+              "ranges": [
+                [
+                  14,
+                  52
+                ]
+              ],
+              "to": 38,
+              "set_sat": 0.27,
+              "v_lo": 0.42,
+              "v_hi": 0.95,
+              "min_sat": 0.3,
+              "min_val": 0.13,
+              "src_hi": 0.8,
+              "soft": 0.05,
+              "only": "title",
+              "keep_rects": [
+                [
+                  0.43,
+                  0.127,
+                  0.555,
+                  0.19
+                ],
+                [
+                  0.325,
+                  0.085,
+                  0.415,
+                  0.155
+                ],
+                [
+                  0.645,
+                  0.53,
+                  0.7,
+                  0.572
+                ]
+              ]
+            },
+            {
+              "mode": "lift",
+              "ranges": [
+                [
+                  14,
+                  52
+                ]
+              ],
+              "to": 38,
+              "set_sat": 0.27,
+              "v_lo": 0.42,
+              "v_hi": 0.95,
+              "min_sat": 0.3,
+              "min_val": 0.13,
+              "src_hi": 0.8,
+              "soft": 0.05,
+              "only": "icon",
+              "keep_rects": [
+                [
+                  0.345,
+                  0.39,
+                  0.655,
+                  0.6
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Dust Walker",
+        "price": 1500,
+        "currency_type": "gold",
+        "unlock_quest": "skin_drifter_dri_c"
+      },
+      "sprite": "drifter_sprite_c.png",
+      "icon": "drifter_icon_c.png",
+      "title": "hero_drifter_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
+    }
+  }
 }

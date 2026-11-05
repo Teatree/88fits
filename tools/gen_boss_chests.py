@@ -66,6 +66,15 @@ CHESTS = {
                    "heavy scaly white brow that frowns, a small bone lock plate with a dark keyhole between the eyes under "
                    "the lid, curved bone handles on its sides and a row of short white spines along the top of the lid",
     },
+    # pass 126 (lane BOSS): a dark box with straw and brass: yellow keys badly off green, so blue
+    "black_sunday": {
+        "screen": "blue",
+        "subject": "Black Sunday's Collection Box, a heavy church collection box: dark weathered oak planks, two black iron bands "
+                   "with round grey studs round its body, black iron corners, a brass plate with a plain black cross on its front, "
+                   "a small brass padlock on an iron hasp under the lid, its rounded plank lid with three black iron straps with "
+                   "studs, a small black iron cross standing on top of the lid, a brass plate with a dark coin slot on top, a few "
+                   "wisps of dry golden straw stuck in its seams",
+    },
     "brander": {
         "screen": "green",
         "subject": "the Brander's treasure chest, forged for an outlaw demon: black iron plates studded with round grey rivets, "

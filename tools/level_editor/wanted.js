@@ -183,22 +183,23 @@ const Wanted = (() => {
     const c = cfg();
     const rw = c.reward || {};
     const set = (k) => (v) => edit((d) => { d.reward = Object.assign({}, d.reward, { [k]: Math.max(0, v == null ? 0 : v) }); });
-    const sm = Array.isArray(rw.stage_mult) ? rw.stage_mult : [1, 1.25, 1.5];
-    const smBoxes = [0, 1, 2].map((i) => el('span', { class: 'wtd-sm' }, el('small', { text: `S${i + 1}` }), numBox(sm[i] != null ? sm[i] : sm[sm.length - 1], (v) => edit((d) => {
-      const arr = (Array.isArray((d.reward || {}).stage_mult) ? d.reward.stage_mult : [1, 1.25, 1.5]).slice();
-      while (arr.length < 3) arr.push(arr[arr.length - 1] || 1);
+    const sm = Array.isArray(rw.stage_mult) ? rw.stage_mult : [1, 1.25, 1.4, 1.5];
+    // pass 126 (lane STAGE): four stages
+    const smBoxes = [0, 1, 2, 3].map((i) => el('span', { class: 'wtd-sm' }, el('small', { text: `S${i + 1}` }), numBox(sm[i] != null ? sm[i] : sm[sm.length - 1], (v) => edit((d) => {
+      const arr = (Array.isArray((d.reward || {}).stage_mult) ? d.reward.stage_mult : [1, 1.25, 1.4, 1.5]).slice();
+      while (arr.length < 4) arr.push(arr[arr.length - 1] || 1);
       arr[i] = Math.max(0, v == null ? 1 : v);
       d.reward = Object.assign({}, d.reward, { stage_mult: arr });
     }), { min: 0, step: 0.05, path: `reward.stage_mult.${i}` })));
     // the live table: difficulty (rows) x stages beaten (columns), for the chosen stage
     const k = S.sim.exStage;
     const tbl = el('table', { class: 'wtd-ex' });
-    tbl.appendChild(el('tr', {}, el('th', { text: 'difficulty' }), ...[0, 1, 2, 3].map((p) => el('th', { text: `${p} stage${p === 1 ? '' : 's'} beaten` }))));
+    tbl.appendChild(el('tr', {}, el('th', { text: 'difficulty' }), ...[0, 1, 2, 3, 4].map((p) => el('th', { text: `${p} stage${p === 1 ? '' : 's'} beaten` }))));
     for (const d of [1, 2, 3, 4, 5]) {
-      tbl.appendChild(el('tr', {}, el('td', {}, skulls(d, 'wtd-ex-sk')), ...[0, 1, 2, 3].map((p) => el('td', { class: 'wtd-gold', text: M.rewardFor(c, d, p, k).toLocaleString('en-US') }))));
+      tbl.appendChild(el('tr', {}, el('td', {}, skulls(d, 'wtd-ex-sk')), ...[0, 1, 2, 3, 4].map((p) => el('td', { class: 'wtd-gold', text: M.rewardFor(c, d, p, k).toLocaleString('en-US') }))));
     }
     const stSel = el('select', { 'data-path': 'ex.stage' });
-    for (const i of [0, 1, 2]) stSel.appendChild(el('option', { value: i, text: `on Stage ${i + 1}`, selected: i === k }));
+    for (const i of [0, 1, 2, 3]) stSel.appendChild(el('option', { value: i, text: `on Stage ${i + 1}`, selected: i === k }));
     stSel.addEventListener('change', () => { S.sim.exStage = Number(stSel.value); redraw(); });
     return card('Reward', 'what a poster pays when done',
       el('p', { class: 'wtd-formula', html: 'gold = (<b>base</b> + <b>per point</b> × difficulty) × (1 + <b>growth</b> × stages beaten) × <b>stage ×</b>, rounded to <b>round</b>' }),
@@ -291,11 +292,11 @@ const Wanted = (() => {
       const ns = Array.isArray(tc.n) ? tc.n : [];
       const g = el('div', { class: 'wtd-ranges' });
       g.appendChild(el('span', { class: 'muted small', text: T.down ? 'number (lower is harder)' : 'number' }));
-      for (const i of [0, 1, 2]) {
+      for (const i of [0, 1, 2, 3]) {
         const e = ns[i] || ns[ns.length - 1] || [0, 0];
         const setN = (j) => (v) => setTask(type, (t) => {
           const arr = (Array.isArray(t.n) ? t.n : []).map((x) => (Array.isArray(x) ? x.slice() : [0, 0]));
-          while (arr.length < 3) arr.push((arr[arr.length - 1] || [0, 0]).slice());
+          while (arr.length < 4) arr.push((arr[arr.length - 1] || [0, 0]).slice());
           arr[i][j] = Math.max(0, v || 0);
           t.n = arr;
         });

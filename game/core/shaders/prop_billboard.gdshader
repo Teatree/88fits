@@ -26,6 +26,13 @@ uniform float face_camera : hint_range(0.0, 1.0) = 1.0;
 uniform float rim : hint_range(0.0, 1.0) = 0.0;
 uniform vec4 rim_color : source_color = vec4(1.0, 0.94, 0.82, 1.0);
 uniform float rim_width = 0.03;
+// Pass 126 (lane STAGE; Garry: The Dust Bowl, "Make the trees and such bob much more from the wind"): the wind a stage's
+// weather sets (PropField.set_wind): the lean x wind_mult, the sway at wind_speed, and wind_gust 0..1, a slow swell on the
+// lean. These defaults are the shader as it always was. A sway of 0 (rocks, bones) stays still at any wind; the base stays
+// put (the lean is 0 at the foot) and the quad only shears, so the painting cannot tear.
+uniform float wind_mult = 1.0;
+uniform float wind_speed = 1.3;
+uniform float wind_gust = 0.0;
 
 varying vec2 v_uv;
 varying vec3 v_roll;
@@ -100,7 +107,7 @@ void vertex() {
 	vec3 right = normalize(cross(up, cam_back));
 	float ly = VERTEX.y + 0.5;
 	// wind: the top of a plant leans a few degrees back and forth, the base stays put
-	float lean = sin(TIME * 1.3 + phase) * sway * ly * ly;
+	float lean = sin(TIME * wind_speed + phase) * sway * ly * ly * wind_mult * (1.0 + wind_gust * sin(TIME * 0.61 + phase * 0.5));
 	vec3 world = origin + right * (VERTEX.x * sx + lean * sy) + up * ly * sy;
 	VERTEX = (VIEW_MATRIX * vec4(world, 1.0)).xyz;
 	NORMAL = normalize((VIEW_MATRIX * vec4(cam_back, 0.0)).xyz);

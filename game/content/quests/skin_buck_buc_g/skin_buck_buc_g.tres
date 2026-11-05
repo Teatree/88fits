@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_7ay4k"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_g.png" id="1_bty37"]
+
+[resource]
+script = ExtResource("1_7ay4k")
+condition = {
+"count": 150.0,
+"type": "barrels_total"
+}
+unlocks = {
+"id": "buck:BUC-G",
+"type": "skin"
+}
+id = "skin_buck_buc_g"
+display_name = "Jeżyk · Czerwony"
+icon = ExtResource("1_bty37")
+icon_file = "res://content/characters/buck/buck_icon_g.png"

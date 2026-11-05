@@ -106,8 +106,9 @@ func test_the_screen_builds_in_the_mocks_order_with_the_heroes_tab_open() -> voi
 	for c in s.get("content").get_children():
 		if not (c as Control).name.begins_with("@"):
 			names.append(str(c.name))
-	# pass 123, Garry's note: the top, SELECT, his items in full-width rows, the grid; the looks live in a pop-up
-	var order := ["Top", "SelectRow", "Items", "Heroes"]
+	# pass 123, Garry's note: the top, SELECT, his items in full-width rows; the looks live in a pop-up
+	# pass 126: the grid left the page for its own list at the foot (pass126_UI_test)
+	var order := ["Top", "SelectRow", "Items"]
 	var at := -1
 	for n: String in order:
 		var k := -1
@@ -157,7 +158,7 @@ func test_the_shown_hero_is_the_one_runs_start_with_and_his_trait_reads_per_leve
 
 func test_his_items_come_from_data_with_the_favourites_bonus_and_the_evolutions_rule() -> void:
 	for c: CharacterDef in Registry.sorted_characters():
-		var list: Array = Sheet.items_of(c, true)
+		var list: Array = Sheet.items_of(c)
 		assert_str(str((list[0] as Dictionary)["role"])).override_failure_message(c.id).is_equal("start")
 		assert_object((list[0] as Dictionary)["def"]).is_equal(Registry.start_weapon_for(c))
 		var fav := Sheet.favourite_of(c)
@@ -175,14 +176,9 @@ func test_his_items_come_from_data_with_the_favourites_bonus_and_the_evolutions_
 			if str(it["role"]) == "perk":
 				perks += 1
 		assert_int(perks).is_equal(Registry.perks_of(c.id).size())
-	# the Drifter: his Revolver's evolution last, its rule on the Heroes screen
+	# the Drifter (pass 126: his Revolver's evolution is no longer listed, pass126_UI_test)
 	Save.data["last_character"] = "drifter"
 	var s := await _screen()
-	var rev := Registry.weapon("revolver")
-	var evo_row: Control = s.find_child("Item_evolution_" + rev.evolves_into, true, false)
-	assert_object(evo_row).is_not_null()
-	var txt: WText = evo_row.find_child("Text", true, false)
-	assert_str(txt.text).is_equal("The Revolver evolves: %s, then a chest." % Sheet.evolve_needs(rev))
 	var fav_row: Control = s.find_child("Item_favourite_" + _hero("drifter").favourite_weapon, true, false)
 	assert_object(fav_row.find_child("Bonus", true, false)).is_not_null()
 	assert_object(s.find_child("Item_start_revolver", true, false)).is_not_null()
@@ -321,18 +317,19 @@ func test_buy_asks_in_green_and_buys_him_once() -> void:
 
 
 func test_the_looks_pop_up_follows_the_sheets_rules() -> void:
-	# the Drifter has one art: his one look, worn
+	# pass 126 (lane SKINS): the Drifter's own look, worn, his skins beside it, on a fresh save only that one owned
 	Save.data["last_character"] = "drifter"
+	var dri_looks: Array = Registry.skins_of(_hero("drifter"))
 	var s := await _screen()
 	assert_bool(bool(s.call("looks_open"))).is_false()
 	(s.find_child("LooksBtn", true, false) as WButton).pressed.emit()
 	await get_tree().process_frame
 	assert_bool(bool(s.call("looks_open"))).is_true()
 	var strip: Control = s.get("looks_grid")
-	assert_int(strip.get_child_count()).is_equal(1)
+	assert_int(strip.get_child_count()).is_equal(dri_looks.size())
 	assert_str(str(strip.get_child(0).get_meta("state"))).is_equal("worn")
 	var pop: WConfirm = s.get("looks_pop")
-	assert_str(_texts(pop)).contains("1 OF 1 OWNED")
+	assert_str(_texts(pop)).contains("1 OF %d OWNED" % dri_looks.size())
 	pop.button("cancel").pressed.emit()
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -465,13 +462,13 @@ func test_the_pop_up_is_the_mocks_shell_without_the_milestone_row() -> void:
 	var hp: Control = stats.find_child("Stat_max_hp", true, false)
 	assert_bool((hp.find_child("Value", true, false) as WText).color.is_equal_approx(R.WHITE)).is_true()
 	assert_object(stats.find_child("Note", true, false)).is_not_null()
-	for it: Dictionary in Sheet.items_of(dr, true):
+	for it: Dictionary in Sheet.items_of(dr):
 		var row: Control = sh.find_child("Item_%s_%s" % [it["role"], (it["def"] as ContentDef).id], true, false)
 		assert_object(row).override_failure_message(str(it["role"])).is_not_null()
 	var close: WButton = sh.find_child("Close", true, false)
 	assert_str(close.role).is_equal(WButton.SLATE)
-	# a hero with one look has no Looks section
-	assert_object(sh.find_child("Looks", true, false)).is_null()
+	# pass 126 (lane SKINS): the Drifter has looks to choose from now; a hero with one look has no Looks section
+	assert_object(sh.find_child("Looks", true, false)).is_not_null()
 	close.pressed.emit()
 	await get_tree().process_frame
 	assert_bool(bool(sh.call("is_done"))).is_true()

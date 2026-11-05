@@ -13,7 +13,8 @@ extends RefCounted
 ## The hero's stats that heal him, each read by the code that heals (Run.add_damage's life steal, Player._tick_regen's
 ## regen and Siesta, EnemyManager's Vulture crit heal, Game's Cake Slice drop). An item heals when its levels carry one
 ## (heal_items): a heal is credited to the items that put the stat on the hero's sheet, by their share of it (shares_of).
-const HEAL_STATS := ["lifesteal", "regen", "still_regen", "crit_heal_chance", "heal_drop"]
+## Pass 126 (lane ITEMS): leave_water_regen, the Canteen's heal after leaving water (Player._tick_canteen).
+const HEAL_STATS := ["lifesteal", "regen", "still_regen", "crit_heal_chance", "heal_drop", "leave_water_regen"]
 const ELEMENTS := ["fire", "poison"]
 const SOURCE_KINDS := ["pickup", "structure"]
 ## The save's totals (Save.data.totals): keyed by a weapon family's base id, an item family's base id, "<kind>:<id>" and

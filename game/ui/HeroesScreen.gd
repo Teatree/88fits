@@ -9,7 +9,7 @@
 ## for each signature stat, his heal on every level-up, what the rule adds: WHeroSheet.trait_lines / trait_note), or for
 ## a hero not owned TO UNLOCK (the quest and how far along it is) or ON SALE; DETAILS · ALL STATS (blue: the Hero details
 ## pop-up, WHeroSheet.open). Top-right his name, his slogan and HIS ITEMS (WHeroSheet.items_of: the weapon he lands with,
-## his favourite with what finding it gives, a weapon only he finds, his hero mutation, his perks, his weapon's evolution;
+## his favourite with what finding it gives, a weapon only he finds, his hero mutation, his perks;
 ## each its frame, its kind, its name and the level-up card's words). SELECT (gold: he is the hero runs start with,
 ## Save.last_character, as the title's carousel picks him; SELECTED in slate once he is), BUY (green, his price: the
 ## shared confirm, then Save.buy_hero, as the title's BUY) or LOCKED (the locked grey; a tap says no). LOOKS · n OF m
@@ -26,9 +26,16 @@
 ## LOOKS side by side; SELECT; HIS ITEMS in full-width rows with room between them; the hero grid. LOOKS opens the looks in
 ## the shared pop-up shell; a red crumb sits on it (and on the hero's tile and the HEROES tab) while a look is newly
 ## unlocked (core/systems/Crumbs.gd), gone once it has been opened.
+## Pass 126 (lane UI; Garry: "Lock the Heroes select at the bottom as a separate scrollable area, the top part should be it's own
+## scrollable area now. The Heroes view is always fully in view, 2 rows are displayed fully. The top part can now be cut off. For
+## the top part there is a clear scroll weight thing"): two lists with a finger each (TouchScroll only_inside). The page (ScreenBase's
+## `scroll`: the hero, SELECT, his items) ends over the picker and wears WScrollThumb with a fade on its foot while more lies below;
+## the picker ("Heroes": its own panel on the sheet's foot, over the tab bar) shows PICK_ROWS rows whole in "HeroScroll" and moves
+## only when the roster runs past them. A tile tapped shows that hero and brings the page back up to him; the picker stays put.
 ## No class_name (load by path). Names for tools: "Top", "Stage" ("Sprite", "Padlock"), "Trait", "Details", "LooksBtn",
 ## "HeroName", "Slogan", "Items", "Item_<role>_<id>", "SelectRow" > "Select" (meta "action": select, selected, buy,
-## locked), "LooksPop" > "LookGrid" > "Look_<CODE>", "Heroes", "HeroGrid", "Hero_<id>" (metas "hero", "state"), "Crumb".
+## locked), "LooksPop" > "LookGrid" > "Look_<CODE>", "Heroes" ("Label", "HeroScroll" > "HeroGrid", "Hero_<id>": metas "hero",
+## "state"), "ScrollThumb", "PageFade", "Crumb".
 extends ScreenBase
 
 const SHEET_SCRIPT := preload("res://ui/wanted/WHeroSheet.gd")
@@ -43,6 +50,8 @@ const FEET_Y := 346.0
 const FIGURE_PX := 320.0
 const SHADOW := Vector2(190.0, 34.0)
 const SHADOW_COLOR := Color(0.02, 0.03, 0.08, 0.5)
+## Pass 126: how far over the soles' line the shadow's middle sits (a run's feet lift off the line; the shadow meets them).
+const SHADOW_UP := 6.0
 ## The trait panel's type, the DETAILS button's, the name's, the slogan's, the items' (a 72 px frame, the mock's 26 px
 ## Ultra name set at 28 by Garry's rule, the words at 21: the mock's 19 a little larger), SELECT's (990 x 100, Ultra 48).
 const LABEL_PX := 18
@@ -76,6 +85,20 @@ const GLOW := Color(1.0, 0.863, 0.451)
 const GLOW_PX := 30.0
 const GLOW_RINGS := 10
 const GLOW_ALPHA := 0.34
+## Pass 126: the picker: the rows always on view, its panel's height parts top to bottom (the pad, the label's line, the gap, the
+## room over the first row for the shown tile's glow, the room under the last row's base) and how far its foot stands over the tab
+## bar's band (the open tab rises R.DOCK_TAB_H_ACTIVE - R.DOCK_BAR_H over it); the page's fade over the picker.
+const PICK_ROWS := 2
+const PICK_PAD := 12.0
+const PICK_LABEL_H := 22.0
+const PICK_LABEL_GAP := 2.0
+const PICK_GRID_TOP := 14.0
+const PICK_GRID_FOOT := 6.0
+const PICK_FOOT := 34.0
+const PICK_FILL := Color(0.03, 0.05, 0.12, 0.62)
+const PAGE_FADE_H := 70.0
+## Pass 126: what the page gives up on its right for the thumb's gutter (the picker's tiles and SELECT end on the same line).
+const PAGE_GUTTER := 6
 ## A refused tap: the button shakes sideways this far, this long (the tab bar's, the Stages' closed card's).
 const SHAKE_PX := 14.0
 const SHAKE_S := 0.32
@@ -96,6 +119,12 @@ var looks_pop: WConfirm
 var looks_grid: GridContainer
 var select_btn: WButton
 var grid: GridContainer
+## Pass 126: the picker, its list and that list's finger; the page's thumb and fade.
+var picker: Control
+var grid_scroll: ScrollContainer
+var _grid_touch: TouchScroll
+var page_thumb: WScrollThumb
+var _page_fade: TextureRect
 var _sprite: Control
 ## The sprite's strip and where its idle cycle lies in it (BillboardSprite's layout: frames in TitleStage.ORDER, rows of
 ## strip_cols), its rate, and the clock that steps it (no allocation per frame).
@@ -125,6 +154,28 @@ func board_side() -> float:
 	return SIDE
 
 
+## Pass 126: the page ends over the picker (ScreenBase keeps the tab bar's band clear on top of this) ...
+func board_bottom() -> float:
+	return PICK_FOOT + picker_height()
+
+
+## ... and the half-transparent sheet still runs on under the picker, down to the foot it always had.
+func sheet_insets() -> Rect2:
+	var r := super.sheet_insets()
+	r.size.y -= picker_height()
+	return r
+
+
+## The picker's whole height: its label's line and its list.
+static func picker_height() -> float:
+	return PICK_PAD + PICK_LABEL_H + PICK_LABEL_GAP + picker_view_height()
+
+
+## The picker's list on the screen: PICK_ROWS whole rows of tiles with their bases, and the room round them.
+static func picker_view_height() -> float:
+	return PICK_GRID_TOP + GRID_TILE.y * PICK_ROWS + float(GRID_GAP + R.PANEL_BASE) * (PICK_ROWS - 1) + R.PANEL_BASE + PICK_GRID_FOOT
+
+
 func header_right() -> Control:
 	_wallet = WMenuHeader.gold_plate(Save.gold(), 44, 40.0, 5, 4)
 	return _wallet
@@ -136,6 +187,11 @@ func build() -> void:
 	heroes = _roster()
 	var last := Registry.playable_character(str(Save.data.get("last_character", Save.DEFAULT_HERO)))
 	shown = last if last and heroes.has(last) else (heroes[0] if not heroes.is_empty() else null)
+	# pass 126: each list moves only under a finger that came down on it; the thumb's gutter on the page's right
+	_touch.only_inside = true
+	margin.add_theme_constant_override("margin_right", int(SIDE) + PAGE_GUTTER)
+	_build_picker()
+	_build_page_marks()
 	_fill()
 
 
@@ -162,11 +218,13 @@ func owned(c: CharacterDef) -> bool:
 
 # ---------------------------------------------------------------- the page
 
-## The page again for the hero shown (a tap on the grid, a purchase, a look worn): everything under the header.
+## The page again for the hero shown (a tap on the grid, a purchase, a look worn): everything under the header, and the
+## picker's tiles.
 func _fill() -> void:
 	for c in content.get_children():
 		content.remove_child(c)
 		c.queue_free()
+	_fill_picker()
 	if shown == null:
 		return
 	content.add_child(_top())
@@ -174,9 +232,8 @@ func _fill() -> void:
 	content.add_child(_select_row())
 	content.add_child(_gap(34.0))
 	content.add_child(_items_panel())
-	content.add_child(_gap(34.0))
-	content.add_child(_heroes_block())
-	content.add_child(_gap(16.0))
+	# pass 126: room for the fade over the last line
+	content.add_child(_gap(PAGE_FADE_H * 0.5))
 
 
 func _gap(h: float) -> Control:
@@ -202,7 +259,7 @@ func _top() -> Control:
 	var nm := W.text(("Unknown" if not is_owned else SHEET_SCRIPT.hero_name(shown)).to_upper(), W.slab(), NAME_PX, W.INK,
 		HORIZONTAL_ALIGNMENT_LEFT, float(NAME_PX))
 	nm.name = "HeroName"
-	SHEET_SCRIPT.fit_text(nm, 1080.0 - SIDE * 2.0 - COL_L - COL_GAP, 36)
+	SHEET_SCRIPT.fit_text(nm, 1080.0 - SIDE * 2.0 - PAGE_GUTTER - COL_L - COL_GAP, 36)
 	right.add_child(nm)
 	right.add_child(_gap(12.0))
 	var sl := W.serif_text("?" if not is_owned else shown.flavour, SLOGAN_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0,
@@ -327,7 +384,9 @@ func _draw_sprite() -> void:
 	if _tex == null:
 		return
 	# the shadow: three flattened discs, dark in the middle
-	_sprite.draw_set_transform(Vector2(COL_L * 0.5 + 16.0, FEET_Y + 2.0), 0.0, Vector2(1.0, SHADOW.y / SHADOW.x))
+	# pass 126 (Garry: "so it's actually touching their feet"): on the line his soles truly reach, not the figure's box
+	var soles_y := FEET_Y - (TitleStage.FIGURE_FEET - TitleStage.FIGURE_SOLE) * FIGURE_PX / (TitleStage.FIGURE_FEET - TitleStage.FIGURE_TOP)
+	_sprite.draw_set_transform(Vector2(COL_L * 0.5 + 16.0, soles_y - SHADOW_UP), 0.0, Vector2(1.0, SHADOW.y / SHADOW.x))
 	for k in 3:
 		_sprite.draw_circle(Vector2.ZERO, SHADOW.x * 0.5 * (1.0 - 0.28 * k), Color(SHADOW_COLOR, SHADOW_COLOR.a * 0.4), true, -1.0, true)
 	_sprite.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
@@ -351,7 +410,7 @@ func _trait_panel() -> Control:
 	v.add_theme_constant_override("separation", 8)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(v)
-	var inner := 1080.0 - SIDE * 2.0 - COL_L - COL_GAP
+	var inner := 1080.0 - SIDE * 2.0 - PAGE_GUTTER - COL_L - COL_GAP
 	match state_of(shown):
 		"owned":
 			v.add_child(W.label(("Trait · " + shown.trait_name) if shown.trait_name != "" else "Trait", LABEL_PX, W.INK_SOFT))
@@ -418,7 +477,7 @@ func _items_panel() -> Control:
 	v.add_child(W.label((TextGen.possessive(shown) + " items") if is_owned else "Items", LABEL_PX, W.INK_SOFT))
 	var sheet: StatSheet = Run.hero_sheet(shown, 1)
 	var first := true
-	for it: Dictionary in SHEET_SCRIPT.items_of(shown, is_owned):
+	for it: Dictionary in SHEET_SCRIPT.items_of(shown):
 		if not first:
 			var rule := ColorRect.new()
 			rule.color = ITEM_RULE
@@ -426,7 +485,7 @@ func _items_panel() -> Control:
 			rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			v.add_child(rule)
 		first = false
-		v.add_child(SHEET_SCRIPT.royale_item_row(it, sheet, not is_owned, ITEM_FRAME, ITEM_NAME_PX, ITEM_TEXT_PX, ITEM_LABEL_PX, true))
+		v.add_child(SHEET_SCRIPT.royale_item_row(it, sheet, not is_owned, ITEM_FRAME, ITEM_NAME_PX, ITEM_TEXT_PX, ITEM_LABEL_PX))
 	return p
 
 
@@ -541,24 +600,52 @@ func _fill_looks_pop() -> void:
 		looks_grid.add_child(t)
 
 
-## HEROES · n OF m OWNED and the grid.
-func _heroes_block() -> Control:
-	var v := VBoxContainer.new()
-	v.name = "Heroes"
-	v.add_theme_constant_override("separation", 16)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var n_owned := 0
-	for h: CharacterDef in heroes:
-		if owned(h):
-			n_owned += 1
-	var lab := W.label("Heroes · %d of %d owned" % [n_owned, heroes.size()], LABEL_PX, W.INK_SOFT)
-	lab.name = "Label"
-	v.add_child(lab)
+## The picker (pass 126): built once, over the sheet's foot and under the tab bar: its panel, HEROES · n OF m OWNED and the
+## grid in its own list.
+func _build_picker() -> void:
+	picker = Control.new()
+	picker.name = "Heroes"
+	picker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	picker.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	var foot := PICK_FOOT + tab_bar_height()
+	picker.offset_top = -(foot + picker_height())
+	picker.offset_bottom = -foot
+	add_child(picker)
+	var side := sheet_insets().position.x
+	var panel := Panel.new()
+	panel.name = "Panel"
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = PICK_FILL
+	sb.border_color = R.NAVY
+	sb.border_width_top = 4
+	sb.corner_radius_bottom_left = R.RADIUS_TAB
+	sb.corner_radius_bottom_right = R.RADIUS_TAB
+	sb.anti_aliasing = true
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# inside the sheet's 3 px edge, down to its foot
+	panel.offset_left = side + 3.0
+	panel.offset_right = -(side + 3.0)
+	panel.offset_bottom = foot - sheet_insets().size.y - 3.0
+	picker.add_child(panel)
+	grid_scroll = ScrollContainer.new()
+	grid_scroll.name = "HeroScroll"
+	grid_scroll.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	grid_scroll.offset_top = -picker_view_height()
+	grid_scroll.offset_bottom = 0.0
+	grid_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	grid_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	grid_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	picker.add_child(grid_scroll)
 	var m := MarginContainer.new()
-	m.add_theme_constant_override("margin_left", GRID_INSET)
-	m.add_theme_constant_override("margin_right", GRID_INSET)
+	m.add_theme_constant_override("margin_left", int(SIDE) + GRID_INSET)
+	m.add_theme_constant_override("margin_right", int(SIDE) + GRID_INSET)
+	m.add_theme_constant_override("margin_top", int(PICK_GRID_TOP))
+	m.add_theme_constant_override("margin_bottom", int(PICK_GRID_FOOT) + R.PANEL_BASE)
+	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	m.mouse_filter = Control.MOUSE_FILTER_PASS
-	v.add_child(m)
+	grid_scroll.add_child(m)
 	grid = GridContainer.new()
 	grid.name = "HeroGrid"
 	grid.columns = GRID_COLS
@@ -566,10 +653,89 @@ func _heroes_block() -> Control:
 	grid.add_theme_constant_override("v_separation", GRID_GAP + R.PANEL_BASE)
 	grid.mouse_filter = Control.MOUSE_FILTER_PASS
 	grid.draw.connect(_draw_glow)
+	# the glow follows the tiles (they are laid out after they are made)
+	grid.sort_children.connect(grid.queue_redraw)
 	m.add_child(grid)
+	_grid_touch = TouchScroll.new(grid_scroll, true)
+	# the roster past PICK_ROWS: the same thumb, in the same gutter
+	var thumb := WScrollThumb.make(grid_scroll)
+	thumb.name = "HeroThumb"
+	_lay_thumb(thumb, -picker_view_height() + PICK_GRID_TOP, -2.0, Control.PRESET_BOTTOM_RIGHT)
+	picker.add_child(thumb)
+
+
+## The page's marks (pass 126): the thumb in the gutter between the page and the sheet's edge, and the fade over the picker's top
+## edge while more of the page lies below.
+func _build_page_marks() -> void:
+	var foot := bottom_total()
+	page_thumb = WScrollThumb.make(scroll)
+	_lay_thumb(page_thumb, TOP + W.safe_top() + 6.0, -foot - 6.0, Control.PRESET_RIGHT_WIDE)
+	var g := Gradient.new()
+	g.set_color(0, Color(PICK_FILL, 0.0))
+	g.set_color(1, Color(PICK_FILL, 0.92))
+	var tex := GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill_from = Vector2(0.0, 0.0)
+	tex.fill_to = Vector2(0.0, 1.0)
+	tex.width = 4
+	tex.height = 64
+	_page_fade = TextureRect.new()
+	_page_fade.name = "PageFade"
+	_page_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_page_fade.texture = tex
+	_page_fade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_page_fade.stretch_mode = TextureRect.STRETCH_SCALE
+	_page_fade.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	var side := sheet_insets().position.x + 3.0
+	_page_fade.offset_left = side
+	_page_fade.offset_right = -side
+	_page_fade.offset_top = -foot - PAGE_FADE_H
+	_page_fade.offset_bottom = -foot
+	add_child(_page_fade)
+	add_child(page_thumb)
+	var bar := scroll.get_v_scroll_bar()
+	bar.changed.connect(_read_page_fade)
+	bar.value_changed.connect(func(_v: float) -> void: _read_page_fade())
+
+
+## A thumb in the right gutter, R.SCROLL_THUMB_W wide, from `top` to `bottom` on its anchors.
+func _lay_thumb(t: WScrollThumb, top: float, bottom: float, preset: int) -> void:
+	t.set_anchors_preset(preset)
+	t.anchor_left = 1.0
+	t.anchor_right = 1.0
+	var x := sheet_insets().position.x + 3.0
+	t.offset_right = -x
+	t.offset_left = t.offset_right - R.SCROLL_THUMB_W
+	t.offset_top = top
+	t.offset_bottom = bottom
+
+
+func _read_page_fade() -> void:
+	if _page_fade and page_thumb:
+		_page_fade.visible = page_thumb.more_below()
+
+
+## HEROES · n OF m OWNED and the tiles again; where the list stands stays (the same rows, the same height).
+func _fill_picker() -> void:
+	var old := picker.get_node_or_null("Label")
+	if old:
+		picker.remove_child(old)
+		old.queue_free()
+	var n_owned := 0
+	for h: CharacterDef in heroes:
+		if owned(h):
+			n_owned += 1
+	var lab := W.label("Heroes · %d of %d owned" % [n_owned, heroes.size()], LABEL_PX, W.INK_SOFT)
+	lab.name = "Label"
+	lab.position = Vector2(SIDE, PICK_PAD)
+	lab.size = Vector2(1080.0 - SIDE * 2.0, PICK_LABEL_H)
+	picker.add_child(lab)
+	for c in grid.get_children():
+		grid.remove_child(c)
+		c.queue_free()
 	for h: CharacterDef in heroes:
 		grid.add_child(_hero_tile(h))
-	return v
+	grid.queue_redraw()
 
 
 ## A hero's tile: his badge round in its ring (not owned: the black silhouette and a "?"), then his name, his price
@@ -641,12 +807,15 @@ func _draw_glow() -> void:
 
 # ---------------------------------------------------------------- what a finger does
 
-## Shows `c` in the top half (a tile tapped; tools): the page again, scrolled back up to him.
+## Shows `c` in the top half (a tile tapped; tools): the page again, scrolled back up to him; the picker stays where it is.
 func show_hero(c: CharacterDef) -> void:
 	if c == null:
 		return
 	shown = c
 	_fill()
+	# pass 126: a page still coasting from a flick must not carry on under the tween
+	if _touch:
+		_touch.reset()
 	if scroll and scroll.scroll_vertical > 0:
 		create_tween().tween_property(scroll, "scroll_vertical", 0, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
@@ -703,7 +872,7 @@ func ask_buy() -> void:
 		_refuse(select_btn)
 		return
 	WConfirm.open(self, "Buy this hero?", "%s from your purse. Yours to play from then on." % Currency.price_words(cur, price),
-		"Buy · %s" % W.num(price), "Not now", func(): buy_now(c), Callable(), "buy")
+		"Buy · %s" % W.num(price), "Not now", func(): buy_now(c), Callable(), "buy", WButton.price_parts(price, "BUY", R.MODAL_BUTTON_PX, cur))
 
 
 ## The purchase (the title's): the gold spent (Save.buy_hero, the sink "hero"), the page his, a burst over him.
@@ -757,7 +926,8 @@ func ask_buy_look(code: String) -> void:
 		return
 	_on_looks_answer("replaced")
 	WConfirm.open(self, "Buy this look?", "%s from your purse. %s wears it from then on." % [Currency.price_words(cur, price),
-		SHEET_SCRIPT.hero_name(c)], "Buy · %s" % W.num(price), "Not now", func(): buy_look(c, code), open_looks, "buy")
+		SHEET_SCRIPT.hero_name(c)], "Buy · %s" % W.num(price), "Not now", func(): buy_look(c, code), open_looks, "buy",
+		WButton.price_parts(price, "BUY", R.MODAL_BUTTON_PX, cur))
 
 
 ## The look bought (the sheet's purchase: Save.buy_skin, the sink "skin"), worn at once, the looks back with a burst.
@@ -816,17 +986,29 @@ func on_back() -> void:
 
 # ---------------------------------------------------------------- the finger and the clock
 
-## The page's finger (ScreenBase's TouchScroll); nothing moves under the pop-up or a question.
+## The two lists' fingers (TouchScroll, each only for a finger that came down on it); nothing moves under the pop-up or a question.
 func _input(event: InputEvent) -> void:
 	if sheet_open() or WConfirm.is_open(self):
 		return
 	if _touch:
 		_touch.input(event)
+	if _grid_touch:
+		_grid_touch.input(event)
 
 
-## The page's coast and the hero's run frames (a redraw only when the frame changes).
+## The picker fades in with the page (ScreenBase's entrance moves the page).
+func _enter() -> void:
+	super._enter()
+	if picker:
+		picker.modulate.a = 0.0
+		create_tween().tween_property(picker, "modulate:a", 1.0, 0.2)
+
+
+## The lists' coast and the hero's run frames (a redraw only when the frame changes).
 func _process(delta: float) -> void:
 	super._process(delta)
+	if _grid_touch:
+		_grid_touch.process()
 	if _tex == null or _anim_n <= 1 or _sprite == null:
 		return
 	_clock += delta

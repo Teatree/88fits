@@ -1,0 +1,15 @@
+{
+  "id": "skin_calavera_cal_c",
+  "name": "Calavera · Sangre",
+  "condition": {
+    "type": "item_level",
+    "kind": "weapon",
+    "id": "guitarra",
+    "level": 5
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "calavera:CAL-C"
+  },
+  "icon": "res://content/characters/calavera/calavera_icon_c.png"
+}

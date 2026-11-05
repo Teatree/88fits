@@ -23,7 +23,7 @@ static func check_all(in_run: bool) -> Array:
 			# pass 76 (Garry: "Result Screen unlocks are showing heroes that I already unlocked"): a hero already owned
 			# (bought, or given by the developer menu) has his quest marked done quietly; asked before the mark, since a
 			# free hero is owned once his quest is done
-			var quiet := owned_reward(q)
+			var quiet := owned_reward(q) or skin_of_a_hero_not_owned(q)
 			Save.mark_quest(q.id)
 			marked = true
 			if quiet:
@@ -44,6 +44,16 @@ static func owned_reward(q: QuestDef) -> bool:
 		return false
 	var c: CharacterDef = Registry.character(str(q.unlocks.get("id", "")))
 	return c != null and c.availability == "purchase" and Save.owns_hero(c.id)
+
+
+## Pass 126 (lane SKINS; Garry: skins' goals "based on ... some run activity"): a career goal counts with any hero, so it can be
+## done for a hero the player does not own yet. It stays done, without a banner or a line on the Results (a locked hero is
+## "Unknown" until he is bought, and nothing can be bought for him); his Looks show the skin on sale from the day he is owned.
+static func skin_of_a_hero_not_owned(q: QuestDef) -> bool:
+	if q == null or str(q.unlocks.get("type", "")) != "skin":
+		return false
+	var c: CharacterDef = Registry.character(str(q.unlocks.get("id", "")).get_slice(":", 0))
+	return c != null and Registry.hero_state(c) != "owned"
 
 
 static func check_run_events() -> Array:

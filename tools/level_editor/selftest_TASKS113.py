@@ -32,7 +32,7 @@ GAME = os.path.join(ROOT, "game")
 CONTENT = os.path.join(GAME, "content")
 TASKS = ["damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total", "totems_total"]
 WANTED = ["damage_weapon", "heal_item", "heal_source", "item_level", "barrels", "totems", "element_damage"]
-HEAL_STATS = ["lifesteal", "regen", "still_regen", "crit_heal_chance", "heal_drop"]
+HEAL_STATS = ["lifesteal", "regen", "still_regen", "crit_heal_chance", "heal_drop", "leave_water_regen"]
 LADDER = ["common", "uncommon", "rare", "epic", "legendary"]
 
 RUNNER = r"""

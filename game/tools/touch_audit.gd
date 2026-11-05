@@ -1188,7 +1188,7 @@ func _in_game() -> void:
 		await _card_choices(g)
 		# pick one for real so the run goes on
 		if g.cards.visible and not g.cards._offer.is_empty():
-			g.cards._pick(g.cards._offer[0])
+			_pick_plain(g)
 		await _wait(0.6)
 		if g.resume_gate and g.resume_gate.visible:
 			await _tap(root.get_visible_rect().get_center())
@@ -1562,6 +1562,12 @@ func _totem(g) -> void:
 	st.top_inset = was
 
 
+## Pass 126: a real pick, but never the Grindstone: its show stops time ahead of the gate, and _grind audits that.
+func _pick_plain(g) -> void:
+	var plain: Array = g.cards._offer.filter(func(c) -> bool: return str(c.get("id", "")) != "grindstone")
+	g.cards._pick(plain[0] if not plain.is_empty() else g.cards._offer[0])
+
+
 func _gate_strip(g) -> void:
 	var vp := root.get_visible_rect().size
 	var bh: float = float(g.hud.get("band_h"))
@@ -1580,7 +1586,7 @@ func _gate_strip(g) -> void:
 		g._show_next_level_cards()
 		await _wait(1.0)
 		if g.cards.visible and not g.cards._offer.is_empty():
-			g.cards._pick(g.cards._offer[0])
+			_pick_plain(g)
 		await _wait(0.6)
 		if g.resume_gate == null or not g.resume_gate.visible:
 			_count("gate_strip", false)
@@ -3488,6 +3494,7 @@ func _heroes_audit() -> void:
 		_count("heroes_screen", none)
 		if not none:
 			_fail("heroes_screen", "LOCKED", "a real tap on LOCKED asked or bought")
+		await _heroes_two_lists(s)
 	if _want("hero_details"):
 		await _heroes_tap_tile(s, "drifter")
 		var det: Control = s.find_child("Details", true, false)
@@ -3525,6 +3532,69 @@ func _heroes_audit() -> void:
 	may.variants = may_kept
 	for k in kept.keys():
 		save.data[k] = kept[k]
+
+
+## Pass 126 (lane UI; Garry: "Lock the Heroes select at the bottom as a separate scrollable area, the top part should be it's own
+## scrollable area"): the two lists under real fingers, the roster made longer than two rows (the hidden heroes previewed): a swipe
+## on the page moves only the page, a swipe on the picker only the picker; two rows whole on the screen over the tab bar; with both
+## scrolled a real tap on a tile shows that hero, brings the page back up and leaves the picker where it was.
+func _heroes_two_lists(s) -> void:
+	var settings = root.get_node("Settings")
+	var kept_preview: bool = settings.preview_locked_heroes
+	settings.preview_locked_heroes = true
+	s.call("refresh")
+	await _frames(3)
+	var page: ScrollContainer = s.get("scroll")
+	var list: ScrollContainer = s.get("grid_scroll")
+	page.scroll_vertical = 0
+	list.scroll_vertical = 0
+	await _frames(2)
+	var grid: GridContainer = s.find_child("HeroGrid", true, false)
+	var whole := true
+	for k in mini(grid.columns * 2, grid.get_child_count()):
+		var r := (grid.get_child(k) as Control).get_global_rect()
+		whole = whole and list.get_global_rect().encloses(r)
+	var bar: Control = s.get("tab_bar_node")
+	whole = whole and list.get_global_rect().end.y <= bar.get_global_rect().position.y + 0.5
+	_count("heroes_screen", whole)
+	if not whole:
+		_fail("heroes_screen", "HeroScroll", "two rows are not whole on the screen")
+	var pr := page.get_global_rect()
+	await _swipe(pr.get_center() + Vector2(0, 160), pr.get_center() - Vector2(0, 200), 12)
+	await _wait(1.3)
+	var only_page: bool = page.scroll_vertical > 20 and list.scroll_vertical == 0
+	_count("heroes_screen", only_page)
+	if not only_page:
+		_fail("heroes_screen", "page", "a swipe on the page: page %d, picker %d" % [page.scroll_vertical, list.scroll_vertical])
+	var at := page.scroll_vertical
+	var lr := list.get_global_rect()
+	await _swipe(lr.get_center() + Vector2(0, 130), lr.get_center() - Vector2(0, 130), 12)
+	await _wait(1.3)
+	var only_list: bool = list.scroll_vertical > 20 and page.scroll_vertical == at
+	_count("heroes_screen", only_list)
+	if not only_list:
+		_fail("heroes_screen", "HeroScroll", "a swipe on the picker: page %d (was %d), picker %d" % [page.scroll_vertical, at, list.scroll_vertical])
+	# both scrolled: a real tap on a tile whole on the screen that is not the shown hero
+	var was = s.get("shown")
+	var target: Control = null
+	for t in grid.get_children():
+		if t.get_meta("hero") != was and list.get_global_rect().encloses((t as Control).get_global_rect()) and target == null:
+			target = t
+	if target == null:
+		_count("heroes_screen", false)
+		_fail("heroes_screen", "HeroScroll", "no tile whole on the screen after the swipe")
+	else:
+		var want = target.get_meta("hero")
+		var stood := list.scroll_vertical
+		await _tap(target.get_global_rect().get_center())
+		await _wait(0.6)
+		var showed: bool = s.get("shown") == want and page.scroll_vertical == 0 and list.scroll_vertical == stood
+		_count("heroes_screen", showed)
+		if not showed:
+			_fail("heroes_screen", "Hero tile", "with both lists scrolled a tap: shown %s, page %d, picker %d (was %d)" % [str(s.get("shown").id), page.scroll_vertical, list.scroll_vertical, stood])
+	settings.preview_locked_heroes = kept_preview
+	s.call("refresh")
+	await _frames(2)
 
 
 ## A real tap on hero `id`'s tile in the Heroes screen's grid (brought into view first), then the page settles.

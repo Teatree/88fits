@@ -23,7 +23,7 @@ const PowerModel = (() => {
     const mh = num(st.max_hp, 100);
     const hp = mh + Math.max(num(st.shield_max, 0), 0);
     const regen = Math.max(num(st.regen, 0), 0);
-    const ls = Math.min(Math.max(num(st.lifesteal, 0), 0) * Math.max(dps || 0, 0), mh * num(st.lifesteal_cap, 0.04));
+    const ls = Math.min(Math.max(num(st.lifesteal, 0), 0) * Math.max(dps || 0, 0), mh * num(st.lifesteal_cap, 0.03));
     const dr = clamp(num(st.damage_reduction, 0), 0, 0.8);
     const ev = clamp(num(st.evade, 0), 0, 0.9);
     return (hp + SUSTAIN_SECONDS * (regen + ls)) / ((1 - dr) * (1 - ev));

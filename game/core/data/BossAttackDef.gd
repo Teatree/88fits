@@ -51,7 +51,8 @@
 ## ... a 3d object ... appear with animation and should be easy to 'read' as a barrier ... Avoid making it so the Player
 ## gets stuck in this barrier when it goes up. Barrier falls apart and disappears when the attack is done"): a pattern's
 ## `barrier` group (DEFAULTS.barrier; BossPatterns runs its rules, BossBarrier draws it), on when its `look` is not "none":
-##   look          none | tumbleweed_fence (the King's) | cactus_fence (the Gila's) | iron_fence (the Brander's)
+##   look          none | tumbleweed_fence (the King's) | cactus_fence (the Gila's) | iron_fence (the Brander's) | cross_fence
+##                 (Black Sunday's, pass 126)
 ##   radius_mode   range: the wall stands `inset` m inside the bullets' range (projectile.range) round where he starts;
 ##                 fixed: `radius` m round him
 ##   height        how tall it stands (m; the hero is about 1.9)
@@ -74,7 +75,7 @@ extends ContentDef
 const KINDS := ["rain", "volley", "ring", "slam", "script", "pattern"]
 const SHAPES := ["rings", "grid", "spiral", "random"]
 ## (pass 113: the bullet-heaven looks, camera-facing paintings with a thick ink outline: BossAttackFx.BILLBOARD_LOOKS)
-const LOOKS := ["spike", "spit", "pellet", "shard", "rock", "fire", "burning_tumbleweed", "venom_blob", "brand_fireball"]
+const LOOKS := ["spike", "spit", "pellet", "shard", "rock", "fire", "burning_tumbleweed", "venom_blob", "brand_fireball", "grit_clod"]
 ## Pass 113: a pattern's emitter shapes, where an emitter aims, the boss's wind-up look, his shell while he is guarded.
 const EMITTER_SHAPES := ["spiral", "ring", "fan", "sweep", "wall", "rose"]
 const EMITTER_AIMS := ["hero", "track", "fixed", "random"]
@@ -82,7 +83,7 @@ const TELL_LOOKS := ["none", "spin", "rear", "drive"]
 const SHELLS := ["none", "tornado", "scales", "pillar"]
 ## Pass 115: a pattern's barrier: its looks (BossBarrier builds each), radius modes, how long it holds, what creatures and
 ## bullets do at it.
-const BARRIER_LOOKS := ["none", "tumbleweed_fence", "cactus_fence", "iron_fence"]
+const BARRIER_LOOKS := ["none", "tumbleweed_fence", "cactus_fence", "iron_fence", "cross_fence"]
 const BARRIER_MODES := ["range", "fixed"]
 const BARRIER_HOLDS := ["bullets", "spent"]
 const BARRIER_CREATURES := ["block", "pass"]
@@ -96,7 +97,7 @@ const TELEGRAPHS := ["circles", "lines", "ring", "none"]
 const LANDING_MODES := ["stagger", "volley"]
 ## The built-in attack names a `script` attack may wrap (EnemyManager's runner; tools/level_editor/vocab.py ATTACKS).
 const SCRIPTS := ["roll", "spawn_ring", "slam_at", "blink", "burrow", "rain", "erupt", "spit_volley", "slam", "rumble",
-	"brand", "tumbleweed_volley", "swoop", "boulder", "stomp", "tail_sniper"]
+	"brand", "tumbleweed_volley", "swoop", "boulder", "stomp", "tail_sniper", "whirl"]
 
 ## Every group's keys with the game's defaults: what a key the file leaves out plays (the Level Editor's grey numbers;
 ## tools/level_editor/boss_attacks.js mirrors this table and selftest_BOSS.py checks they agree).

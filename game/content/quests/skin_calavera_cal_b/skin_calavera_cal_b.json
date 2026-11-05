@@ -1,0 +1,14 @@
+{
+  "id": "skin_calavera_cal_b",
+  "name": "Calavera · Marigold",
+  "condition": {
+    "type": "heal_with_item",
+    "item": "thirst",
+    "count": 7000
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "calavera:CAL-B"
+  },
+  "icon": "res://content/characters/calavera/calavera_icon_b.png"
+}

@@ -121,8 +121,9 @@ const RY_TAG_EM := 0.32
 const RY_TAG_DROP := 3
 ## The hero on the backdrop's disc (lane BACKDROP: "his figure ~300 px tall", the scale its paintings were projected at;
 ## the mock's figure is ~310): his figure (head to soles) RY_FIGURE_H tall, times the plate's scale on a wide screen, his
-## soles RY_FEET_UP over the disc's centre (on the disc's dark patch, where the mock's stand).
-const RY_FIGURE_H := 300.0
+## soles RY_FEET_UP over the disc's centre (on the disc's dark patch, where the mock's stand). Pass 126 (lane UI; Garry: "make the
+## MM Hero bigger than the Heroes Screen one. Around x1.15 bigger"): 1.15 x HeroesScreen.FIGURE_PX 320.
+const RY_FIGURE_H := 368.0
 ## Pass 124, the swap: how far up the sand and to the side a hero starts (and leaves), how far away he looks there and how near as he
 ## leaves, the seconds in and out, and the beat he holds his three-quarter idle before he turns to face us.
 const RY_RUN_DX := 780.0
@@ -130,7 +131,10 @@ const RY_RUN_DY := 165.0
 const RY_RUN_FAR := 0.8
 const RY_RUN_NEAR := 1.18
 const RY_RUN_IN := 0.62
-const RY_RUN_OUT := 0.44
+## Pass 126 (lane UI; Garry: "On MM make the hero fade away more quickly when he is running away while switching"): out in 0.32 s
+## (was 0.44), gone to nothing by RY_RUN_FADE of that (he had no fade at all: he ran the whole way off the screen).
+const RY_RUN_OUT := 0.32
+const RY_RUN_FADE := 0.7
 const RY_TURN_BEAT := 0.14
 const RY_FEET_UP := 10.0
 ## ‹ › 96 px slate squares, their outer edges RY_ARROW_X either side of the disc's centre, their tops RY_ARROW_UP above it
@@ -484,7 +488,8 @@ func ask_buy() -> void:
 		return
 	# pass 123 (lane MAINMENU): under Royale the shared confirm's buy (green; Wanted keeps its card as it was)
 	WConfirm.open(self, "Buy this hero?", "%s from your purse. Yours to play from then on." % Currency.price_words(c.currency_type, maxi(c.price, 0)),
-		"Buy · %s" % W.num(maxi(c.price, 0)), "Not now", func(): _buy_now(c), Callable(), "buy")
+		"Buy · %s" % W.num(maxi(c.price, 0)), "Not now", func(): _buy_now(c), Callable(), "buy",
+		WButton.price_parts(maxi(c.price, 0), "BUY", R.MODAL_BUTTON_PX, Currency.of(c.currency_type)))
 
 
 ## The purchase: the gold spent (Save.buy_hero, the sink "hero"), the mask lifted with a burst, the plaque and PLAY his.
@@ -894,6 +899,7 @@ func _run_off(f: HeroFigure, side: int) -> void:
 		var k := pow(u, 1.8)
 		f.position = from.lerp(to, k)
 		f.scale = Vector2.ONE * lerpf(from_s, RY_RUN_NEAR, k)
+		f.modulate.a = clampf(1.0 - u / RY_RUN_FADE, 0.0, 1.0)
 		f.refresh_shadow(), 0.0, 1.0, RY_RUN_OUT)
 	tw.tween_callback(f.queue_free)
 
@@ -1113,9 +1119,13 @@ class HeroFigure extends Control:
 	func aspect() -> float:
 		return cell.x / cell.y if cell.y > 0.0 else 1.0
 
-	## Where his soles stand, in this control's own px.
+	## Where his soles stand, in this control's own px (the figure's box: what he is placed and scaled by).
 	func feet() -> Vector2:
 		return Vector2(size.x * 0.5, size.y * TitleStageScript.FIGURE_FEET)
+
+	## Pass 126: where the paint of his soles really ends: his shadow and the pool under him start here, touching his feet.
+	func soles() -> Vector2:
+		return Vector2(size.x * 0.5, size.y * TitleStageScript.FIGURE_SOLE)
 
 	func set_tint(c: Color) -> void:
 		tint = c
@@ -1147,7 +1157,7 @@ class HeroFigure extends Control:
 		_shadow.size = size
 		var cw := Vector2(size.x * 0.4, size.x * 0.11)
 		_contact.size = cw
-		_contact.position = feet() - cw * 0.5
+		_contact.position = soles() - cw * 0.5
 		var parent_xf := get_parent_control().get_global_transform() if get_parent_control() else Transform2D()
 		var foot_global: Vector2 = parent_xf * (position + pivot_offset)
 		_shadow.axis = backdrop.call("figure_axis", backdrop.get_global_transform().affine_inverse() * foot_global)
@@ -1201,7 +1211,7 @@ class FigureShadow extends Control:
 		_mat.shader = load("res://core/shaders/ui_backdrop_shadow.gdshader")
 		_mat.set_shader_parameter("shadow_color", Color(str(sh.get("color", "#1a0c24"))))
 		_mat.set_shader_parameter("strength", float(sh.get("alpha", 0.6)))
-		_mat.set_shader_parameter("foot_v", TitleStageScript.FIGURE_FEET)
+		_mat.set_shader_parameter("foot_v", TitleStageScript.FIGURE_SOLE)
 		_mat.set_shader_parameter("blur_near", float(sh.get("blur_near", 0.006)))
 		_mat.set_shader_parameter("blur_far", float(sh.get("blur_far", 0.05)))
 		material = _mat
@@ -1212,7 +1222,7 @@ class FigureShadow extends Control:
 		var src := figure.frame_rect()
 		var ts := figure.tex.get_size()
 		_mat.set_shader_parameter("region", Vector4(src.position.x / ts.x, src.position.y / ts.y, src.size.x / ts.x, src.size.y / ts.y))
-		var foot := figure.feet()
+		var foot := figure.soles()
 		# a point `h` px above his soles lands `h` x axis from them, across the sand
 		var ax := Vector2.RIGHT
 		var ay := -axis

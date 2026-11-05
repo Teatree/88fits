@@ -543,6 +543,113 @@
       },
       "fresh": true,
       "title": "hero_may_g.png"
+    },
+    "MAY-S": {
+      "note": "pass 126: a harlequin carnival costume: Klein edits of MAY-P's paintings, view by view (tools/gen_skin_views.py), walked on her puppet",
+      "recipe": {
+        "pose_drivers": {
+          "front": "may_puppet_run",
+          "fd": "may_puppet_run",
+          "side": "may_puppet_run",
+          "bd": "may_puppet_run",
+          "back": "may_puppet_run"
+        },
+        "method": "hero_pose5",
+        "seed_offset": 6543,
+        "anim_seed": 4,
+        "remap_hues": {
+          "ranges": [
+            [
+              38,
+              75
+            ]
+          ],
+          "to": 220,
+          "sat": 0.08
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "stills": "s",
+        "art_prompt": "a slender adult woman with a feminine figure, pale white skin, a short straight black bob haircut with bangs, a black beret with a small heart-shaped tip, dark eyes, a playful smile and a black star painted on her cheek; wearing a harlequin carnival costume: a fitted long-sleeve tunic of large diamonds in bright magenta, black and white, a white ruffled collar, black high-waisted shorts, magenta gloves, white and black diamond stockings and chunky black lace-up boots",
+        "anim_hint": "a mime woman in a harlequin carnival costume of large magenta, black and white diamonds",
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                160,
+                265
+              ]
+            ],
+            "to": 220,
+            "sat": 0.1,
+            "min_sat": 0.05
+          },
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                8,
+                60
+              ]
+            ],
+            "to": 220,
+            "sat": 0.1,
+            "min_sat": 0.12,
+            "max_val": 0.6
+          },
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                5,
+                40
+              ]
+            ],
+            "to": 322,
+            "sat": 1.0,
+            "min_sat": 0.55
+          }
+        ]
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Carnival",
+        "price": 2500,
+        "currency_type": "gold",
+        "unlock_quest": "skin_may_may_s"
+      },
+      "sprite": "may_sprite_s.png",
+      "icon": "may_icon_s.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "title": "hero_may_s.png"
     }
   },
   "badge": {

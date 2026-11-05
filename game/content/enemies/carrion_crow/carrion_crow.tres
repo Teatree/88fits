@@ -1,0 +1,112 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/carrion_crow/carrion_crow_icon.png" id="1_8mdll"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_355ej"]
+
+[resource]
+script = ExtResource("2_355ej")
+archetype = "runner"
+doc = "The Dust Bowl's runner: a big black crow that hops and flaps low over the ground in flocks of eight, fast and weak. A flock that arrives before the crowd does, gone at the first sweep."
+brain = "flock"
+hp = 8.0
+speed = 3.0
+damage = 4.0
+radius = 0.4
+size = 1.5
+pack_size = 8
+drops = {
+"chest": 0.0002,
+"gold": 0.015,
+"medium": 0.04,
+"small": 0.9
+}
+anims = {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite_path = "res://content/enemies/carrion_crow/carrion_crow_sprite.png"
+sprite_file = "carrion_crow_sprite.png"
+frame_px = 176
+strip_cols = 43
+fps = {
+"die": 12.0,
+"run": 24.0
+}
+knockback = 3.4
+head = 0.915
+shadow = {
+"drop": 0.05,
+"scale": [0.72, 0.72],
+"up": 0.1
+}
+blood = Color(0.6901961, 0.10980392, 0.23529412, 1)
+variants = {
+"CC-A": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 24.0
+},
+"front_faces": "right",
+"head": 0.915,
+"icon": "res://content/enemies/carrion_crow/carrion_crow_icon.png",
+"note": "a fat crow with blue on its wings; hops with two wing beats from three painted poses a view (walk flap: no video model draws a frame, so no blur and never a third wing); falls on its side, feathers fly",
+"shadow": {
+"drop": 0.05,
+"scale": [0.72, 0.72],
+"up": 0.1
+},
+"shelved": false,
+"sprite": "res://content/enemies/carrion_crow/carrion_crow_sprite.png",
+"sprite_file": "carrion_crow_sprite.png",
+"strip_cols": 43
+}
+}
+variant = "CC-A"
+cap_share = 0.5
+sfx = {
+"die": "en_lizard_die",
+"hit": "en_ant_hit"
+}
+xp_mult = 1.6
+variance = {
+"size": 0.16,
+"special": {
+"damage": 3.5,
+"hp": 15.0,
+"size": 1.5,
+"tint": "#8A1420",
+"tint_strength": 0.6,
+"xp": 3.0
+},
+"special_chance": 0.0111,
+"speed": 0.18,
+"tint_strength": 0.2,
+"tints": ["#FFFFFF", "#DCE4FF", "#E8E0F0", "#D8D8D8"]
+}
+id = "carrion_crow"
+display_name = "Carrion Crow"
+flavour = "It has been circling for days. It got bored."
+icon = ExtResource("1_8mdll")
+icon_file = "carrion_crow_icon.png"
+placeholder = {
+"color": "#23252E",
+"eyes": 2.0,
+"shape": "blob"
+}

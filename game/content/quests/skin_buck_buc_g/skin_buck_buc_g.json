@@ -1,0 +1,13 @@
+{
+  "id": "skin_buck_buc_g",
+  "name": "Jeżyk · Czerwony",
+  "condition": {
+    "type": "barrels_total",
+    "count": 150
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "buck:BUC-G"
+  },
+  "icon": "res://content/characters/buck/buck_icon_g.png"
+}

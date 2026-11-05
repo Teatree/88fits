@@ -35,7 +35,7 @@
 ## in the corner, his slogan and the trait as black pills ("TRAIT · LONG ROAD", "+1% crit chance per Level"); SIGNATURE
 ## STAT the rule in words (no level 1 / 10 / 20 / 40 row); STATS · A RUN'S START in two columns, his signature stats green,
 ## a note under them; HIS ITEMS on their rarity frames with the level-up card's words (the favourite's bonus in Garry's
-## words, his weapon's evolution last); LOOKS as the Heroes screen's tiles; CLOSE slate on the card's foot. A hero not
+## words); LOOKS as the Heroes screen's tiles; CLOSE slate on the card's foot. A hero not
 ## owned keeps today's unknown version in the same style. It scrolls by finger as today. The pieces the Heroes screen
 ## (ui/HeroesScreen.gd) shares are static here: trait_lines, trait_note, items_of, royale_item_row, royale_portrait,
 ## royale_look_tile, royale_tag, look_state_of, bonus_line.
@@ -376,7 +376,7 @@ func ask_buy_look(code: String) -> void:
 		return
 	# pass 123: a purchase asks in green under Royale (Garry: "buying green"); Wanted's card as it was
 	WConfirm.open(self, "Buy this look?", "%s from your purse. %s wears it from then on." % [Currency.price_words(cur, price), hero_name(hero)],
-		"Buy · %s" % W.num(price), "Not now", func(): buy_look(code), Callable(), "buy")
+		"Buy · %s" % W.num(price), "Not now", func(): buy_look(code), Callable(), "buy", WButton.price_parts(price, "BUY", R.MODAL_BUTTON_PX, cur))
 
 
 ## The purchase: paid through Currency (Save.buy_skin, the sink "skin"), worn at once, a burst over its tile.
@@ -684,7 +684,7 @@ func _items_royale() -> void:
 	var v := _section_royale((TextGen.possessive(hero) + " items") if not locked else "Items", "Items")
 	v.add_theme_constant_override("separation", 26)
 	var sheet: StatSheet = Run.hero_sheet(hero, 1)
-	for it: Dictionary in items_of(hero, not locked):
+	for it: Dictionary in items_of(hero):
 		v.add_child(royale_item_row(it, sheet, locked, R_ITEM_FRAME, R_ITEM_NAME_PX, R_ITEM_TEXT_PX, R_ITEM_LABEL_PX))
 
 
@@ -815,18 +815,13 @@ static func bonus_line(c: CharacterDef, def: ContentDef) -> String:
 	return ""
 
 
-## What a weapon needs to evolve, in the Collection's words ("all 3 mutations at Lv 5").
-static func evolve_needs(w: WeaponDef) -> String:
-	var n := Registry.mutations_of(w.id).size()
-	var m := "all %d mutations" % n if n > 1 else ("its mutation" if n == 1 else "")
-	return ("%s at Lv %d" % [m, w.max_level]) if m != "" else "Lv %d" % w.max_level
-
-
 ## His items as the Heroes screen and the pop-up list them: the weapon he lands with, his favourite and what finding it
-## gives, any other weapon only he finds, his hero mutations, his perks, and (`with_evolution`) the evolution of the
-## weapon he lands with when it is his own. Each {def, role (start, favourite, own, mutation, perk, evolution), word,
-## level, bonus, note}.
-static func items_of(c: CharacterDef, with_evolution: bool = true) -> Array:
+## gives, any other weapon only he finds, his hero mutations, his perks. Each {def, role (start, favourite, own, mutation,
+## perk), word, level, bonus}. Pass 126 (lane UI; Garry: "Why is the Evolution Item shown as part of Heroes unique items?
+## Make it so this isn't shown, it's not unique to them everyone gets this now"): the list ended on the evolution of the
+## weapon he lands with whenever WeaponDef.hero named him (pass 123), a rule from before pass 118 let anyone find such a
+## weapon (`guest_weight`). It is gone from both lists; the Collection's item page still tells how a weapon evolves.
+static func items_of(c: CharacterDef) -> Array:
 	var out: Array = []
 	if c == null:
 		return out
@@ -846,35 +841,24 @@ static func items_of(c: CharacterDef, with_evolution: bool = true) -> Array:
 		out.append({"def": m, "role": "mutation", "word": "Hero mutation · " + (on.display_name if on else m.weapon), "level": 1})
 	for pk: PerkDef in Registry.perks_of(c.id):
 		out.append({"def": pk, "role": "perk", "word": "Perk", "level": 1})
-	if with_evolution and start and start.hero == c.id and start.evolves_into != "":
-		var evo := Registry.weapon(start.evolves_into)
-		if evo:
-			out.append({"def": evo, "role": "evolution", "word": "Evolution", "level": 1,
-				"note": "The %s evolves: %s, then a chest." % [start.display_name, evolve_needs(start)]})
 	return out
 
 
 ## One item (Royale): its frame (WPlate: the rarity or level colour), the kind over its name on one line, the level-up
-## card's words, the favourite's bonus in green, a note; a hero not owned: the item's black shape, its role and a "?".
-## `brief` (the Heroes screen, the mock's row): an evolution says only how it comes (its note) instead of its whole card.
+## card's words, the favourite's bonus in green; a hero not owned: the item's black shape, its role and a "?".
 ## Named "Item_<role>_<id>".
 static func royale_item_row(it: Dictionary, sheet: StatSheet, unknown: bool, frame_px: float, name_px: int, text_px: int,
-		label_px: int, brief: bool = false) -> Control:
+		label_px: int) -> Control:
 	var def: ContentDef = it["def"]
 	var role := str(it.get("role", ""))
 	var word := str(it.get("word", ""))
 	var level := int(it.get("level", 1))
 	var bonus := str(it.get("bonus", ""))
-	var note := str(it.get("note", ""))
 	var words := "Unknown until this hero is yours." if unknown else describe(def, level, sheet)
-	if brief and role == "evolution" and note != "":
-		words = note
-		note = ""
 	if unknown:
 		word = word.get_slice(" · ", 0)
 		level = 1
 		bonus = ""
-		note = ""
 	var h := HBoxContainer.new()
 	h.name = "Item_%s_%s" % [role, def.id]
 	h.add_theme_constant_override("separation", 16 if frame_px < 100.0 else 26)
@@ -915,11 +899,6 @@ static func royale_item_row(it: Dictionary, sheet: StatSheet, unknown: bool, fra
 		bw.name = "Bonus"
 		bw.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		col.add_child(bw)
-	if note != "":
-		var nw := W.serif_text(note, text_px - 4, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
-		nw.name = "Note"
-		nw.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		col.add_child(nw)
 	return h
 
 
@@ -990,7 +969,8 @@ static func royale_tag(t: String, kind: String, px: int = R.TAG_PX, coin: float 
 			fill = R.TAG_RED
 		"locked":
 			fill = R.role("locked")["bottom"]
-			ink = R.LOCKED_TEXT
+			# pass 126 (lane UI): pass 124's short price on the tag too: the grey with the amount in red
+			ink = R.SHORT_INK
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = fill
 	sb.border_color = R.NAVY

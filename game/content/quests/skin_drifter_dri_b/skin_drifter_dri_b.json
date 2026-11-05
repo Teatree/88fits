@@ -1,0 +1,14 @@
+{
+  "id": "skin_drifter_dri_b",
+  "name": "Drifter · Black Hat",
+  "condition": {
+    "type": "damage_with_weapon",
+    "weapon": "revolver",
+    "count": 320000
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "drifter:DRI-B"
+  },
+  "icon": "res://content/characters/drifter/drifter_icon_b.png"
+}

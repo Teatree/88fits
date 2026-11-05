@@ -210,7 +210,7 @@ const Enemies = (() => {
     });
     out.push(list);
     const addSel = Forms.select(F.attackOptions(), '', (v) => { if (v) write((arr) => { arr.push({ name: v }); }); }, { emptyLabel: '+ attack ▾', path: 'boss.attacks.add' });
-    out.push(el('div', { class: 'alt-actions' }, addSel, el('span', { class: 'muted small', text: 'the 16 names EnemyManager knows, then the custom attacks (★, pass 72: made on the Boss attacks tab without code: a rain, a volley, a ring, a slam or a built-in with your numbers)' })));
+    out.push(el('div', { class: 'alt-actions' }, addSel, el('span', { class: 'muted small', text: 'the 17 names EnemyManager knows, then the custom attacks (★, pass 72: made on the Boss attacks tab without code: a rain, a volley, a ring, a slam or a built-in with your numbers)' })));
     const m = iss.marks['boss.attacks'];
     if (m) out.push(el('div', { class: 'ferr ' + m.level, 'data-key': 'boss.attacks', text: m.msgs.join(' · ') }));
     if (attacks.length) out.push(sequenceLine(d, pf, doc.ui.map || 'red_canyon', tl));

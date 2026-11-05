@@ -419,6 +419,91 @@
         "die": 8
       },
       "fresh": true
+    },
+    "FAD-G": {
+      "note": "pass 126: a fire-red street jersey and black shorts: Klein edits of FAD-E's paintings, view by view (tools/gen_skin_views.py), walked on FAD-E's puppet walk",
+      "recipe": {
+        "anim_negative": "a basketball, a ball in his hands, extra arms or legs, a face on the back of his head, hunched shoulders, slouching, sloping shoulders, a plain jersey back without its number, a dull greyish jersey",
+        "seed_offset": 2311,
+        "method": "hero_pose5",
+        "pose_drivers": {
+          "front": "fadeaway_puppet_run_up",
+          "fd": "fadeaway_puppet_run_up",
+          "side": "fadeaway_puppet_run_up",
+          "bd": "fadeaway_puppet_run_up",
+          "back": "fadeaway_puppet_run_up"
+        },
+        "run_fit": "tools/dl/drivers/fadeaway_puppet_run/silhouette.json",
+        "fringe_remap": true,
+        "run_scale": {
+          "front": 0.885,
+          "fd": 0.905,
+          "side": 0.905,
+          "bd": 0.91,
+          "back": 0.915
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "stills": "g",
+        "art_prompt": "a tall, lean, athletic young Black man of about twenty with long arms and long legs, broad square shoulders held level; dark brown skin; a short rounded black afro with a red sweatband; a sly half-smile; a sleeveless fire-red street basketball jersey with black trim and a big white number 88 on the chest and the back; loose knee-length black shorts with red and white side stripes; black wristbands; short white socks and red and black high-top sneakers; arms relaxed at his sides, empty hands",
+        "anim_hint": "a tall athletic young Black man with dark brown skin and a short rounded black afro with a red sweatband, in a sleeveless fire-red street basketball jersey with black trim and a big white number 88 on the front and on the back, black knee-length shorts with red and white side stripes, black wristbands and red and black high-top sneakers; he runs tall with his back straight, his chest up and both shoulders square and level",
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                48,
+                175
+              ],
+              [
+                250,
+                335
+              ]
+            ],
+            "to": 20,
+            "sat": 0.3,
+            "min_sat": 0.06
+          }
+        ]
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Streetball",
+        "price": 2500,
+        "currency_type": "gold",
+        "unlock_quest": "skin_fadeaway_fad_g"
+      },
+      "sprite": "fadeaway_sprite_g.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "icon": "fadeaway_icon_g.png",
+      "title": "hero_fadeaway_g.png"
     }
   },
   "anim_negative": "no basketball, no extra arms or legs, no face on the back view, no text"

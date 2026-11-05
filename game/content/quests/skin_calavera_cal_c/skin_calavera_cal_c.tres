@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/characters/calavera/calavera_icon_c.png" id="1_xqyjd"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_87xvl"]
+
+[resource]
+script = ExtResource("2_87xvl")
+condition = {
+"id": "guitarra",
+"kind": "weapon",
+"level": 5.0,
+"type": "item_level"
+}
+unlocks = {
+"id": "calavera:CAL-C",
+"type": "skin"
+}
+id = "skin_calavera_cal_c"
+display_name = "Calavera · Sangre"
+icon = ExtResource("1_xqyjd")
+icon_file = "res://content/characters/calavera/calavera_icon_c.png"

@@ -189,7 +189,7 @@ func _stages() -> void:
 	current_scene.scroll.scroll_vertical = 999999
 	await _wait(0.4)
 	await _shot("18b-stages-scrolled")
-	_save.data["stages_beaten"] = {"red_canyon": [true, true, true]}
+	_save.data["stages_beaten"] = {"red_canyon": [true, true, true, true]}
 	_save.data["seen"] = {"enemy": ["tumbleweed_king", "gila_grande", "brander"]}
 	await _scene("res://ui/StagesScreen.tscn")
 	await _wait(0.6)
@@ -1425,7 +1425,9 @@ func _grind_moment() -> void:
 ## asked), 40f-heroes-looks (Fadeaway owned, Purple Reign on sale in the strip), 40g-heroes-scrolled (the page at its
 ## foot: the grid over the tab bar); 41-hero-details (DETAILS · ALL STATS, the mock's 5_Hero_details), 41b-hero-details-items
 ## (scrolled to the items), 41c-hero-details-looks (Fadeaway's, at its foot), 41d-hero-details-onsale and
-## 41e-hero-details-locked (a hero not owned). Under Wanted nothing reaches the screen: 40-heroes is today's way to the
+## 41e-hero-details-locked (a hero not owned). Pass 126 (lane UI): 40g is the page at its foot under the locked picker, 40i the
+## Buy this look? question with its coin, 40j the picker with the hidden heroes previewed (a third row: its own thumb, scrolled).
+## Under Wanted nothing reaches the screen: 40-heroes is today's way to the
 ## heroes (the title, its hero drawer open), 40b/40c the title showing that hero, and the 41 states today's sheet over the
 ## title. The save's heroes, quests, looks and gold go back after.
 func _heroes_shots() -> void:
@@ -1527,6 +1529,25 @@ func _heroes_shots() -> void:
 			await _shot("40h-heroes-looks-popup")
 			host.call("on_back")
 			await _wait(0.4)
+		# pass 126: the look's question, its deed wearing the coin; then short of it: the tile's grey price with the amount in red
+		if host.has_method("ask_buy_look"):
+			host.call("ask_buy_look", "FAD-B")
+			await _wait(0.7)
+			await _shot("40i-heroes-buy-look-confirm")
+			_cancel_confirm(host)
+			await _wait(0.2)
+			if host.has_method("looks_open") and bool(host.call("looks_open")):
+				host.call("on_back")
+			await _wait(0.4)
+			_save.data["gold"] = 600
+			host.refresh()
+			host.call("open_looks")
+			await _wait(0.6)
+			await _shot("40l-heroes-looks-short")
+			host.call("on_back")
+			await _wait(0.4)
+			_save.data["gold"] = 104711
+			host.refresh()
 		host.show_hero(dr)
 		await _wait(0.4)
 		var sc: ScrollContainer = host.get("scroll")
@@ -1534,6 +1555,20 @@ func _heroes_shots() -> void:
 		await _wait(0.5)
 		await _shot("40g-heroes-scrolled")
 		sc.scroll_vertical = 0
+		# pass 126: a roster past two rows moves in its own list
+		var settings := root.get_node("Settings")
+		settings.preview_locked_heroes = true
+		host.refresh()
+		await _wait(0.3)
+		var gs: ScrollContainer = host.get("grid_scroll")
+		if gs:
+			await _shot("40j-heroes-picker-more")
+			gs.scroll_vertical = int(gs.get_v_scroll_bar().max_value)
+			await _wait(0.3)
+			await _shot("40k-heroes-picker-scrolled")
+		settings.preview_locked_heroes = false
+		host.refresh()
+		await _wait(0.2)
 	var s3: Control = sheet_script.open(host, fad, false)
 	await _wait(0.8)
 	var looks: Control = s3.find_child("Looks", true, false)

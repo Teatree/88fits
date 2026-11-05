@@ -1,0 +1,135 @@
+{
+  "id": "black_sunday",
+  "name": "Black Sunday",
+  "flavour": "The day the sky came down. He stayed.",
+  "archetype": "boss",
+  "brain": "boss",
+  "hp": 7500,
+  "speed": 1.5,
+  "damage": 27,
+  "knockback": 7.0,
+  "radius": 2.2,
+  "size": 5.6,
+  "blood": "#C9A15A",
+  "pack_size": 1,
+  "drops": {
+    "large": 1.0,
+    "gold": 1.0,
+    "chests": 2,
+    "coins": 44
+  },
+  "frame_px": 256,
+  "xp_mult": 75,
+  "boss": {
+    "chest": {
+      "name": "Collection Box",
+      "shine": "#d9a35a",
+      "model": "res://art/props/meta/boss_chest_black_sunday.glb",
+      "art": "res://art/ui/wanted/bosschest/black_sunday_%s.png"
+    },
+    "hp_mult_per_stage": 2.0,
+    "attacks": [
+      {
+        "name": "roll",
+        "windup": 1.0,
+        "speed": 13.5,
+        "duration": 1.1,
+        "damage": 30,
+        "telegraph": "line"
+      },
+      {
+        "name": "spawn_ring",
+        "windup": 0.8,
+        "enemy": "straw_man",
+        "count": 14,
+        "telegraph": "none"
+      },
+      {
+        "name": "whirl",
+        "windup": 1.4,
+        "telegraph": "ring",
+        "radius": 4.5,
+        "seconds": 6.0,
+        "damage": 26,
+        "toss": {
+          "up": 13.4,
+          "out": 7.2,
+          "cooldown": 1.6
+        },
+        "lift": 1.7,
+        "lift_height": 4.5,
+        "fling": 2.0,
+        "landing_damage": 0.75,
+        "dazed": {
+          "seconds": 2.5,
+          "damage_taken": 1.5
+        },
+        "speed": 3.2,
+        "turn": 150.0,
+        "landing_damage_big": 0.12,
+        "max_range": 20.0
+      },
+      {
+        "name": "tumbleweed_volley",
+        "windup": 0.8,
+        "count": 14,
+        "speed": 10.0,
+        "life": 2.6,
+        "damage": 15,
+        "knockback": 14,
+        "lift": 2.5,
+        "telegraph": "spokes",
+        "trail": {
+          "style": "line",
+          "colour": "#5A3F22",
+          "alpha": 0.58,
+          "width": 0.5,
+          "life": 0.75,
+          "puffs": 0.11
+        }
+      },
+      {
+        "name": "black_blizzard"
+      }
+    ],
+    "cooldown_between": 2.1
+  },
+  "sfx": {
+    "spawn": "en_boss_roar",
+    "attack": "en_boss_attack",
+    "die": "en_boss_die",
+    "hit": "en_goblin_hit"
+  },
+  "placeholder": {
+    "color": "#23201E",
+    "eyes": 2,
+    "shape": "tall"
+  },
+  "art_prompt": "a giant gaunt scarecrow preacher boss, very tall and very thin, wearing a long tattered black preacher's coat with a ragged hem, buttoned up to the neck, and a flat wide-brimmed black hat, a pale burlap sack for a head with a crude wide stitched grin and two small glowing amber eyes, dry golden straw poking out of the collar and out of both cuffs, long thin arms hanging at its sides ending in straw hands, thin black trousers and worn black boots, two arms and two legs",
+  "motion": "walking in place with a slow lurching stride, his long thin legs stepping one after the other, his tattered coat flapping in a strong wind, straw shaking at the cuffs, his head steady with the same fixed stitched grin, the mouth never moving",
+  "anim_negative": "extra arms, a third arm, extra legs, extra heads, wings, a bible, a cross, a gun, a pitchfork, a held object",
+  "dead_hint": "lying flat on its back, dead: its body stretched out sideways across the picture with its head on the left and its boots on the right, its one flat black hat still on its head and no other hat anywhere, nothing lying beside it, its amber eyes gone dark, straw spilling from its cuffs and collar",
+  "back_hint": "Its back is to the viewer: the long tattered black coat seen from behind with straw at the collar, the flat wide-brimmed black hat from behind, both long thin arms hanging down, no face visible.",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "doc": "The Dust Bowl's boss. A charge down a line, a ring of Straw Men, a volley of tumbleweeds, a rare black blizzard. His own attack is the whirl: he becomes a tornado for six seconds and hunts the hero, flinging his own crowd round him (it hurts them when they land) and throwing the hero; then he stumbles out dazed for two and a half seconds, taking half as much damage again. Pays two chests and forty-four coins.",
+  "strip_cols": 40,
+  "head": 0.996,
+  "screen": "blue",
+  "anim_seed": 1000,
+  "match_still": true,
+  "run_scale": {
+    "front": 0.9
+  }
+}

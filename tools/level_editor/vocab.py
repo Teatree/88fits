@@ -62,6 +62,11 @@ ATTACKS = {
     "stomp": {"keys": {"stomps": 3, "gap": 0.45, "jump": {}, "radius": 6.0, "damage": 18.0, "knockback": 6.0, "lift": None}, "telegraph": "ring", "needs_ring_at_hero": False},
     "tail_sniper": {"keys": {"count": 3, "gap": 0.6, "aim": 1.0, "lock": 0.4, "lines": 8, "cone_deg": 40.0, "damage": 30.8, "damage_from": "", "damage_mult": 2.0,
                              "beam": {}, "muzzle": {}, "sfx": {}}, "telegraph": "none", "needs_ring_at_hero": False},
+    # pass 126 (lane BOSS): Black Sunday becomes the storm (core/systems/BossWhirl.gd DEFAULTS; toss {up, out, cooldown},
+    # dazed {seconds, damage_taken}, look {color, height, funnel, opacity, skirt_opacity, flip_hz, hover, rim, rim_color, ring_color, ring_alpha, edge_color, dazed_tint, shake})
+    "whirl": {"keys": {"radius": 5.0, "seconds": 6.0, "speed": 3.2, "turn": 150.0, "damage": 26.0, "toss": {}, "lift": 1.7, "lift_height": 4.5, "fling": 2.0,
+                       "landing_damage": 0.75, "landing_damage_big": 0.12, "dazed": {}, "look": {}, "sound": "wd_dust_devil", "end_sound": "en_boulder_land"},
+              "telegraph": "ring", "needs_ring_at_hero": False},
 }
 # the telegraph keys each kind reads (EnemyManager.gd 3638-3676), with defaults
 TELEGRAPH_KEYS = {"line": {"length": None}, "ring": {"radius": 6.0}, "ring_at_hero": {"radius": 5.0},
@@ -214,7 +219,7 @@ PLAYER_DEFAULTS = {
     "execute_frac": 0.0, "thorns": 0.0, "adrenaline_speed": 0.0, "adrenaline_might": 0.0, "overkill": 0.0,
     "cooldown_on_kill": 0.0, "xp_gain": 1.0, "ricochet": 0.0, "homing_turn": 1.0, "haste": 1.0, "evade": 0.0,
     "evade_invuln": 0.0, "shield_max": 0.0, "shield_delay": 3.0, "shield_rate": 0.5, "regen_delay": 3.0,
-    "lifesteal_cap": 0.04, "heal_drop": 0.0, "coin_drop": 0.0, "hit_invuln": 0.25, "revive_hp": 0.5, "desperado": 0.0,
+    "lifesteal_cap": 0.03, "heal_drop": 0.0, "coin_drop": 0.0, "hit_invuln": 0.25, "revive_hp": 0.5, "desperado": 0.0,
     "debuff_duration": 1.0, "difficulty": 0.0, "still_regen": 0.0, "still_might": 0.0, "barrel_speed": 0.0,
     "barrel_seconds": 0.0, "xp_drop_chance": 0.0, "elite_damage": 0.0, "phoenix_revive": 0.0, "hurt_speed": 0.0,
     "hurt_speed_seconds": 0.0, "powder_keg_chance": 0.0, "coin_on_hit": 0.0, "gas_mask_cap": 0.0, "kill_might": 0.0,
@@ -238,6 +243,8 @@ PLAYER_DEFAULTS = {
     "crit_arcs": 0.0, "crit_arc_pct": 0.0, "crit_arc_stun": 0.0, "grave_every": 0.0, "grave_max": 0.0, "grave_seconds": 0.0,
     "grave_damage_pct": 0.0, "purse_might_per": 0.0, "purse_might_cap": 0.0, "purse_hp_per": 0.0, "purse_hp_cap": 0.0,
     "hit_cap_pct": 0.0, "boss_hit_cap_pct": 0.0, "hit_block_every": 0.0,
+    # pass 126 (lane ITEMS): the Assayer's Scale's pay for a spent skip; the Canteen
+    "skip_coins": 0.0, "skip_xp": 0.0, "water_walk": 0.0, "leave_water_regen": 0.0, "leave_water_seconds": 0.0, "water_damage": 0.0,
 }
 # player stats the code reads that are not in PLAYER_DEFAULTS (default 0 from get_stat); content uses them all
 PLAYER_STATS_EXTRA = {"brand_chance": 0.0, "fire_vuln": 0.0, "poison_slow": 0.0, "poison_pass": 0.0}
@@ -320,6 +327,10 @@ STAT_NAMES = {
     "hit_cap_pct": ["most a hit takes", "rule"],
     "boss_hit_cap_pct": ["most a boss's hit takes", "rule"],
     "hit_block_every": ["seconds between blocks", "rule"],
+    # pass 126 (lane ITEMS)
+    "skip_coins": ["coins a skip pays", "num"], "skip_xp": ["next level's XP a skip pays", "pct"],
+    "water_walk": ["water no longer slows you", "word"], "leave_water_regen": ["HP a second after leaving water", "num"],
+    "leave_water_seconds": ["healing after leaving water", "sec"], "water_damage": ["damage to enemies in water", "pct"],
 }
 # pass 69: what each new stat does, in a line (the effect pickers show it); lane PAS's help texts
 STAT_HELP = {
@@ -350,6 +361,13 @@ STAT_HELP = {
     "boss_danger_attack": "Stakes (Boss): bosses' and Elites' attack",
     "boss_danger_speed": "Stakes (Boss): bosses' and Elites' walking speed",
     "boss_danger_bounty": "Stakes (Boss): bosses' and Elites' XP, coins and purses (never written in the game)",
+    # pass 126 (lane ITEMS; BALANCING 68.ITEMS)
+    "skip_coins": "Assayer's Scale: gold into the purse for every skip spent on a level-up, a mutation offer or a chest (through coin gain); a banish or a reroll pays nothing",
+    "skip_xp": "Assayer's Scale: XP for every skip spent, this share of what the next level needs (0.05 = 5%, Field Notes does not raise it); it can level the hero, and the cards wait their turn",
+    "water_walk": "Canteen: above 0, water never slows the hero (the map's water_slow); creatures still wade. Said in words, never with a number",
+    "leave_water_regen": "Canteen: HP a second while the heal after leaving water runs (through Player.heal, credited to the item); nothing while he is in water",
+    "leave_water_seconds": "Canteen: how long the heal runs after he walks out of a lake (Buff duration stretches it); walking out again starts it anew, it never stacks; 0 = no heal",
+    "water_damage": "Canteen (Evolved): extra damage on a creature standing in water, from everything the hero sends (0.25 = +25%)",
     # pass 118 (lane ITEMS): any stat named chest_<stat> banks <stat> (Run.chest_opened)
     "chest_luck": "Jade Key: every chest opened while it is held banks this much luck (0.01 = +1%) for the rest of the run; a later level raises only the chests after it",
     "chest_might": "Ruby Key: every chest opened while it is held banks this much attack damage (0.02 = +2%, the chests summed) for the rest of the run; a later level raises only the chests after it",

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/characters/ironwood/ironwood_icon_b.png" id="1_6jvjd"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_vc38g"]
+
+[resource]
+script = ExtResource("1_vc38g")
+condition = {
+"count": 40.0,
+"type": "totems_total"
+}
+unlocks = {
+"id": "ironwood:IRN-B",
+"type": "skin"
+}
+id = "skin_ironwood_irn_b"
+display_name = "Ironwood · Winter Pelt"
+icon = ExtResource("1_6jvjd")
+icon_file = "res://content/characters/ironwood/ironwood_icon_b.png"

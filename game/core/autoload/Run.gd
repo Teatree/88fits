@@ -100,11 +100,18 @@ var start_stats_hero := ""
 ## Timed buffs from pickups: {"id", "label", "effects", "source", "until"}; re-applied whenever the sheet is rebuilt.
 var timed: Array = []
 var lifesteal_pool := 0.0
-## the most of max HP a second lifesteal may heal, whatever the damage
-const LIFESTEAL_CAP := 0.04
+## the most of max HP a second lifesteal may heal, whatever the damage (pass 126, lane ITEMS; Garry: "It's too powerful at
+## the moment. Make it about 25% less effective": 4% -> 3%, StatSheet's default with it)
+const LIFESTEAL_CAP := 0.03
 var _lifesteal_second := 0.0
 var _lifesteal_healed_this_second := 0.0
 signal lifesteal_healed(amount: float)
+## Pass 126 (lane ITEMS): the Assayer's Scale paid a spent skip (_pay_skip): the coins after greed, the XP as it landed
+## (Game's toast; the purse and the bar follow by their own signals).
+signal skip_paid(coins: int, xp: float)
+## Pass 126 (lane ITEMS): seconds left of the Canteen's heal after leaving water (Player._tick_canteen ticks it; 0 = off;
+## the HUD's word reads it).
+var canteen_left := 0.0
 ## Buck's momentum: 0..1, applied to the sheet as a speed and might bonus (CharacterDef.momentum in the JSON)
 var momentum := 0.0
 ## Berserk: the hero's weapon speed (1 = normal, 2 = twice as fast), cached off the sheet for the behaviours' own clocks
@@ -394,6 +401,7 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	lifesteal_pool = 0.0
 	_lifesteal_second = 0.0
 	_lifesteal_healed_this_second = 0.0
+	canteen_left = 0.0
 	momentum = 0.0
 	momentum_def = p_character.momentum if p_character else {}
 	heat = 0
@@ -1270,7 +1278,30 @@ func use_skip() -> bool:
 	if skips_left <= 0:
 		return false
 	skips_left -= 1
+	_pay_skip()
 	return true
+
+
+## Pass 126 (lane ITEMS; Garry: "Assayer's Scale - I like this one, make it a Rare Passive Item. Don't make Banish pay
+## too"; the book: "Skipping a card or chest pays 25 coins and 5% of the next level's XP, and levels raise both"): a skip
+## spent pays the item's `skip_coins` into the purse (through coin gain, as all gold) and its `skip_xp` share of what the
+## next level needs (exact: Field Notes does not raise it, as a boss chest's XP). use_skip is the one place a skip is
+## spent (the level-up's and the mutation offer's SKIP, a chest's through chest_skip), so each pays once; a reroll, a
+## banish and a table a banish emptied spend none and pay nothing. The XP can level him: Game banks the level and its
+## cards wait their turn behind the screen closing (_on_level_up), and a further skip needs a further charge. No dice: a
+## replay's recorded skip pays the same (57.REPLAY).
+func _pay_skip() -> void:
+	var coins := player_sheet.get_int("skip_coins")
+	var share := maxf(player_sheet.get_stat("skip_xp", 0.0), 0.0)
+	if coins <= 0 and share <= 0.0:
+		return
+	var purse := run_gold
+	if coins > 0:
+		add_gold(coins, "skip_pay")
+	var got := xp_to_next() * share
+	if got > 0.0:
+		add_xp(got / maxf(player_sheet.get_stat("xp_gain", 1.0), 0.0001))
+	skip_paid.emit(run_gold - purse, got)
 
 
 ## Spends a banish (pass 47). False when the stage has none left.
@@ -2663,6 +2694,14 @@ func stage_mult() -> float:
 	if map == null or map.timeline == null:
 		return 1.0
 	return map.timeline.stage_mult(stage)
+
+
+## Pass 126 (lane STAGE): what the hero's side reads of the stage's strength (the coin factor, the stage-scaled items): the
+## stage's `reward_mult`, else stage_mult (WaveTimeline.stage_reward_mult; pass 126 parted the two for the Blood Moon).
+func reward_mult() -> float:
+	if map == null or map.timeline == null:
+		return 1.0
+	return map.timeline.stage_reward_mult(stage)
 
 
 ## Pass 116 (lane RESULTS): the growth steps Endless has reached: the wave's (wave - 1) less what an open Wanted poster

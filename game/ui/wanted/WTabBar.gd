@@ -5,7 +5,9 @@
 ## under it to the screen's edge), a 4 px navy top edge and a 10 % white lip; five tabs STORE, HEROES, BATTLE, UPGRADE,
 ## COLLECTIONS, R.DOCK_SIDE in from either side and R.DOCK_GAP apart, slate faces with their top corners rounded 8 px and
 ## no bottom edge; the open one gold, R.DOCK_TAB_H_ACTIVE tall against R.DOCK_TAB_H and R.DOCK_ACTIVE_FLEX times as wide,
-## its word navy Ultra 28; the others' words cream Rubik 700 22 with a navy drop (Garry's Ultra minimum). Each wears the
+## its word navy Ultra 28; the others' words cream Ultra 22 with a navy drop (pass 126; Garry: "It's weird that the font changes
+## when I tap that button. Make it so it's the same westerny style font": one face open or not, over his Ultra minimum, and a word
+## too long for its tab shrinks to fit: _fit_word). Each wears the
 ## game's own icon: STORE the Hush Money sack (greyed), HEROES the hero the title opens on in the look he is played in
 ## (his round badge in a navy ring), BATTLE the Revolver, UPGRADE the crown of Stakes' Boss form, COLLECTIONS the Field
 ## Notes card in its played look.
@@ -33,6 +35,10 @@ const SCENES := {"store": "", "heroes": "res://ui/HeroesScreen.tscn", "battle": 
 	"upgrade": "res://ui/HomesteadScreen.tscn", "collections": "res://ui/CollectionScreen.tscn"}
 ## The locked tab's icon: desaturated and darker (the mock's saturate(.15) brightness(.8)).
 const GREY_SHADER := "shader_type canvas_item;\nvoid fragment() {\n\tvec4 c = COLOR;\n\tfloat l = dot(c.rgb, vec3(0.299, 0.587, 0.114));\n\tCOLOR = vec4(mix(vec3(l), c.rgb, 0.15) * 0.8, c.a);\n}\n"
+
+## Pass 126: what a word keeps clear of its tab's sides, and the smallest it shrinks to.
+const WORD_PAD := 16.0
+const WORD_MIN_PX := 14
 
 ## The tab of the screen the bar sits on.
 var active := "battle"
@@ -218,18 +224,37 @@ func _make_tab(id: String) -> WTap:
 	t.add_child(v)
 	v.add_child(_icon(id, on, lk))
 	var px := R.DOCK_WORD_ACTIVE_PX if on else R.DOCK_WORD_PX
-	var word := W.text(str(WORDS[id]), W.slab_for(px), px, R.NAVY if on else R.CREAM, HORIZONTAL_ALIGNMENT_CENTER, float(px))
+	var word := W.text(str(WORDS[id]), R.display(), px, R.NAVY if on else R.CREAM, HORIZONTAL_ALIGNMENT_CENTER, float(px))
 	word.name = "Word"
+	# pass 126: W.text sets a display size under R.ULTRA_MIN in Rubik; the bar keeps its one face in every state
+	word.font = R.display()
 	if on:
 		R.no_edge(word)
 	else:
-		# Rubik 700 by the Ultra minimum: the mock's 2 px navy drop keeps it off the slate
+		# the mock's 2 px navy drop keeps it off the slate
+		word.stroke = 0
 		word.shadow = 2
 		word.shadow_color = R.NAVY
 		word.shadow_straight = true
+	_fit_word(word, on)
 	v.add_child(word)
 	t.pressed.connect(press.bind(id))
 	return t
+
+
+## Pass 126: Ultra is wide: a word longer than its tab (COLLECTIONS) drops a px at a time until it fits, its line box kept so
+## every word in the bar sits on the same line.
+func _fit_word(word: WText, on: bool) -> void:
+	var room := tab_width(on) - WORD_PAD
+	while word.font_size > WORD_MIN_PX and word.text_width() > room:
+		word.font_size -= 1
+
+
+## A tab's width on the design's 1080 canvas (a wider screen only gives it more).
+static func tab_width(on: bool) -> float:
+	var n := float(TABS.size())
+	var unit := (1080.0 - 2.0 * R.DOCK_SIDE - R.DOCK_GAP * (n - 1.0)) / (n - 1.0 + R.DOCK_ACTIVE_FLEX)
+	return unit * (R.DOCK_ACTIVE_FLEX if on else 1.0)
 
 
 func _icon(id: String, on: bool, lk: bool) -> Control:

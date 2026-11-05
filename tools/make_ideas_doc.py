@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Pass 124: the ideas document for Garry -> docs/ideas/outlaw_ideas.html (one self-contained page, the art embedded).
 Words and prompts: docs/ideas/content.py. Art: tools/gen_ideas_art.py -> docs/ideas/art/.
+Pass 126: the "Building in pass 126" tags, the new dust map ideas and the Upgrade board's section (mocks: tools/ideas_mocks.py).
 
     python tools/make_ideas_doc.py
 """
@@ -9,6 +10,7 @@ import html
 import importlib.util
 import os
 import re
+import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 ART = os.path.join(ROOT, "docs", "ideas", "art")
@@ -16,6 +18,8 @@ OUT = os.path.join(ROOT, "docs", "ideas", "outlaw_ideas.html")
 spec = importlib.util.spec_from_file_location("ideas_content", os.path.join(ROOT, "docs", "ideas", "content.py"))
 C = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(C)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import ideas_mocks as M  # pass 126: the Upgrade board's phone mocks
 
 
 def e(s):
@@ -36,15 +40,24 @@ def img(i, alt=""):
     return '<img src="data:image/jpeg;base64,%s" alt="%s">' % (b, html.escape(alt, quote=True))
 
 
+# Pass 126 (Garry picked these from the book): a tag on the card's name and a line saying what's being built.
+def build_pill(i):
+    return ' <span class="pill build">Building in pass 126</span>' if i in C.BUILDING_NOW else ""
+
+
+def build_line(i):
+    return '<p class="buildline">%s</p>' % md(C.BUILDING_NOW[i]) if i in C.BUILDING_NOW else ""
+
+
 def past_card(x):
-    return ('<article class="card"><div class="pic">%s</div><div class="body"><h3>%s</h3><p class="tag">%s</p><p>%s</p><p class="why"><b>What it adds:</b> %s</p></div></article>'
-            % (img(x["id"], x["name"]), e(x["name"]), e(x["tag"]), md(x["what"]), md(x["adds"])))
+    return ('<article class="card"><div class="pic">%s</div><div class="body"><h3>%s%s</h3><p class="tag">%s</p>%s<p>%s</p><p class="why"><b>What it adds:</b> %s</p></div></article>'
+            % (img(x["id"], x["name"]), e(x["name"]), build_pill(x["id"]), e(x["tag"]), build_line(x["id"]), md(x["what"]), md(x["adds"])))
 
 
 def var_card(x, wild=False):
-    return ('<article class="wide%s"><div class="pic">%s</div><div class="body"><h3>%s</h3><p class="tag">%s</p>'
+    return ('<article class="wide%s"><div class="pic">%s</div><div class="body"><h3>%s</h3><p class="tag">%s</p>%s'
             '<dl><dt>The look</dt><dd>%s</dd><dt>Why it reads as a new place</dt><dd>%s</dd><dt>What it changes in play</dt><dd>%s</dd><dt>What it costs</dt><dd>%s</dd></dl></div></article>'
-            % (" wild" if x["name"].startswith("WILD") else "", img(x["id"], x["name"]), e(x["name"].replace("WILD: ", "")) + (' <span class="pill hot">wild</span>' if x["name"].startswith("WILD") else ""), e(x["tag"]),
+            % (" wild" if x["name"].startswith("WILD") else "", img(x["id"], x["name"]), e(x["name"].replace("WILD: ", "")) + (' <span class="pill hot">wild</span>' if x["name"].startswith("WILD") else "") + build_pill(x["id"]), e(x["tag"]), build_line(x["id"]),
                md(x["look"]), md(x["apart"]), md(x["play"]), md(x["cost"])))
 
 
@@ -54,8 +67,8 @@ def gen_card(x):
         pic = DIAGRAM_BIOMES
     elif x["id"] == "gen_hard":
         pic = DIAGRAM_HARD
-    return ('<article class="card"><div class="pic">%s</div><div class="body"><h3>%s</h3><p class="tag">%s</p><p>%s</p><p class="why"><b>Why:</b> %s</p><p class="cost"><b>Cost:</b> %s</p></div></article>'
-            % (pic, e(x["name"]), e(x["tag"]), md(x["what"]), md(x["why"]), md(x["cost"])))
+    return ('<article class="card"><div class="pic">%s</div><div class="body"><h3>%s%s</h3><p class="tag">%s</p>%s<p>%s</p><p class="why"><b>Why:</b> %s</p><p class="cost"><b>Cost:</b> %s</p></div></article>'
+            % (pic, e(x["name"]), build_pill(x["id"]), e(x["tag"]), build_line(x["id"]), md(x["what"]), md(x["why"]), md(x["cost"])))
 
 
 def enemy_card(x, extra=""):
@@ -75,8 +88,8 @@ def old_item(x):
 
 
 def new_item(x, slot):
-    return ('<article class="item"><div class="ico">%s</div><div class="body"><h3>%s</h3><p class="tag">%s</p><p class="gap"><b>The hole it fills:</b> %s</p><p>%s</p><p class="why"><b>The choice:</b> %s</p></div></article>'
-            % (img(x["id"], x["name"]), e(x["name"]), slot, md(x["gap"]), md(x["text"]), md(x["choice"])))
+    return ('<article class="item"><div class="ico">%s</div><div class="body"><h3>%s%s</h3><p class="tag">%s</p>%s<p class="gap"><b>The hole it fills:</b> %s</p><p>%s</p><p class="why"><b>The choice:</b> %s</p></div></article>'
+            % (img(x["id"], x["name"]), e(x["name"]), build_pill(x["id"]), slot, build_line(x["id"]), md(x["gap"]), md(x["text"]), md(x["choice"])))
 
 
 def tle_card(x, pvp=False):
@@ -110,7 +123,88 @@ DIAGRAM_HARD = ('<div class="minis">' + mini(
     '<path d="M108 74l10 -14 10 14Z" fill="#ffd35c"/><text x="52" y="143" font-size="12" fill="#1a2440">a ring with two ways in</text>', "A ring of rock") + '</div>')
 
 
+# ------------------------------------------------------------------ pass 126: two more map ideas under Garry's rule
+def new_map_card(x):
+    return ('<article class="wide"><div class="pic">%s</div><div class="body"><h3>%s</h3><p class="tag">%s</p>'
+            '<dl><dt>What it looks like</dt><dd>%s</dd><dt>Why it\'s worth having</dt><dd>%s</dd><dt>How it obeys your rule</dt><dd>%s</dd><dt>What it costs</dt><dd>%s</dd></dl></div></article>'
+            % (img(x["id"], x["name"]), e(x["name"]), e(x["tag"]), md(x["look"]), md(x["why"]), md(x["rule"]), md(x["cost"])))
+
+
+# ------------------------------------------------------------------ pass 126: the Upgrade board's section
+def paras(*xs):
+    return "".join("<p>%s</p>" % md(x) for x in xs)
+
+
+def table_ecw(cls, head, rows, nums=()):
+    th = "".join('<th%s>%s</th>' % (' class="n"' if k in nums else "", e(h)) for k, h in enumerate(head))
+    tr = "".join("<tr>%s</tr>" % "".join('<td%s>%s</td>' % (' class="n"' if k in nums else "", md(v)) for k, v in enumerate(r)) for r in rows)
+    return '<div class="ecw"><table class="%s"><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>' % (cls, th, tr)
+
+
+def upgrade_section():
+    st = M.tree_stats(C)
+    bt = M.belt_stats(C)
+    F = lambda x: M.fill_words(x, st, bt)
+    runs = lambda g: "%s" % M.num(g / float(M.VERY_GOOD_RUN))
+    n = M.num
+    today = ('<div class="today">'
+             '<figure>%s<figcaption><b>The board today</b>, early on, with plenty of gold.</figcaption></figure>'
+             '<figure>%s<figcaption><b>A short purse</b>, 2,000 gold: grey buttons with red numbers.</figcaption></figure>'
+             '<figure>%s<figcaption><b>Buying a rank</b>: the pop-up where the real choice happens.</figcaption></figure></div>'
+             % (M.today_img("board", "Today's Upgrade board"), M.today_img("short", "Today's board with a short purse"), M.today_img("choose", "Today's choice pop-up")))
+    why = "".join("<div><h4>%s</h4><p>%s</p></div>" % (e(a), md(b)) for a, b in C.UP_TODAY_WHY)
+    # A
+    ap = ('<div class="phones">' +
+          M.phone(M.a_main(C, st), "<b>The main screen.</b> Row 20 of 64. Field Notes taken at the fork below, Poultice closed. One purchase on offer, in the dock.") +
+          M.phone(M.a_fork(C, st), "<b>A fork.</b> The dock's button turns blue (it opens something). Two sides, three nodes each, in the same pop-up the game uses today.") +
+          M.phone(M.a_mile(C, st), "<b>A milestone.</b> Higher up, the sky has turned to dust. Bigger, dearer, and it gets its moment.") +
+          M.phone(M.a_hero(C, st), "<b>A hero node.</b> Just a hero, at today's price, as the first stop in Nightfall.") +
+          '<div class="spanrest"><h5 style="margin-top:0">The four kinds of node</h5><div class="kinds">%s</div>%s</div></div>'
+          % ("".join("<div><h4>%s</h4><p>%s</p></div>" % (e(a), md(b)) for a, b in C.UP_A["kinds"]), paras(C.UP_A["stakes"], C.UP_A["scroll"])))
+    plural = lambda k, w: "%d %s%s" % (k, w, "" if k == 1 else "s")
+    sec_rows = [["**%s**, rows %d to %d" % (x["name"], x["first"], x["last"]), "%s, %s, %s" % (plural(x["forks"], "fork"), plural(x["miles"], "milestone"), plural(x["heroes"], "hero").replace("heros", "heroes")),
+                 "**%s** (%s runs)" % (n(x["cum"]), runs(x["cum"])), x["ready"]] for x in st["secs"]]
+    sec_tab = table_ecw("ectab", ["Section", "What's in it", "Gold by its top (very good runs)", "What it's for"], sec_rows)
+    cmp_rows = [[str(rk), "%s (%s runs)" % (n(tg), runs(tg)), "%s (%s runs)" % (n(tt), runs(tt))] for rk, tg, tt in st["compare"]]
+    cmp_tab = table_ecw("ectab", ["Ranks held, Stakes aside", "Today, cheapest first (very good runs)", "The tree, heroes aside (very good runs)"], cmp_rows)
+    decide = "".join("<li>%s</li>" % md(x) for x in C.UP_A["decide"])
+    a = ('<section class="propo" id="upa"><h3 style="font-size:28px">Proposal A: The Tree <span class="pill build" style="background:var(--gold);color:#2b2410">Yours</span></h3>'
+         '<p class="quote">"%s"</p>' % e(C.UP_A_QUOTE) + paras(C.UP_A["how"]) + ap +
+         '<h5>The whole tree, drawn from the game\'s real upgrades</h5><p>Every node in order, with its price. It goes up, so read each part from its foot. Icons, steps and hero prices are the game\'s own; milestones wear icons it already has.</p>' +
+         M.strips_html(C, st) +
+         '<h5>What it costs to climb</h5>' + paras(C.UP_A["economy"]) + sec_tab + cmp_tab +
+         paras("The whole tree is **%s** gold, or %s with the seven heroes, against 339,500 for the board today without Stakes (353,500 with). A very good Stage 1 run is 1,140, and the best Stage 2 runs pay about three or four times that, so the last rows go faster than the table says." % (n(st["total_power"]), n(st["total"]))) +
+         '<h5>Balancing, content, old saves</h5>' + paras(C.UP_A["balance"], C.UP_A["extend"], C.UP_A["content"]) + '<pre class="j">%s</pre>' % e(C.UP_A["json_"]) +
+         paras(C.UP_A["migrate"], C.UP_A["cost"]) + '<h5>What I need from you if you pick this</h5><ol>%s</ol></section>' % decide)
+    # B
+    bp = ('<div class="phones">' +
+          M.phone(M.b_main(), "<b>The belt.</b> The Drifter with five pouches open. Frames climb the rarity colours with level. Every charm you own sits below.") +
+          M.phone(M.b_charm(), "<b>A charm.</b> Tempo: level it up with gold, or swap it in for free in place of Muscle or Padding. The pair is still the question.") +
+          M.phone(M.b_pouch(), "<b>A new pouch.</b> The only thing that lifts the ceiling, so it gets its moment.") + '</div>')
+    b = ('<section class="propo" id="upb"><h3 style="font-size:28px">Proposal B: The Gunbelt</h3>' + paras(C.UP_B["how"], C.UP_B["why"]) + bp +
+         paras(C.UP_B["look"], F(C.UP_B["economy"]), C.UP_B["balance"], C.UP_B["content"]) + '<pre class="j">%s</pre>' % e(C.UP_B["json_"]) +
+         paras(C.UP_B["migrate"], C.UP_B["cost"], C.UP_B["risk"]) + '</section>')
+    # C
+    cp = ('<div class="phones">' +
+          M.phone(M.c_main(), "<b>The street.</b> A town about a tenth of the way through the board's gold. The price shows on every building; the Saloon waits for the Doc.") +
+          M.phone(M.c_sheet(), "<b>A building.</b> Today's choice, with the same prices, and a look at what this rank does to the picture.") +
+          M.phone(M.c_grew(), "<b>It grew.</b> The moment a purchase earns: the shack is a storefront, and the row shows the road to The Works.") + '</div>')
+    c = ('<section class="propo" id="upc"><h3 style="font-size:28px">Proposal C: Main Street</h3>' + paras(C.UP_C["how"], C.UP_C["rule"], C.UP_C["why"]) + cp +
+         paras(C.UP_C["economy"], C.UP_C["balance"], C.UP_C["content"]) + '<pre class="j">%s</pre>' % e(C.UP_C["json_"]) +
+         paras(C.UP_C["migrate"], C.UP_C["cost"], C.UP_C["risk"]) + '</section>')
+    # the comparison
+    head = "".join("<th>%s</th>" % e(h) for h in C.UP_COMPARE[0])
+    rows = "".join("<tr>%s</tr>" % "".join('<td%s>%s</td>' % (' data-l="%s"' % "ABC"[k - 1] if k else "", md(F(v))) for k, v in enumerate(r)) for r in C.UP_COMPARE[1:])
+    cmp_ = '<div class="cmpw"><table class="cmp"><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>' % (head, rows)
+    rec = '<div class="reco">%s</div>' % paras(*C.UP_REC)
+    return ('<p class="quote">"%s"</p>' % e(C.UP_QUOTE) + paras(C.UP_NOTE) +
+            '<h5>Where it starts: the screen today</h5>' + today + paras(*C.UP_TODAY_FACTS) +
+            '<h5>Why it looks the way it does</h5><div class="why2">%s</div>' % why + paras(C.UP_TODAY_KEEP) +
+            a + '<div class="propo" style="border:0;padding-top:0">%s</div>' % paras(C.UP_ALSO) + b + c + '<section class="propo" id="upr"><h3 style="font-size:28px">The comparison, and what I\'d do</h3>' + cmp_ + rec + '</section>')
+
+
 def page():
+    M.keep_today_captures()
     snow_scene = "".join('<figure class="scene">%s<figcaption>%s</figcaption></figure>' % (img(x["id"], x["caption"]), e(x["caption"])) for x in C.SNOW_SCENES)
     env = "".join("<div><h4>%s</h4><p>%s</p></div>" % (e(a), md(b)) for a, b in C.SNOW_ENV)
     land = "".join("<p>%s</p>" % md(x) for x in C.SNOW_LAND)
@@ -132,6 +226,11 @@ def page():
         "@@TLEI@@": "".join("<p>%s</p>" % md(x) for x in C.TLE_INTRO),
         "@@TP@@": "".join(tle_card(x) for x in C.TLE_PVE),
         "@@TV@@": "".join(tle_card(x, True) for x in C.TLE_PVP),
+        "@@DUST2@@": "".join(new_map_card(x) for x in C.NEW_MAP_IDEAS),
+        "@@RULE@@": e(C.NEW_MAP_RULE),
+        "@@BUILDGEN@@": "".join("<li><b>%s.</b> %s</li>" % (e(a), md(b)) for a, b in C.BUILDING_GEN),
+        "@@UPGRADE@@": upgrade_section(),
+        "@@MOCKCSS@@": M.KIT_CSS + "\n" + M.asset_css(),
     }
     t = TEMPLATE
     for k, v in parts.items():
@@ -146,7 +245,7 @@ TEMPLATE = """<title>Outlaw Ideas Book</title>
 /* Layout: a long catalogue in the game's navy and gold: a section head, then grids of painted cards */
 :root { --bg:#10172c; --panel:#1a2440; --panel2:#222e50; --ink:#e9eefb; --dim:#a4b0cc; --gold:#ffd35c; --line:#2f3b5c; --hot:#ff6b8f; --green:#7fd65a;
   --display:'Ultra', Georgia, serif; --body:'Rubik', system-ui, sans-serif; color-scheme: dark; }
-body { background:var(--bg); color:var(--ink); font:400 16.5px/1.5 var(--body); padding-block:30px 70px; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); }
+body { margin:0; background:var(--bg); color:var(--ink); font:400 16.5px/1.5 var(--body); padding-block:30px 70px; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); }
 main { max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:54px; }
 h1 { font:400 clamp(36px,6vw,62px)/1.08 var(--display); margin:0 0 10px; color:#fff6dc; text-wrap:balance; }
 h2 { font:400 clamp(25px,3.6vw,36px)/1.15 var(--display); margin:0 0 8px; color:#fff6dc; text-wrap:balance; }
@@ -201,12 +300,14 @@ figure.scene figcaption { padding:9px 12px; color:var(--dim); font-size:14.5px; 
 .minis svg { width:100%; height:auto; display:block; font-family:var(--body); }
 code { font-size:.92em; color:var(--gold); }
 @media (max-width:760px) { .wide { grid-template-columns:minmax(0,1fr); } .items { grid-template-columns:minmax(0,1fr); } .item { grid-template-columns:96px minmax(0,1fr); } .item .ico img { height:96px; } }
+@@MOCKCSS@@
 </style>
 <main>
 <header>
 <h1>Outlaw Survivors: the ideas book</h1>
-<p class="lead">Everything you asked for, with concept art painted by the local AI (Flux.2 Klein on your server, in the game's style). Nothing here is built. Numbers are starting points for the Level Editor. The pictures are concepts: any words painted in them are the AI's nonsense.</p>
-<nav><a href="#last">Last time's ten ideas</a><a href="#var">Map variations</a><a href="#gen">Map generation</a><a href="#snow">The Snow Map</a><a href="#foes">Snow enemies</a><a href="#old">Items not taken</a><a href="#new">15 new items</a><a href="#tle">Time-limited events</a></nav>
+<p class="lead">Everything you asked for, with concept art painted by the local AI (Flux.2 Klein on your server, in the game's style). Only what's tagged <span class="pill build" style="margin-left:0">Building in pass 126</span> is being built; nothing else here is. Numbers are starting points for the Level Editor. The pictures are concepts: any words painted in them are the AI's nonsense.</p>
+<p class="newbox"><b>New in this update:</b> <a href="#dust2">New additional dust map variation ideas</a> and <a href="#upgrade">Restructuring the Upgrade board</a>, with three proposals and phone mocks.</p>
+<nav><a href="#last">Last time's ten ideas</a><a href="#var">Map variations</a><a href="#gen">Map generation</a><a href="#dust2">New dust map ideas</a><a href="#snow">The Snow Map</a><a href="#foes">Snow enemies</a><a href="#old">Items not taken</a><a href="#new">15 new items</a><a href="#tle">Time-limited events</a><a href="#upgrade">Restructuring the Upgrade board</a></nav>
 </header>
 
 <section id="last">
@@ -227,7 +328,16 @@ code { font-size:.92em; color:var(--gold); }
 <h2>Map generation</h2>
 <p>Why the seed doesn't feel like much today: it moves things around, but every run has the same ingredients in the same proportions, so the eye reads the same place. What makes a map memorable is <b>unevenness</b>: something big here, nothing there, a route you have to take. Seven ideas.</p>
 <p class="pickline"><b>If I had to pick:</b> Districts and Named traits first (both cheap, big effect), then One big landmark. Real walls have the largest effect on play, but they need new creature steering.</p>
+<div class="buildbox"><h4>Building in pass 126, from what you asked for</h4><ul>@@BUILDGEN@@</ul></div>
 <div class="grid">@@GEN@@</div>
+</section>
+
+<section id="dust2">
+<h2>New additional dust map variation ideas</h2>
+<p>Two more, under your rule:</p>
+<p class="quote">"@@RULE@@"</p>
+<p>Both lie flat, so they read well from the high camera on a phone, and nothing in them can block anyone. They fit the Dust Bowl's 1930s farm country and still make sense in the plain desert. Neither adds a rule to play. They're different from the telephone line, the cart and the crosses, and from everything in the section above.</p>
+@@DUST2@@
 </section>
 
 <section id="snow">
@@ -271,14 +381,20 @@ code { font-size:.92em; color:var(--gold); }
 @@TV@@
 <p class="note">Sources for the market notes: <a href="https://naavik.co/deep-dives/survivorio-archeros-footsteps/">Naavik on Survivor.io and Archero</a>, <a href="https://jwittsf.design.blog/2020/04/12/breaking-down-archeros-hero-adventure-event">Breaking down Archero's Hero Adventure event</a>, <a href="https://gameindustrylibrary.com/documents/in-game-events-snapshot-2021?page=3">GameRefinery's in-game events snapshot</a>. They're older and don't split revenue by feature, so take them as direction, not as numbers.</p>
 </section>
+
+<section id="upgrade">
+<h2>Restructuring the Upgrade board</h2>
+@@UPGRADE@@
+</section>
 </main>
 """
 
 
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    text = page()
     with open(OUT, "w", encoding="utf-8") as f:
-        f.write(page())
+        f.write(text)
     print("wrote", OUT, "%.1f MB" % (os.path.getsize(OUT) / 1048576.0))
 
 

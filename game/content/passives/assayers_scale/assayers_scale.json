@@ -1,0 +1,73 @@
+{
+  "id": "assayers_scale",
+  "name": "Assayer's Scale",
+  "flavour": "It weighs what you walked away from.",
+  "text": "Skipping a card or chest pays 25 coins and 5% of the next level's XP; levels raise both. Evolved: the pay doubles.",
+  "rarity": "rare",
+  "weight": 6,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "skip_coins",
+        "op": "add",
+        "value": 25,
+        "target": "player"
+      },
+      {
+        "stat": "skip_xp",
+        "op": "add",
+        "value": 0.05,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "skip_coins",
+        "op": "add",
+        "value": 10,
+        "target": "player"
+      },
+      {
+        "stat": "skip_xp",
+        "op": "add",
+        "value": 0.02,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "skip_coins",
+        "op": "add",
+        "value": 10,
+        "target": "player"
+      },
+      {
+        "stat": "skip_xp",
+        "op": "add",
+        "value": 0.02,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "skip_coins",
+        "op": "add",
+        "value": 45,
+        "target": "player"
+      },
+      {
+        "stat": "skip_xp",
+        "op": "add",
+        "value": 0.09,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "art_prompt": "a small brass balance scale with gold nuggets on one pan and a playing card on the other",
+  "placeholder": {
+    "color": "#C9A23A",
+    "glyph": "star"
+  }
+}

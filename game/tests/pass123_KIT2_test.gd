@@ -89,13 +89,13 @@ func test_the_tab_bar_has_five_tabs_the_open_one_gold_taller_and_wider() -> void
 	assert_float(store.position.x).is_equal_approx(float(R.DOCK_SIDE), 0.6)
 	assert_float(col.position.x + col.size.x).is_equal_approx(1080.0 - R.DOCK_SIDE, 1.2)
 	assert_float(col.position.x - (up.position.x + up.size.x)).is_equal_approx(float(R.DOCK_GAP), 1.2)
-	# the words: the open one navy Ultra 28, the rest cream Rubik 700 under the Ultra minimum
+	# the words: the open one navy Ultra 28, the rest cream Ultra too (pass 126, Garry: the font must not change on a tap)
 	var up_word: WText = up.find_child("Word", true, false)
 	var col_word: WText = col.find_child("Word", true, false)
 	assert_int(up_word.font_size).is_equal(R.DOCK_WORD_ACTIVE_PX)
 	assert_bool(R.is_display(up_word.font)).is_true()
 	assert_bool(up_word.color.is_equal_approx(R.NAVY)).is_true()
-	assert_bool(R.is_display(col_word.font)).is_false()
+	assert_bool(R.is_display(col_word.font)).is_true()
 	assert_str(col_word.text).is_equal("COLLECTIONS")
 	# STORE locked with its badge; the open tab never locked
 	assert_bool(store.locked).is_true()

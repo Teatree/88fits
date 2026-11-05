@@ -295,3 +295,239 @@ TLE_PVP = [
          money=["Season pass stars for league placing (ties it to the main earner)", "A one-shot \"demotion shield\"", "League-only looks earned at Gold and up: seen by everyone, sold to nobody"],
          art="five ornate five-pointed western sheriff star badges in a row on a dark wooden shelf, left to right: dull tin, copper, silver, gold, and a last one glowing with rainbow light, like trophies in a saloon; only star badges"),
 ]
+
+# ------------------------------------------------------------------ pass 126: what Garry chose from this book, shown as a tag on its card
+BUILDING_NOW = {
+    "skin_wave": "Twelve skins: two each for the Drifter, Astro, Calavera and Ironwood, one each for the other four.",
+    "var_duststorm": "The third stage, after Nightfall, with its own boss and three creatures. No gusts or other new rules.",
+    "new_scale": "A rare passive item. Skips pay; banishes don't.",
+    "new_canteen": "An uncommon passive item.",
+    "gen_roads": "Only its telephone poles, as the one broken line across the map (see below).",
+}
+BUILDING_GEN = [
+    ("The telephone line", "One line across the whole desert, usually bending a little, often broken, often without its wire. The wire moves with the wind, more in the Dust Bowl."),
+    ("The toppled cart", "On 75% of maps: a 2.5D cart on flat ground, with one or two 3D wheels lying near it at their own distances, half stuck in the sand, no collision on the wheels."),
+    ("Grave crosses", "2 to 6 a map, mostly alone, sometimes three together. 3D, no collision, tilted, each one different; one in twenty is only a stick."),
+]
+
+# ------------------------------------------------------------------ pass 126: two more map ideas under Garry's rule
+NEW_MAP_RULE = "I would like to avoid any kinds of generation elements that create big obstacles for players to have trouble traversing. Our enemies don't think so I don't want them to be dealing with A* pathfinding or anything like that. I don't want them to get stuck."
+NEW_MAP_IDEAS = [
+    dict(id="gen_fields", name="The Old Forty", tag="Dead fields ploughed into the ground",
+         look="One to three huge tilted rectangles of old ploughed ground, 30 to 50 m a side, each turned its own way. Long straight furrows in darker soil, with pale blown sand eating the edges. Dead corn stubble, ankle high, stands along some rows with long gaps. (A \"forty\" is forty acres, the unit a homesteader farmed.)",
+         why="The sand has no straight lines today, so the ground gives you no sense of direction, and you only feel your speed when a prop goes by. Furrows give you both: they stream past when you run along them and flicker when you cross them. From the high camera a field reads at once, even at phone size, and every seed turns them differently, so it becomes \"the run with the diagonal fields\". It's also the true story of the Dust Bowl: this ploughing is what caused the storm.",
+         rule="It's paint. The furrows have no height and the stubble has no collider, so the hero and the crowd run straight across, and no steering code ever reads it. It doesn't slow anyone either, since you asked for no extra mechanics there.",
+         cost="Low. One new primitive: flat ground paint, a mesh draped over the map's height the way the ground shadows already are, with a furrow texture that fades at its edges. Every field on the map merges into one mesh, so one draw call. Stubble is one MultiMesh of at most about 400 short stalks, one more. Art: one tiling furrow picture from the `gen_sand.py` recipe. Keys in `timeline_data.dressing.fields`: count, size, stubble share. Seeded from the map seed, so replays hold.",
+         art="seen from a high camera looking down at about 45 degrees, flat desert sand with a huge tilted rectangle of abandoned ploughed farmland painted on the ground, dozens of long thin perfectly straight parallel furrow stripes of dark brown soil and pale crests, completely flat like a pattern on the ground with no raised beds and no banks, running diagonally across the whole picture and past the edges of the picture, the field's edges soft and half buried by pale blown sand, sparse dead dry corn stubble, tiny short stalks only ankle high with long gaps between them, one tiny cowboy gunslinger seen from above near the centre, very small for scale, a few small dry shrubs and one small barrel on the sand beyond the field, warm late afternoon light, no buildings, no fences, no walls, no trees, no sky"),
+    dict(id="gen_footings", name="Where the House Was", tag="The floor plan of a farm that gave up",
+         look="Two to four a map, each 8 to 14 m across. The outline of a house that's gone: ankle-high stone footings in the shape of two or three rooms, a flat hearth slab, two steps going nowhere, and one or two things left behind, such as an iron bed frame or a claw-foot tub half full of sand. Turned a different way each time.",
+         why="A floor plan is one of the few things that looks better from a high camera than from the ground. You read it at a glance on a phone, and it tells a small sad story: somebody lived here. It breaks up empty sand at a size nothing else on the map has, bigger than a prop and smaller than a landmark. It fits the Dust Bowl's abandoned farms and still works as a ghost ranch in the plain desert.",
+         rule="The footings and the hearth are flat paint, and the belongings come no higher than the knee with no collider. Nothing stands up, so there's nothing to walk round and nothing for a creature to get stuck on. The crowd's steering never hears about it.",
+         cost="Low, and cheap once The Old Forty exists, because it's the same flat ground paint with one more picture sheet. Art: four or five floor plans painted from above by Klein and three small props through `gen_prop_variants.py`. Placement can share the cart's flat-ground check. One draw call for the plans, one MultiMesh for the belongings, no new rule.",
+         art="seen from a high camera looking down at about 45 degrees, the ruined footprint of a lost farmhouse lying flat on desert sand, a single line of flat grey fieldstones half sunk into the sand tracing three rooms of a floor plan like a drawing on the ground, barely rising above the sand, with gaps in the line, a flat square stone hearth slab, two low stone doorsteps, a small rusty iron bed frame and a small white claw foot bathtub half full of sand inside the rooms, one cowboy gunslinger standing inside one room, each room many times wider than he is, the bathtub about as long as he is tall, open sand all around with a few small dry shrubs, warm late afternoon light, no standing walls, no chimney, no roof, no sky"),
+]
+
+# ------------------------------------------------------------------ pass 126: the lots of Proposal C's Main Street (only the mock uses these)
+STREET_ART = [
+    dict(id="st_sheriff", art="a sheriff's office: a small square timber jailhouse with a barred window, a porch with one post leaning, a big tin star fixed above the door"),
+    dict(id="st_chapel", art="a tiny white wooden frontier chapel with a small steeple, peeling paint, two crooked steps up to its door"),
+    dict(id="st_fortune", art="a fortune teller's painted wagon: a wooden wagon with a rounded roof in purple and gold, a glowing crystal ball on a small table under a striped awning"),
+    dict(id="st_saloon", art="a big two storey saloon with a tall wooden false front, swinging doors, a balcony with a railing, warm lit windows"),
+    dict(id="st_doc", art="a doctor's large canvas tent on a plank floor, bottles and a stone mortar and pestle on a crate by the door flap, a small wooden sign shaped like a mortar"),
+    dict(id="st_livery", art="a timber livery stable: a barn with a big dark open doorway, horseshoes nailed along the beam, hay bales, a water trough"),
+    dict(id="st_outfitter", art="a small plank outfitter's shop with a canvas awning, a quilted leather coat and a steel breastplate on stands out front"),
+    dict(id="st_gun1", art="a gunsmith's camp: a patched canvas tent, a small anvil on a tree stump, a wooden rack with two rifles"),
+    dict(id="st_gun2", art="a small plank gunsmith's shack with a tin roof and a stovepipe, a wooden sign shaped like a revolver, an anvil by the door"),
+    dict(id="st_gun3", art="a handsome one storey gunsmith's shop with a wooden false front, a large window with guns on display, a brick chimney with a little smoke, a big wooden revolver sign"),
+    dict(id="st_gun4", art="a grand two storey brick gunsmith's works, a tall smoking chimney, a huge golden revolver mounted over the double doors, iron balconies"),
+    dict(id="pouch_silver", kind="charm", art="one small rounded leather belt pouch with silver studs and a silver buckle, seen from the front, only the pouch"),
+]
+
+# ------------------------------------------------------------------ pass 126: restructuring the Upgrade board
+# The game's real forms: talent, form index, name, one rank's step in short, three of them together. Numbers from content/talents/*.
+FORMS = {
+    "muscle": dict(icon="drive_0", name="Muscle", talent="Drive", step="+8% attack", three="+26% attack damage"),
+    "tempo": dict(icon="drive_1", name="Tempo", talent="Drive", step="-6% cooldown", three="-17% cooldown"),
+    "padding": dict(icon="grit_0", name="Padding", talent="Grit", step="+10% max HP", three="+33% max HP"),
+    "plate": dict(icon="grit_1", name="Plate", talent="Grit", step="+6% reduction", three="+18% damage reduction"),
+    "boots": dict(icon="stride_0", name="Boots", talent="Stride", step="+5% speed", three="+16% move speed"),
+    "lodestone": dict(icon="stride_1", name="Lodestone", talent="Stride", step="+18% pickup", three="+64% pickup radius"),
+    "notes": dict(icon="study_0", name="Field Notes", talent="Study", step="+10% XP", three="+33% XP"),
+    "poultice": dict(icon="study_1", name="Poultice", talent="Study", step="+0.3 regen", three="+0.9 regen a second"),
+    "omen": dict(icon="fortune_0", name="Omen", talent="Fortune", step="+0.12 luck", three="+0.36 luck: rarer items more often"),
+    "greed": dict(icon="fortune_1", name="Greed", talent="Fortune", step="+12% gold", three="+40% gold"),
+    "reroll": dict(icon="choice_0", name="Reroll", talent="Choice", step="+1 reroll", three="+3 rerolls a run"),
+    "banish": dict(icon="choice_1", name="Banish", talent="Choice", step="+1 banish", three="+3 banishes a stage"),
+    "skip": dict(icon="nerve_0", name="Skip", talent="Nerve", step="+1 skip", three="+3 skips a stage"),
+    "wind": dict(icon="nerve_1", name="Second Wind", talent="Nerve", step="+10% revive", three="+30% health on revive"),
+}
+FLAVOUR = {"Drive": "Hit harder, or hit sooner.", "Grit": "Thicker skin, or harder bones.", "Stride": "Cover the ground, or pull it to you.",
+           "Study": "Learn faster, or mend slower.", "Fortune": "Better cards, or fatter purses.", "Choice": "See another, or throw one away.",
+           "Nerve": "Pass on one more, or get back up."}
+HEROES = {
+    "ironwood": dict(name="Ironwood", price=1000, weapon="the Spear", icon="ironwood_icon", place=2),
+    "astro": dict(name="Astro", price=1500, weapon="the Gravity Gun", icon="astro_icon", place=3),
+    "calavera": dict(name="Calavera", price=2000, weapon="the Guitarra", icon="calavera_icon", place=4),
+    "solenne": dict(name="Solenne", price=2500, weapon="the Sun Scepter", icon="solenne_icon", place=5),
+    "fadeaway": dict(name="Fadeaway", price=3000, weapon="the Basketball", icon="fadeaway_icon_c", place=6),
+    "buck": dict(name="Jeżyk", price=3500, weapon="the Frisbee", icon="buck_icon_f", place=7),
+    "may": dict(name="May", price=4000, weapon="the Big Mouth", icon="may_icon_p", place=8),
+}
+# The whole tree, bottom to top: ("plain", name, form icon, effect), ("fork", form, form), ("hero", id), ("mile", name, icon, effect).
+TREE_SECTIONS = [
+    dict(id="sundown", name="Sundown", ready="Gets you ready for Nightfall", rows=[
+        ("plain", "Long Stride", "boots", "+2.5% speed, +9% pickup"),
+        ("plain", "Trail Journal", "notes", "+5% XP, +0.15 regen"),
+        ("fork", "muscle", "tempo"),
+        ("hero", "ironwood"),
+        ("fork", "padding", "plate"),
+        ("plain", "Lucky Deck", "reroll", "+1 reroll"),
+        ("hero", "astro"),
+        ("fork", "boots", "lodestone"),
+        ("mile", "Dead Eye", "m_deadeye", "+6% crit chance"),
+    ]),
+    dict(id="nightfall", name="Nightfall", ready="Gets you ready for The Dust Bowl", rows=[
+        ("hero", "calavera"),
+        ("fork", "notes", "poultice"),
+        ("plain", "Bull Hide", "padding", "+5% max HP, +3% reduction"),
+        ("hero", "solenne"),
+        ("fork", "omen", "greed"),
+        ("mile", "High Stakes", "m_stakes", "Opens the Stakes dial on the Stages screen"),
+    ]),
+    dict(id="dust", name="The Dust Bowl", ready="Gets you ready for Blood Moon", rows=[
+        ("hero", "fadeaway"),
+        ("fork", "skip", "wind"),
+        ("plain", "Hair Trigger", "muscle", "+4% attack, -3% cooldown"),
+        ("hero", "buck"),
+        ("fork", "reroll", "banish"),
+        ("mile", "Wide Load", "m_area", "+15% area of effect on every weapon"),
+    ]),
+    dict(id="blood", name="Blood Moon", ready="The long top: add rows here for ever", rows=[
+        ("hero", "may"),
+        ("fork", "muscle", "tempo"),
+        ("plain", "Lucky Penny", "omen", "+0.06 luck, +6% gold"),
+        ("fork", "padding", "plate"),
+        ("mile", "Card Sharp", "m_cards", "+2 rerolls, +1 banish, +1 skip"),
+        ("fork", "boots", "lodestone"),
+        ("plain", "Tough Luck", "skip", "+1 skip"),
+        ("fork", "notes", "poultice"),
+        ("mile", "Big Iron", "m_iron", "+25% crit damage"),
+        ("fork", "omen", "greed"),
+        ("mile", "Boot Hill Pass", "m_revive", "One free revive a run"),
+        ("fork", "skip", "wind"),
+        ("mile", "Extra Barrel", "m_amount", "+1 projectile on every gun"),
+        ("fork", "reroll", "banish"),
+        ("mile", "Living Legend", "m_legend", "+10% attack, +10% max HP, +5% speed"),
+    ]),
+]
+# Where the printed tree breaks into strips (row numbers, inclusive): Blood Moon's long top in three.
+TREE_STRIPS = [(1, 15), (16, 25), (26, 35), (36, 44), (45, 56), (57, 64)]
+
+UP_A_QUOTE = "Talent Tree with mutually exclusive paths. Simply put instead of letting Players choose what to upgrade they have to dump their coins directly into a single path with occasional choices for which path to take. It will be less choice, but allows me to add special milestone nodes in the path that cost more but give more as well. Better for balancing too since I don't have to guess. The tree only goes up and I can extend it as much as I like. Some nodes might actually just be Hero unlocks or something."
+UP_QUOTE = "It currently doesn't look very presentable. I like the choices that players have to make, but I don't like that it looks like that."
+UP_TODAY_FACTS = [
+    "**The rules today.** Eight talents, two forms each, seven ranks. Rank k of a talent costs k x k x its rank 1 (100 for Stakes, up to 450 for Grit). Every rank is bought in one form and keeps it. Reset Upgrades gives half back.",
+    "**The numbers today.** The whole board is **353,500 gold**. A very good run banks about 1,140 (your Drifter, Stage 1, level 30, 13:06 in, banked 1,138), so that's about **310 very good runs**. Later stages pay more: the best recent Stage 2 runs in the remote records banked 3,700 to 4,400. Stage 2 was tuned for a quarter of the ranks (about 7,600 gold) and the last stage for half (about 35,350).",
+]
+UP_TODAY_WHY = [
+    ("It's a form, not a place.", "Eight identical tiles with the same five layers. Nothing is bigger than anything else, so the eye has nowhere to land."),
+    ("There's too much to read at once.", "16 icons, 16 names, 16 effect lines, 56 rank pips and 8 buttons on one screen, before you've bought a thing."),
+    ("A purchase barely shows.", "One dark pip gets a small icon. A rank 7 tile looks like a rank 1 tile with more pips, so spending 22,050 gold feels like filling in a box."),
+    ("A short purse turns it into a wall.", "The second picture: a column of grey buttons with red numbers, 900 next to 20,825, and no hint which one matters."),
+    ("There's no destination.", "Nothing says what you're working towards, and the top rank is only half a step bigger."),
+]
+UP_TODAY_KEEP = "The kit isn't the problem: the frames, buttons and fonts are fine. The structure gives them nothing to show off. And one thing is right and stays in all three proposals: **the pairs**. Muscle or Tempo and Padding or Plate are real questions."
+
+# Proposal words. Numbers in {braces} are filled in by tools/ideas_mocks.py from the tree above, so they can't drift.
+UP_A = dict(
+    how="You don't pick what to upgrade. One path goes up the screen and there's one BUY button: the next node. Every so often the path splits in two for three nodes. You pick a side, the other side closes, and the two sides join again above. That's where your pairs live. You make **14 real choices** on the way up instead of 56 small ones, and each one lasts three purchases.",
+    kinds=[
+        ("Plain node", "Half a step of both sides of a pair (\"+5% max HP, +3% damage reduction\"). Rerolls and skips can't be halved, so those give +1. Cheap, and it asks no question. 7 of them."),
+        ("Fork", "Three nodes of one form, each worth exactly one of today's ranks. Each pair comes up twice, so you can go all Muscle or take both. 14 forks, 42 rows."),
+        ("Milestone", "Twice the price of the nodes around it and worth far more, in something no rank gives today: crit, area, a projectile, a free revive. 8 of them, about one every eight rows, and each one is drawn big."),
+        ("Hero", "Just a hero, at today's price. All seven come in the first 36 rows, so nobody waits for the endgame to get May."),
+    ],
+    stakes="**One thing can't go on a single path: Stakes.** A forced node that makes creatures harder would punish everyone who climbs. So Stakes leaves the tree and becomes a free dial on the Stages screen (either form, rank 0 to 7, set per run, today's numbers), opened by the milestone High Stakes. That's a rule you didn't ask for, so it's yours to veto.",
+    scroll="**How it scrolls.** The screen opens with the next node in its lower third. Below it is what you've bought, above it what's coming, with locked nodes in grey so you can see the next milestone from far off. Drag to look around. The dock at the foot always shows the next purchase with its button in the same spot, so buying is one thumb. The sky behind the tree changes by section, from Sundown to Nightfall to The Dust Bowl to Blood Moon, so you feel the climb.",
+    economy="**Gold.** Today's income, nothing new. A node in row n costs **100 + 3 x n x n**. A milestone costs twice that. A hero costs what he costs today. The whole tree costs about what the whole board costs today, but the shape is different: early ranks come faster, so a new player feels them in his first few runs, and the two meet at the top (the table below).",
+    balance="**Why you stop guessing.** Anyone who has spent a given amount of gold is on one known row. All that differs between two players on that row is which side of each fork they took. So you can tune a stage to a row (\"Nightfall expects row 15\"), and `difficulty_probe.gd` can test the all-left and all-right builds at that row, which is the whole range. Today's board has 36 ways to hold one talent, so 36^8, about 2.8 trillion boards. The tree has at most 2^14 = 16,384, and each fork's two sides cost the same, so you only ever balance one pair at a time.",
+    extend="**Extending it.** Add rows at the top. Nothing below moves. Milestones can be anything the game can do, heroes included, and a new hero is one row.",
+    json_="""// content/upgrade_tree/main.json: every row is data, edited in the Level Editor's Tree tab
+{ "price": {"type": "quadratic", "base": 100, "k": 3},
+  "rows": [
+    {"kind": "plain", "name": "Long Stride", "icon": "drive_0",
+     "effects": [{"stat": "move_speed", "op": "mul", "value": 0.025, "target": "player"},
+                 {"stat": "magnet", "op": "mul", "value": 0.09, "target": "player"}]},
+    {"kind": "fork", "talent": "drive", "nodes": 3},        // both forms, steps and icons come from the talent
+    {"kind": "hero", "character": "ironwood"},              // his price comes from his JSON
+    {"kind": "milestone", "name": "Dead Eye", "icon": "deadeye", "price_mult": 2,
+     "effects": [{"stat": "crit_chance", "op": "add", "value": 0.06, "target": "player"}]}
+  ] }""",
+    content="**As content.** One JSON file, using the same `Effect` as everything else, so a row needs no code unless it does something new. The Level Editor's Mirror tab becomes a Tree tab: rows in order, add a fork or a milestone, and each row shows its price, the gold so far and how many very good runs that is.",
+    migrate="**Old saves.** The first time the screen opens, the game takes what you actually spent (`Save.talent_spent`) and walks up the tree with it. Each fork goes to the side you held more ranks in. Hero nodes on the way are free, whether you owned him or not, and the tree is cheaper per rank, so nobody ends up with fewer ranks. Someone who piled everything into one talent gets them spread along the path instead, which he may not like, so the first Reset after this is free. What doesn't buy a whole node goes back in the purse. Stakes ranks come back as gold and set the dial to the same rank. Toasts say so once, as the Stakes refund did in pass 88.",
+    cost="**Cost: medium code, small art.** A tree data class and loader, Save and its migration, the screen drawn in one pass like today's rank pips, the Tree tab, the Stakes dial on the Stages screen, tests. Art: 8 milestone icons at most (the mock uses icons the game already has). One pass with two lanes.",
+    decide=[
+        "Stakes as a free dial, as above, or keep it some other way?",
+        "Changing a fork: today's Reset Upgrades takes everything back at half, which on one path is a heavy hammer. I'd add a cheap swap: pay 25% of what that side cost and its three nodes move to the other side. Yes or no?",
+        "Hero nodes need gold only, which retires today's hero unlock quests (Calavera's boss kill, Fadeaway's three Snipers). Retire them, or leave them as a free shortcut past the node's price?",
+        "Early ranks cost less than today (the table above), so a new player reaches Stage 2 sooner. Keep that shape, or raise the early rows?",
+    ],
+)
+UP_B = dict(
+    how="You own charms and level them with gold. Every form on today's board is one charm: Muscle, Tempo, Padding, Plate and so on, sixteen in all. But a hero only carries what fits in his belt: at most six pouches, **two Iron** (fighting), **two Leather** (the trail) and **two Silver** (luck). Swap them for free between runs, and each hero keeps his own belt.",
+    why="**Why it's different.** Power stops being a line or a pile and becomes a budget. Muscle or Tempo is still the question, but now you answer it per hero, and you can change your mind tomorrow. New builds appear too: Muscle plus Tempo with no defence at all is now a choice. Difficulty and Boss become Silver charms, so Stakes' extra XP and coins finally cost you something real: a pouch.",
+    look="**How it looks.** The hero stands large on the real menu backdrop with his pouches round him, the way gear screens work in Archero and Survivor.io. A charm's frame climbs the game's rarity colours with its level, grey at LV 1 up to gold at LV 5, so the belt visibly gets richer. It's the one screen where your hero art does the selling.",
+    economy="**Gold.** Today's income and today's price ladder: level k of a charm costs k x k x its talent's rank 1. Levels stop at 5 for now. You start with one pouch of each kind; the next three cost 600, 1,500 and 4,000. Six charms at level 3 cost {b_half} with the pouches, about today's half board ({today_half}). Six at level 5 cost {b_full}, so you reach full power in about {b_full_runs} very good runs, not 310. After that gold buys options, not power: all sixteen at level 5 costs {b_all}.",
+    balance="**Balancing.** The ceiling is known: pouches x top level. A new charm can never raise it, only widen the choice, so you can add forever without power creep. The belts that change a fight are Iron pair x Leather pair, 6 x 6 = 36; with Silver's 28 pairs it's 1,008 in all, against 2.8 trillion today. The catch: the very top is weaker than today's full board, because you can't hold everything, so Endless and anything tuned for the full board needs one pass with the run sim. The quarter and half targets stay about where they are.",
+    json_="""// content/talents/drive/drive.json: forms stay as they are, each gains its pouch kind
+{ "forms": [ {"name": "Muscle", "pouch": "iron", "text": "...", "effects": [ ... ]},
+             {"name": "Tempo",  "pouch": "iron", "text": "...", "effects": [ ... ]} ] }
+
+// content/upgrade_belt.json: the pouches in the order they open
+{ "max_level": 5,
+  "pouches": [ {"kind": "iron", "price": 0}, {"kind": "leather", "price": 0}, {"kind": "silver", "price": 0},
+               {"kind": "iron", "price": 600}, {"kind": "leather", "price": 1500}, {"kind": "silver", "price": 4000} ] }""",
+    content="**As content.** Charms are today's talent folders, so a new charm is one form in a JSON file, and a new pouch is one row. The Level Editor's Mirror tab gains the pouch table and the kind per form.",
+    migrate="**Old saves.** Each form's ranks become that charm's level, and any rank above level 5 is refunded. Charms have their own ladders, so most players get gold back: Drive with 2 Muscle and 2 Tempo paid 30 x 375 = 11,250, while Muscle LV 2 and Tempo LV 2 now cost 10 x 375 = 3,750, so 7,500 comes back. Stakes ranks become the Difficulty and Boss charms. Pouches come free up to what the old board was worth, and the belt fills from the highest levels.",
+    cost="**Cost: medium code, almost no art.** The belt screen and pop-up from the kit, `Run` folding only what's in the belt, Save and migration, the Level Editor. The 16 icons already exist. One pass, plus one balance pass with the sim, because the ceiling moves.",
+    risk="**The risk.** It adds a chore before a run, and some players will never open it. Silver may also read as a tax, because Reroll and Skip don't feel like power.",
+)
+UP_C = dict(
+    how="Your upgrades are a town. Each talent is a building on one street going up the screen: **Gunsmith** is Drive, **Outfitter** Grit, **Livery** Stride, **Doc's** Study, **Fortune Teller** Fortune, **Saloon** Choice, **Chapel** Nerve, **Sheriff's Office** Stakes. Tap one and you get today's choice for its next rank: the same two options at the same price. The building grows as ranks go in, from a tent to a shack to a storefront to a landmark. Heroes you own stand in the street.",
+    rule="**One new rule keeps it honest:** no building can be more than two ranks ahead of your smallest one (the Sheriff's Office doesn't count), so you get \"Build up the Doc first\". It's a rule you didn't ask for, and it's what makes this easier to balance than today.",
+    why="**Why it's different.** It's the only one of the three where buying something changes a picture. You open the screen and see everything you've ever earned, all at once. It's also the code's old name for this screen, the Homestead, finally made true.",
+    economy="**Gold.** Exactly today's: 353,500 for the whole town, 310 very good runs, and no stage needs tuning again. If that's too long, it's the same edit as today (the price lists in the talents' JSON).",
+    balance="**Balancing.** The weakest of the three, and honest about it: it's today's board with a fence. With the rule, a player with 21 ranks has about 3 in every building, give or take one, so `difficulty_probe.gd` has a small band to test. Forms stay free per rank, so the choice count is the same as today. Milestones can only come as small bonuses on a building's new look.",
+    json_="""// content/talents/drive/drive.json: today's file, plus where it stands and how it looks
+{ "id": "drive", "name": "Drive", "cost": [375, 1500, 3375, 6000, 9375, 13500, 18375],
+  "forms": [ ... ],
+  "building": { "name": "Gunsmith",
+    "looks": [ {"from_rank": 1, "art": "gunsmith_tent.png"},  {"from_rank": 3, "art": "gunsmith_shack.png"},
+               {"from_rank": 4, "art": "gunsmith_store.png"}, {"from_rank": 7, "art": "gunsmith_works.png"} ] } }""",
+    content="**As content.** A new building is one new talent folder with four paintings; the street scrolls, so there's always a lot for it. Each new building raises the ceiling, as a new talent would today. The Level Editor's Mirror tab gains the name and the looks.",
+    migrate="**Old saves.** Nothing to migrate: it reads `Save.talent_picks` as it is. A save already past the two-rank rule keeps what it has and simply can't widen the gap.",
+    cost="**Cost: small code, big art.** The street is two columns and a pop-up the kit nearly has. The art is the job: 8 buildings x 4 looks is 32 paintings, at four seeds each that's about 130 renders picked by eye, and Flux bends signs and porches.",
+    risk="**The risk.** Eight paintings on one phone screen have to read at about a third of its width each, in every stage of growth. If they don't, it's a pretty picture you have to squint at.",
+)
+UP_ALSO = "**Why these two alternatives.** Your tree makes power a line you climb. I looked for the two other shapes it can take: a budget you spend again before every run (B), and a place you build and can look at (C). Looked at and dropped: a trail map with stops is your tree drawn differently, so if you like that look the tree can wear it. A wanted board of posters is today's tiles on paper. A deck of permanent cards plays like the Gunbelt, but would be confused with the Cards you pick in a run."
+UP_COMPARE = [
+    ("", "A. The Tree", "B. The Gunbelt", "C. Main Street"),
+    ("In a word", "Climb", "Equip", "Build"),
+    ("Your pairs", "14 forks, 3 nodes each; closed once picked", "Every run, per hero, free to change", "Every rank, as today"),
+    ("First look on a phone", "A clear path and one button; only as good as its milestones", "The hero large, frames that climb the rarity colours", "The prettiest by far, if the paintings read"),
+    ("What a purchase shows", "The line moves up; milestones get a big moment", "A frame changes colour", "A building grows"),
+    ("Balancing", "Best: one known row, 16,384 builds at most", "Good: a known ceiling, 36 fight belts", "Weakest: today's board with a fence"),
+    ("Extending", "Add rows at the top, for ever", "Add charms with no power creep; a pouch is a deliberate step", "Add a lot; raises the ceiling"),
+    ("Hero unlocks", "Nodes on the path, as you wanted", "Stay on the Heroes tab", "Stay on the Heroes tab; owned ones stand in the street"),
+    ("Gold to fill it", "{a_total} (about {a_runs} very good runs)", "{b_full} for one full belt, {b_all} for everything", "353,500 (310), as today"),
+    ("Old saves", "A walk up the tree, never fewer ranks", "Levels carry over, most get gold back", "Nothing to do"),
+    ("Build cost", "Medium code, small art", "Medium code, no art, one balance pass", "Small code, big art"),
+    ("Main risk", "Long stretches of small nodes; regret over a fork", "A chore before each run", "Paintings too small to read"),
+]
+UP_REC = [
+    "**Build A, the Tree.** It's the only one that answers both of your complaints: it gives the screen one clear thing to look at, and it stops you guessing at balance. It's also the only one with a natural home for hero unlocks, and buying is one button in one spot, which suits this game's one thumb.",
+    "**The honest catch** is that a tree of small nodes can be dull, and it takes choice away. That's why the version above has forks that last three nodes, a milestone about every eight rows, and a sky that changes as you climb. If I had to cut anything to save time I'd keep the milestones and cut the sky.",
+    "**Why not B:** it's my favourite as a game, because it's the only one that asks a new question every run. But it moves the ceiling, so it needs real balance work, and it doesn't solve your guessing as cleanly as a single line. It could arrive later as a milestone at the top of the tree. **Why not C:** it would look the best and cost the least code, but it's today's system underneath, so you'd still be guessing, and 32 paintings is a lot to spend on a menu.",
+    "If you pick A, the four questions under it are all I need before starting.",
+]
+UP_NOTE = "Every number in these proposals is a starting point, worked out against today's gold, not a tuned value. The mocks are drawn from the game's real colours, fonts, icons and names."

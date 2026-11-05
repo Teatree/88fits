@@ -398,8 +398,9 @@ static func plate(ci: RID, rect: Rect2, radius: int = RADIUS) -> void:
 ## phone's gesture bar, W.safe_bottom) in DOCK_BAR_TOP -> DOCK_BAR_BOTTOM under a 4 px navy top edge and a 10 % white
 ## lip; five tabs DOCK_SIDE in from either side, DOCK_GAP apart, DOCK_TAB_H tall, the open one DOCK_TAB_H_ACTIVE tall and
 ## DOCK_ACTIVE_FLEX times as wide; each the game's own icon (DOCK_ICON tall, the open one's DOCK_ICON_ACTIVE) over its
-## word (DOCK_WORD_PX: Rubik 700 by the Ultra minimum; the open one's DOCK_WORD_ACTIVE_PX Ultra in navy); a round
-## DOCK_BADGE badge (the STORE's lock, the Upgrade's "!") hanging DOCK_BADGE_OUT off the tab's top-right corner.
+## word (pass 126: every tab's word Ultra, DOCK_WORD_PX cream, the open one's DOCK_WORD_ACTIVE_PX navy; a word too long for its tab
+## shrinks to fit); a round DOCK_BADGE badge (the STORE's lock, the Upgrade's "!") hanging DOCK_BADGE_OUT off the tab's top-right
+## corner.
 const DOCK_BAR_H := 200
 const DOCK_BAR_TOP := Color("27314a")
 const DOCK_BAR_BOTTOM := Color("1a2238")
@@ -421,6 +422,15 @@ const DOCK_BADGE := 46
 const DOCK_BADGE_RING := 4
 const DOCK_BADGE_OUT := Vector2(12, 16)
 const DOCK_BADGE_FILL := Color("2f3a50")
+## Pass 126 (lane UI): the scroll thumb (ui/wanted/WScrollThumb.gd): its track's width and how dark, the thumb inside it (never
+## shorter than SCROLL_THUMB_MIN), its shaded side, the grip notches' spacing, and the room for the arrow under the track.
+const SCROLL_THUMB_W := 20.0
+const SCROLL_THUMB_INSET := 2.0
+const SCROLL_THUMB_MIN := 72.0
+const SCROLL_THUMB_LOW := Color("d9b47a")
+const SCROLL_GRIP_GAP := 7.0
+const SCROLL_TRACK_ALPHA := 0.8
+const SCROLL_ARROW_H := 22.0
 ## A refused tap on a locked tab: it shakes sideways DOCK_SHAKE_PX and settles in DOCK_SHAKE_S (the Stages' closed card's).
 const DOCK_SHAKE_PX := 14.0
 const DOCK_SHAKE_S := 0.32

@@ -10,7 +10,7 @@
 ## 300 s; every wait is bounded. The PC save is put back as it was.
 extends SceneTree
 
-const BOSSES := [["tumbleweed_king", 0, 45.0], ["gila_grande", 1, 150.0], ["brander", 2, 400.0]]
+const BOSSES := [["tumbleweed_king", 0, 45.0], ["gila_grande", 1, 150.0], ["black_sunday", 2, 250.0], ["brander", 3, 400.0]]
 var _out := "user://bosschest_shots"
 var _only: Array = []
 var _save

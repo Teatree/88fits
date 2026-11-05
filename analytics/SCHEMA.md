@@ -143,7 +143,7 @@ lines are `passives` and their events `passive` / `passive_evolution`. A record 
 | `took_kind` | `{melee, ranged, boss: HP lost}` |
 | `hits`, `evaded`, `shielded`, `healed` | hits that reached the hero (shielded and evaded ones included), evaded count, shield points spent, HP healed (every `Player.heal`; regen is not in it) |
 | `hits_by` *(2)* | `{creature id: hits it landed this second}` (keyed like `took`; sums to `hits`) |
-| `healed_by` *(2)* | `{source: HP healed this second}`: the name `Player.heal` was given (a pickup's or a structure's: Heart, Cake Slice, Healing Well; Vulture), `lifesteal`, `level_up` (the hero's level patch) and `other` (a heal nothing named); sums to `healed` (each value snapped to 0.1) |
+| `healed_by` *(2)* | `{source: HP healed this second}`: the name `Player.heal` was given (a pickup's or a structure's: Heart, Cake Slice, Healing Well; Vulture), `lifesteal`, `level_up` (the hero's level patch), `canteen` (pass 126: the Canteen's heal after leaving water) and `other` (a heal nothing named); sums to `healed` (each value snapped to 0.1) |
 | `regen` *(2)* | HP regenerated this second (regen, Siesta, Deep Breath; not in `healed`) |
 | `hp_lost`, `hp_healed` | (pass 77) the second's HP lost (`took` summed, before any healing) and HP healed (`healed` + `regen`) |
 | `killed` | `{creature id: kills this second}` |
@@ -262,6 +262,7 @@ Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)". Eve
 | `chest` | a chest's gold (its gold roll, or gold when the build changed under the reel) |
 | `hush_money`, `bounty`, `dice` | Hush Money's pay for a hit, Bounty Hunter's bounty, the dice shrine |
 | `empty_offer`, `stranger_empty`, `shop_empty` | gold instead of a level-up, a Stranger or a shop with nothing left to offer |
+| `skip_pay` | pass 126: the Assayer's Scale's coins for a spent skip (a level-up's, a mutation offer's or a chest's) |
 | `debug` | the developer's +gold buttons (the boards leave it out) |
 
 | in a run: sink | where it went |
@@ -322,7 +323,7 @@ Every recorder event whose kind is in `Analytics.KIND_EVENTS` goes out renamed a
 `special_kill` as `special_killed`; (pass 87) `stage_beaten` as `stage_beaten` and `endless` as `endless_started`. Plus
 `run_start`, `run_end` and `run_summary`.
 
-**Stages (pass 87).** Every event of a run carries `stage` (1-based), `stage_id` (`s1`...), `in_endless` (true when it
+**Stages (pass 87).** (Pass 126: The Dust Bowl `dust` went in as stage 3, so `stage` 4 is the Blood Moon from then on and `stage` 3 before pass 126 was it: read `stage_id`, `s3` is always the Blood Moon.) Every event of a run carries `stage` (1-based), `stage_id` (`s1`...), `in_endless` (true when it
 came in Endless) and `endless_wave` (0 outside Endless) as super properties, so any chart breaks down by stage and by
 the stage's Endless. `run_end` adds `stage_id`, `stage_name`, `stage_index`, `stage_length`, `stage_count`, `outcome`,
 `boss_killed`, `stage_clock`, `endless_s` and `run_time` (the header's keys above). The portal's `stage_cleared` event

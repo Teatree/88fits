@@ -1,0 +1,388 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a tall, lean, athletic young Black man of about twenty with long arms and long legs, broad square shoulders held level; dark brown skin; a short rounded black afro with a red sweatband; a sly half-smile; a sleeveless fire-red street basketball jersey with black trim and a big white number 88 on the chest and the back; loose knee-length black shorts with red and white side stripes; black wristbands; short white socks and red and black high-top sneakers; arms relaxed at his sides, empty hands",
+ "renders": {
+  "front": {
+   "seed": 1005504,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of the same tall lean athletic young Black man with the same face and the same short rounded afro, in a new street outfit: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest, a red sweatband across his forehead, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep his exact face, his build, height and proportions, both shoulders level, his straight standing pose with his empty hands relaxed at his sides. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/fadeaway_g_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 360,
+     "right": 368,
+     "top": 28,
+     "bottom": 23,
+     "height": 972,
+     "width": 295
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 20547,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest and of the back, a red sweatband round his head, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. Seen directly from behind, no face visible. Keep his exact face and afro, his build, height and proportions, both shoulders level. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_g_front_ref.png",
+    "88fits/fadeaway_g_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 361,
+     "right": 368,
+     "top": 26,
+     "bottom": 28,
+     "height": 969,
+     "width": 294
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 20548,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest and of the back, a red sweatband round his head, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. In strict side profile facing right. Keep his exact face and afro, his build, height and proportions, both shoulders level. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_g_front_ref.png",
+    "88fits/fadeaway_g_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 426,
+     "right": 426,
+     "top": 31,
+     "bottom": 24,
+     "height": 968,
+     "width": 171
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 20549,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest and of the back, a red sweatband round his head, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. In three-quarter front view. Keep his exact face and afro, his build, height and proportions, both shoulders level. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_g_front_ref.png",
+    "88fits/fadeaway_g_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 384,
+     "right": 368,
+     "top": 32,
+     "bottom": 24,
+     "height": 967,
+     "width": 271
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 20550,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest and of the back, a red sweatband round his head, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. In three-quarter back view, turned away from the viewer, no face visible. Keep his exact face and afro, his build, height and proportions, both shoulders level. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_g_front_ref.png",
+    "88fits/fadeaway_g_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 370,
+     "right": 371,
+     "top": 29,
+     "bottom": 25,
+     "height": 969,
+     "width": 282
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 20551,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest and of the back, a red sweatband round his head, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. Seen directly from behind, no face visible, jumping for joy with both arms raised high, feet together. Keep his exact face and afro, his build, height and proportions, both shoulders level. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_g_front_ref.png",
+    "88fits/fadeaway_g_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 314,
+     "right": 312,
+     "top": 23,
+     "bottom": 42,
+     "height": 958,
+     "width": 397
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 20553,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest and of the back, a red sweatband round his head, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. Seen directly from behind, no face visible, flinching from a hit, feet fully visible. Keep his exact face and afro, his build, height and proportions, both shoulders level. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_g_front_ref.png",
+    "88fits/fadeaway_g_hurt_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 316,
+     "right": 319,
+     "top": 27,
+     "bottom": 27,
+     "height": 969,
+     "width": 388
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 20552,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest and of the back, a red sweatband round his head, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. Facing the viewer, flinching in pain, feet fully visible. Keep his exact face and afro, his build, height and proportions, both shoulders level. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_g_front_ref.png",
+    "88fits/fadeaway_g_hurt_front_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 360,
+     "right": 368,
+     "top": 29,
+     "bottom": 23,
+     "height": 971,
+     "width": 295
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 20554,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest and of the back, a red sweatband round his head, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. In strict side profile facing right, flinching in pain, feet fully visible. Keep his exact face and afro, his build, height and proportions, both shoulders level. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_g_front_ref.png",
+    "88fits/fadeaway_g_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 424,
+     "right": 405,
+     "top": 31,
+     "bottom": 24,
+     "height": 968,
+     "width": 194
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 20556,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest and of the back, a red sweatband round his head, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. In three-quarter back view, no face visible, flinching from a hit, feet fully visible. Keep his exact face and afro, his build, height and proportions, both shoulders level. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_g_front_ref.png",
+    "88fits/fadeaway_g_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 375,
+     "right": 370,
+     "top": 34,
+     "bottom": 23,
+     "height": 966,
+     "width": 278
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 20555,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest and of the back, a red sweatband round his head, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. In three-quarter front view, flinching in pain, feet fully visible. Keep his exact face and afro, his build, height and proportions, both shoulders level. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_g_front_ref.png",
+    "88fits/fadeaway_g_hurt_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 362,
+     "right": 366,
+     "top": 33,
+     "bottom": 26,
+     "height": 964,
+     "width": 295
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 20557,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a sleeveless fire-red street basketball jersey with black trim round the neck and the armholes and a big white number 88 in the middle of the chest and of the back, a red sweatband round his head, loose knee-length black shorts with a red and white stripe down the outside of each leg, black wristbands, short white socks and plain white high-top sneakers with red laces and a thin red sole, nothing at all on their sides: no logo, no swoosh, no stripes, no panels of another colour. Lying flat on the ground on the back, knocked out, limbs sprawled, the whole body visible. Keep his exact face and afro, his build, height and proportions, both shoulders level. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_g_front_ref.png",
+    "88fits/fadeaway_g_dead_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 51,
+     "right": 134,
+     "top": 252,
+     "bottom": 170,
+     "height": 601,
+     "width": 838
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "anim_negative": "a basketball, a ball in his hands, extra arms or legs, a face on the back of his head, hunched shoulders, slouching, sloping shoulders, a plain jersey back without its number, a dull greyish jersey",
+  "seed_offset": 2311,
+  "method": "hero_pose5",
+  "pose_drivers": {
+   "front": "fadeaway_puppet_run_up",
+   "fd": "fadeaway_puppet_run_up",
+   "side": "fadeaway_puppet_run_up",
+   "bd": "fadeaway_puppet_run_up",
+   "back": "fadeaway_puppet_run_up"
+  },
+  "run_fit": "tools/dl/drivers/fadeaway_puppet_run/silhouette.json",
+  "fringe_remap": true,
+  "run_scale": {
+   "front": 0.885,
+   "fd": 0.905,
+   "side": 0.905,
+   "bd": 0.91,
+   "back": 0.915
+  },
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "stills": "g",
+  "art_prompt": "a tall, lean, athletic young Black man of about twenty with long arms and long legs, broad square shoulders held level; dark brown skin; a short rounded black afro with a red sweatband; a sly half-smile; a sleeveless fire-red street basketball jersey with black trim and a big white number 88 on the chest and the back; loose knee-length black shorts with red and white side stripes; black wristbands; short white socks and red and black high-top sneakers; arms relaxed at his sides, empty hands",
+  "anim_hint": "a tall athletic young Black man with dark brown skin and a short rounded black afro with a red sweatband, in a sleeveless fire-red street basketball jersey with black trim and a big white number 88 on the front and on the back, black knee-length shorts with red and white side stripes, black wristbands and red and black high-top sneakers; he runs tall with his back straight, his chest up and both shoulders square and level"
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "fringe_remap": true,
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

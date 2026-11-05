@@ -1,0 +1,97 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/canteen/canteen_icon_evolved.png" id="1_0neib"]
+[ext_resource type="Texture2D" path="res://content/passives/canteen/canteen_icon.png" id="2_4fkwc"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_vm4ec"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_ooons"]
+
+[sub_resource type="Resource" id="Resource_0neib"]
+script = ExtResource("3_vm4ec")
+stat = "leave_water_regen"
+value = 3.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_4fkwc"]
+script = ExtResource("3_vm4ec")
+stat = "leave_water_seconds"
+value = 15.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_vm4ec"]
+script = ExtResource("3_vm4ec")
+stat = "water_walk"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_ooons"]
+script = ExtResource("3_vm4ec")
+stat = "leave_water_regen"
+value = 0.5
+target = "player"
+
+[sub_resource type="Resource" id="Resource_drp1p"]
+script = ExtResource("3_vm4ec")
+stat = "leave_water_seconds"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_1ra8u"]
+script = ExtResource("3_vm4ec")
+stat = "leave_water_regen"
+value = 0.5
+target = "player"
+
+[sub_resource type="Resource" id="Resource_jup8w"]
+script = ExtResource("3_vm4ec")
+stat = "leave_water_seconds"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_uu8m8"]
+script = ExtResource("3_vm4ec")
+stat = "leave_water_regen"
+value = 0.5
+target = "player"
+
+[sub_resource type="Resource" id="Resource_2elxk"]
+script = ExtResource("3_vm4ec")
+stat = "leave_water_seconds"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_kgxte"]
+script = ExtResource("3_vm4ec")
+stat = "leave_water_regen"
+value = 0.5
+target = "player"
+
+[sub_resource type="Resource" id="Resource_evy67"]
+script = ExtResource("3_vm4ec")
+stat = "leave_water_seconds"
+value = 2.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_rc7q3"]
+script = ExtResource("3_vm4ec")
+stat = "water_damage"
+value = 0.25
+target = "player"
+
+[resource]
+script = ExtResource("4_ooons")
+levels = [[SubResource("Resource_0neib"), SubResource("Resource_4fkwc"), SubResource("Resource_vm4ec")], [SubResource("Resource_ooons"), SubResource("Resource_drp1p")], [SubResource("Resource_1ra8u"), SubResource("Resource_jup8w")], [SubResource("Resource_uu8m8"), SubResource("Resource_2elxk")], [SubResource("Resource_kgxte"), SubResource("Resource_evy67"), SubResource("Resource_rc7q3")]]
+repeat_last_level = false
+max_level = 5
+text = "Water no longer slows you, and leaving it gives +3 HP a second for 15 s. Evolved: enemies in water take +25% damage from you."
+evolved_icon = ExtResource("1_0neib")
+id = "canteen"
+display_name = "Canteen"
+flavour = "Fill up. The next one is a long way off."
+rarity = "uncommon"
+weight = 8.0
+icon = ExtResource("2_4fkwc")
+icon_file = "canteen_icon.png"
+placeholder = {
+"color": "#5E8FB8",
+"glyph": "star"
+}

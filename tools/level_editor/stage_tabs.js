@@ -224,6 +224,12 @@ const StageTabs = (() => {
     // pass 107 (lane XPT): the stage's XP from kills (stage_list entry `xp_mult`, WaveTimeline.stage_xp_mult)
     form.appendChild(fieldRow('XP from kills', 'every kill\'s XP in this stage times this (`xp_mult`, 1 when unset; it holds through the boss, the portal and Endless). Each stage is a fresh level-1 run, so a stage whose creatures are rich in XP levels the hero much faster: lower it to slow the levels (0.5 = half the XP); empty = 1',
       Forms.numberInput({ key: 'stage.xp_mult', def: 1, min: 0, step: 0.05 }, e.xp_mult != null ? e.xp_mult : null, (v) => set('xp_mult', v, `Stage ${i + 1}'s XP from kills: x${v == null ? 1 : v}`), { path: 'stage.xp_mult', placeholder: 1 })));
+    // pass 126 (lane STAGE): the coin factor and the creatures' speed, read from the stage entry; the weather and the dust devils
+    // below in its look
+    form.appendChild(fieldRow('Coins and items x', 'what the hero\'s side reads of this stage: coins pay the round of this (at least 1), Personal Storm and the Iron Horse hit by it (`reward_mult`; empty = the stage multiplier)',
+      Forms.numberInput({ key: 'stage.reward_mult', def: App.stageMult(i), min: 0, step: 0.05 }, e.reward_mult != null ? e.reward_mult : null, (v) => set('reward_mult', v, `Stage ${i + 1}'s coins and items: x${v == null ? App.stageMult(i) : v}`), { path: 'stage.reward_mult' })));
+    form.appendChild(fieldRow('Creature speed x', 'every creature of this stage walks at this (`speed_mult`; empty = 1 + speed per stage x its place in the list)',
+      Forms.numberInput({ key: 'stage.speed_mult', def: 1, min: 0, step: 0.05 }, e.speed_mult != null ? e.speed_mult : null, (v) => set('speed_mult', v, `Stage ${i + 1}'s creature speed: x${v == null ? 'the default' : v}`), { path: 'stage.speed_mult' })));
     // pass 121 (lane LEGEND; Garry: "up until 4:30 in every run of any Stage there is 0 chance of getting a Legendary"): this
     // stage's own legendary hold and guarantee (stage_list entry `legendary`, key by key over the map's Settings →
     // Legendary items; the game's WaveTimeline.legendary_value). Seconds of the stage's own clock; empty = the map's.
@@ -294,6 +300,20 @@ const StageTabs = (() => {
     shareRow('items', 'On weapons\' models', 'how much of the tint the weapons\' own 3D models take: held guns, companions, orbiters, mines, the turret (`items`, 0% when unset: untinted). The shots, the creatures\' shots and the chests are never tinted');
     form.appendChild(el('div', { class: 'frow' }, el('div', { class: 'flabel', text: 'Preview' }), el('div', { class: 'fctl' }, canvas, el('div', { class: 'muted small', text: 'the map\'s sand, rock and wall colours and the boss: daylight above, this stage below (a red ring stays untinted). The game\'s pictures: lane SLOOK\'s stage_shots.gd.' }))));
     form.appendChild(fieldRow('Hell ground', 'the red hell ground and walls of today\'s stage 3 (RedCanyon.set_hell)', Forms.boolInput ? Forms.boolInput({ key: 'stage.hell' }, !!e.hell, (v) => set('hell', !!v)) : el('input', { type: 'checkbox', checked: !!e.hell, onchange: (ev) => set('hell', ev.target.checked) })));
+    // pass 126 (lane STAGE; Garry's Dust Bowl): the stage's weather and its own dust devils, edited as JSON (Apply, then Save). Empty
+    // braces remove the block: the stage plays as every stage does. Keys: docs/waves_schema.md "Pass 126"
+    form.appendChild(el('div', { class: 'fsection' }, el('h3', { text: 'Weather and dust devils', title: 'pass 126: only the look, except the dust devils\' throw' })));
+    const jsonBlock = (key, summary) => {
+      const box = el('div', { class: 'stg-json' });
+      JsonEdit.inline(box, { summary, value: U.isObj(e[key]) ? e[key] : {}, path: `stage.${key}`, onApply: (v) => {
+        if (!U.isObj(v)) return 'it must be an object { ... }';
+        set(key, v, `Stage ${i + 1}: ${key} set`);
+        return '';
+      } });
+      form.appendChild(box);
+    };
+    jsonBlock('weather', 'Weather: fog {color, density}, haze, gust, wind {mult, speed, gust}, wire_sway ({} = none)');
+    jsonBlock('dust_devils', 'Dust devils here, over the map\'s: first, every, size, radius, fling, toss {up, out, cooldown}, ... ({} = the map\'s)');
     // what lies in it
     form.appendChild(el('div', { class: 'fsection' }, el('h3', { text: 'In its window' })));
     const rows = (tl.roster || []).filter((r) => { const t0 = Number(r.t) || 0; const t1 = r.until == null || r.until === '' ? Infinity : Number(r.until); return t0 < w.end && t1 > w.start; });

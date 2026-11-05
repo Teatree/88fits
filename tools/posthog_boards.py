@@ -308,7 +308,7 @@ BOARDS = [
     ]),
     ("88fits · Stages", "Each stage as its own run (pass 87): how its runs end (extracted, fell before the boss, after it, in Endless), how often "
      "the boss falls, how long heroes last in Endless, by hero and by player, and when each player first beat each stage. Every other board "
-     "filters by stage too: add a dashboard filter on the event property stage_id (s1, s2, s3).", [
+     "filters by stage too: add a dashboard filter on the event property stage_id (s1, s2, dust, s3: the Blood Moon stays s3; "stage" counts places in the list, and it is 4 for the Blood Moon from pass 126).", [
         ("Stage runs: how they end", table(
             "SELECT " + STAGE + " AS stage_id, any(properties.stage_name) AS name, count() AS runs, "
             "round(100 * countIf(properties.boss_killed = true) / count(), 1) AS boss_down_pct, "

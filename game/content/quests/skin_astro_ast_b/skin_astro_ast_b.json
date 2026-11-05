@@ -1,0 +1,14 @@
+{
+  "id": "skin_astro_ast_b",
+  "name": "Astro · Event Horizon",
+  "condition": {
+    "type": "evolve_item",
+    "kind": "weapon",
+    "id": "gravity_gun"
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "astro:AST-B"
+  },
+  "icon": "res://content/characters/astro/astro_icon_b.png"
+}

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_gl5ur"]
+[ext_resource type="Texture2D" path="res://content/characters/may/may_icon_s.png" id="1_xkuke"]
+
+[resource]
+script = ExtResource("1_gl5ur")
+condition = {
+"id": "tommy_gun",
+"kind": "weapon",
+"type": "evolve_item"
+}
+unlocks = {
+"id": "may:MAY-S",
+"type": "skin"
+}
+id = "skin_may_may_s"
+display_name = "May · Carnival"
+icon = ExtResource("1_xkuke")
+icon_file = "res://content/characters/may/may_icon_s.png"

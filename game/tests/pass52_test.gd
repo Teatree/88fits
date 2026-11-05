@@ -72,8 +72,8 @@ func test_five_weapon_slots_and_five_line_slots() -> void:
 	assert_int(Run.weapons.size()).is_equal(5)
 	assert_int(HUD.slot_specs([], Run.weapon_cap(), [], [], Run.line_cap(), []).size()).is_equal(10)
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
-	assert_array(tl.weapon_cap.map(func(v) -> int: return int(v))).is_equal([5, 5, 5])
-	assert_array(tl.passive_cap.map(func(v) -> int: return int(v))).is_equal([5, 5, 5])
+	assert_array(tl.weapon_cap.map(func(v) -> int: return int(v))).is_equal([5, 5, 5, 5])  # pass 126: four stages
+	assert_array(tl.passive_cap.map(func(v) -> int: return int(v))).is_equal([5, 5, 5, 5])
 
 
 # ---------------------------------------------------------------- Hot Streak, XP, crit

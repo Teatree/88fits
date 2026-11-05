@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/characters/astro/astro_icon_b.png" id="1_pqepj"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_v53fo"]
+
+[resource]
+script = ExtResource("1_v53fo")
+condition = {
+"id": "gravity_gun",
+"kind": "weapon",
+"type": "evolve_item"
+}
+unlocks = {
+"id": "astro:AST-B",
+"type": "skin"
+}
+id = "skin_astro_ast_b"
+display_name = "Astro · Event Horizon"
+icon = ExtResource("1_pqepj")
+icon_file = "res://content/characters/astro/astro_icon_b.png"

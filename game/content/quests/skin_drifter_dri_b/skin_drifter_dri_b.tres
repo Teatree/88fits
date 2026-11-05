@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_d5f0l"]
+[ext_resource type="Texture2D" path="res://content/characters/drifter/drifter_icon_b.png" id="1_drp46"]
+
+[resource]
+script = ExtResource("1_d5f0l")
+condition = {
+"count": 320000.0,
+"type": "damage_with_weapon",
+"weapon": "revolver"
+}
+unlocks = {
+"id": "drifter:DRI-B",
+"type": "skin"
+}
+id = "skin_drifter_dri_b"
+display_name = "Drifter · Black Hat"
+icon = ExtResource("1_drp46")
+icon_file = "res://content/characters/drifter/drifter_icon_b.png"

@@ -1256,6 +1256,9 @@ static func buff_parts() -> Array:
 	# Skedaddle: while the burst of speed after a hit runs
 	if Run.skedaddle_left() > 0.0:
 		parts.append("SKEDADDLE")
+	# pass 126 (lane ITEMS): the Canteen, while its heal after leaving water runs (a quiet timer: words, no plate)
+	if Run.canteen_left > 0.0:
+		parts.append("CANTEEN")
 	return parts
 
 

@@ -212,8 +212,10 @@ func test_the_patches_leave_every_other_region_where_it_was() -> void:
 	var in_patches := 0
 	for p: Dictionary in m.call("bush_patches"):
 		in_patches += (p["bushes"] as Array).size()
-	var n := props.placed.size()
-	var tail: Array = props.placed.slice(n - in_patches)
+	# (pass 126, lane DRESS: the toppled cart comes after them, on dice of its own)
+	var scatter: Array = props.placed.filter(func(r: Dictionary) -> bool: return str(r["id"]) != "cart_toppled")
+	var n := scatter.size()
+	var tail: Array = scatter.slice(n - in_patches)
 	var k := 0
 	for p: Dictionary in m.call("bush_patches"):
 		for b: Dictionary in p["bushes"]:

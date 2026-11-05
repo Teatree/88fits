@@ -14,8 +14,8 @@ var drawn := 0   # instances drawn by the last finish() (tests)
 ## ink outline, the trail behind along the flight, stencil 3 so no stage filter dims them), one MultiMesh an attack whose
 ## buffer the pattern runner fills in one go (bb_draw: 16 floats a bullet, the transform then INSTANCE_CUSTOM). The body's
 ## radius in metres at size 1 by look; the shader's look number.
-const BILLBOARD_LOOKS := ["burning_tumbleweed", "venom_blob", "brand_fireball"]
-const BB_RADIUS := {"burning_tumbleweed": 0.34, "venom_blob": 0.5, "brand_fireball": 0.4}
+const BILLBOARD_LOOKS := ["burning_tumbleweed", "venom_blob", "brand_fireball", "grit_clod"]
+const BB_RADIUS := {"burning_tumbleweed": 0.34, "venom_blob": 0.5, "brand_fireball": 0.4, "grit_clod": 0.34}
 const BB_SHADER := preload("res://core/shaders/boss_bullet.gdshader")
 ## floats a bullet in the buffer: the 3 x 4 transform, then the custom data (no colour)
 const BB_STRIDE := 16

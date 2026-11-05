@@ -398,6 +398,87 @@
       "icon": "buck_icon_f.png",
       "icon_picked": true,
       "title": "hero_buck_f.png"
+    },
+    "BUC-G": {
+      "note": "pass 126: a red tracksuit with white stripes: Klein edits of BUC-F's paintings, view by view (tools/gen_skin_views.py), walked on BUC-F's dash",
+      "recipe": {
+        "pose_drivers": {
+          "front": "run_dash_f_low",
+          "fd": "run_dash_f",
+          "side": "run_dash_lvl",
+          "bd": "run_dash_lvl",
+          "back": "run_dash_lvl"
+        },
+        "pose_motion": "dashing in place on the spot like on a treadmill, leaning forward with both arms swept straight back behind him",
+        "method": "hero_pose5",
+        "seed_offset": 2437,
+        "screen": "green",
+        "anim_seed": 1,
+        "run_scale": {
+          "back": 1.07,
+          "bd": 1.06,
+          "side": 0.9,
+          "fd": 0.91,
+          "front": 0.9
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "stills": "g",
+        "art_prompt": "a lean young man with a bald head and smooth blue skin, a stern focused face with sharp eyebrows, dark eyes and slightly large ears, wearing a bright red zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, bright red track pants with two white stripes running down the outside of each leg, red sneakers with thick white soles; standing straight, both arms relaxed at his sides, empty hands",
+        "anim_hint": "a bald blue-skinned man in a bright red zip-up tracksuit with two white stripes down the sleeves and down the legs, red sneakers with white soles, a fast determined sprint with the arms pumping",
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                38,
+                172
+              ]
+            ],
+            "to": 12,
+            "sat": 0.9,
+            "min_sat": 0.14
+          }
+        ]
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Czerwony",
+        "price": 2500,
+        "currency_type": "gold",
+        "unlock_quest": "skin_buck_buc_g"
+      },
+      "sprite": "buck_sprite_g.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "icon": "buck_icon_g.png",
+      "title": "hero_buck_g.png"
     }
   }
 }

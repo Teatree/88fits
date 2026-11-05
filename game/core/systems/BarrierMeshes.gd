@@ -11,6 +11,9 @@
 ##   iron_fence        the Brander's: "bar" a black iron bar, hot at its top; "bar_glow" its white-hot spear head; "rail" an
 ##                     iron rail one metre long along x (stretched post to post), "rail_glow" the red-hot lower one; "post"
 ##                     a branding iron driven into the sand; "post_glow" its glowing brand (a ring and a cross)
+##   cross_fence       pass 126 (lane BOSS), Black Sunday's: "cross" a weathered wooden grave cross; "straw" a bundle of straw
+##                     tied round its foot; "wire" a strand of barbed wire one metre long along x (stretched post to post);
+##                     nothing of it glows, the storm's fence is cold
 ## Godot's front faces are clockwise: _tri takes an outward hint and orders each triangle to face it.
 class_name BarrierMeshes
 extends RefCounted
@@ -18,7 +21,7 @@ extends RefCounted
 ## The height every look is made to (m); `barrier.height` scales it.
 const DESIGN_H := 1.8
 ## Each look's stretch (m): one segment of the ring.
-const SEG := {"tumbleweed_fence": 1.8, "cactus_fence": 1.3, "iron_fence": 1.7}
+const SEG := {"tumbleweed_fence": 1.8, "cactus_fence": 1.3, "iron_fence": 1.7, "cross_fence": 1.6}
 ## Which pieces glow (drawn with the glow material) and which roll away as the barrier falls apart.
 const GLOW_PARTS := ["weed_glow", "column_glow", "bar_glow", "rail_glow", "post_glow"]
 const ROLL_PARTS := ["weed", "weed_glow"]
@@ -38,6 +41,8 @@ static func parts(look: String) -> Dictionary:
 			out = {"column": _column(), "column_glow": _bloom(), "thorns": _thorns()}
 		"iron_fence":
 			out = {"bar": _bar(), "bar_glow": _spear(), "rail": _rail(), "rail_glow": _rail_hot(), "post": _post(), "post_glow": _brand()}
+		"cross_fence":
+			out = {"cross": _cross(), "straw": _straw(), "wire": _wire()}
 	_cache[look] = out
 	return out
 
@@ -460,4 +465,58 @@ static func _brand() -> ArrayMesh:
 	_tube(st, c + Vector3(-r, 0, 0), c + Vector3(r, 0, 0), 0.028, 0.028, 4, warm, warm, true)
 	_tube(st, c + Vector3(0, -r, 0), c + Vector3(0, r, 0), 0.028, 0.028, 4, hot, hot, true)
 	_tube(st, Vector3(0, 1.78, 0), c + Vector3(0, -r, 0), 0.03, 0.03, 4, warm, hot, true)
+	return _end(st)
+
+
+# ---------------------------------------------------------------- pass 126 (lane BOSS): Black Sunday's fence of crosses
+
+## A grave cross of split boards, pale weathered wood so it reads against the brown sand, its top a little darker.
+static func _cross() -> ArrayMesh:
+	var st := _begin()
+	var wood := _c(176, 150, 112)
+	var dark := _c(116, 92, 64)
+	_box(st, Vector3(0, 0.72, 0), Vector3(0.075, 1.07, 0.045), wood)
+	_box(st, Vector3(0, 1.32, 0.012), Vector3(0.46, 0.07, 0.04), wood.lightened(0.08))
+	# the two nails and the end grain that says it is old
+	_box(st, Vector3(0, 1.32, 0.06), Vector3(0.03, 0.03, 0.012), _c(40, 34, 30))
+	_box(st, Vector3(0.0, 1.76, 0.0), Vector3(0.082, 0.035, 0.05), dark)
+	_box(st, Vector3(0.45, 1.32, 0.012), Vector3(0.022, 0.078, 0.046), dark)
+	_box(st, Vector3(-0.45, 1.32, 0.012), Vector3(0.022, 0.078, 0.046), dark)
+	return _end(st)
+
+
+## A bundle of straw tied round a cross's foot, the same gold as his cuffs.
+static func _straw() -> ArrayMesh:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 12601
+	var st := _begin()
+	var low := _c(150, 112, 46)
+	var top := _c(232, 196, 96)
+	for j in range(16):
+		var ang := rng.randf() * TAU
+		var r := rng.randf_range(0.06, 0.24)
+		var foot := Vector3(cos(ang) * r, -0.05, sin(ang) * r)
+		var d := Vector3(cos(ang) * rng.randf_range(0.1, 0.55), 1.0, sin(ang) * rng.randf_range(0.1, 0.55)).normalized()
+		_cone(st, foot, foot + d * rng.randf_range(0.42, 0.78), rng.randf_range(0.022, 0.036), 3, low, top, false)
+	# the twine
+	_tube(st, Vector3(0, 0.3, 0), Vector3(0, 0.36, 0), 0.2, 0.2, 7, _c(70, 50, 28), _c(92, 66, 38), true)
+	return _end(st)
+
+
+## A sagging strand of barbed wire one metre long along x, a barb every fifth.
+static func _wire() -> ArrayMesh:
+	var st := _begin()
+	var a := _c(52, 44, 40)
+	var b := _c(78, 66, 58)
+	var n := 10
+	for j in range(n):
+		var x0 := float(j) / float(n)
+		var x1 := float(j + 1) / float(n)
+		var p0 := Vector3(x0, -0.1 * sin(PI * x0), 0)
+		var p1 := Vector3(x1, -0.1 * sin(PI * x1), 0)
+		_tube(st, p0, p1, 0.016, 0.016, 4, a, b, false, 0.3 * float(j))
+		if j % 2 == 0:
+			var m := (p0 + p1) * 0.5
+			_cone(st, m, m + Vector3(0.03, 0.09, 0.03), 0.012, 3, a, b, false)
+			_cone(st, m, m + Vector3(-0.03, -0.09, -0.03), 0.012, 3, a, b, false)
 	return _end(st)

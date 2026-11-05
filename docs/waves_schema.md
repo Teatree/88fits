@@ -7,8 +7,8 @@ Level Editor (`tools\level_editor.cmd`) edits exactly this. After any hand edit 
 the game plays `<map>.tres`, which is generated from the JSON.
 
 Every time is in **seconds of the run clock** (`Run.elapsed`), which runs only in the normal phase: it stands still
-through a boss fight and the portal wait, so nothing dated inside those fires until the hero walks on. Stage 2 starts
-at `stage_length`, stage 3 at `2 × stage_length`.
+through a boss fight and the portal wait, so nothing dated inside those fires until the hero walks on. Since pass 87 each stage is a window of the one clock (`stage_list`,
+its own `length`): Red Canyon 0, 430, 1030, 1810, ending at 2770 since pass 126 (at the end of this page).
 
 ## Scalars (unchanged)
 `stage_length`, `stages`, `stage_mults[]`, `cap_curve[[t, cap], ...]`, `cap_start`/`cap_per_minute`/`cap_max`/
@@ -1384,3 +1384,40 @@ The Level Editor: Settings → "Legendary items" (the map's two numbers, with a 
 stage's card on the Timeline (its own two numbers; an empty box plays the map's). tools/level_editor/fields.js,
 stage_model.js (setField `legendary.from` / `legendary.guarantee_at`, legendaryOf, legendaryText, issues), stage_tabs.js,
 settings.js; checked by selftest_LEGEND121.py.
+
+## Pass 126: the map's dressing (lane DRESS)
+
+`timeline_data.dressing` is `{telephone, cart, graves}`, read by core/systems/MapDressing.gd (`DEFAULTS` fill every key the
+block leaves out; no block = the defaults; `enabled: false` leaves a thing out). What every key does is in the headers of
+MapDressing.gd and TelephoneLine.gd, the rules in BALANCING 68.DRESS. It has no card in the Level Editor: edit the JSON.
+
+## Pass 126: four stages, a stage's weather, a stage's own dust devils (lane STAGE)
+
+Red Canyon's windows on the one clock: Sundown `s1` 0..430, Nightfall `s2` 430..1030, **The Dust Bowl `dust` 1030..1810**, Blood Moon `s3`
+1810..2770 (its id stayed `s3`; analytics' `stage` number is 4 for it now, `stage_id` is the steady key). The rules are in BALANCING 68.STAGE,
+the row table with comments in `tools/dl/p126/STAGE/make_stage.py`.
+
+### `stage_list[k]`: new keys (each optional; a stage without one plays as before)
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `speed_mult` | number | 1 + `speed_per_stage` x k | every creature's speed on this stage (`WaveTimeline.speed_mult`). The Blood Moon names its 1.2 so moving it from index 2 to 3 did not speed it up |
+| `reward_mult` | number | `stage_mults[k]` | what the hero's side reads of the stage's strength: coins pay the round of this (at least 1), Personal Storm and the Iron Horse hit by it, TextGen shows it (`WaveTimeline.stage_reward_mult`, `Run.reward_mult`). Creatures keep reading `stage_mults` |
+| `weather` | block | none | only the look, below (`WaveTimeline.stage_weather`, `RedCanyon.set_weather`, called by `StageLook.show_stage`; `{}` or no key restores the map to the number and draws nothing more) |
+| `dust_devils` | block | none | laid over `timeline_data.dust_devils` key by key, `toss` key by key (`WaveTimeline.dust_devils_at`); no key plays the map's block itself |
+
+### `stage_list[k].weather`
+
+| key | what |
+|---|---|
+| `fog` {`color`, `density`} | the scene's Environment fog on this stage (the map's own is #EDA86B at 0.004) |
+| `haze` | the rolling haze, one full-screen quad (`world/features/DustHaze.gd`, `core/shaders/dust_haze.gdshader`): `color`, `strength` (alpha at the thick of a band; 0 = off), `floor` (share left between bands), `wind` [x, z], `speed` (m/s), `tile` [along, across] (metres of ground), `hero_clear` (share left where the hero stands), `clear_near`, `clear_far` (metres over which it comes back). Never over the creatures and the hero (stencil 1) |
+| `gust` | the storm's streaks in place of the map's gusts (`DustGust.STORM_DEFAULTS`): `streaks`, `life`, `speed`, `len` [min, max], `wid` [min, max], `alpha`, `lanes` (m across the wind), `turn` (radians the stream swings), `swell` (0..1, how much it dips), `puff_every` (s; 0 = none), `puff_size`, `sound_every` [min, max], `color`. Drawn by `core/shaders/gust_streak.gdshader` (feathered on every side, no depth test, never over the creatures and the hero) |
+| `wind` {`mult`, `speed`, `gust`} | the plants' lean x `mult`, the sway at `speed` (1.3 = as ever), a slow swell `gust` 0..1 on it (`PropField.set_wind`, uniforms of `prop_billboard.gdshader`). A sway of 0 (rocks, bones) never moves |
+| `wire_sway` | how far the telephone wire swings, x this (`TelephoneLine.set_wind`, lane DRESS) |
+
+### `dust_devils.fling` (new key of the block; 1 = as ever)
+
+How far from the middle a creature comes to rest, x this (`EnemyManager.swirl`; measured by pass126_STAGE_test: radius 3.6, fling 1 rests 3.78 m out, fling 2 7.59 m). The Level Editor's Settings card has a row; a stage's own numbers go in the stage's card ("Weather and dust devils", JSON windows).
+
+Level Editor: the stage card shows "Coins and items x", "Creature speed x" and the two JSON windows; the Wanted tab shows four stages. `content/wanted/wanted.json` has four entries in every `n` and in `reward.stage_mult` (a third stage between the old second and third).

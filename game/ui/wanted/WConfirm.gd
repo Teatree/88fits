@@ -51,16 +51,17 @@ var _dim_cancels := true
 ## `host` is the screen or modal that asks (the card is its last child, over everything it holds). `kind` (pass 122,
 ## lane UIKIT_A): what the deed is, for the confirm button's colour: "danger" (the default: rock, Royale red), "buy"
 ## (a purchase: brass, Royale green) or "act" (the one thing that happens now: brass, Royale gold); the way out is
-## always paper / slate.
+## always paper / slate. `confirm_parts` (pass 126, lane UI): the deed's label as WButton parts in place of `confirm_label`
+## (a purchase's coin and amount, WButton.price_parts).
 static func open(host: Control, title: String, body: String, confirm_label: String, cancel_label: String,
-		on_confirm: Callable, on_cancel: Callable = Callable(), kind: String = "danger") -> WConfirm:
+		on_confirm: Callable, on_cancel: Callable = Callable(), kind: String = "danger", confirm_parts: Array = []) -> WConfirm:
 	var old := current(host)
 	if old:
 		old._finish(false, true)
 	var c := WConfirm.new()
 	c._on_confirm = on_confirm
 	c._on_cancel = on_cancel
-	c._build(title, body, confirm_label, cancel_label, kind)
+	c._build(title, body, confirm_label, cancel_label, kind, confirm_parts)
 	host.add_child(c)
 	c._enter()
 	return c
@@ -192,7 +193,7 @@ func _on_dim() -> void:
 	cancel()
 
 
-func _build(title: String, body: String, confirm_label: String, cancel_label: String, kind: String = "danger") -> void:
+func _build(title: String, body: String, confirm_label: String, cancel_label: String, kind: String = "danger", confirm_parts: Array = []) -> void:
 	# pass 123 (lane KIT2): the mock's shell; the deed's role by kind (buy green, act gold, the rest red)
 	var role := WButton.RED
 	match kind:
@@ -200,9 +201,11 @@ func _build(title: String, body: String, confirm_label: String, cancel_label: St
 			role = WButton.GREEN
 		"act":
 			role = WButton.GOLD
+	var deed := {"id": "confirm", "text": confirm_label, "role": role}
+	if not confirm_parts.is_empty():
+		deed["parts"] = confirm_parts
 	_build_shell({"star": "Hold on", "title": title, "body": body, "min_h": R.MODAL_MIN_H,
-		"buttons": [{"id": "cancel", "text": cancel_label, "role": WButton.SLATE},
-			{"id": "confirm", "text": confirm_label, "role": role}]})
+		"buttons": [{"id": "cancel", "text": cancel_label, "role": WButton.SLATE}, deed]})
 	return
 
 

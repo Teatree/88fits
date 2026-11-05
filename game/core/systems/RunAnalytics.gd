@@ -92,9 +92,10 @@ const HEAT_MIN_SECS := 5
 ## shop_empty = something with nothing left to give; debug = the developer buttons (boards leave it out); other = a call
 ## that named nothing (none should: pass61_an_test). Pass 118 (lane BOSSCHEST): boss_chest = a boss chest's coins (its
 ## boss's purse, coins and own coin, packed and paid when they land; boss_purse and boss_coins no longer come in play).
+## Pass 126 (lane ITEMS): skip_pay = the Assayer's Scale's coins for a spent skip (Run._pay_skip).
 const GOLD_SOURCES := ["coins", "loose_change", "gold_dust", "boss_coins", "loot_cache", "blasting_cap", "barrel", "elite_purse",
 	"boss_purse", "chest", "coin_bag", "hush_money", "bounty", "dice", "empty_offer", "stranger_empty", "shop_empty",
-	"debug", "other", "boss_chest"]
+	"debug", "other", "boss_chest", "skip_pay"]
 ## Where a run's gold goes (Run.spend_gold's `sink`): the shop structure, the Down! revive. The Strongbox is not a
 ## spend: it banks the purse (run_end's gold_banked, the save's gold_meta "strongbox").
 const GOLD_SINKS := ["shop", "revive", "other"]

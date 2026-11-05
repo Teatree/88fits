@@ -81,6 +81,11 @@ const STATS := {
 	# pass 119 (lane LEGEND_A): the Iron Horse's and Personal Storm's clocks, said in their RULE_TEXT words
 	"train_every": ["seconds between ghost trains", "rule"], "train_cross": ["crossing train", "rule"],
 	"storm_every": ["seconds between storms", "rule"], "storm_seconds": ["storm strikes for", "rule"],
+	# pass 126 (lane ITEMS): the Assayer's Scale's pay for a spent skip (Run._pay_skip), the Canteen (Player._tick_canteen,
+	# EnemyManager.damage); "word": water_walk is the rule itself, never a number
+	"skip_coins": ["coins a skip pays", "num"], "skip_xp": ["next level's XP a skip pays", "pct"],
+	"water_walk": ["water no longer slows you", "word"], "leave_water_regen": ["HP a second after leaving water", "num"],
+	"leave_water_seconds": ["healing after leaving water", "sec"], "water_damage": ["damage to enemies in water", "pct"],
 }
 ## A count stat's name for exactly one (pass 118: _singular cuts only a last "s", and a name with its plural inside says
 ## its singular here; pass 119: the Grindstone's levels).
@@ -1717,8 +1722,8 @@ static func scaled_damage(base: float, stage: bool) -> float:
 		return base
 	var sheet = run.get("player_sheet")
 	var d := base * (float(sheet.call("get_stat", "might", 1.0)) if sheet != null else 1.0)
-	if stage and run.has_method("stage_mult"):
-		d *= float(run.call("stage_mult"))
+	if stage and run.has_method("reward_mult"):
+		d *= float(run.call("reward_mult"))
 	return d
 
 

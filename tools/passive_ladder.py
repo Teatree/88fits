@@ -112,6 +112,14 @@ LADDER = {
     # pass 120 (Garry: "every attack doesn't take more than 35% of heroes' Max HP"): one cap, 35 / Evolved 30
     "pocket_bible": [[E("hit_cap_pct", 35, "set"), E("boss_hit_cap_pct", 35, "set"), E("hit_block_every", 20, "set")],
                      [E("hit_cap_pct", 30, "set"), E("boss_hit_cap_pct", 30, "set"), E("hit_block_every", 15, "set")]],
+    # pass 126 (lane ITEMS; BALANCING 68.ITEMS): the Assayer's Scale (rare: 25 coins and 5% of the next level's XP a skip,
+    # its Evolved rung doubles the pay) and the Canteen (uncommon: the walk through water, +3 HP a second for 15 s after
+    # leaving it, its Evolved rung +25% damage to creatures in water)
+    "assayers_scale": [[E("skip_coins", 25), E("skip_xp", 0.05)], [E("skip_coins", 10), E("skip_xp", 0.02)],
+                       [E("skip_coins", 10), E("skip_xp", 0.02)], [E("skip_coins", 45), E("skip_xp", 0.09)]],
+    "canteen": [[E("leave_water_regen", 3), E("leave_water_seconds", 15), E("water_walk", 1)]]
+               + [[E("leave_water_regen", 0.5), E("leave_water_seconds", 1)]] * 3
+               + [[E("leave_water_regen", 0.5), E("leave_water_seconds", 2), E("water_damage", 0.25)]],
 }
 
 # the hand-written card lines that named the old numbers (a new card shows `text` verbatim; the upgrades read the rungs)

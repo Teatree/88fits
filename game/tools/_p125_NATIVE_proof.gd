@@ -14,6 +14,13 @@ func _say_native() -> void:
 		_say("native: no crowd")
 		return
 	_say("native: on %s, class there %s; counts plain %s" % [str(em.native_on()), str(ClassDB.class_exists(&"CrowdCore")), str(em.native_counts())])
+	# pass 126 (lane BOSS): whether a Dust Bowl fight in the run really played the whirl and the blizzard
+	var wh = em.get("whirls")
+	if wh != null:
+		_say("whirls: started %d ended %d cut %d lifted %d tosses %d saved %d" % [wh.started, wh.ended, wh.cut, wh.lifted, wh.tosses, wh.saved])
+	var pt = em.get("patterns")
+	if pt != null:
+		_say("patterns: started %d ended %d fired %d hits %d" % [pt.started, pt.ended, pt.fired, pt.hits])
 
 
 func _end_report(why: String) -> void:

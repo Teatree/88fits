@@ -192,7 +192,7 @@
  "rock_small": {
   "file": "rock_small.png",
   "height": 0.8,
-  "radius": 0.22,
+  "radius": 0.0,
   "cell": 128,
   "shadow": {
    "w": 1.231,
@@ -1133,6 +1133,35 @@
    "x": 0.0,
    "z": -0.08,
    "a": 0.48
+  }
+ },
+ "cart_toppled": {
+  "file": "cart_toppled.png",
+  "height": 3.54,
+  "radius": 0.784,
+  "cell": 384,
+  "tint": {
+   "sat_min": 0.03,
+   "h": [
+    -0.01,
+    0.01
+   ],
+   "s": [
+    0.85,
+    1.12
+   ],
+   "v": [
+    0.92,
+    1.05
+   ],
+   "link": 0.5
+  },
+  "shadow": {
+   "w": 1.05,
+   "d": 0.62,
+   "x": 0.014,
+   "z": -0.075,
+   "a": 0.44
   }
  }
 }

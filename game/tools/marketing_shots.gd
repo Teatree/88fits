@@ -950,7 +950,7 @@ func _nightfall() -> void:
 
 func _bloodmoon() -> void:
 	var hero := _s("hero", "calavera")
-	if not await _launch(hero, 2, _i("seed", 88)):
+	if not await _launch(hero, 3, _i("seed", 88)):   # pass 126: the Blood Moon is index 3
 		return
 	_arm(hero)
 	var sp := _spot(_f("angle", 45.0), _f("radius", 32.0))
@@ -965,9 +965,9 @@ func _bloodmoon() -> void:
 const BOSSES := {
 	"king": ["tumbleweed_king", 0, [["stomp", 1.55]], [["tumbleweed_minion", 12, "", 0.95, 1.25, 0], ["lesser_scorpion", 8, "LS-B", 0.9, 1.4, 0], ["lesser_scorpion", 4, "LS-E", 0.9, 1.4, 0]]],
 	"king_volley": ["tumbleweed_king", 0, [["tumbleweed_volley", 1.45]], [["tumbleweed_minion", 12, "", 0.95, 1.25, 0], ["lesser_scorpion", 8, "LS-B", 0.9, 1.4, 0]]],
-	"brander_slam": ["brander", 2, [["brand", 1.7], ["slam", 0.6]], [["imp", 16, "", 0.95, 1.3, 0], ["hellhound", 10, "", 0.95, 1.2, 0]]],
+	"brander_slam": ["brander", 3, [["brand", 1.7], ["slam", 0.6]], [["imp", 16, "", 0.95, 1.3, 0], ["hellhound", 10, "", 0.95, 1.2, 0]]],
 	"gila": ["gila_grande", 1, [["cactus_rain", 1.95]], [["fire_ant", 12, "ANT-E", 1.0, 1.4, 0], ["fire_ant", 8, "ANT-G", 1.0, 1.4, 0], ["bull_beetle", 3, "BB-E", 1.0, 1.15, 0]]],
-	"brander": ["brander", 2, [["brand", 1.7]], [["imp", 16, "", 0.95, 1.3, 0], ["hellhound", 10, "", 0.95, 1.2, 0]]],
+	"brander": ["brander", 3, [["brand", 1.7]], [["imp", 16, "", 0.95, 1.3, 0], ["hellhound", 10, "", 0.95, 1.2, 0]]],
 }
 
 
