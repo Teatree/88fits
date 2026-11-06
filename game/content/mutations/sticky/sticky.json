@@ -42,24 +42,36 @@
     },
     "B": {
       "icon": "sticky_icon_b.png",
-      "note": "B · the stick keeps its own paper and its spark (no amber tint, no blinking light); the icon in amber resin",
+      "note": "B · amber tar poured over the stick (or the bundle), dripping; its spark kept (no amber tint, no blinking light)",
       "params": {
         "tint": null,
-        "look": null
+        "look": null,
+        "model_tar": true
       },
       "fresh": true,
       "icon_picked": true,
       "recipe": {
-        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A sandy-brown paper stick of dynamite with dark rings and cream ends sealed inside a thick blob of glossy translucent golden amber resin: the amber coats the whole stick with a shiny highlight, the stick showing through it, fat amber drips hanging off its underside, the fuse sticking out of the amber with the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
-        "ref": "tools/dl/dynamite_b_stick_tan_ref.png",
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A bright red paper stick of dynamite with dark rings and cream ends with thick glossy golden amber tar poured over its middle: the amber tar coats the top of the stick with a shiny highlight and runs down its sides in fat drips that hang off its underside, the red paper showing at both ends, the fuse sticking out past the tar with the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_b_stick_tar_ref.png",
         "screen": "blue"
       },
       "painted": {
-        "job": "j20261014-174432-6124",
+        "job": "p128-dyna p128_sticky_b_c2.png",
         "pick": "c2",
-        "seed": 129897452886,
+        "seed": 2031128,
         "model": "klein"
-      }
+      },
+      "icon_history": [
+        {
+          "icon": "sticky_icon_b.png",
+          "picked": true,
+          "shown": "sticky_icon_b.png",
+          "backup": "tools/level_editor/backups/sticky/sticky_icon_b_20261106-013410.png",
+          "to": "sticky_icon_b.png",
+          "at": "2026-11-06 01:34:10",
+          "why": "pass 128: repainted for the red dynamite stick (the file painted over)"
+        }
+      ]
     },
     "C": {
       "icon": "sticky_icon_c.png",

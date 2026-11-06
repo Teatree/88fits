@@ -616,7 +616,7 @@ const Forms = (() => {
     if (!c) {
       wrap.appendChild(el('p', { class: 'muted small', text: isHp
         ? `No HP curve: the legacy formula (1 + hp_growth × minutes)^hp_power = (1 + ${fmtN(g, 4)} × m)^${fmtN(p, 3)}: ${samples((t) => Model.formulaAt(legacy, t))}.`
-        : 'No damage curve: creature damage ×1 over the run clock (the stage multiplier, the hero\'s level and creature_damage_mult still apply).' }));
+        : 'No damage curve: creature damage ×1 over the run clock (the stage multiplier, the outlaw\'s level and creature_damage_mult still apply).' }));
       const acts = el('div', { class: 'alt-actions' });
       if (isHp) {
         acts.appendChild(el('button', { class: 'btn small', type: 'button', text: 'Start from the legacy formula', title: 'an hp_curve in formula mode with hp_growth / hp_power as a and b (the same numbers in play)', onclick: () => App.apply((d) => { d.hp_curve = { mode: 'formula', formula: { kind: 'power', a: g, b: p }, points: Model.seedPoints(d, legacy) }; }) }));
@@ -712,7 +712,7 @@ const Forms = (() => {
     wrap.appendChild(fbox);
     wrap.appendChild(el('p', { class: 'muted small', text: mode === 'sides'
       ? (total > 0 ? 'Each roster burst and wave picks a side by these weights, then a point 19–24 m out within ±45° of it. Rings, swarms, the portal wave, bosses and Elite bosses come as before.' : 'Every side weighs 0: the game plays the facing rule instead.')
-      : `The old rule: ${Math.round((ss && ss.facing_share != null ? Number(ss.facing_share) : 0.7) * 100)}% of the spawns ahead of the hero within ±${ss && ss.facing_spread_deg != null ? ss.facing_spread_deg : 60}°, the rest anywhere round him.` }));
+      : `The old rule: ${Math.round((ss && ss.facing_share != null ? Number(ss.facing_share) : 0.7) * 100)}% of the spawns ahead of the outlaw within ±${ss && ss.facing_spread_deg != null ? ss.facing_spread_deg : 60}°, the rest anywhere round him.` }));
     if (ss) wrap.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small danger', type: 'button', text: 'Remove the block', title: 'no spawn_sides: the facing rule', onclick: () => App.apply((d) => { delete d.spawn_sides; }) })));
     return wrap;
   }

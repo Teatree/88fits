@@ -191,8 +191,8 @@ const XpModel = (() => {
     let shrink = 0;
     for (let L = 1; L <= CHECK_LEVELS; L++) {
       const x = rawNeed(c, L);
-      if (!(x > 0) && isFinite(x)) { err(`level ${L} would need ${fmt(x * m)} XP: 0 or less (the game makes it 0.01, the hero would level on nothing)`); break; }
-      if (!isFinite(x) || x > MAX_NEED) { if (L < WALL_LEVEL) warn(`level ${L} would need more XP than the game counts (it caps a level at ${MAX_NEED.toExponential(0)}): the hero stops levelling there`); break; }
+      if (!(x > 0) && isFinite(x)) { err(`level ${L} would need ${fmt(x * m)} XP: 0 or less (the game makes it 0.01, the outlaw would level on nothing)`); break; }
+      if (!isFinite(x) || x > MAX_NEED) { if (L < WALL_LEVEL) warn(`level ${L} would need more XP than the game counts (it caps a level at ${MAX_NEED.toExponential(0)}): the outlaw stops levelling there`); break; }
       if (!shrink && L > 1 && x < rawNeed(c, L - 1) - 1e-9) shrink = L;
     }
     if (shrink && !out.some((o) => o.level === 'error')) warn(`level ${shrink} needs less XP than level ${shrink - 1}`);

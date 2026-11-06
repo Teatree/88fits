@@ -361,7 +361,7 @@ const Sim = (() => {
       btn,
       // pass 80 (lane WATCH): one run of this hero, board, seed and bot played in a PC window (tools/watch.py)
       el('button', { type: 'button', class: 'btn small', text: S.watching ? 'Opening…' : 'Watch', disabled: !!S.watching,
-        title: 'watch one run of this hero, board, seed and bot in a game window: the phone view on the left, the numbers, charts and decisions of the bot on the right (one Watch at a time)',
+        title: 'watch one run of this outlaw, board, seed and bot in a game window: the phone view on the left, the numbers, charts and decisions of the bot on the right (one Watch at a time)',
         onclick: watchRun }),
       el('button', { type: 'button', class: 'btn small ghost', text: S.collapsed ? 'Show settings' : 'Hide settings', onclick: () => { S.collapsed = !S.collapsed; saveFold(); draw(); } }));
     card.appendChild(head);
@@ -402,11 +402,11 @@ const Sim = (() => {
     // pass 87 (lane STOOLS; Garry: every stage is its own run): the stage every run plays
     const stSel = el('select', { class: 'sim-input', onchange: (e) => set('stage', Number(e.target.value)) });
     for (const w of App.stageList()) stSel.appendChild(el('option', { value: w.i + 1, text: `Stage ${w.i + 1}${w.name !== `Stage ${w.i + 1}` ? ' · ' + w.name : ''} (${M.fmtT(w.length)}${w.boss ? ', ' + App.creatureName(w.boss) : ''})`, selected: w.i + 1 === Math.max(1, Number(f.stage) || 1) }));
-    grid.appendChild(field('Stage', stSel, 'each run plays this stage: a fresh hero (level 1, his start weapon) at its window\'s start, its boss at its end, then the portal\'s countdown and Endless until the stop or his death (the bot never extracts)'));
+    grid.appendChild(field('Stage', stSel, 'each run plays this stage: a fresh outlaw (level 1, his start weapon) at its window\'s start, its boss at its end, then the portal\'s countdown and Endless until the stop or his death (the bot never extracts)'));
     // the hero
     const hero = el('select', { class: 'sim-input', onchange: (e) => set('hero', e.target.value) });
     for (const h of meta.heroes || []) hero.appendChild(el('option', { value: h.id, text: h.name + (h.hidden ? ' (hidden in the game)' : ''), selected: h.id === f.hero }));
-    grid.appendChild(field('Hero', hero, 'who plays every run'));
+    grid.appendChild(field('Outlaw', hero, 'who plays every run'));
     // runs, at once
     const players = el('input', { class: 'sim-input num', type: 'number', min: 1, max: meta.max_players || 100, step: 1, value: f.players,
       onchange: (e) => { set('players', Math.max(1, Math.min(meta.max_players || 100, Math.round(Number(e.target.value) || 10)))); e.target.value = S.form.players; draw(); } });

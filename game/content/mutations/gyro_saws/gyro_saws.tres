@@ -9,7 +9,7 @@ weapon = "orbit_saws"
 mutation_kind = "hero"
 hero = "astro"
 text = "The ring widens 30% while she moves and tightens when she stops."
-vfx = "the ring breathes with the hero's steps"
+vfx = "the ring breathes with the outlaw's steps"
 params = {
 "gyro": {
 "moving_mult": 1.3

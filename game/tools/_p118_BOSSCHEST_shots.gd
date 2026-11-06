@@ -6,6 +6,7 @@
 ## Windowed:
 ##   GODOT_TIMEOUT=600 bash tools/godot.sh --audio-driver Dummy --resolution 1080x1920 --fixed-fps 60 \
 ##       --path D:/_projects/88fits/game --script res://tools/_p118_BOSSCHEST_shots.gd -- out=<dir> [only=world,popup]
+## Pass 128: `only=meter [mults=1,1.3,1.6,2,9.9]` = the speed panel at chosen multipliers (asked for by name only).
 ## The UI review's set (tools/ui_review_capture.sh: `bosschest`) takes the King's beats from here. A watchdog quits after
 ## 300 s; every wait is bounded. The PC save is put back as it was.
 extends SceneTree
@@ -13,6 +14,7 @@ extends SceneTree
 const BOSSES := [["tumbleweed_king", 0, 45.0], ["gila_grande", 1, 150.0], ["black_sunday", 2, 250.0], ["brander", 3, 400.0]]
 var _out := "user://bosschest_shots"
 var _only: Array = []
+var _mults: Array = [1.0, 1.3, 1.6, 2.0, 9.9]
 var _save
 var g
 
@@ -23,6 +25,10 @@ func _initialize() -> void:
 			_out = a.substr(4)
 		elif a.begins_with("only="):
 			_only = a.substr(5).split(",")
+		elif a.begins_with("mults="):
+			_mults.clear()
+			for s in a.substr(6).split(","):
+				_mults.append(float(s))
 	DirAccess.make_dir_recursive_absolute(_out)
 	create_timer(300.0, true, false, true).timeout.connect(func() -> void:
 		print("bosschest_shots: watchdog quit")
@@ -144,6 +150,37 @@ func _main() -> void:
 				await _shot("payout_burst")
 				await _frames(30)
 				await _shot("payout_flying")
+			await _frames(90)
+			g.modal_reset()
+			g.set_paused(false)
+			await _frames(10)
+	# pass 128 (only=meter, never part of the default set): the speed panel alone at chosen multipliers (mults=1,1.3,1.6,2,9.9),
+	# the King's chest at CLAIM with the pack's multiplier set by hand: the whole screen and the panel's crop
+	if _only.has("meter"):
+		for mv: float in _mults:
+			var pack2: Dictionary = BC.sample_pack("tumbleweed_king", 0, 45.0)
+			pack2["mult"] = mv
+			g.open_boss_chest(_ground(here + Vector3(0.8, 0, -0.6)), "tumbleweed_king", pack2)
+			await _frames(2)
+			var bs2 = g.boss_chest_screen
+			bs2.set_process(false)
+			await _frames(25)
+			bs2.seek(float(bs2.get("_end_t")) + BCS.CLAIM_AFTER + 0.5)
+			await _frames(6)
+			var tag := ("%.1f" % mv).replace(".", "_")
+			await _shot("meter_x%s" % tag)
+			var mr: Rect2 = bs2.get("_meter_rect")
+			var img2 := root.get_viewport().get_texture().get_image()
+			var cr := Rect2i(Rect2(mr.position - Vector2(24, 24), mr.size + Vector2(48, 60))).intersection(Rect2i(Vector2i.ZERO, img2.get_size()))
+			img2.get_region(cr).save_png(_out.path_join("meter_x%s_crop.png" % tag))
+			print("bosschest_shots: meter x%.1f bar starts %.1f, the multiplier ends %.1f" % [mv, BCS.meter_bar_x(mv),
+				BCS.ROYALE_PAD + BCS.meter_mult_width(mv)])
+			bs2.set_process(true)
+			bs2.claim()
+			for k in range(60):
+				await process_frame
+				if not bs2.visible:
+					break
 			await _frames(90)
 			g.modal_reset()
 			g.set_paused(false)

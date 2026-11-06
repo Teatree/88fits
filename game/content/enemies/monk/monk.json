@@ -95,7 +95,7 @@
     "special_chance": 0.0
   },
   "motion": "walking slowly with calm steps, the hands kept together in front inside the sleeves",
-  "doc": "A hooded desert monk who walks in a band of 10 to 30 brothers, keeps its distance like the Spit Cactus, and with the whole band raises its hands for 3 seconds to loose slow, bright blue energy spheres at the hero.",
+  "doc": "A hooded desert monk who walks in a band of 10 to 30 brothers, keeps its distance like the Spit Cactus, and with the whole band raises its hands for 3 seconds to loose slow, bright blue energy spheres at the outlaw.",
   "can_be_elite": false,
   "variant_base": "MON-0",
   "variants": {

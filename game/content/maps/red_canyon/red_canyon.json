@@ -4292,11 +4292,25 @@
     "far_speed": {
       "enabled": true,
       "distance": 12.0,
-      "max_mult": 3.0,
+      "max_mult": 4.0,
       "ramp": 24.0,
       "bosses": true,
       "curve": "ease_out",
-      "max_speed": 6.0
+      "max_speed": 8.0
+    },
+    "relocate": {
+      "enabled": true,
+      "distance": 16.0,
+      "seconds": 5.0,
+      "every": 0.4,
+      "ring": [
+        19.0,
+        24.0
+      ],
+      "sectors": 12,
+      "sink": 0.35,
+      "scan": 0.5,
+      "squads": false
     },
     "sand": "ripples_pebbles",
     "oases": {

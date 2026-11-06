@@ -584,7 +584,7 @@ func _now_wall() -> float:
 func _on_check(i: int, ok: bool, diffs: Dictionary) -> void:
 	# pass 120 (lane REPLAY): parted between two checks (RunReplay._parted): the hero down only here, the run over only here
 	if i < 0 and not ok and _drift_text == "":
-		var what := "the hero went down here but not in the player's run" if diffs.has("down") else "the run ended here but not in the player's run"
+		var what := "the outlaw went down here but not in the player's run" if diffs.has("down") else "the run ended here but not in the player's run"
 		_drift_text = "Out of step from %s: %s" % [mmss(_now_wall()), what]
 		_note("[color=#f05048]" + _drift_text + "[/color]")
 		return
@@ -604,9 +604,9 @@ func _on_check(i: int, ok: bool, diffs: Dictionary) -> void:
 
 
 static func _field_name(k: String) -> String:
-	return {"x": "hero x", "z": "hero z", "hp": "HP", "lv": "level", "xp": "XP", "kills": "kills", "gold": "gold", "alive": "creatures",
+	return {"x": "outlaw x", "z": "outlaw z", "hp": "HP", "lv": "level", "xp": "XP", "kills": "kills", "gold": "gold", "alive": "creatures",
 		"crowd": "the creatures' places", "cx": "the crowd's middle", "cz": "the crowd's middle", "dice": "the dice", "t": "clock",
-		"bits": "the last digits", "shots": "shots in the air", "picks": "pickups lying", "down": "the hero down", "end": "the run's end"}.get(k, k)
+		"bits": "the last digits", "shots": "shots in the air", "picks": "pickups lying", "down": "the outlaw down", "end": "the run's end"}.get(k, k)
 
 
 ## Pass 120 (lane REPLAY): the replay's run ended while the player's went on (the replay had parted): the viewer pauses
@@ -945,7 +945,7 @@ func _refresh_ui(f: int) -> void:
 			light.add_theme_color_override("font_color", BAD)
 			var extra := ""
 			if bool(rr.get("assist")) and int(rr.get("assisted")) > 0:
-				extra = "  Safety net ON: the hero is pulled to where the player really was (%d times)." % int(rr.get("assisted"))
+				extra = "  Safety net ON: the outlaw is pulled to where the player really was (%d times)." % int(rr.get("assisted"))
 			light.text = "%s  (%d checks equal, %d different).%s" % [_drift_text, ok, bad, extra]
 			if _ended_words != "":
 				light.text += "\n" + _ended_words + "."

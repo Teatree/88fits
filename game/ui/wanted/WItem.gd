@@ -45,9 +45,9 @@ static func word(card: Dictionary) -> String:
 			return what + rung_word(card)
 		"perk":
 			var hero = W.node("Registry").character((def as PerkDef).hero)
-			return "%s'S PERK · ONCE" % (hero.display_name.to_upper() if hero else "HERO")
+			return "%s'S PERK · ONCE" % (hero.display_name.to_upper() if hero else "OUTLAW")
 		"mutation":
-			return "HERO MUTATION" if (def as MutationDef).is_hero() else "MUTATION"
+			return "OUTLAW MUTATION" if (def as MutationDef).is_hero() else "MUTATION"
 	return ""
 
 

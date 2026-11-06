@@ -31,27 +31,38 @@
       "note": "the grenade's: steel spikes"
     },
     "B": {
-      "name": "Coffin Nails",
+      "name": "Barbed Wire",
       "flavour": "Saves the undertaker a trip.",
-      "text": "The burst throws six coffin nails out past the blast.",
+      "text": "The burst throws six wire barbs out past the blast.",
       "icon": "frag_icon_b.png",
-      "note": "B · the stick (or the bundle) in red paper; nails in its words",
+      "note": "B · barbed wire wound round the stick (or the bundle); barbs in its words",
       "params": {
-        "model_colour": "red"
+        "model_wire": true
       },
       "fresh": true,
       "icon_picked": true,
       "recipe": {
-        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A single stick of red dynamite: a smooth red paper cylinder with two thin dark brown rings near each end and flat cream paper ends, a pale grey cord fuse curling out of its top end with a charred black tip, with five long black iron coffin nails with flat square heads lashed along its sides by a few turns of rough twine, the nails longer than the stick so their sharp points stick out past its ends, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
-        "ref": "tools/dl/dynamite_b_stick_red_ref.png",
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A single stick of red dynamite: a smooth bright red paper cylinder with two thin dark rings near each end and flat cream paper ends, a pale grey cord fuse curling out of its top end with a charred black tip, wrapped round and round in dark iron barbed wire: one thick strand of dark wire coiling along the stick from end to end, with sharp pointed steel barbs sticking out of the wire all round it, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_b_stick_wire_ref.png",
         "screen": "blue"
       },
       "painted": {
-        "job": "j20261014-174432-b7c7",
-        "pick": "c4",
-        "seed": 359260563484,
+        "job": "p128-dyna p128_frag_b_c1.png",
+        "pick": "c1",
+        "seed": 1025007,
         "model": "klein"
-      }
+      },
+      "icon_history": [
+        {
+          "icon": "frag_icon_b.png",
+          "picked": true,
+          "shown": "frag_icon_b.png",
+          "backup": "tools/level_editor/backups/frag/frag_icon_b_20261106-013409.png",
+          "to": "frag_icon_b.png",
+          "at": "2026-11-06 01:34:09",
+          "why": "pass 128: repainted for the red dynamite stick (the file painted over)"
+        }
+      ]
     },
     "C": {
       "name": "Coffin Nails",

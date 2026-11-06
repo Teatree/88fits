@@ -42,14 +42,14 @@ const WantedModel = (() => {
   // what each type is, in Garry's words (the tab's cards), and what its extras mean
   const TYPE_INFO = {
     kill_enemy: { label: 'Kill N of a creature', help: 'a creature on this stage\'s roster for at least Min seconds (met before, when "creatures met only"), drawn by its seconds on the roster; never more than Cap a minute of those seconds; its front still on the poster' },
-    kill_weapon: { label: 'Kill N with a weapon', help: 'a weapon this hero may find (unlocked, not hidden, open on this stage; seen before, when "items seen only") or his own; his own is Start weight times as likely; another one adds Other bonus to the difficulty; its icon on the poster' },
+    kill_weapon: { label: 'Kill N with a weapon', help: 'a weapon this outlaw may find (unlocked, not hidden, open on this stage; seen before, when "items seen only") or his own; his own is Start weight times as likely; another one adds Other bonus to the difficulty; its icon on the poster' },
     kill_specials: { label: 'Kill N specials', help: 'the glowing specials and the geared ones (the Rocketeer, the Saiga Sniper...); a geared creature met on this stage on the poster' },
     kill_elites: { label: 'Kill N Elites', help: 'Elites (crowned, or wearing an Elite modifier); never more than the stage brings (its Elite events and Elite rows); offered only when it brings one' },
     kill_total: { label: 'Kill N creatures', help: 'every kill of the run; the stage\'s picture on the poster' },
     boss_fast: { label: 'Beat the boss within T seconds', help: 'from his arrival to his death; a LOWER number is harder (progression shortens it); the boss met before only; his still on the poster' },
-    hp_floor: { label: 'Beat the boss, never under P% HP', help: 'the hero\'s health never under P% of his max until the boss dies (a revive counts as falling under); Max caps it; the hero on the poster' },
-    beat_stage: { label: 'Beat the stage as the hero', help: 'no number: difficulty is its first value when the stage was beaten before, its second when never' },
-    hero_level: { label: 'Reach hero level L', help: 'the hero\'s level in this run; the hero on the poster' },
+    hp_floor: { label: 'Beat the boss, never under P% HP', help: 'the outlaw\'s health never under P% of his max until the boss dies (a revive counts as falling under); Max caps it; the outlaw on the poster' },
+    beat_stage: { label: 'Beat the stage as the outlaw', help: 'no number: difficulty is its first value when the stage was beaten before, its second when never' },
+    hero_level: { label: 'Reach outlaw level L', help: 'the outlaw\'s level in this run; the outlaw on the poster' },
     max_weapon: { label: 'Get a weapon to its top level', help: 'no number (its top level); the first difficulty value, plus Other bonus for a weapon that is not his own' },
     evolve_item: { label: 'Evolve an item', help: 'his own weapon (when it evolves) or a card that evolves; difficulty: first value for a card, second for his weapon; Start weight = how likely his weapon is against one card' },
     open_chests: { label: 'Open N chests', help: 'chests opened or skipped in this run; the chest on the poster' },
@@ -59,9 +59,9 @@ const WantedModel = (() => {
     heal_item: { label: 'Restore N HP with an item', help: 'HP the item gives back in the run: life steal (Death), regen (Temperance, Hot Springs), Siesta\'s stand-still regen, Vulture\'s crit heal, Cake\'s slices (its share when two items heal the same way); a card or passive item that heals, unlocked and seen; each item\'s own factor below sizes its range (a Cake heals far less than Death); its icon on the poster' },
     heal_source: { label: 'Restore N HP with a power-up or structure', help: 'HP the Heart or the Healing Well gives back in the run; only a healing power-up this map drops (kills or barrels) or a healing structure it places; a source\'s own factor below; its icon on the poster' },
     item_level: { label: 'Get an item to level N', help: 'a weapon (his own or one seen), a card or a passive item (seen) to level N, N rolled between Min level and that item\'s own top level (a passive item\'s ladder: common 6 .. epic 3); difficulty from where N fell (the top level = the hard end); its icon on the poster' },
-    barrels: { label: 'Break N barrels', help: 'barrels the hero breaks in the run (brown and black); 35 stand at the start and broken ones come back now and then; Max caps the number; the barrel on the poster' },
+    barrels: { label: 'Break N barrels', help: 'barrels the outlaw breaks in the run (brown and black); 35 stand at the start and broken ones come back now and then; Max caps the number; the barrel on the poster' },
     totems: { label: 'Take N Totem gifts', help: 'gifts taken at the Totem Poles in the run (a pole left without a gift does not count); never more than the map\'s poles (10-12); the Totem Pole on the poster' },
-    element_damage: { label: 'Deal N fire or poison damage', help: 'burns (fire) or poison ticks the hero\'s side deals in the run; offered for an element an item this hero may find carries (a weapon\'s path mutations too); an element\'s own factor below; fire or the poison flask on the poster' },
+    element_damage: { label: 'Deal N fire or poison damage', help: 'burns (fire) or poison ticks the outlaw\'s side deals in the run; offered for an element an item this outlaw may find carries (a weapon\'s path mutations too); an element\'s own factor below; fire or the poison flask on the poster' },
   };
   const DEFAULTS = {
     enabled: true, choices: 3, rerolls: 0, unlock: { runs: 1 }, creatures_met_only: true, items_seen_only: true,

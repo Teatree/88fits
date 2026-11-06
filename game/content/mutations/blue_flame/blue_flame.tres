@@ -27,7 +27,7 @@ script = ExtResource("3_n5t30")
 weapon = "dragons_breath"
 mutation_kind = "element"
 text = "The breath burns blue: 25% further, −20% damage, burns last 75% longer."
-vfx = "a pale blue jet of fire from the hero's face and blue flames on everything it set burning"
+vfx = "a pale blue jet of fire from the outlaw's face and blue flames on everything it set burning"
 effects = [SubResource("Resource_2g132"), SubResource("Resource_vxhdx"), SubResource("Resource_n5t30")]
 params = {
 "fire_blue": true

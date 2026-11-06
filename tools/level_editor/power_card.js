@@ -37,7 +37,7 @@ const PowerCard = (() => {
     const lo = bot < 1 ? 0 : 0;
     const x = (p) => L + (W - L - R) * Math.log2(Math.max(p, 1)) / Math.log2(HI);
     const y = (f) => T + (H - T - B) * (1 - (f - lo) / (top - lo));
-    const s = svg('svg', { class: 'bscale-svg', viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'creature HP multiplier against the hero power' });
+    const s = svg('svg', { class: 'bscale-svg', viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'creature HP multiplier against the outlaw power' });
     for (let e = 0; e <= 6; e++) {
       const p = Math.pow(2, e);
       s.appendChild(svg('line', { x1: x(p), y1: T, x2: x(p), y2: H - B, class: 'bs-grid' + (e === 0 ? ' one' : '') }));
@@ -52,7 +52,7 @@ const PowerCard = (() => {
       s.appendChild(svg('line', { x1: x(m.power), y1: T, x2: x(m.power), y2: H - B, class: 'bs-ref' }));
       s.appendChild(svg('text', { x: x(m.power) + 3, y: T + 10, class: 'bs-tick ref', text: m.at }));
     }
-    s.appendChild(svg('text', { x: (L + W - R) / 2, y: H - 14, class: 'bs-axis mid', text: 'the hero\'s power (fresh level-1 Drifter = 1; each step right doubles it)' }));
+    s.appendChild(svg('text', { x: (L + W - R) / 2, y: H - 14, class: 'bs-axis mid', text: 'the outlaw\'s power (fresh level-1 Drifter = 1; each step right doubles it)' }));
     s.appendChild(svg('text', { x: 10, y: 12, class: 'bs-axis m', text: 'creature HP ×' }));
     const path = pts.map((q, k) => `${k ? 'L' : 'M'}${x(q.p).toFixed(1)},${y(q.f).toFixed(1)}`).join(' ');
     s.appendChild(svg('path', { d: path, class: 'bs-mult' }));
@@ -88,14 +88,14 @@ const PowerCard = (() => {
   function instructions(root) {
     const p = (html) => { const n = el('p', {}); n.innerHTML = html; return n; };
     const li = (html) => { const n = el('li', {}); n.innerHTML = html; return n; };
-    root.appendChild(el('h2', { text: 'Pass 83: boss HP by seconds of full DPS, and the hero\'s power' }));
+    root.appendChild(el('h2', { text: 'Pass 83: boss HP by seconds of full DPS, and the outlaw\'s power' }));
     root.appendChild(p('Garry: <i>"I want it to take at least 25 seconds of Player\'s FULL DPS on Tumbleweed king to kill it. Then 40s for the next and a full minute to the last one"</i> and <i>"add a modifier for the enemy HP scaling with the power level of the Player ... Default scaling is 1, meaning no scaling at all."</i>'));
     root.appendChild(el('ul', {},
-      li('<b>Boss HP</b>: Settings → <b>Boss HP</b>. "Boss HP is set by" = <b>seconds of full DPS</b> (the default). Each boss has a row of seconds (King 25, Gila 40, Brander 60): when it arrives its HP = the hero\'s full DPS then × its seconds, never less than its data HP. Raise a boss\'s seconds to make it tougher. The "How it works" box at the top of the card works one example through; the chart shows the HP for any full DPS (hover it).'),
+      li('<b>Boss HP</b>: Settings → <b>Boss HP</b>. "Boss HP is set by" = <b>seconds of full DPS</b> (the default). Each boss has a row of seconds (King 25, Gila 40, Brander 60): when it arrives its HP = the outlaw\'s full DPS then × its seconds, never less than its data HP. Raise a boss\'s seconds to make it tougher. The "How it works" box at the top of the card works one example through; the chart shows the HP for any full DPS (hover it).'),
       li('<b>What "full DPS" is</b>: every weapon\'s damage a second on one target that every shot hits (the pause screen\'s numbers without their crowd guess, burns and crits in). Nobody lands every shot, so a real fight lasts longer than the seconds: they are a least, not an exact length.'),
       li('<b>The old numbers</b> (exponent, window, floor, ceiling, the reference DPS) belong to the other choice, "pegged to recent DPS" (pass 72), and only show when it is picked. There a bigger reference made a boss <b>softer</b>: that is why the King died in seconds with references of 6,000 / 45,000 / 200,000.'),
-      li('<b>The hero\'s power</b>: Settings → <b>Hero power</b>, the "How power is calculated" box. Power = √((full DPS ÷ 20.4) × (effective HP ÷ 100)); a fresh level-1 Drifter is 1. Charted every second in the run dashboard, the Sim tab and the Watch (its Power button, or P).'),
-      li('<b>Enemy HP by power</b>: Settings → Hero power → "Enemy HP by power". 1 = no scaling (the default). 2 = creature HP grows in step with the power, 1.5 with its square root, below 1 softer. The chart under it shows the multiplier at any power; "Most HP × by power" caps it. Bosses and Elites by their kind are never touched; a row reads the power when it first spawns and keeps it.')));
+      li('<b>The outlaw\'s power</b>: Settings → <b>Outlaw power</b>, the "How power is calculated" box. Power = √((full DPS ÷ 20.4) × (effective HP ÷ 100)); a fresh level-1 Drifter is 1. Charted every second in the run dashboard, the Sim tab and the Watch (its Power button, or P).'),
+      li('<b>Enemy HP by power</b>: Settings → Outlaw power → "Enemy HP by power". 1 = no scaling (the default). 2 = creature HP grows in step with the power, 1.5 with its square root, below 1 softer. The chart under it shows the multiplier at any power; "Most HP × by power" caps it. Bosses and Elites by their kind are never touched; a row reads the power when it first spawns and keeps it.')));
   }
 
   return { block, HOW, instructions };

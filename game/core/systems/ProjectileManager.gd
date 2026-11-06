@@ -3977,7 +3977,7 @@ func rocket_ground_speed(i: int) -> float:
 
 ## How fast a creature's dynamite turns end over end in the air, radians a second.
 const DYN_TUMBLE := 11.0
-const DYN_MODEL := "res://art/props/dynamite_b_stick_red.glb"
+const DYN_MODEL := "res://art/props/dynamite_b_stick.glb"
 const DYN_TIP := [0.3589, 0.1171, -0.0229]
 ## The radius a creature's dynamite's pulse halo counts from (the stick is long: its length would make a disc of it).
 const DYN_HALO_R := 0.2

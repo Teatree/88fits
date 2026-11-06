@@ -41,7 +41,7 @@ const StageTabs = (() => {
     const vs = App.viewStage();
     const counts = StageModel.rowNumbers(App.tl().roster || [], L.map((w) => ({ start: w.start, end: w.end }))).counts;   // pass 116
     host.appendChild(el('span', { class: 'stg-label', text: 'Stages' }));
-    host.appendChild(el('button', { class: 'stg-tab' + (vs == null ? ' active' : ''), type: 'button', title: 'the whole map: every stage\'s window on the one run clock (each stage is its own run: the estimate starts a fresh hero at each window)', onclick: () => open(null) }, el('b', { text: 'All' }), el('small', { text: fmtT(App.runEnd()) })));
+    host.appendChild(el('button', { class: 'stg-tab' + (vs == null ? ' active' : ''), type: 'button', title: 'the whole map: every stage\'s window on the one run clock (each stage is its own run: the estimate starts a fresh outlaw at each window)', onclick: () => open(null) }, el('b', { text: 'All' }), el('small', { text: fmtT(App.runEnd()) })));
     for (const w of L) {
       const iss = App.issuesFor(`stage:${w.i}`);
       host.appendChild(el('button', { class: 'stg-tab' + (vs === w.i ? ' active' : '') + (iss ? ' ' + iss.level : ''), type: 'button', title: `Stage ${w.i + 1}: ${w.name}, ${fmtT(w.start)}–${fmtT(w.end)} on the map, ${fmtT(w.length)} to its boss${iss ? '\n' + iss.msgs.join('\n') : ''}`, onclick: () => open(w.i) },
@@ -49,7 +49,7 @@ const StageTabs = (() => {
     }
     host.appendChild(el('button', { class: 'stg-tab add', type: 'button', title: 'append a stage after the last one: its settings copied from the last, no rows yet, its boss at its end', onclick: () => addStage() }, el('b', { text: '+ Stage' })));
     if (!Model.hasStageList(App.tl())) host.appendChild(el('span', { class: 'stg-note', text: `no stage list in the file yet: ${L.length} stages of ${fmtT(App.stageLength())} (stage_length); the first stage edit writes one` }));
-    else if (vs != null) host.appendChild(el('span', { class: 'stg-note', text: `stage ${vs + 1}'s window: ${fmtT(App.stageStart(vs))}–${fmtT(App.stageEnd(vs))} on the map clock · a fresh hero at its start · the portal's ${fmtT(App.portalSeconds())} and Endless after its boss` }));
+    else if (vs != null) host.appendChild(el('span', { class: 'stg-note', text: `stage ${vs + 1}'s window: ${fmtT(App.stageStart(vs))}–${fmtT(App.stageEnd(vs))} on the map clock · a fresh outlaw at its start · the portal's ${fmtT(App.portalSeconds())} and Endless after its boss` }));
   }
 
   // ------------------------------------------------------------------ add, delete, length
@@ -206,7 +206,7 @@ const StageTabs = (() => {
     container.appendChild(head);
     const m = App.issuesFor(`stage:${i}`);
     if (m) container.appendChild(el('div', { class: 'insp-issues ' + m.level }, m.msgs.map((x) => el('div', { text: x }))));
-    container.appendChild(el('p', { class: 'insp-help', text: 'Each stage is its own run (pass 87): the player picks it in the Stages menu once the stage before is beaten; a fresh hero (level 1, his start weapon) starts at its window\'s start on the run clock, the run ends at its boss, then the portal opens with a timer and only EXTRACT; when the timer runs out, Endless starts. The words and the colour below are what the Stages menu and the game show.' }));
+    container.appendChild(el('p', { class: 'insp-help', text: 'Each stage is its own run (pass 87): the player picks it in the Stages menu once the stage before is beaten; a fresh outlaw (level 1, his start weapon) starts at its window\'s start on the run clock, the run ends at its boss, then the portal opens with a timer and only EXTRACT; when the timer runs out, Endless starts. The words and the colour below are what the Stages menu and the game show.' }));
     if (!Model.hasStageList(tl)) container.appendChild(el('p', { class: 'insp-help warn', text: `This map has no stage list yet (its stages are ${App.stages()} × ${fmtT(App.stageLength())} from stage_length). The first edit here writes one.` }));
     const form = el('div', { class: 'form stg-form' });
     // the words
@@ -222,11 +222,11 @@ const StageTabs = (() => {
     form.appendChild(conf);
     form.appendChild(fieldRow('Boss', 'the boss at the window\'s end (its boss event moves with the end; the stage run ends when it falls)', Forms.enemyPick(StageModel.bossOf(tl, i), (v) => { App.apply((d) => { StageModel.setBoss(d, i, v); App.S.sel = { kind: 'stage', i }; }); }, { prefer: 'boss', path: 'stage.boss', emptyLabel: 'no boss' })));
     // pass 107 (lane XPT): the stage's XP from kills (stage_list entry `xp_mult`, WaveTimeline.stage_xp_mult)
-    form.appendChild(fieldRow('XP from kills', 'every kill\'s XP in this stage times this (`xp_mult`, 1 when unset; it holds through the boss, the portal and Endless). Each stage is a fresh level-1 run, so a stage whose creatures are rich in XP levels the hero much faster: lower it to slow the levels (0.5 = half the XP); empty = 1',
+    form.appendChild(fieldRow('XP from kills', 'every kill\'s XP in this stage times this (`xp_mult`, 1 when unset; it holds through the boss, the portal and Endless). Each stage is a fresh level-1 run, so a stage whose creatures are rich in XP levels the outlaw much faster: lower it to slow the levels (0.5 = half the XP); empty = 1',
       Forms.numberInput({ key: 'stage.xp_mult', def: 1, min: 0, step: 0.05 }, e.xp_mult != null ? e.xp_mult : null, (v) => set('xp_mult', v, `Stage ${i + 1}'s XP from kills: x${v == null ? 1 : v}`), { path: 'stage.xp_mult', placeholder: 1 })));
     // pass 126 (lane STAGE): the coin factor and the creatures' speed, read from the stage entry; the weather and the dust devils
     // below in its look
-    form.appendChild(fieldRow('Coins and items x', 'what the hero\'s side reads of this stage: coins pay the round of this (at least 1), Personal Storm and the Iron Horse hit by it (`reward_mult`; empty = the stage multiplier)',
+    form.appendChild(fieldRow('Coins and items x', 'what the outlaw\'s side reads of this stage: coins pay the round of this (at least 1), Personal Storm and the Iron Horse hit by it (`reward_mult`; empty = the stage multiplier)',
       Forms.numberInput({ key: 'stage.reward_mult', def: App.stageMult(i), min: 0, step: 0.05 }, e.reward_mult != null ? e.reward_mult : null, (v) => set('reward_mult', v, `Stage ${i + 1}'s coins and items: x${v == null ? App.stageMult(i) : v}`), { path: 'stage.reward_mult' })));
     form.appendChild(fieldRow('Creature speed x', 'every creature of this stage walks at this (`speed_mult`; empty = 1 + speed per stage x its place in the list)',
       Forms.numberInput({ key: 'stage.speed_mult', def: 1, min: 0, step: 0.05 }, e.speed_mult != null ? e.speed_mult : null, (v) => set('speed_mult', v, `Stage ${i + 1}'s creature speed: x${v == null ? 'the default' : v}`), { path: 'stage.speed_mult' })));
@@ -243,7 +243,7 @@ const StageTabs = (() => {
       Forms.secondsInput({ key: 'stage.legendary.guarantee_at', def: lgMap.guarantee_at, zeroText: 'off' }, lgOwn.guarantee_at != null ? lgOwn.guarantee_at : null, (v) => set('legendary.guarantee_at', v, `Stage ${i + 1}: legendary guarantee ${v == null ? `the map's (${offWord(lgMap.guarantee_at)})` : offWord(v)}`), { path: 'stage.legendary.guarantee_at', placeholder: lgMap.guarantee_at, emptyText: `the map's: ${offWord(lgMap.guarantee_at)}` })));
     form.appendChild(el('div', { class: 'muted small', 'data-legendary': String(i), text: `This stage plays: ${StageModel.legendaryText(tl, i)}.` }));
     // the look
-    form.appendChild(el('div', { class: 'fsection' }, el('h3', { text: 'Its look', title: 'lane SLOOK\'s filter: the world multiplied by the colour at this strength; the creatures and the hero by their share of it, so they stay brighter; telegraphs, gems and coins are drawn over it untinted' })));
+    form.appendChild(el('div', { class: 'fsection' }, el('h3', { text: 'Its look', title: 'lane SLOOK\'s filter: the world multiplied by the colour at this strength; the creatures and the outlaw by their share of it, so they stay brighter; telegraphs, gems and coins are drawn over it untinted' })));
     const f = StageModel.filterOf(e);
     const fe = U.isObj(e.filter) ? e.filter : {};
     let actors = fe.actors != null && isFinite(Number(fe.actors)) ? Number(fe.actors) : ACTORS_DEF;
@@ -286,7 +286,7 @@ const StageTabs = (() => {
     const aOut = el('span', { class: 'stg-range-out', text: `${Math.round(actors * 100)}%` });
     act.addEventListener('input', () => { actors = Number(act.value); aOut.textContent = `${Math.round(actors * 100)}%`; redraw(); });
     act.addEventListener('change', () => writeFilter());
-    form.appendChild(fieldRow('On creatures', 'how much of the tint the creatures and the hero take (lane SLOOK\'s `actors`, 35% when unset): lower keeps them brighter than the world', el('span', { class: 'stg-range-box' }, act, aOut)));
+    form.appendChild(fieldRow('On creatures', 'how much of the tint the creatures and the outlaw take (lane SLOOK\'s `actors`, 35% when unset): lower keeps them brighter than the world', el('span', { class: 'stg-range-box' }, act, aOut)));
     // pass 105 (lane LOOK): the structures and barrels, the weapons' 3D models (the shots, the creatures' shots and the
     // chests are never tinted)
     const shareRow = (k, label, help) => {

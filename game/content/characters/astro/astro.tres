@@ -87,7 +87,7 @@ variants = {
 },
 "frame_px": 256,
 "icon": "res://content/characters/astro/astro_icon.png",
-"note": "The hero's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it).",
+"note": "The outlaw's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it).",
 "shelved": false,
 "sprite": "res://content/characters/astro/astro_sprite.png",
 "sprite_file": "astro_sprite.png",

@@ -158,7 +158,7 @@ func _debug_panel() -> PanelContainer:
 	# option in the Debug version of the Settings menu"): off by default; on, every hit pushes him as before (pass 89: off,
 	# only the special attacks push him, at the map's share)
 	if "hero_knockback" in Settings:
-		var r3 := _row("Full hero knockback")
+		var r3 := _row("Full outlaw knockback")
 		var sw3 := WSwitch.make(bool(Settings.get("hero_knockback")))
 		sw3.name = "HeroKnockback"
 		sw3.toggled.connect(func(on: bool): Settings.set_value("hero_knockback", on))
@@ -242,7 +242,7 @@ func _refresh_royale() -> void:
 	cam.name = "CameraPanel"
 	var cc: VBoxContainer = cam.get_child(0)
 	cc.add_child(W.label("Camera", R_LABEL_PX))
-	var choice := WChoice.make(_choice_words([["Fixed", "north stays up"], ["Follow", "swings behind the hero"]]),
+	var choice := WChoice.make(_choice_words([["Fixed", "north stays up"], ["Follow", "swings behind the outlaw"]]),
 		Settings.camera_mode, R_CHOICE_PX, R_CHOICE_SUB_PX, R_CAMERA_PAD, HORIZONTAL_ALIGNMENT_CENTER, 4)
 	choice.name = "CameraChoice"
 	choice.chosen.connect(func(i: int): Settings.set_value("camera_mode", i))

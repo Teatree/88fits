@@ -48,7 +48,7 @@ const Settings = (() => {
           const k = Math.max(0, def.options.findIndex((o) => o.v === (tl.sand || def.def)));
           card.appendChild(el('figure', { class: 'sand-preview', style: 'margin:4px 0 10px' },
             el('div', { role: 'img', title: def.options[k].label, style: `width:200px;height:200px;border-radius:6px;background:url(/sand_previews.png) ${def.options.length > 1 ? (k * 100) / (def.options.length - 1) : 0}% 0 / ${def.options.length * 100}% 100% no-repeat` }),
-            el('figcaption', { class: 'muted small', text: `${def.options[k].label}, in the game at phone size: the hero on open sand` })));
+            el('figcaption', { class: 'muted small', text: `${def.options[k].label}, in the game at phone size: the outlaw on open sand` })));
         }
       }
       // pass 87 (lane STOOLS): each stage's own window (stage_list), set on its tab on the Timeline
@@ -57,13 +57,13 @@ const Settings = (() => {
       if (group === 'Legendary items' && typeof StageModel !== 'undefined' && StageModel.legendaryText) card.appendChild(el('p', { class: 'muted small', 'data-legendary': 'map', text: `${App.stageList().map((w) => `Stage ${w.i + 1}${w.name !== `Stage ${w.i + 1}` ? ' (' + w.name + ')' : ''}: ${StageModel.legendaryText(App.tl(), w.i)}`).join('; ')}. The clock is each stage's own (0:00 at its start, as the HUD shows it); a stage's own numbers are set on its card on the Timeline (its tab, then the stage's name).` }));
       // pass 113 (lane TWISTER): under the dust devils' rows, how many come a stage, when, how long, how big
       if (group === 'Dust devils' && typeof DustDevilCard !== 'undefined') { card.classList.add('tall'); card.appendChild(DustDevilCard.block(tl)); }
-      if (group === 'Endless') card.appendChild(el('p', { class: 'muted small', text: 'Pass 87: after every stage\'s boss the portal counts down; then Endless: the first wave at once, then a wave every few seconds, each tougher, until the hero falls. A stage may carry its own `endless` block in its JSON entry (key by key over these). The old endless after the last stage is gone.' }));
+      if (group === 'Endless') card.appendChild(el('p', { class: 'muted small', text: 'Pass 87: after every stage\'s boss the portal counts down; then Endless: the first wave at once, then a wave every few seconds, each tougher, until the outlaw falls. A stage may carry its own `endless` block in its JSON entry (key by key over these). The old endless after the last stage is gone.' }));
       // pass 69 (lane EN)
       if (group === 'Coloured specials') card.appendChild(el('p', { class: 'muted small', text: 'The numbers of a coloured special (the rarer, bigger, tougher, glowing one) wherever a creature\'s own Special block (Enemies tab) leaves a box empty; a creature\'s own number always wins, an empty box here is the game\'s default (the grey number). Every creature names its own size, HP and ATK; none names a glow, so Glow here sets all of them.' }));
       // pass 72 (lane BOSS): the references, the chart and the thinking under the Boss HP card's five rows
       if (group === 'Boss HP' && typeof BossScaling !== 'undefined') card.appendChild(BossScaling.block(tl));
       // pass 83 (lane SCALE): the power formula box, the chart of HP × by power and where the power is charted
-      if (group === 'Hero power' && typeof PowerCard !== 'undefined') { card.classList.add('tall'); card.appendChild(PowerCard.block(tl)); }
+      if (group === 'Outlaw power' && typeof PowerCard !== 'undefined') { card.classList.add('tall'); card.appendChild(PowerCard.block(tl)); }
       if (group === 'Scaling') card.appendChild(el('p', { class: 'muted small', text: 'An ordinary creature spawns with HP = its hp × the stage multiplier × the HP curve at that second × the hero-level factor × creature_hp_mult, and bites for its damage × the stage multiplier × the damage curve × the hero-level factor × creature_damage_mult. The hover cards on the Timeline show both for any second.' }));
       // pass 111 (lane ENEMY): what the far-speed rows add up to, and a warning for a block that reads as a mistake
       if (group === 'Scaling' && typeof Model.farSpeedMult === 'function') {
@@ -73,6 +73,11 @@ const Settings = (() => {
         const cap = fc.max_speed > 0 ? ` The speed-up never takes a walk past ${fc.max_speed} m/s (a skeleton walks about 1.3 m/s, a Blood Moon fire ant 2.7; Jeżyk at full Momentum runs about 5.5 at level 10, 7.5 at level 20 with The Chariot 4).` : ' No speed cap.';
         card.appendChild(el('p', { class: 'muted small', text: fc.enabled ? `Far creatures walk faster: ${at.join(', ')} and beyond (a regular creature${fc.bosses ? ' or a boss' : ''}; never an Elite or a special).${cap}` : 'Far creatures walk faster: off (every creature walks at its own speed wherever it is).' }));
         for (const w of Model.farSpeedIssues(tl)) card.appendChild(el('p', { class: 'warn-text small', text: w }));
+      }
+      // pass 128 (lane BLOB): what the Relocation rows add up to, and a block that reads as a mistake
+      if (group === 'Relocation' && typeof Model.relocateText === 'function') {
+        card.appendChild(el('p', { class: 'muted small', 'data-relocate': 'map', text: Model.relocateText(tl) }));
+        for (const w of Model.relocateIssues(tl)) card.appendChild(el('p', { class: 'warn-text small', text: w }));
       }
       grid.appendChild(card);
     }

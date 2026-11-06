@@ -75,7 +75,7 @@
   "variant": "CAL-A",
   "variants": {
     "CAL-A": {
-      "note": "The hero's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it)."
+      "note": "The outlaw's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it)."
     },
     "CAL-B": {
       "note": "pass 126: a white and gold Day of the Dead charro with marigolds: Klein edits of his own paintings, view by view (tools/gen_skin_views.py), walked on his own drivers",

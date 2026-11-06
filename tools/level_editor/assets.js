@@ -14,7 +14,7 @@ const Assets = (() => {
   const HISTORY_MAX = 300;
   // pass 69 (lane LE): a hero's perk is a document of the Heroes tab
   const KIND_TAB = { enemy: 'creatures', boss: 'creatures', hero: 'heroes', weapon: 'items', evolution: 'items', passive: 'items', mutation: 'items', perk: 'heroes' };
-  const KIND_LABEL = { enemy: 'ENEMY', boss: 'BOSS', hero: 'HERO', weapon: 'WEAPON', evolution: 'EVOLUTION', passive: 'PASSIVE', mutation: 'MUTATION', perk: 'PERK' };
+  const KIND_LABEL = { enemy: 'ENEMY', boss: 'BOSS', hero: 'OUTLAW', weapon: 'WEAPON', evolution: 'EVOLUTION', passive: 'PASSIVE', mutation: 'MUTATION', perk: 'PERK' };
   const KIND_ICON = { enemy: 'enemy', boss: 'boss', hero: 'hero', weapon: 'weapon', evolution: 'evolution', passive: 'passive', mutation: 'mutation', perk: 'perk' };
 
   const S = {
@@ -527,7 +527,7 @@ const Assets = (() => {
     const body = { map: 'red_canyon' };
     if (doc.kind === 'hero') { body.character = doc.id; if (doc.ui.look) body.look = doc.ui.look; }
     else if (doc.kind === 'enemy' || doc.kind === 'boss') { body.enemy = doc.id; body.variant = doc.ui.look || doc.data.variant || ''; body.count = doc.kind === 'boss' ? 1 : 3; }
-    else { App.status('Test in game spawns creatures and heroes; an item is tested in the arena by hand', 'bad'); return; }
+    else { App.status('Test in game spawns creatures and outlaws; an item is tested in the arena by hand', 'bad'); return; }
     if (docDirty(doc) && !confirm(`${doc.id} has unsaved changes: the game plays the saved file. Launch anyway?`)) return;
     App.status('Launching the game (the Godot lock is taken while the window lives)…', 'busy');
     const { status, data } = await postJSON('/api/test_launch', body);
@@ -1051,7 +1051,7 @@ const Assets = (() => {
     const at20 = M.heroTraitNow(doc.data, 20);
     const same = String(doc.data.trait_text || '').trim() === sentence;
     const wrap = el('div', { class: 'tpreview' },
-      el('div', { class: 'tsentence', text: sentence || '(no rule: the hidden heroes read their own trait_text)' }),
+      el('div', { class: 'tsentence', text: sentence || '(no rule: the hidden outlaws read their own trait_text)' }),
       at20 ? el('div', { class: 'muted small', text: at20 }) : null,
       Array.isArray(doc.data.trait_per_level) && doc.data.trait_per_level.length && !M.heroOwnWords(doc.data) ? el('button', { class: 'btn small' + (same ? ' ghost' : ' primary'), type: 'button', text: same ? 'trait_text matches the rule' : 'Set trait_text from the rule', disabled: same, onclick: () => apply(doc, () => { doc.data.trait_text = sentence; }, 'editor') }) : null);
     return wrap;
@@ -1085,7 +1085,7 @@ const Assets = (() => {
     wrap.appendChild(el('div', { class: 'icon-actions' },
       round ? el('button', { class: 'btn small', type: 'button', text: lookCode ? `+ Badge candidates for ${lookCode}…` : '+ Badge candidates…', title: `paint round badge candidates and pick one by eye (a job): the hero's words and ${lookCode ? lookCode + '\'s' : 'the base look\'s'} front still as the reference${shownWhere('badge') ? '; ' + shownWhere('badge') : ''}`, onclick: () => openJobForm(doc, { method: 'hero_badge', mode: 'badge', code: lookCode || undefined }) })
         : el('button', { class: 'btn small primary', type: 'button', text: `Re-roll icon${(lookCode || playedItemLook(doc)) ? ' ' + (lookCode || playedItemLook(doc)) : ''}…`, title: 'pass 116: paint new candidates of this icon from the words that made it (editable: the subject, the style, the screen, a reference picture, the seeds) and pick one by eye; the old icon is kept (a job)', onclick: () => openJobForm(doc, { method: 'icon_cands', mode: 'icon', code: lookCode || playedItemLook(doc) || undefined }) }),
-      el('span', { class: 'muted small', text: round ? `the round badge (128: the hero sheet's plate): ${shownWhere('badge') || 'the hero sheet, the results'}` : `on its ${doc.data.rarity || 'common'} plate (W.RARITY_PLATE)` })));
+      el('span', { class: 'muted small', text: round ? `the round badge (128: the outlaw sheet's plate): ${shownWhere('badge') || 'the outlaw sheet, the results'}` : `on its ${doc.data.rarity || 'common'} plate (W.RARITY_PLATE)` })));
     // pass 76 (lane ICON): an item's icon now (the look shown, else its own), Revert icon, its changes and every icon on
     // disk with "Use for ..." (heroes and creatures have the same panel in their look grid's stage)
     if (!['hero', 'enemy', 'boss'].includes(doc.kind) && typeof LookGrid !== 'undefined' && typeof LookGrid.iconPanel === 'function') {
@@ -1134,8 +1134,8 @@ const Assets = (() => {
     const bar = el('div', { class: 'look-actions' },
       el('button', { class: 'btn small primary', type: 'button', text: '+ Generate art…', title: `a new look painted by the local AI (a job); it comes with its icon candidates (a hero: badge and title cut-out candidates${doc.kind === 'hero' && shownWhere('cutout') ? `: ${shownWhere('badge')}; ${shownWhere('cutout')}` : ''})`, onclick: () => openJobForm(doc, { method: null, mode: 'look' }) }),
       doc.kind !== 'hero' ? el('button', { class: 'btn small', type: 'button', text: `+ Icon candidates${forWhom}…`, title: cand ? `icon candidates for ${cand}: its own icon (<id>_icon_<letter>.png)` : 'icon candidates for the base look (the creature\'s own <id>_icon.png)', onclick: () => openJobForm(doc, { method: 'icon_cands', code: cand || undefined, mode: 'icon' }) }) : null,
-      doc.kind === 'hero' ? el('button', { class: 'btn small', type: 'button', text: `+ Badge candidates${forWhom}…`, title: (cand ? `round badge candidates for ${cand}: its own icon` : 'round badge candidates for the hero (his <id>_icon.png and badge block)') + (shownWhere('badge') ? `; ${shownWhere('badge')}` : ''), onclick: () => openJobForm(doc, { method: 'hero_badge', mode: 'badge', code: cand || undefined }) }) : null,
-      doc.kind === 'hero' ? el('button', { class: 'btn small', type: 'button', text: `+ Title cut-out${forWhom}…`, title: (cand ? `title cut-out candidates for ${cand}: its own cut-out (art/ui/wanted/hero_<id>_<letter>.png)` : 'title cut-out candidates for the hero (art/ui/wanted/hero_<id>.png)') + (shownWhere('cutout') ? `; ${shownWhere('cutout')}` : ''), onclick: () => openJobForm(doc, { method: 'hero_title', mode: 'title', code: cand || undefined }) }) : null,
+      doc.kind === 'hero' ? el('button', { class: 'btn small', type: 'button', text: `+ Badge candidates${forWhom}…`, title: (cand ? `round badge candidates for ${cand}: its own icon` : 'round badge candidates for the outlaw (his <id>_icon.png and badge block)') + (shownWhere('badge') ? `; ${shownWhere('badge')}` : ''), onclick: () => openJobForm(doc, { method: 'hero_badge', mode: 'badge', code: cand || undefined }) }) : null,
+      doc.kind === 'hero' ? el('button', { class: 'btn small', type: 'button', text: `+ Title cut-out${forWhom}…`, title: (cand ? `title cut-out candidates for ${cand}: its own cut-out (art/ui/wanted/hero_<id>_<letter>.png)` : 'title cut-out candidates for the outlaw (art/ui/wanted/hero_<id>.png)') + (shownWhere('cutout') ? `; ${shownWhere('cutout')}` : ''), onclick: () => openJobForm(doc, { method: 'hero_title', mode: 'title', code: cand || undefined }) }) : null,
       // pass 92 (lane SPIDER): a creature's 3D steps had no button of their own (only the Heroes tab opened a driver form):
       // the depth driver (a clip, or a made walk / death on its back) and the leg fix, both on the driver form
       doc.kind === 'enemy' ? el('button', { class: 'btn small', type: 'button', text: '+ Depth driver…', title: 'depth videos of a rigged 3D model for creature_ctl (driver_depth): the model\'s own walk or death clip, or a walk made for its legs (mode gait) and a death on its back with the legs curled (mode flip_curl)', onclick: () => openJobForm(doc, { mode: 'driver', method: 'driver_depth' }) }) : null,
@@ -1262,7 +1262,7 @@ const Assets = (() => {
       wrap.appendChild(sRow);
       shown.add('stills');
     }
-    const whose = doc.kind === 'hero' ? 'the hero\'s' : 'the creature\'s';
+    const whose = doc.kind === 'hero' ? 'the outlaw\'s' : 'the creature\'s';
     for (const def of recipeRows(method)) {
       shown.add(String(def.key).split('.')[0]);
       const own = U.getPath(rec, def.key);

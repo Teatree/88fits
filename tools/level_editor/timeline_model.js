@@ -17,9 +17,9 @@ const TimelineModel = (() => {
   /** A row's `role` (INTERFACES.md): only the editor reads it, to colour and group the rows. */
   const ROLES = [
     { v: '', label: 'untagged', color: '#77766f', help: 'no role set: drawn neutral grey' },
-    { v: 'fodder', label: 'fodder', color: '#6f8fd8', help: 'the plain crowd the hero mows through' },
+    { v: 'fodder', label: 'fodder', color: '#6f8fd8', help: 'the plain crowd the outlaw mows through' },
     { v: 'swarm', label: 'swarm', color: '#3fbf7f', help: 'a burst of many at once (what the SWARM events were)' },
-    { v: 'tank', label: 'tank', color: '#c27c3a', help: 'slow and tough: soaks the hero\'s damage' },
+    { v: 'tank', label: 'tank', color: '#c27c3a', help: 'slow and tough: soaks the outlaw\'s damage' },
     { v: 'ranged', label: 'ranged', color: '#b26bd6', help: 'shoots from a distance (spit, rockets, snipers)' },
     { v: 'elite', label: 'elite', color: '#e6a04a', help: 'coloured elites: creatures wearing an elite modifier' },
     { v: 'special', label: 'special', color: '#e0609a', help: 'coloured specials: x15 HP, a glowing rim' },
@@ -459,7 +459,7 @@ const TimelineModel = (() => {
     onscreen: {
       what: 'How many creatures are alive at each second of the run clock: a count of bodies on the map.',
       lines: [
-        ['estimate', 'the Spawned so far estimate\'s crowd: it plays the director\'s rules second by second (the cap, the weights, the spawn checks, the waves, every row\'s schedule) and assumes the hero kills the kill rate\'s share of the living crowd each second (the box in Ruler and controls).'],
+        ['estimate', 'the Spawned so far estimate\'s crowd: it plays the director\'s rules second by second (the cap, the weights, the spawn checks, the waves, every row\'s schedule) and assumes the outlaw kills the kill rate\'s share of the living crowd each second (the box in Ruler and controls).'],
         ['Sim', 'the run sim\'s real alive count (the average of its runs at each run second), dashed, when the map has a finished Sim (Ruler and controls picks which).'],
         ['cap', 'the map\'s cap curve turned into bodies: the cap counts load units (a creature counts its cap_share: the skeleton 0.5, so 100 of cap holds 200 skeletons), so the line is cap ÷ the average load per body alive then.'],
         ['limit', 'pass 103: the line drawn is the effective limit in bodies, the lower of the cap at the crowd\'s mix (above) and the hard cap (hard_cap, a count of bodies whatever their share). Where the hard cap is lower it is what holds the crowd and the cap curve changes nothing there (the Warnings say so); the hover names the one that binds.'],
@@ -468,20 +468,20 @@ const TimelineModel = (() => {
       ],
     },
     challenge: {
-      what: 'How long the hero needs to kill everything on the screen with his own damage: seconds = the crowd\'s HP on screen ÷ the hero\'s damage a second.',
+      what: 'How long the outlaw needs to kill everything on the screen with his own damage: seconds = the crowd\'s HP on screen ÷ the outlaw\'s damage a second.',
       lines: [
-        ['crowd HP', 'every living creature (the estimate\'s crowd) × its HP in play: its row\'s HP fixed from the row\'s start (the creature\'s HP × the HP curve there, or the row\'s own), × the stage multiplier, × creature_hp_mult, × the hero level box; a coloured special counts its special HP. Bosses are left out.'],
-        ['hero damage a second', 'the Sim\'s hero (his full DPS: every weapon\'s damage a second on one target that every shot hits) when a Sim is shown; else the Sim\'s real damage a second (an older Sim); with no Sim a typical hero: 20.4 × his power² (the power of the probe\'s tuned builds: 1 at the start, 3.5 at 7:10, 9 at 14:20, 23 at 21:30, straight between on a log scale; power = √(DPS ÷ 20.4 × EHP ÷ 100) and his effective HP barely grows in the Sims, so the square goes to his damage).'],
+        ['crowd HP', 'every living creature (the estimate\'s crowd) × its HP in play: its row\'s HP fixed from the row\'s start (the creature\'s HP × the HP curve there, or the row\'s own), × the stage multiplier, × creature_hp_mult, × the outlaw level box; a coloured special counts its special HP. Bosses are left out.'],
+        ['outlaw damage a second', 'the Sim\'s outlaw (his full DPS: every weapon\'s damage a second on one target that every shot hits) when a Sim is shown; else the Sim\'s real damage a second (an older Sim); with no Sim a typical hero: 20.4 × his power² (the power of the probe\'s tuned builds: 1 at the start, 3.5 at 7:10, 9 at 14:20, 23 at 21:30, straight between on a log scale; power = √(DPS ÷ 20.4 × EHP ÷ 100) and his effective HP barely grows in the Sims, so the square goes to his damage).'],
         ['Sim', 'dashed: the Sim\'s own "seconds to clear the crowd" (keep_up, the middle run: his real damage over the past 5 s, so it runs higher than his full DPS would say).'],
         ['zones', 'green under the easy limit (he mows the screen), amber up to the hard limit (the crowd lingers), red past it (the crowd outlasts him). The two limits are the boxes in this section\'s header (10 s and 30 s unless you change them).'],
         ['dots', 'red dots on the floor of the lane: the Sim\'s deaths (each run\'s, at its run second).'],
       ],
     },
     challenge_bars: {
-      what: 'How many of the hero\'s health bars clearing the screen would cost him if every creature on it bit him the whole time: (seconds to clear the screen) × (the crowd\'s bite a second ÷ his effective HP) = the crowd\'s HP × bite ÷ (his damage a second × his effective HP). The Sim\'s "challenge" is the same sum.',
+      what: 'How many of the outlaw\'s health bars clearing the screen would cost him if every creature on it bit him the whole time: (seconds to clear the screen) × (the crowd\'s bite a second ÷ his effective HP) = the crowd\'s HP × bite ÷ (his damage a second × his effective HP). The Sim\'s "challenge" is the same sum.',
       lines: [
         ['crowd HP × bite', 'over every living creature (the estimate\'s crowd, bosses left out): its HP in play × its ATK ÷ its bite interval (contact_cd, 0.6 s for most): HP × damage a second.'],
-        ['hero damage × effective HP', 'the Sim\'s hero: his full DPS on one target and his effective HP ((max HP + shield + 30 s of regen and lifesteal) ÷ ((1 − armour) × (1 − evade))); with no Sim a typical hero: 20.4 × power² and 100 (his effective HP barely grows in the Sims), the power of the probe\'s tuned builds (1, 3.5, 9, 23 at the stage marks).'],
+        ['outlaw damage × effective HP', 'the Sim\'s hero: his full DPS on one target and his effective HP ((max HP + shield + 30 s of regen and lifesteal) ÷ ((1 − armour) × (1 − evade))); with no Sim a typical hero: 20.4 × power² and 100 (his effective HP barely grows in the Sims), the power of the probe\'s tuned builds (1, 3.5, 9, 23 at the stage marks).'],
         ['Sim', 'dashed: the Sim\'s own challenge (the middle run at each run second).'],
         ['zones', 'green under the easy limit, amber to the hard limit, red past it (1 and 3 bars unless you change them; each measure keeps its own pair).'],
         ['dots', 'red dots on the floor of the lane: the Sim\'s deaths.'],

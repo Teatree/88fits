@@ -361,7 +361,7 @@ func _apply_save() -> void:
 	if gs:
 		gs.damage_numbers = numbers_on
 	if reg.character(hero) == null:
-		problems.append("no hero '%s': the save's hero plays" % hero)
+		problems.append("no outlaw '%s': the save's outlaw plays" % hero)
 	if reg.map(map_id) == null:
 		problems.append("no map '%s'" % map_id)
 

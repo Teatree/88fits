@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_rhycx")
 archetype = "spitter"
-doc = "A hooded desert monk who walks in a band of 10 to 30 brothers, keeps its distance like the Spit Cactus, and with the whole band raises its hands for 3 seconds to loose slow, bright blue energy spheres at the hero."
+doc = "A hooded desert monk who walks in a band of 10 to 30 brothers, keeps its distance like the Spit Cactus, and with the whole band raises its hands for 3 seconds to loose slow, bright blue energy spheres at the outlaw."
 brain = "squad"
 hp = 14.0
 speed = 1.3

@@ -111,6 +111,8 @@ const ROYALE_METER_Y := 300.0
 const ROYALE_METER_H := 172.0
 const ROYALE_PAD := 32.0
 const ROYALE_BAR_X := 144.0
+## pass 128: the least room between the multiplier's right edge and the bar's left end (meter_bar_x)
+const ROYALE_MULT_GAP := 24.0
 const ROYALE_BAR := Vector2(62.0, 26.0)
 const ROYALE_LABEL_PX := 22
 const ROYALE_TIME_PX := 28
@@ -289,16 +291,12 @@ func _layout() -> void:
 	_foot = Vector2(cx, roundf(_vp.y * CHEST_FOOT))
 	_mouth = _foot - Vector2(0.0, CHEST_W * MOUTH_UP)
 	var bottom := _vp.y - 90.0 - BUTTON_H - 34.0
-	var w := minf((_vp.x - 48.0 * 2.0 - 28.0) * 0.5, 470.0)
-	_gold_rect = Rect2(cx - 14.0 - w, bottom - COUNTER_H, w, COUNTER_H)
-	_xp_rect = Rect2(cx + 14.0, bottom - COUNTER_H, w, COUNTER_H)
-	_banner_y = (_foot.y + _gold_rect.position.y) * 0.5 + 6.0
-	var top := W.safe_top() + 110.0 + 230.0
-	_meter_rect = Rect2(cx - 400.0, top, 800.0, 156.0)
 	# pass 123: the mock's panels: the meter across the screen under the header, GOLD and EXP as wide as it between them
+	# (pass 128: the Wanted layout's rects that these overwrote are gone; the banner's height is the same sum as before)
 	var w2 := (_vp.x - 2.0 * ROYALE_SIDE - ROYALE_GAP) * 0.5
 	_gold_rect = Rect2(ROYALE_SIDE, bottom - COUNTER_H, w2, COUNTER_H)
 	_xp_rect = Rect2(_vp.x - ROYALE_SIDE - w2, bottom - COUNTER_H, w2, COUNTER_H)
+	_banner_y = (_foot.y + _gold_rect.position.y) * 0.5 + 6.0
 	_meter_rect = Rect2(ROYALE_SIDE, W.safe_top() + ROYALE_METER_Y, _vp.x - 2.0 * ROYALE_SIDE, ROYALE_METER_H)
 
 
@@ -941,7 +939,9 @@ func _draw_meter_royale(a: float) -> void:
 	# the bar: x1 at its left, the map's top at its right, filled to this kill's bonus as the panel comes in
 	var tl = Run.map.timeline if Run.map else null
 	var top := float(BossChest.config(tl)["max_mult"])
-	var g := Rect2(r.position + Vector2(ROYALE_BAR_X, ROYALE_BAR.x), Vector2(r.size.x - ROYALE_BAR_X - ROYALE_PAD, ROYALE_BAR.y))
+	# pass 128: the bar starts past the multiplier as drawn ("x1.6" ran over the bar's left end and its "x1")
+	var bx := meter_bar_x(mult)
+	var g := Rect2(r.position + Vector2(bx, ROYALE_BAR.x), Vector2(r.size.x - bx - ROYALE_PAD, ROYALE_BAR.y))
 	var fill := clampf((mult - 1.0) / maxf(top - 1.0, 0.0001), 0.0, 1.0) * clampf((_t - 0.3) / 0.6, 0.0, 1.0)
 	WBar.paint(_meter, g, fill, R.BAR_GOLD, R.BAR_GOLD_LIP, 3.0)
 	var end_f := _rfont("end")
@@ -1009,6 +1009,19 @@ static func ultra_string(ci: CanvasItem, at: Vector2, t: String, align: Horizont
 static func _mult_text(m: float) -> String:
 	var s := "%.1f" % m
 	return s.trim_suffix(".0") if absf(m - roundf(m)) < 0.05 else s
+
+
+## Pass 128: how wide the multiplier is drawn in the speed panel (its text at ROYALE_MULT_PX plus the kit's edge round it).
+static func meter_mult_width(mult: float) -> float:
+	var stroke := maxi(int(round(R.stroke_px(ROYALE_MULT_PX) / R.STROKE_DIV)), 1) * 2
+	return R.display().get_string_size(times() + _mult_text(mult), HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_MULT_PX).x + float(stroke)
+
+
+## Pass 128: where the gold bar starts inside the speed panel: the mock's ROYALE_BAR_X while the multiplier fits before it
+## ("x1"), else ROYALE_MULT_GAP past the multiplier's measured right edge, so no value (x1.6, x9.9, a map's own top) can
+## touch the bar or the "x1" under its left end.
+static func meter_bar_x(mult: float) -> float:
+	return maxf(ROYALE_BAR_X, ROYALE_PAD + meter_mult_width(mult) + ROYALE_MULT_GAP)
 
 
 ## The banner between the chest and the counters: the word slams in (big and turning, settling with a bounce) and

@@ -30,12 +30,12 @@ variants = {
 "fresh": true,
 "icon": ExtResource("3_6hrc5"),
 "icon_file": "frag_icon_b.png",
-"name": "Coffin Nails",
-"note": "B · the stick (or the bundle) in red paper; nails in its words",
+"name": "Barbed Wire",
+"note": "B · barbed wire wound round the stick (or the bundle); barbs in its words",
 "params": {
-"model_colour": "red"
+"model_wire": true
 },
-"text": "The burst throws six coffin nails out past the blast."
+"text": "The burst throws six wire barbs out past the blast."
 },
 "C": {
 "flavour": "Saves the undertaker a trip.",

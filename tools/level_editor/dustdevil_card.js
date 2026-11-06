@@ -91,8 +91,8 @@ const DustDevilCard = (() => {
     const ev = c.every[0] === c.every[1] ? `every ${mmss(c.every[0])}` : `every ${mmss(c.every[0])} to ${mmss(c.every[1])}`;
     const extra = [c.in_boss ? 'the boss fight' : '', c.in_portal ? 'the portal countdown' : '', c.in_endless ? 'Endless' : ''].filter(Boolean);
     return `About ${per || 'a few a stage'} (each stage's own time${extra.length ? ` plus ${extra.join(', ')}` : ''}): the first at ${mmss(c.first)}, then one ${ev}, ` +
-      `at most ${c.max_alive} at once. Each forms on the screen ${span(c.form_dist, 'm')} from the hero (its dust first, the funnel rising over ${c.form_seconds} s), ` +
-      `lasts ${span(c.life, 's')} and fades over ${c.fade_seconds} s. It throws the hero inside its ring (${(c.radius + HERO_REACH).toFixed(1)} m, drawn on the sand) ` +
+      `at most ${c.max_alive} at once. Each forms on the screen ${span(c.form_dist, 'm')} from the outlaw (its dust first, the funnel rising over ${c.form_seconds} s), ` +
+      `lasts ${span(c.life, 's')} and fades over ${c.fade_seconds} s. It throws the outlaw inside its ring (${(c.radius + HERO_REACH).toFixed(1)} m, drawn on the sand) ` +
       `${c.toss.up} m/s up (about ${(c.toss.up * c.toss.up / 48).toFixed(1)} m high) and ${c.toss.out} m/s out, and lifts creatures within ${c.radius} m for ${c.lift} s, ${c.lift_height} m up (× their size). ` +
       `Its funnel is ${(7 * c.size).toFixed(1)} m tall, ${Math.round(c.opacity * 100)}% solid. ${c.warn ? 'The first one of a run says "DUST DEVIL".' : 'No toast.'}`;
   }
@@ -116,7 +116,7 @@ const DustDevilCard = (() => {
     if (!c.enabled) return out;
     if (c.life[1] >= c.every[0] && c.max_alive <= 1) out.push('Dust devils: a life as long as the gap between two means one is nearly always up (and the next waits for it to go).');
     if (c.max_alive === 0) out.push('Dust devils: Max alive 0 means none ever comes; switch them off instead.');
-    if (c.form_dist[0] < c.radius + HERO_REACH + 1) out.push(`Dust devils: one may form ${c.form_dist[0]} m from the hero, inside or at the edge of its own ring: he gets no warning.`);
+    if (c.form_dist[0] < c.radius + HERO_REACH + 1) out.push(`Dust devils: one may form ${c.form_dist[0]} m from the outlaw, inside or at the edge of its own ring: he gets no warning.`);
     return out;
   }
 

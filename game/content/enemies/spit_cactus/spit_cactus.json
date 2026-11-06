@@ -45,7 +45,7 @@
       "out_before": 0.5,
       "lead": 0.35,
       "lead_max": 2.5,
-      "model": "res://art/props/dynamite_b_stick_red.glb",
+      "model": "res://art/props/dynamite_b_stick.glb",
       "scale": 0.6,
       "halo_r": 0.2,
       "hand": {

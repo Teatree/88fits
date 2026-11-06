@@ -190,7 +190,7 @@ variants = {
 },
 "frame_px": 256,
 "icon": "res://content/characters/solenne/solenne_icon.png",
-"note": "The run every other hero uses (Mixamo Running), fitted to her the same way.",
+"note": "The run every other outlaw uses (Mixamo Running), fitted to her the same way.",
 "shelved": false,
 "sprite": "res://content/characters/solenne/solenne_sprite_d.png",
 "sprite_file": "solenne_sprite_d.png",

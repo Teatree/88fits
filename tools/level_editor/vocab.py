@@ -456,6 +456,8 @@ PARAMS_KEYS = {
                "land_blast", "halo", "bounce", "bomblets", "bomblet_damage_mult", "burst_spawn", "cloud_seconds",
                # pass 76 (lane DYN): the dynamite's fuse, its models by form and colour, the Drifter's mass mini crits
                "fuse", "models", "model_form", "model_colour", "fuse_tip", "mass_mini",
+               # pass 128 (lane DYNA): look B's red stick in barbed wire (the shrapnel mutation) and in tar (Sticky)
+               "model_wire", "model_tar",
                # pass 79 (lane WORLD): the Dynamite Stick thrown ahead of its crowd
                "lead"],
     "Beam": ["follow", "zone", "echo_zap"],

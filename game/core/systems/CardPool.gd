@@ -138,7 +138,8 @@ static func offer_weapons() -> Array:
 	# passive rule in offer_passives)
 	if Run.character and Run.character.favourite_weapon != "":
 		var fav: WeaponDef = Registry.weapon(Run.character.favourite_weapon)
-		if fav and not fav.hidden and not fav.is_evolution and Registry.hero_may_use(fav) and not out.has(fav):
+		# pass 128: whoever's start weapon it is (Registry.hero_may_use's key does not hold the run outlaw's favourite out)
+		if fav and not fav.hidden and not fav.is_evolution and not out.has(fav):
 			out.append(fav)
 	# pass 121 (lane LEGEND): no new legendary before the stage clock reaches the map's `legendary.from` (LegendaryHold)
 	return out.filter(func(w: WeaponDef) -> bool: return Run.weapon_instance(w.id) != null or not LegendaryHold.held(w))

@@ -206,7 +206,7 @@ def checks(check, run_node, server):
     check(res["starve"] == ["roster:3", "roster:1"], "TIMELINE84: lane SPAWN's starve shares: a row starves at a quarter or more, the hungriest first: %s" % res["starve"])
     rec = res["recipes"]
     check(set(rec) >= {"onscreen", "challenge", "challenge_bars", "composition"}, "TIMELINE84: every view chart has its recipe: %s" % list(rec))
-    for k, words in [("onscreen", ["estimate", "Sim", "cap", "floor", "red"]), ("challenge", ["crowd HP", "hero damage a second", "Sim", "zones", "dots"]),
+    for k, words in [("onscreen", ["estimate", "Sim", "cap", "floor", "red"]), ("challenge", ["crowd HP", "outlaw damage a second", "Sim", "zones", "dots"]),
                      ("challenge_bars", ["crowd HP × bite", "Sim", "zones"]), ("composition", ["on screen", "spawned", "colours"])]:
         r = rec.get(k) or {"what": "", "lines": []}
         names = [ln.split(":")[0] for ln in r["lines"]]

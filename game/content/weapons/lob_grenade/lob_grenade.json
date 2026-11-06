@@ -112,12 +112,14 @@
       "noun": "stick",
       "nouns": "sticks",
       "icon": "lob_grenade_icon_b.png",
-      "note": "B · classic paper stick: dark rings, cream ends, a pale cord fuse; the bundle three sticks in black tape",
+      "note": "B · classic red paper stick: dark rings, cream ends, a pale cord fuse; the bundle three sticks in black tape; barbed wire round it (model_wire) and amber tar over it (model_tar) from its mutations",
       "params": {
         "models": {
           "stick": {
-            "tan": "res://art/props/dynamite_b_stick_tan.glb",
-            "red": "res://art/props/dynamite_b_stick_red.glb",
+            "plain": "res://art/props/dynamite_b_stick.glb",
+            "wire": "res://art/props/dynamite_b_stick_wire.glb",
+            "tar": "res://art/props/dynamite_b_stick_tar.glb",
+            "wire_tar": "res://art/props/dynamite_b_stick_wire_tar.glb",
             "tip": [
               0.3589,
               0.1171,
@@ -125,8 +127,10 @@
             ]
           },
           "bundle": {
-            "tan": "res://art/props/dynamite_b_bundle_tan.glb",
-            "red": "res://art/props/dynamite_b_bundle_red.glb",
+            "plain": "res://art/props/dynamite_b_bundle.glb",
+            "wire": "res://art/props/dynamite_b_bundle_wire.glb",
+            "tar": "res://art/props/dynamite_b_bundle_tar.glb",
+            "wire_tar": "res://art/props/dynamite_b_bundle_wire_tar.glb",
             "tip": [
               0.3589,
               0.2171,
@@ -135,23 +139,33 @@
           }
         },
         "model_form": "stick",
-        "model_colour": "tan",
         "model_metallic": 0.0,
         "model_roughness": 0.85
       },
       "fresh": true,
       "icon_picked": true,
       "recipe": {
-        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours, the fuse may curl a little longer. A single stick of dynamite: a smooth sandy-brown paper cylinder with two thin dark brown rings near each end and flat cream paper ends, a pale grey cord fuse curling out of its top end with a charred black tip, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally from the bottom left to the top right with the fuse at the top right",
-        "ref": "tools/dl/dynamite_b_stick_tan_ref.png",
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours, the fuse may curl a little longer. A single stick of red dynamite: a smooth bright red paper cylinder with two thin dark rings near each end and flat cream paper ends, a pale grey cord fuse curling out of its top end with a charred black tip, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally from the bottom left to the top right with the fuse at the top right",
+        "ref": "tools/dl/dynamite_b_stick_ref.png",
         "screen": "blue"
       },
       "painted": {
-        "job": "j20261014-174431-15b4",
-        "pick": "c3",
-        "seed": 282867821888,
+        "job": "p128-dyna p128_lob_grenade_b_c0.png",
+        "pick": "c0",
+        "seed": 45092,
         "model": "klein"
-      }
+      },
+      "icon_history": [
+        {
+          "icon": "lob_grenade_icon_b.png",
+          "picked": true,
+          "shown": "lob_grenade_icon_b.png",
+          "backup": "tools/level_editor/backups/lob_grenade/lob_grenade_icon_b_20261106-013408.png",
+          "to": "lob_grenade_icon_b.png",
+          "at": "2026-11-06 01:34:08",
+          "why": "pass 128: repainted for the red dynamite stick (the file painted over)"
+        }
+      ]
     },
     "C": {
       "name": "Dynamite Stick",

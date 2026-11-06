@@ -559,10 +559,10 @@ async function main(Q) {
   check('new hero look: badge and title cut-out counts shown', !!badgeLine && !!titleLine);
   check('new hero look: both counts default to 3', badgeLine && titleLine && badgeLine.querySelector('input').value === 3 && titleLine.querySelector('input').value === 3, [badgeLine && badgeLine.querySelector('input').value, titleLine && titleLine.querySelector('input').value]);
   const fh = (line) => (line && line.querySelector('div.fh') ? line.querySelector('div.fh').textContent : '');
-  check('review: the counts say where the picks show (the badge on the hero sheet, the cut-out on a poster)', fh(badgeLine).includes('the hero sheet, the results') && fh(titleLine).includes('Wanted poster') && fh(titleLine).includes('main menu draws'), [fh(badgeLine).slice(-140), fh(titleLine).slice(-200)]);
+  check('review: the counts say where the picks show (the badge on the hero sheet, the cut-out on a poster)', fh(badgeLine).includes('the outlaw sheet, the results') && fh(titleLine).includes('Wanted poster') && fh(titleLine).includes('main menu draws'), [fh(badgeLine).slice(-140), fh(titleLine).slice(-200)]);
   check('new hero look: no re-roll radios', !dlg.querySelectorAll('input').some((i) => i.type === 'radio' && i.name === 'reroll'));
   check('new hero look: the 2D / 3D reference rows are gone', !dlg.textContent.includes('+ Add a reference') && !dlg.textContent.includes('+ From the driver library'));
-  check('new hero look: hero looks say they take no picture', dlg.textContent.includes('Hero looks paint from words'));
+  check('new hero look: hero looks say they take no picture', dlg.textContent.includes('Outlaw looks paint from words'));
   check('new hero look: the front_from_picture fields are hidden', !lineOf(dlg, 'ref') && !lineOf(dlg, 'keep') && !lineOf(dlg, 'Reference picture'));
   // refuse fewer than 3
   const bi = badgeLine.querySelector('input'); bi.value = 2; bi.dispatch('change');
@@ -643,7 +643,7 @@ async function main(Q) {
   check('badge: each says where it came from', ch && ch.querySelector('span.jsrc').textContent === 'from art_prompt without its pose clause' && rf.querySelector('span.jsrc').textContent.startsWith('from MAM-C'), [ch && ch.querySelector('span.jsrc').textContent, rf && rf.querySelector('span.jsrc').textContent]);
   check('badge: the reference has a thumbnail from ref_url', rf && rf.querySelector('img') && rf.querySelector('img').src === '/dl/ai_raw_anime/mamy_c_front.png');
   check('badge: no recipe fields that flatten would drop', !lineOf(dlg, 'portrait_prompt') && !lineOf(dlg, 'badge.head_width'));
-  check('review: the badge form says where the pick shows', dlg.querySelector('p.jwhere') && dlg.querySelector('p.jwhere').textContent.startsWith('Where the pick shows: the badge is what the hero sheet, the results'), dlg.querySelector('p.jwhere') && dlg.querySelector('p.jwhere').textContent);
+  check('review: the badge form says where the pick shows', dlg.querySelector('p.jwhere') && dlg.querySelector('p.jwhere').textContent.startsWith('Where the pick shows: the badge is what the outlaw sheet, the results'), dlg.querySelector('p.jwhere') && dlg.querySelector('p.jwhere').textContent);
   const ta = act.querySelector('textarea'); ta.value = 'winking'; ta.dispatch('change');
   check('badge: an edit says it is yours', act.querySelector('span.jsrc').textContent.startsWith('yours'));
   button(dlg, 'Queue').click(); await tick(20);
@@ -808,9 +808,9 @@ async function main(Q) {
 
   // 12. the look's facts and its candidate buttons say where the game shows the badge and the cut-out (review)
   const whereEl = grid.querySelector('div.lg-where');
-  check('review grid: the look\'s facts say where the badge and the cut-out show', !!whereEl && whereEl.textContent.includes('the hero sheet, the results') && whereEl.textContent.includes('Wanted poster') && whereEl.textContent.includes('main menu draws'), whereEl && whereEl.textContent);
+  check('review grid: the look\'s facts say where the badge and the cut-out show', !!whereEl && whereEl.textContent.includes('the outlaw sheet, the results') && whereEl.textContent.includes('Wanted poster') && whereEl.textContent.includes('main menu draws'), whereEl && whereEl.textContent);
   const bcb = button(cardOf('MAM-B'), 'Badge candidates…'), ccb = button(cardOf('MAM-B'), 'Cut-out candidates…');
-  check('review grid: the badge and cut-out candidate buttons say where the pick shows', !!bcb && bcb.title.includes('the hero sheet, the results') && !!ccb && ccb.title.includes('Wanted poster'), [bcb && bcb.title, ccb && ccb.title]);
+  check('review grid: the badge and cut-out candidate buttons say where the pick shows', !!bcb && bcb.title.includes('the outlaw sheet, the results') && !!ccb && ccb.title.includes('Wanted poster'), [bcb && bcb.title, ccb && ccb.title]);
   done();
 }
 """
@@ -895,7 +895,7 @@ def review_pure_checks(check, res):
           "V68 review: every empty title and icon field goes out as '', a typed one as it is: %s" % (c[1:3],))
     check(len(c) == 4 and c[3] == {"method": "hero_pose5", "recipe": {}}, "V68 review: a look job's edit gets no candidate keys: %s" % (c[3:],))
     w = res.get("where") or {}
-    check("hero sheet" in w.get("badge", "") and "results" in w.get("badge", "") and "arena" in w.get("badge", ""), "V68 review: the badge is said to show on the hero sheet, the results and the arena: %s" % w.get("badge"))
+    check("outlaw sheet" in w.get("badge", "") and "results" in w.get("badge", "") and "arena" in w.get("badge", ""), "V68 review: the badge is said to show on the hero sheet, the results and the arena: %s" % w.get("badge"))
     check("Wanted poster" in w.get("cutout", "") and "main menu draws" in w.get("cutout", ""), "V68 review: the cut-out is said to show on a hero's poster, the main menu drawing the strip: %s" % w.get("cutout"))
     move_checks(check, o or [])
 

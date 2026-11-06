@@ -167,7 +167,7 @@ func _apply(d: Dictionary) -> void:
 ## nearest (the nearest creature, m), flee_d (the bot's flee distance), bot ("bot" | "stub" | ""), death}.
 static func words_of(info: Dictionary) -> Dictionary:
 	if bool(info.get("setup", false)):
-		return {"text": "Waiting for Start Run", "sub": "Hero Settings: choose the run", "tone": "calm"}
+		return {"text": "Waiting for Start Run", "sub": "Outlaw Settings: choose the run", "tone": "calm"}
 	if bool(info.get("ended", false)):
 		return {"text": "Run over", "sub": "", "tone": "calm"}
 	if not bool(info.get("started", false)):

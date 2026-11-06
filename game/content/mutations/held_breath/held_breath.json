@@ -9,7 +9,7 @@
   "element": "",
   "hero": "",
   "text": "Stand still 2 s before a breath: it lasts twice as long, hits ×1.5 and comes from all sides. A hit breaks the stillness.",
-  "vfx": "a full ring of fire round the hero's head when he has stood still, twice as long",
+  "vfx": "a full ring of fire round the outlaw's head when he has stood still, twice as long",
   "effects": [],
   "params": {
     "breath": {

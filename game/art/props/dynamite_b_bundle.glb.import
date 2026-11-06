@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://t73gmrw3uqy2"
-path="res://.godot/imported/dynamite_b_bundle_red.glb-1af5ce0737f2d0018f3cbd9735d12b97.scn"
+uid="uid://ffms3butxd6g"
+path="res://.godot/imported/dynamite_b_bundle.glb-bb3e7e22dddfe5c7cf2eb998033b1654.scn"
 
 [deps]
 
-source_file="res://art/props/dynamite_b_bundle_red.glb"
-dest_files=["res://.godot/imported/dynamite_b_bundle_red.glb-1af5ce0737f2d0018f3cbd9735d12b97.scn"]
+source_file="res://art/props/dynamite_b_bundle.glb"
+dest_files=["res://.godot/imported/dynamite_b_bundle.glb-bb3e7e22dddfe5c7cf2eb998033b1654.scn"]
 
 [params]
 

@@ -209,7 +209,7 @@
       }
     },
     "SOL-D": {
-      "note": "The run every other hero uses (Mixamo Running), fitted to her the same way.",
+      "note": "The run every other outlaw uses (Mixamo Running), fitted to her the same way.",
       "recipe": {
         "pose_drivers": {
           "back": "run_b_fit_spread",

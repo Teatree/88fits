@@ -52,16 +52,27 @@
       "fresh": true,
       "icon_picked": true,
       "recipe": {
-        "subject": "a bundle of three sticks of dynamite in smooth sandy-brown paper with cream ends, bound together with two bands of black tape, one pale grey cord fuse curling out of the top stick with a charred black tip, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
-        "ref": "tools/dl/dynamite_b_bundle_tan_ref.png",
+        "subject": "a bundle of three sticks of red dynamite in smooth bright red paper with cream ends, bound together with two bands of black tape, one pale grey cord fuse curling out of the top stick with a charred black tip, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_b_bundle_ref.png",
         "screen": "blue"
       },
       "painted": {
-        "job": "j20261014-174432-524c",
-        "pick": "c2",
-        "seed": 162634590178,
+        "job": "p128-dyna p128_new_equipment_b_c1.png",
+        "pick": "c1",
+        "seed": 1053513,
         "model": "klein"
-      }
+      },
+      "icon_history": [
+        {
+          "icon": "new_equipment_icon_b.png",
+          "picked": true,
+          "shown": "new_equipment_icon_b.png",
+          "backup": "tools/level_editor/backups/new_equipment/new_equipment_icon_b_20261106-013409.png",
+          "to": "new_equipment_icon_b.png",
+          "at": "2026-11-06 01:34:09",
+          "why": "pass 128: repainted for the red dynamite stick (the file painted over)"
+        }
+      ]
     },
     "C": {
       "name": "Dynamite Bundle",

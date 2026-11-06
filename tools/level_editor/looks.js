@@ -82,8 +82,8 @@ const LookGrid = (() => {
    *  candidates (here, jobs.js, assets.js). The badge: Registry.played_look / art_of (WHeroSheet, ResultsScreen,
    *  CollectionScreen, ArenaPanel); the cut-out: WPoster (a Wanted poster that names the hero) since pass 124; the main menu draws the look's strip. */
   const WHERE_SHOWN = {
-    badge: 'the badge is what the hero sheet, the results, the Collection and the arena show for the look',
-    cutout: 'the cut-out shows only on a Wanted poster that names the hero; the main menu draws the look\'s strip instead',
+    badge: 'the badge is what the outlaw sheet, the results, the Collection and the arena show for the look',
+    cutout: 'the cut-out shows only on a Wanted poster that names the outlaw; the main menu draws the look\'s strip instead',
   };
   /** The recipe's own keys apart from the bookkeeping ones. */
   function ownKeys(look) { return Object.keys(look.recipe && typeof look.recipe === 'object' ? look.recipe : {}).filter((k) => !BOOK_KEYS.includes(k)); }
@@ -281,9 +281,9 @@ const LookGrid = (() => {
       const ownCut = look.title_file;   // pass 70: a base made from a look keeps its own cut-out (the game reads the base entry's title)
       const cut = `/art/wanted/${encodeURIComponent(ownCut ? look.title_file : 'hero_' + id + '.png')}`;
       const thumbs = el('span', { class: 'lg-thumbs' },
-        el('img', { src: bustUrl(look.icon || '', look.sprite_mtime), alt: '', title: (look.icon_file ? `its own badge: ${look.icon_file}` : 'the hero\'s badge (no badge of its own yet: Badge candidates…)') + ` · ${WHERE_SHOWN.badge}`, onerror: (e) => { e.target.remove(); } }),
+        el('img', { src: bustUrl(look.icon || '', look.sprite_mtime), alt: '', title: (look.icon_file ? `its own badge: ${look.icon_file}` : 'the outlaw\'s badge (no badge of its own yet: Badge candidates…)') + ` · ${WHERE_SHOWN.badge}`, onerror: (e) => { e.target.remove(); } }),
         el('img', { src: cut, alt: '', title: (ownCut ? `its own title cut-out: ${look.title_file}` : `the hero's title cut-out (hero_${id}.png): Cut-out candidates… paints ${look.base ? 'it' : 'one of this look\'s own'}`) + ` · ${WHERE_SHOWN.cutout}`, onerror: (e) => { e.target.remove(); } }),
-        el('span', { class: 'muted small', text: `${look.icon_file ? 'its own badge' : 'the hero\'s badge'} · ${ownCut ? 'its own cut-out' : 'the hero\'s cut-out'}` }));
+        el('span', { class: 'muted small', text: `${look.icon_file ? 'its own badge' : 'the outlaw\'s badge'} · ${ownCut ? 'its own cut-out' : 'the outlaw\'s cut-out'}` }));
       // where the game shows each one (pass 68 review: the cut-out never shows on the default Live title)
       const where = el('div', { class: 'muted small lg-where', text: `${WHERE_SHOWN.badge}; ${WHERE_SHOWN.cutout}.` });
       dl.appendChild(el('dt', { text: 'badge · cut-out', title: `the pictures the game shows for this look (a look without its own uses the hero's): ${WHERE_SHOWN.badge}; ${WHERE_SHOWN.cutout}` }));

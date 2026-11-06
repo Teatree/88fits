@@ -540,6 +540,10 @@ func _spawn(r: Dictionary, key: String, pick: Dictionary, n: int) -> int:
 	var pattern := str(r.get("pattern", "pack"))
 	var pack: int = maxi(int(r.get("pack", def.pack_size)), 1)
 	em.force_special = bool(r.get("special", false))
+	# pass 128 (lane BLOB): what the row says about relocating (WaveDirector._spawn_pick84's rule)
+	em.row_relocate = WaveTimeline.row_relocate(r)
+	if em.row_relocate < 0:
+		em.row_relocate = WaveTimeline.row_relocate(pick.get("row"))
 	var came := 0
 	if pattern == "ring" and r.has("ring_radius"):
 		var radius := maxf(float(r.get("ring_radius", WaveDirector.RING_RADIUS)), 1.0)
@@ -550,6 +554,7 @@ func _spawn(r: Dictionary, key: String, pick: Dictionary, n: int) -> int:
 	else:
 		came = dir._spawn_group(id, n, pattern, pack, mod, variant, stats, Callable(), src)
 	em.force_special = false
+	em.row_relocate = -1
 	if came > 0:
 		came_by[key] = int(came_by.get(key, 0)) + came
 		came_total += came

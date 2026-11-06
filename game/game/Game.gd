@@ -1663,7 +1663,7 @@ func _announce_quests() -> void:
 			var free := Registry.skin_state(sc, sc.look_code()) == "owned"
 			hud.banner(("NEW SKIN: " if free else "NEW SKIN FOR SALE: ") + sc.skin_name(sc.look_code()), UiKit.GOOD, sc.icon)
 		elif def is CharacterDef and Registry.hero_state(def as CharacterDef) == "buyable":
-			hud.banner("A NEW HERO IS FOR SALE", UiKit.GOOD, null)
+			hud.banner("A NEW OUTLAW IS FOR SALE", UiKit.GOOD, null)
 		else:
 			hud.banner("UNLOCKED: " + (def.display_name if def else q.display_name), UiKit.GOOD, def.icon if def else null)
 		Audio.play("ui_unlock")

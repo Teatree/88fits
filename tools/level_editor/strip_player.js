@@ -575,7 +575,7 @@ const StripPlayer = (() => {
       const fit = Math.max(1, Math.min(4, Math.floor((window.innerHeight - 190) / cell1)));
       const p = new Player(Object.assign({}, this.opts, { url: this.url, mode: 'controls', anim: this.anim, dir: this.dir, facing: this.facing, zoom: fit, speed: this.speed, backdrop: this.backdrop, inModal: true, autoplay: false }));
       const title = el('div', { class: 'sp-modal-head' },
-        el('b', { text: this.label || (this.kind === 'hero' ? 'hero strip' : 'creature strip') }),
+        el('b', { text: this.label || (this.kind === 'hero' ? 'outlaw strip' : 'creature strip') }),
         el('span', { class: 'muted small', text: ` · ${fit}× (${fit === 4 ? 'the close look' : 'as big as fits'}) · Esc closes` }),
         el('span', { class: 'spacer' }),
         el('button', { type: 'button', class: 'btn small', text: '✕ close', onclick: () => dlg.close() }));

@@ -284,7 +284,7 @@ select.pp-wide { min-width: 420px; max-width: 100%; }
     const cb = (cur, label, on, title) => { const x = el('input', { type: 'checkbox' }); x.checked = !!cur; x.addEventListener('change', () => on(x.checked)); return el('label', { class: 'cb', title: title || '' }, x, el('span', { text: label })); };
 
     body.appendChild(el('h2', {}, 'The 3D puppet', el('small', { text: 'tools/puppet.py: the arms-out paintings → Hunyuan3D\'s shape → the rig → the clip on it → its guides; then the walks of this look on them' })));
-    if (!c.puppetRec) { body.appendChild(el('p', { class: 'help', text: 'reading the hero\'s puppet (tools/dl/puppet)…' })); return; }
+    if (!c.puppetRec) { body.appendChild(el('p', { class: 'help', text: 'reading the outlaw\'s puppet (tools/dl/puppet)…' })); return; }
     if (!r) { body.appendChild(el('p', { class: 'help warn-text', text: `no puppet record: ${(c.puppetRec && c.puppetRec.error) || 'the server did not answer'}` })); return; }
     const has = r.stages || {};
     const hasAny = has.apose || has.shape || has.anim;

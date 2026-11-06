@@ -31,7 +31,7 @@ const Timeline = (() => {
   const SPAWN_H = 132;
   // pass 83 (lane TIMELINE): what the window box and the readout's shares mean
   const WIN_HELP = 'The window (seconds) of the readout and the hover cards: hovering the timeline, each roster row and wave shows its share of all the creatures spawned in the past N seconds before the pointer (a wave\'s tick: in the N seconds from it). It is read off the Spawned so far estimate, which plays the director\'s rules second by second: the cap and its room, each row\'s weight, the spawn check and the rows\' own Draw every, the waves and what they owe, the kill rate. So a row paced as waves counts what its waves bring, and a row the cap starves counts little. Roster bars that spawned nothing in the window dim on the lane. 5 s by default; the browser remembers it.';
-  const SPAWN_HELP = 'Every creature a run has spawned by each second, counted from 0:00: the regular crowd (blue), the coloured specials among it (orange), the elite-modified (purple) and the Elites, specials and bosses (gold, marked where they arrive). An estimate: a run only spawns what the hero kills, so it assumes the hero kills a share of the living crowd each second (from your own runs; the boxes change it) while the director refills to the cap under every rule of the timeline. Hover for the numbers: the elite-modified split into what rows with an Elite modifier always bring and what the roster draw (Elites every) brings by chance, and the coloured into what Special rows bring and what comes by chance (pass 120).';
+  const SPAWN_HELP = 'Every creature a run has spawned by each second, counted from 0:00: the regular crowd (blue), the coloured specials among it (orange), the elite-modified (purple) and the Elites, specials and bosses (gold, marked where they arrive). An estimate: a run only spawns what the outlaw kills, so it assumes the outlaw kills a share of the living crowd each second (from your own runs; the boxes change it) while the director refills to the cap under every rule of the timeline. Hover for the numbers: the elite-modified split into what rows with an Elite modifier always bring and what the roster draw (Elites every) brings by chance, and the coloured into what Special rows bring and what comes by chance (pass 120).';
   let spp = 1.0;                       // seconds per pixel
   let root = null, scrollBox = null, content = null, cursorEl = null, readout = null, card = null, menu = null;
   // pass 87 (lane STOOLS): the strip of stage tabs above the sections (stage_tabs.js draws it)
@@ -64,7 +64,7 @@ const Timeline = (() => {
   const LANE_SPEC = {
     ruler: ['Time', null, 'ruler', ''],
     alive: ['On screen', null, '', 'creatures alive at each second: the estimate, the Sim, the limit in bodies (the lower of the cap at the crowd\'s mix and the hard cap), the floor (FIELDS.LANES: alive)'],
-    challenge: ['To clear', null, '', 'seconds of the hero\'s damage to clear the screen (FIELDS.LANES: challenge)'],
+    challenge: ['To clear', null, '', 'seconds of the outlaw\'s damage to clear the screen (FIELDS.LANES: challenge)'],
     composition: ['Composition', null, '', 'who the crowd is made of, % (FIELDS.LANES: composition)'],
     cap: ['Cap (load)', null, '', CAP_HELP],
     floor: ['Floor', { text: '+ Floor', title: 'start a floor curve (the least creatures alive) at 20 from 0:00', onclick: () => addFloor() }, '', 'the floor curve: the least creatures alive on the regular channel (floor_curve); click to edit, drag its points, double-click to add or remove one'],
@@ -77,7 +77,7 @@ const Timeline = (() => {
     waves: ['Waves (old)', { text: '+ Wave', title: 'Add a wave block at the view\'s centre (the old waves[] list; a row paced as Waves does the same)', onclick: () => App.newWave(null, viewCenter()) }, '', ''],
     events: ['Events', { text: '+ Event', title: 'Add a boss or an Elite mini-boss at the view\'s centre', onclick: (e) => eventMenu(e.currentTarget) }, '', ''],
     specials: ['Specials', null, '', ''],
-    paths: ['Mutations', null, '', 'When each stage\'s mutation offers fall due; each comes at the hero\'s next level-up (pass 79).'],
+    paths: ['Mutations', null, '', 'When each stage\'s mutation offers fall due; each comes at the outlaw\'s next level-up (pass 79).'],
   };
   const sections = {};                 // id -> {root, head, bar, body, sum, ctl}
 
@@ -514,7 +514,7 @@ const Timeline = (() => {
       row.appendChild(el('span', { class: 'tl-ctl-group' }, el('b', { text: 'Sections' }),
         el('button', { class: 'btn small', type: 'button', text: 'Collapse all', title: 'fold every section to its bar (the ruler stays)', onclick: () => setAll(true) }),
         el('button', { class: 'btn small', type: 'button', text: 'Open all', title: 'open every section and every group of spawn rows', onclick: () => setAll(false) })));
-      row.appendChild(el('span', { class: 'tl-ctl-group', title: 'what the estimate assumes (On screen, Challenge, Composition, Spawned so far, the Actual lanes and the warnings read it): the share of the living crowd the hero kills a second, how long a boss fight and its portal wait last. Empty = the numbers from your runs (the grey ones); ↺ goes back to them' }, el('b', { text: 'Estimate' }), spawnControls(), simLifeBox()));
+      row.appendChild(el('span', { class: 'tl-ctl-group', title: 'what the estimate assumes (On screen, Challenge, Composition, Spawned so far, the Actual lanes and the warnings read it): the share of the living crowd the outlaw kills a second, how long a boss fight and its portal wait last. Empty = the numbers from your runs (the grey ones); ↺ goes back to them' }, el('b', { text: 'Estimate' }), spawnControls(), simLifeBox()));
       simSelect = el('select', { class: 'tl-sim-pick', title: 'the finished Sim whose real numbers the On screen, Challenge and Composition lanes show beside the estimate (the Sim tab runs one); none = the estimate alone' });
       simSelect.appendChild(el('option', { value: '', text: 'none' }));
       simSelect.addEventListener('change', () => pickSim(simSelect.value));
@@ -529,7 +529,7 @@ const Timeline = (() => {
       return;
     }
     if (id === 'challenge') {
-      s.ctl.appendChild(miniSelect([{ v: 'seconds', label: 'seconds to clear the screen', help: 'the crowd\'s HP on screen ÷ the hero\'s damage a second' }, { v: 'bars', label: 'health bars lost clearing it', help: '(seconds to clear) × (the crowd\'s bite a second ÷ his effective HP) = HP × ATK of the crowd ÷ (DPS × EHP): the Sim\'s "challenge"' }], prefs.chal, (v) => setPref('chal', v), 'what the lane measures'));
+      s.ctl.appendChild(miniSelect([{ v: 'seconds', label: 'seconds to clear the screen', help: 'the crowd\'s HP on screen ÷ the outlaw\'s damage a second' }, { v: 'bars', label: 'health bars lost clearing it', help: '(seconds to clear) × (the crowd\'s bite a second ÷ his effective HP) = HP × ATK of the crowd ÷ (DPS × EHP): the Sim\'s "challenge"' }], prefs.chal, (v) => setPref('chal', v), 'what the lane measures'));
       const box = (k, label, help) => {
         const inp = el('input', { type: 'number', class: 'num tiny', min: 0.1, step: 'any', title: help, 'data-zone': k });
         inp.addEventListener('click', stop);
@@ -1110,7 +1110,7 @@ const Timeline = (() => {
       for (const cpt of comp) grid.appendChild(el('div', { class: 'vc-r' }, el('i', { class: 'vc-sw', style: `background:${App.creatureColor(cpt.id)}` }), el('span', { text: App.creatureName(cpt.id) }), el('b', { text: fmtCount(cpt.n) }), el('span', { class: 'muted', text: `${Math.round(cpt.share * 100)}%` })));
       box.appendChild(grid);
     }
-    box.appendChild(el('div', { class: 'sp-note', text: `An estimate: the director's rules second by second, the hero killing ${App.turnoverSource() === 'your number' ? 'your' : 'the'} kill rate's share of the crowd each second (Ruler and controls). The cap counts load units (cap_share), so it is shown as the bodies it holds at the crowd's mix; the line is the lower of that and the hard cap.` }));
+    box.appendChild(el('div', { class: 'sp-note', text: `An estimate: the director's rules second by second, the outlaw killing ${App.turnoverSource() === 'your number' ? 'your' : 'the'} kill rate's share of the crowd each second (Ruler and controls). The cap counts load units (cap_share), so it is shown as the bodies it holds at the crowd's mix; the line is the lower of that and the hard cap.` }));
     return box;
   }
 
@@ -1195,7 +1195,7 @@ const Timeline = (() => {
     }
     if (simOv) for (const dt of simOv.deaths) g.appendChild(svg('circle', { cx: x(dt), cy: bottom - 3, r: 3.2, class: 'death-dot' }, svg('title', {}, `a Sim death at ${fmtT(dt)}`)));
     hovers.challenge = (t) => challengeCard(t);
-    lanes.challenge.label.querySelector('.lane-sub').textContent = `${m.key === 'bars' ? 'health bars' : 'seconds to clear'} · ${simOv && (simOv.dps || simOv.dpsReal) ? 'the Sim\'s hero' : 'a typical hero'}`;
+    lanes.challenge.label.querySelector('.lane-sub').textContent = `${m.key === 'bars' ? 'health bars' : 'seconds to clear'} · ${simOv && (simOv.dps || simOv.dpsReal) ? 'the Sim\'s outlaw' : 'a typical outlaw'}`;
   }
 
   /** The zone boxes show the limits of the measure picked. */
@@ -1245,7 +1245,7 @@ const Timeline = (() => {
       const th = simAt(simOv.threat, v.t[j]);
       box.appendChild(el('div', { class: 'hc-line muted', text: `The Sim's hero: power ${pw == null ? '–' : fmtN(pw, 2)} (a fresh level-1 Drifter = 1)${th != null ? ` · its crowd's HP × bite ${fmtCount(th)}` : ''}${near.length ? ` · ${near.length} death${near.length === 1 ? '' : 's'} within 15 s` : ''}` }));
     }
-    box.appendChild(el('div', { class: 'sp-note', text: `Zones: green under ${m.fmt(zones.easy)}, amber to ${m.fmt(zones.hard)}, red past it (the boxes in the section's bar). HP in play: each creature's row HP fixed from its start × the stage × creature_hp_mult × hero level ${App.S.level}.` }));
+    box.appendChild(el('div', { class: 'sp-note', text: `Zones: green under ${m.fmt(zones.easy)}, amber to ${m.fmt(zones.hard)}, red past it (the boxes in the section's bar). HP in play: each creature's row HP fixed from its start × the stage × creature_hp_mult × outlaw level ${App.S.level}.` }));
     return box;
   }
 
@@ -1813,7 +1813,7 @@ const Timeline = (() => {
     const stagesTxt = fromRuns && Array.isArray(f.by_stage) && f.by_stage.length > 1 ? ` (${f.by_stage.map((v, k) => `stage ${k + 1} ${fmtN(v * 100, 1)} %`).join(', ')})` : '';
     const curveTxt = fromRuns && Array.isArray(f.curve) && f.curve.length ? ', minute by minute as your runs went (a young build kills slowly)' : '';
     const fits = {
-      turnover: [fitTv * 100, `The share of the living crowd the hero kills a second. Empty = from ${fromRuns ? `your ${runs} run${runs === 1 ? '' : 's'} on this map: ${fmtN(fitTv * 100, 1)} %${stagesTxt}${curveTxt}` : 'the default 6 % (no runs on this map yet)'}. A number here replaces it for the whole run. 6 % = an average creature lives about 17 s.`, 1],
+      turnover: [fitTv * 100, `The share of the living crowd the outlaw kills a second. Empty = from ${fromRuns ? `your ${runs} run${runs === 1 ? '' : 's'} on this map: ${fmtN(fitTv * 100, 1)} %${stagesTxt}${curveTxt}` : 'the default 6 % (no runs on this map yet)'}. A number here replaces it for the whole run. 6 % = an average creature lives about 17 s.`, 1],
       bossSeconds: [fitBoss, `How long a boss fight lasts (the run clock stands still; the crowd keeps boss_cap_frac of the cap). Empty = ${f && f.fights ? `the mean of your ${f.fights} fight${f.fights === 1 ? '' : 's'}` : 'the default'}: ${fmtN(fitBoss, 1)} s.`, 0],
       portalSeconds: [fitPortal, `How long you stand at the portal before walking through (a portal wave, or portal_cap for portal_spawn_seconds; no specials). Empty = ${f && f.waits ? `the mean of your ${f.waits} wait${f.waits === 1 ? '' : 's'}` : 'the default'}: ${fmtN(fitPortal, 1)} s.`, 0],
     };
@@ -1995,7 +1995,7 @@ const Timeline = (() => {
       tvTxt = `${o.turnover.map((v, k) => `${fmtN(v * 100, 1)} % in stage ${k + 1}`).join(', ')} of the living crowd a second (${App.turnoverSource()})`;
     } else tvTxt = `${fmtN(o.turnover * 100, 1)} % of the living crowd a second (${App.turnoverSource()})`;
     box.appendChild(el('div', { class: 'sp-note', text: `alive now ≈ ${fmtCount(p.alive)} · killed ≈ ${fmtCount(p.kills)}` }));
-    box.appendChild(el('div', { class: 'sp-note', text: `Assumes the hero kills ${tvTxt}, boss fights of ${fmtN(o.bossSeconds, 1)} s and portal waits of ${fmtN(o.portalSeconds, 1)} s; the director refills to the cap under every rule of the timeline. Coloured = the variance specials, once colour_after_kills kills are made. Colour comes when the expected kills reach colour_after_kills (${colourAtOf(est, App.stageAt(p.t)) != null ? `≈${fmtT(colourAtOf(est, App.stageAt(p.t)))} in this stage's run` : 'not in this stage\'s run'}); an elite row waits for it a second at a time, and one whose window closes first brings nothing (its row card says so).` }));
+    box.appendChild(el('div', { class: 'sp-note', text: `Assumes the outlaw kills ${tvTxt}, boss fights of ${fmtN(o.bossSeconds, 1)} s and portal waits of ${fmtN(o.portalSeconds, 1)} s; the director refills to the cap under every rule of the timeline. Coloured = the variance specials, once colour_after_kills kills are made. Colour comes when the expected kills reach colour_after_kills (${colourAtOf(est, App.stageAt(p.t)) != null ? `≈${fmtT(colourAtOf(est, App.stageAt(p.t)))} in this stage's run` : 'not in this stage\'s run'}); an elite row waits for it a second at a time, and one whose window closes first brings nothing (its row card says so).` }));
     return box;
   }
 
@@ -2133,7 +2133,7 @@ const Timeline = (() => {
     }
     box.appendChild(grid);
     if (a.rows.length > 12) box.appendChild(el('div', { class: 'hc-line muted', text: `… and ${a.rows.length - 12} more` }));
-    box.appendChild(el('div', { class: 'hc-line muted', text: `In the game the stage multiplier, creature_${isHp ? 'hp' : 'damage'}_mult and the hero level come on top of these. Swarms, coloured elites and the specials are not counted here: each takes the curves at the second it comes, or the numbers of a row or wave bringing the same creature then.` }));
+    box.appendChild(el('div', { class: 'hc-line muted', text: `In the game the stage multiplier, creature_${isHp ? 'hp' : 'damage'}_mult and the outlaw level come on top of these. Swarms, coloured elites and the specials are not counted here: each takes the curves at the second it comes, or the numbers of a row or wave bringing the same creature then.` }));
     return box;
   }
 
@@ -2398,7 +2398,7 @@ const Timeline = (() => {
       const sn = startNumbers(r);
       if (sn) {
         const nt = `HP ${fmtN(sn.hp, sn.hp >= 100 ? 0 : 1)} · ATK ${fmtN(sn.atk, 1)}`;
-        inner.appendChild(svg('text', { x: tx, y: y0 + 13, class: 'bar-num', text: nt }, svg('title', {}, `in play at its start (${fmtT(t)}): the row's numbers fixed there × the stage × creature_hp_mult / creature_damage_mult × hero level ${App.S.level}`)));
+        inner.appendChild(svg('text', { x: tx, y: y0 + 13, class: 'bar-num', text: nt }, svg('title', {}, `in play at its start (${fmtT(t)}): the row's numbers fixed there × the stage × creature_hp_mult / creature_damage_mult × outlaw level ${App.S.level}`)));
         tx += textWidth(nt, 11) + 8;
       }
       const first = ws.length ? ws[0].w : App.rowWeight(r, t), last = ws.length ? ws[ws.length - 1].w : first;
@@ -2827,7 +2827,7 @@ const Timeline = (() => {
     }
     hovers.portal = () => {
       const box = el('div', {}, el('div', { class: 'hc-head' }, el('b', { text: 'The portal after a boss' })));
-      box.appendChild(el('div', { class: 'hc-line', text: pw > 0 ? `One wave of ${pw} creatures of the rows open as the stage ended, round the hero as the portal opens; then nothing until he steps through.` : `The crowd is kept up to ${pcap < 0 ? 'the stage-end cap' : pcap} load units ${psec >= 0 ? `for ${psec} s after the boss dies` : 'while the portal waits'}; no specials.` }));
+      box.appendChild(el('div', { class: 'hc-line', text: pw > 0 ? `One wave of ${pw} creatures of the rows open as the stage ended, round the outlaw as the portal opens; then nothing until he steps through.` : `The crowd is kept up to ${pcap < 0 ? 'the stage-end cap' : pcap} load units ${psec >= 0 ? `for ${psec} s after the boss dies` : 'while the portal waits'}; no specials.` }));
       box.appendChild(el('div', { class: 'hc-line muted', text: 'Click to edit (portal_wave.count, portal_cap, portal_spawn_seconds).' }));
       return box;
     };
@@ -3299,7 +3299,7 @@ const Timeline = (() => {
         box.appendChild(el('div', { class: 'hc-line fixed', text: `Fixed afresh from ${fmtT(at.t0)}, the start of this endless wave: in endless every row and wave takes the curves again at each wave (from ${fmtT(o.t0)} before).` }));
       } else if (fixed) {
         const why = [at.row.hpOver ? 'its own HP takes no curve' : '', at.row.dmgOver ? 'its own damage takes no curve' : ''].filter(Boolean).join(', ');
-        box.appendChild(el('div', { class: 'hc-line fixed', text: `Fixed from ${fmtT(at.t0)}, the ${o.from || 'row'}'s start: every creature of it has these numbers wherever it spawns in ${App.stageName(at.stage)}${why ? ` (${why})` : ''}; only the stage steps them up, and the hero level at its first spawn.` }));
+        box.appendChild(el('div', { class: 'hc-line fixed', text: `Fixed from ${fmtT(at.t0)}, the ${o.from || 'row'}'s start: every creature of it has these numbers wherever it spawns in ${App.stageName(at.stage)}${why ? ` (${why})` : ''}; only the stage steps them up, and the outlaw level at its first spawn.` }));
       }
       // an elite-modified creature (a coloured-elite event, a wave with a modifier) never rolls the variance special by
       // chance; pass 69 (lane EN): a swarm set to Special brings every one as its special, for sure; pass 120 (lane EDITOR,
@@ -3313,7 +3313,7 @@ const Timeline = (() => {
   }
 
   function cardHead(title, t, sub) {
-    return el('div', { class: 'hc-head' }, el('b', { text: title }), el('span', { class: 'hc-time', text: ` ${fmtT(t)} · ${App.stageName(App.stageAt(t))} · hero level ${App.S.level}` }), sub ? el('div', { class: 'hc-sub', text: sub }) : null);
+    return el('div', { class: 'hc-head' }, el('b', { text: title }), el('span', { class: 'hc-time', text: ` ${fmtT(t)} · ${App.stageName(App.stageAt(t))} · outlaw level ${App.S.level}` }), sub ? el('div', { class: 'hc-sub', text: sub }) : null);
   }
 
   function rosterCard(i, t) {
@@ -3625,7 +3625,7 @@ const Timeline = (() => {
     const s = App.stageAt(t);
     const hp = App.hpMultAt(t), dm = App.dmgMultAt(t);
     const cap = App.capAt(t), hell = App.hellCapAt(t);
-    readout.appendChild(el('div', { class: 'ro-head' }, el('b', { text: fmtT(t) }), ` · ${App.stageName(s)} · hero level ${App.S.level}`));
+    readout.appendChild(el('div', { class: 'ro-head' }, el('b', { text: fmtT(t) }), ` · ${App.stageName(s)} · outlaw level ${App.S.level}`));
     // pass 103 (lane LE): the cap in its unit, and the limit in bodies with the one that binds when the estimate is drawn
     const lj = view && view.n ? TimelineModel.indexAt(view.ser, t) : -1;
     const LL = lj >= 0 ? view.limits[lj] : null;

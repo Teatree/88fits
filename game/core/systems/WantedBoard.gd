@@ -241,7 +241,9 @@ static func context(map_id: String, stage_i: int, hero_id: String) -> Dictionary
 	for w: WeaponDef in Registry.base_weapons():
 		var own := start != null and w.id == start.id
 		if not own:
-			if w.hidden or not Registry.is_unlocked("weapon", w.id) or (w.hero != "" and w.hero != hero.id):
+			# pass 128: the run's own rule (Registry.hero_may_use: an outlaw's start weapon only once he is owned), in
+			# place of pass 35's "another hero's own never", so no poster names a weapon the player cannot be offered
+			if w.hidden or not Registry.is_unlocked("weapon", w.id) or not Registry.hero_may_use(w, hero):
 				continue
 			if w.from_stage > 0 and k + 1 < w.from_stage:
 				continue

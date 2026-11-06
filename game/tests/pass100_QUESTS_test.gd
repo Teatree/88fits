@@ -389,7 +389,8 @@ func test_the_quest_locked_band_and_stage_spread_still_hold() -> void:
 		if q:
 			locked.append(q)
 	# pass 119: 0.28 -> 0.25 as in pass44_test (the six legendary items, the keys and the Grindstone come unlocked)
-	assert_float(float(locked.size()) / float(items.size())).is_between(0.25, 0.56)
+	# pass 128: 0.25 -> 0.22 as in pass44_test (the Spear's and the Big Mouth's quests retired)
+	assert_float(float(locked.size()) / float(items.size())).is_between(0.22, 0.56)
 	# (pass 120: as in pass44_test, a quest whose creature comes in no stage (the armadillo's two) is left out of the spread)
 	var by_stage := {1: 0, 2: 0, 3: 0}
 	var placed := 0

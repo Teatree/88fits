@@ -160,7 +160,7 @@ const Skins = (() => {
     const cb = el('input', { type: 'checkbox', 'data-path': `skin.${look.code}.purchasable` });
     cb.checked = !!d.purchasable;
     cb.addEventListener('change', () => set(() => { d.purchasable = cb.checked; if (d.purchasable && !d.name) d.name = suggest(doc, look); }));
-    box.appendChild(Forms.row({ key: 'purchasable', label: 'Purchasable', help: 'offered to the players (bought in the hero sheet, then worn); off = not offered' }, el('span', { class: 'cb-wrap' }, cb, el('span', { class: 'cb-text', text: d.purchasable ? 'yes: offered to the players' : 'no' })), {}));
+    box.appendChild(Forms.row({ key: 'purchasable', label: 'Purchasable', help: 'offered to the players (bought in the outlaw sheet, then worn); off = not offered' }, el('span', { class: 'cb-wrap' }, cb, el('span', { class: 'cb-text', text: d.purchasable ? 'yes: offered to the players' : 'no' })), {}));
     if (o.onlyOff) {
       // a look that cannot be sold: only untick it, and take its goal away (Remove goal)
       if (questOf(doc, look.code) && !d.goal) box.appendChild(goal(doc, look, d));
@@ -256,7 +256,7 @@ const Skins = (() => {
       if (def.type === 'enemy') rowEl = Forms.row(def2, Forms.enemyPick(U.getPath(draft, def.key) || '', (v) => localApply(() => U.setPath(draft, def.key, v)), { path, summary: false, emptyLabel: '—' }), {});
       else if (def.type === 'id_select') {
         const anyHero = def.key === 'condition.hero' && type === 'beat_stage';
-        rowEl = Forms.row(def2, Forms.iconSelect(((def.kind === 'hero' ? Assets.ensureHeroes() : null), Assets.idOptions(def.kind || 'weapon')) || [], U.getPath(draft, def.key) || '', (v) => localApply(() => U.setPath(draft, def.key, anyHero ? (v || '') : v)), { emptyLabel: anyHero ? 'any hero' : '—', path }), {});
+        rowEl = Forms.row(def2, Forms.iconSelect(((def.kind === 'hero' ? Assets.ensureHeroes() : null), Assets.idOptions(def.kind || 'weapon')) || [], U.getPath(draft, def.key) || '', (v) => localApply(() => U.setPath(draft, def.key, anyHero ? (v || '') : v)), { emptyLabel: anyHero ? 'any outlaw' : '—', path }), {});
       } else if (def.key === 'condition.map' && Array.isArray(App.S.maps) && App.S.maps.length) {
         rowEl = Forms.row(def2, Forms.select(App.S.maps.map((m) => ({ v: m.id, label: `${m.name || m.id} (${m.id})` })), U.getPath(draft, def.key) || 'red_canyon', (v) => localApply(() => U.setPath(draft, def.key, v || 'red_canyon')), { path }), {});
       } else {
@@ -346,21 +346,21 @@ const Skins = (() => {
   function instructions(root) {
     const p = (html) => { const n = el('p', {}); n.innerHTML = html; return n; };
     const li = (html) => { const n = el('li', {}); n.innerHTML = html; return n; };
-    root.appendChild(el('h2', { text: 'Pass 111: Skins (a hero\'s looks players can buy)' }));
-    root.appendChild(p('Any painted look of a hero can be offered to the players as a <b>skin</b>: they buy it (gold today; any currency in <code>content/currencies</code>) and wear it. A skin can also have a <b>goal</b>: a quest that must be done first ("Beat Nightfall with May.").'));
+    root.appendChild(el('h2', { text: 'Pass 111: Skins (an outlaw\'s looks players can buy)' }));
+    root.appendChild(p('Any painted look of an outlaw can be offered to the players as a <b>skin</b>: they buy it (gold today; any currency in <code>content/currencies</code>) and wear it. A skin can also have a <b>goal</b>: a quest that must be done first ("Beat Nightfall with May.").'));
     const ol = el('ol', { class: 'howto' });
     for (const s of [
-      'Open the <b>Heroes</b> tab and press <b>Edit</b> on the hero.',
+      'Open the <b>Outlaws</b> tab and press <b>Edit</b> on the outlaw.',
       'Open the section <b>Skins (looks players can buy)</b> (under Looks &amp; previews). Every look is a row with its badge and a still (hover it to play).',
       'Tick <b>Purchasable</b>. Type the <b>Name</b> players will read (or press <i>Suggest</i>), the <b>Price</b> (0 = free once the goal is done) and pick the <b>Currency</b>.',
-      'For a goal press <b>+ Add a goal</b>: it starts as <i>beat a stage</i> on Red Canyon, stage 1, with this hero. Change the stage (its name shows beside the number: 1 Sundown, 2 Nightfall, 3 Blood Moon), empty the hero for <i>any hero</i>, or pick any other condition (the same list as a hero\'s Requirement). The words the game will show are under it.',
-      'Press the row\'s <b>Save</b>. It writes the look\'s <code>skin</code> in the hero\'s JSON and the goal as <code>content/quests/skin_&lt;hero&gt;_&lt;code&gt;</code>, then imports both. (The hero\'s own <i>Save asset</i> does not write skins.)',
+      'For a goal press <b>+ Add a goal</b>: it starts as <i>beat a stage</i> on Red Canyon, stage 1, with this outlaw. Change the stage (its name shows beside the number: 1 Sundown, 2 Nightfall, 3 Blood Moon), empty the outlaw for <i>any outlaw</i>, or pick any other condition (the same list as an outlaw\'s Requirement). The words the game will show are under it.',
+      'Press the row\'s <b>Save</b>. It writes the look\'s <code>skin</code> in the outlaw\'s JSON and the goal as <code>content/quests/skin_&lt;outlaw&gt;_&lt;code&gt;</code>, then imports both. (The outlaw\'s own <i>Save asset</i> does not write skins.)',
     ]) ol.appendChild(li(s));
     root.appendChild(ol);
     root.appendChild(el('ul', {},
       li('<b>Remove goal</b> moves the quest to the backups; the look is then on sale at once. <b>Revert</b> drops the row\'s unsaved edits.'),
-      li('The look the hero is <b>played in</b> is every player\'s already and is never sold. A <b>shelved</b> or <b>not painted</b> look cannot be sold (unshelve it first).'),
-      li('The hero card in the list says how many of his skins are on sale. Prices of heroes (Availability) and skins both pick their currency from <code>content/currencies</code>.')));
+      li('The look the outlaw is <b>played in</b> is every player\'s already and is never sold. A <b>shelved</b> or <b>not painted</b> look cannot be sold (unshelve it first).'),
+      li('The outlaw card in the list says how many of his skins are on sale. Prices of outlaws (Availability) and skins both pick their currency from <code>content/currencies</code>.')));
   }
 
   return { section, chips, cardLine, instructions, ensureCurrencies, savedOf, prune, suggest, S };

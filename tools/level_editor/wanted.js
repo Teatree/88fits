@@ -112,7 +112,7 @@ const Wanted = (() => {
     }
     if (!S.draft) { page.appendChild(el('p', { class: 'muted', text: 'Loading the Bounty Board…' })); panel.appendChild(page); return; }
     page.appendChild(head());
-    page.appendChild(el('p', { class: 'lead wtd-lead', html: 'At the start of a stage run, right after the hero\'s descent (from a player\'s <b>second</b> run on), <b>three Wanted posters</b> float in over the paused game on strings: the player taps one to take it (it is stamped and flies into the HUD\'s bounty plate), or taps No bounty (they blow away). Each poster is a <b>task type</b> drawn by its <b>weight</b>; its number (kills, seconds, level...) is rolled in that stage\'s range, which grows with <b>progression</b> (the stages the player has beaten); its <b>difficulty</b> is where that number fell between the range\'s easy and hard end; its <b>gold</b> comes from the difficulty. Done, it pays at the run\'s end. Only creatures the player has met and items he has seen and unlocked can be targets. Roll the posters on the right to see them as a player would.' }));
+    page.appendChild(el('p', { class: 'lead wtd-lead', html: 'At the start of a stage run, right after the outlaw\'s descent (from a player\'s <b>second</b> run on), <b>three Wanted posters</b> float in over the paused game on strings: the player taps one to take it (it is stamped and flies into the HUD\'s bounty plate), or taps No bounty (they blow away). Each poster is a <b>task type</b> drawn by its <b>weight</b>; its number (kills, seconds, level...) is rolled in that stage\'s range, which grows with <b>progression</b> (the stages the player has beaten); its <b>difficulty</b> is where that number fell between the range\'s easy and hard end; its <b>gold</b> comes from the difficulty. Done, it pays at the run\'s end. Only creatures the player has met and items he has seen and unlocked can be targets. Roll the posters on the right to see them as a player would.' }));
     const iss = M.issues(cfg());
     if (S.msg) page.appendChild(el('div', { class: 'ferr warn' }, el('span', { text: S.msg + ' ' }), el('button', { class: 'btn small', type: 'button', text: 'Reload', onclick: reload })));
     if (iss.errors.length || iss.warnings.length) {
@@ -237,7 +237,7 @@ const Wanted = (() => {
       el('span', { text: 'chance', title: 'first: its share of the weight among the types that can be posted; board: the chance it is one of the posters (exact, the draws without putting back)' }),
       el('span', { text: 'difficulty easy → hard' }), el('span', { text: '' })));
     for (const type of M.TYPE_ORDER) tbl.appendChild(taskRow(type, c, ch, ctx));
-    return card('Task types', `chances for Stage ${ctx.stage + 1} with ${hero ? hero.name : 'the hero'} and the simulator's switches; "—" cannot be posted there`, tbl);
+    return card('Task types', `chances for Stage ${ctx.stage + 1} with ${hero ? hero.name : 'the outlaw'} and the simulator's switches; "—" cannot be posted there`, tbl);
   }
 
   function setTask(type, fn) {
@@ -380,7 +380,7 @@ const Wanted = (() => {
     const tog = (key, label) => { const cb = el('input', { type: 'checkbox', checked: !!sim[key] }); cb.addEventListener('change', () => { sim[key] = cb.checked; roll(); }); return el('label', { class: 'cb' }, cb, el('span', { text: label })); };
     pane.appendChild(el('div', { class: 'wtd-sim-ctl' },
       el('label', { class: 'wtd-l' }, el('span', { text: 'Stage' }), stSel),
-      el('label', { class: 'wtd-l' }, el('span', { text: 'Hero' }), hSel),
+      el('label', { class: 'wtd-l' }, el('span', { text: 'Outlaw' }), hSel),
       el('label', { class: 'wtd-l wtd-prog' }, el('span', {}, 'Stages beaten ', pOut), pIn),
       el('div', { class: 'wtd-togs' }, tog('metAll', 'met every creature'), tog('seenAll', 'seen every item'), tog('unlocks', 'every unlock done'))));
     pane.appendChild(el('div', { class: 'wtd-roll-row' },

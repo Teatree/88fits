@@ -25,8 +25,8 @@ const Heroes = (() => {
     const box = el('input', { type: 'search', class: 'txt wide', placeholder: 'filter by name, id or trait…', value: filt().q });
     box.addEventListener('input', () => { filt().q = box.value.trim().toLowerCase(); draw(); });
     bar.appendChild(box);
-    bar.appendChild(Forms.select([{ v: 'all', label: 'every hero' }, { v: 'available', label: 'free' }, { v: 'purchase', label: 'to buy' }, { v: 'hidden', label: 'hidden' }], filt().status, (v) => { filt().status = v || 'all'; draw(); }, { path: 'heroes.status' }));
-    bar.appendChild(el('button', { class: 'btn small' + (creating ? ' toggle on' : ''), type: 'button', text: '+ New from template ▾', title: 'a new hero folder from another hero\'s JSON (hidden until the tests are re-pinned)', onclick: () => { creating = !creating; drawCreate(); } }));
+    bar.appendChild(Forms.select([{ v: 'all', label: 'every outlaw' }, { v: 'available', label: 'free' }, { v: 'purchase', label: 'to buy' }, { v: 'hidden', label: 'hidden' }], filt().status, (v) => { filt().status = v || 'all'; draw(); }, { path: 'heroes.status' }));
+    bar.appendChild(el('button', { class: 'btn small' + (creating ? ' toggle on' : ''), type: 'button', text: '+ New from template ▾', title: 'a new outlaw folder from another outlaw\'s JSON (hidden until the tests are re-pinned)', onclick: () => { creating = !creating; drawCreate(); } }));
     list.appendChild(bar);
     createHost = el('div', { class: 'acreate-host' });
     list.appendChild(createHost);
@@ -48,7 +48,7 @@ const Heroes = (() => {
     const taken = new Set(hs.map((h) => h.id).concat((App.S.enemies || []).map((c) => c.id)));
     createHost.appendChild(Assets.createDialog('hero', templates, taken, {
       label: 'hero', docRequired: false, copyArt: true,
-      note: 'A new hero starts hidden (hidden: true, availability "hidden", price 0, gold): the tests pin the five heroes on the title (pass334, pass61_hr); turn him available after a re-pin. His numbers and art words come from the template; the looks and PNGs only with "copy the art".',
+      note: 'A new outlaw starts hidden (hidden: true, availability "hidden", price 0, gold): the tests pin the five outlaws on the title (pass334, pass61_hr); turn him available after a re-pin. His numbers and art words come from the template; the looks and PNGs only with "copy the art".',
       onCreate: async (body) => { const d = await Assets.create('hero', body); if (d) creating = false; },
       onCancel: () => { creating = false; drawCreate(); },
     }));
@@ -60,11 +60,11 @@ const Heroes = (() => {
     if (!listEl) return;
     clear(listEl);
     const hs = Assets.S.lists.heroes;
-    if (!hs) { listEl.appendChild(el('p', { class: 'muted', text: Assets.S.failed.heroes ? `No hero list: ${Assets.S.failed.heroes} (lane S's /api/heroes)` : 'Reading the heroes…' })); return; }
+    if (!hs) { listEl.appendChild(el('p', { class: 'muted', text: Assets.S.failed.heroes ? `No outlaw list: ${Assets.S.failed.heroes} (lane S's /api/heroes)` : 'Reading the outlaws…' })); return; }
     const f = filt();
     const list = hs.filter((h) => (f.status === 'all' || avail(h) === f.status) && (!f.q || [h.id, h.name, h.trait_name, h.trait_text, h.flavour].some((s) => String(s || '').toLowerCase().includes(f.q))));
     list.sort((a, b) => (!!a.hidden - !!b.hidden) || ((a.order == null ? 100 : a.order) - (b.order == null ? 100 : b.order)) || String(a.id).localeCompare(String(b.id)));
-    listEl.appendChild(el('div', { class: 'muted small', text: `${list.length} of ${hs.length} heroes · the title shows the playable ones by order` }));
+    listEl.appendChild(el('div', { class: 'muted small', text: `${list.length} of ${hs.length} outlaws · the title shows the playable ones by order` }));
     for (const h of list) listEl.appendChild(card(h));
   }
 
@@ -82,7 +82,7 @@ const Heroes = (() => {
     mid.appendChild(el('div', { class: 'small', text: h.trait_text || M.heroTrait(h) || '' }));
     const plates = el('div', { class: 'plates' });
     if (h.start_weapon) plates.appendChild(el('span', { class: 'plate', title: 'START: the weapon he lands with' }, el('img', { src: `/icon/weapon/${h.start_weapon}`, alt: '' }), el('span', { text: `start ${nameOf('weapon', h.start_weapon)}` })));
-    if (h.favourite_weapon) plates.appendChild(el('span', { class: 'plate', title: 'FAVOURITE: arrives with a bonus, carries his hero mutation' }, el('img', { src: `/icon/weapon/${h.favourite_weapon}`, alt: '' }), el('span', { text: `favourite ${nameOf('weapon', h.favourite_weapon)}` })));
+    if (h.favourite_weapon) plates.appendChild(el('span', { class: 'plate', title: 'FAVOURITE: arrives with a bonus, carries his outlaw mutation' }, el('img', { src: `/icon/weapon/${h.favourite_weapon}`, alt: '' }), el('span', { text: `favourite ${nameOf('weapon', h.favourite_weapon)}` })));
     if (h.favourite_passive) plates.appendChild(el('span', { class: 'plate', title: 'FAVOURITE passive' }, el('img', { src: `/icon/passive/${h.favourite_passive}`, alt: '' }), el('span', { text: `favourite ${nameOf('passive', h.favourite_passive)}` })));
     const looks = Array.isArray(h.looks) ? h.looks : [];
     plates.appendChild(el('span', { class: 'plate muted', text: `${looks.length} look${looks.length === 1 ? '' : 's'}${looks.filter((l) => l.fresh).length ? ` · ${looks.filter((l) => l.fresh).length} new` : ''}${looks.filter((l) => l.shelved).length ? ` · ${looks.filter((l) => l.shelved).length} shelved` : ''}` }));
@@ -110,7 +110,7 @@ const Heroes = (() => {
     pane.appendChild(Assets.header(doc, iss));
     const sec = (name, nodes, opts) => Assets.section(doc, name, nodes, Object.assign({ marks: Assets.sectionMarks(iss, (opts && opts.keys) || Assets.sectionKeys(defs, name)) }, opts || {}));
     pane.appendChild(sec('Identity', Assets.rows(doc, defs, 'Identity', iss), { open: true }));
-    pane.appendChild(sec('Trait', Assets.rows(doc, defs, 'Trait', iss), { open: true, foot: 'The signature stat grows per level (Run.hero_sheet); the plaque, the hero sheet and the arena read TextGen.hero_trait, which the preview above mirrors.' }));
+    pane.appendChild(sec('Trait', Assets.rows(doc, defs, 'Trait', iss), { open: true, foot: 'The signature stat grows per level (Run.hero_sheet); the plaque, the outlaw sheet and the arena read TextGen.hero_trait, which the preview above mirrors.' }));
     pane.appendChild(sec('Favourites', Assets.rows(doc, defs, 'Favourites', iss), { open: true }));
     pane.appendChild(sec('Specials', Assets.rows(doc, defs, 'Specials', iss)));
     // pass 69: the requirement (his unlock quest) and what the title shows; availabilityNote keeps hidden in step
@@ -138,7 +138,7 @@ const Heroes = (() => {
     const agree = !!d.hidden === (av === 'hidden');
     if (agree) return null;
     const wrap = el('div', { class: 'anote warn', 'data-key': 'hidden' });
-    wrap.appendChild(el('div', { class: 'small', text: `hidden is ${!!d.hidden} while availability is ${av}: ${av === 'purchase' ? 'the game shows a hero to buy anyway' : av === 'available' ? 'the game hides him (hidden wins for a free hero)' : 'availability hidden hides him'}.` }));
+    wrap.appendChild(el('div', { class: 'small', text: `hidden is ${!!d.hidden} while availability is ${av}: ${av === 'purchase' ? 'the game shows an outlaw to buy anyway' : av === 'available' ? 'the game hides him (hidden wins for a free outlaw)' : 'availability hidden hides him'}.` }));
     wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: `Make hidden agree (hidden: ${av === 'hidden'})`, onclick: () => Assets.apply(doc, (dd) => { dd.hidden = av === 'hidden'; }, 'editor') }));
     return wrap;
   }
@@ -156,9 +156,9 @@ const Heroes = (() => {
       kind !== 'perk' ? el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', onclick: () => Assets.open(kind, id) }) : null);
     if (!weapons.length) out.appendChild(el('div', { class: 'muted small', text: `No weapon carries hero: "${doc.id}" (WeaponDef.hero). Start weapon: ${doc.data.start_weapon || 'the favourite, else the peashooter'}.` }));
     for (const id of weapons) { const w = fl ? fl.weapons.find((x) => x.id === id) : null; out.appendChild(line('weapon', id, 'his weapon', w && w.evolves_into ? el('span', { class: 'muted small', text: `→ ${w.evolves_into}` }) : null)); }
-    if (!muts.length) out.appendChild(el('div', { class: 'muted small', text: 'No hero mutation (kind hero, hero = this id): a playable hero has exactly one, on his favourite weapon (pass26_test).' }));
-    for (const id of muts) { const m = fl ? fl.mutations.find((x) => x.id === id) : null; out.appendChild(line('mutation', id, 'hero mutation', m ? el('span', { class: 'muted small', text: `on ${m.weapon}${m.hidden ? ' · hidden: out of play (pass 69)' : m.weapon !== doc.data.favourite_weapon ? ' (not his favourite!)' : ''}` }) : null)); }
-    if (!perks.length) out.appendChild(el('div', { class: 'muted small', text: 'No perks listed (content/perks with hero = this id; a hero on the title needs at least one: pass66_shape_test).' }));
+    if (!muts.length) out.appendChild(el('div', { class: 'muted small', text: 'No outlaw mutation (kind hero, hero = this id): a playable outlaw has exactly one, on his favourite weapon (pass26_test).' }));
+    for (const id of muts) { const m = fl ? fl.mutations.find((x) => x.id === id) : null; out.appendChild(line('mutation', id, 'outlaw mutation', m ? el('span', { class: 'muted small', text: `on ${m.weapon}${m.hidden ? ' · hidden: out of play (pass 69)' : m.weapon !== doc.data.favourite_weapon ? ' (not his favourite!)' : ''}` }) : null)); }
+    if (!perks.length) out.appendChild(el('div', { class: 'muted small', text: 'No perks listed (content/perks with hero = this id; an outlaw on the title needs at least one: pass66_shape_test).' }));
     // pass 69 (lane LE): every perk opens in the perk form (Identity, Card, Special with its numbers, Art); + New perk
     const precs = Array.isArray(rec.perk_records) ? rec.perk_records : [];
     for (const id of perks) {
@@ -168,7 +168,7 @@ const Heroes = (() => {
         el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', onclick: () => Assets.open('perk', id) })));
     }
     const host = el('div', { class: 'acreate-host' });
-    out.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small', type: 'button', text: '+ New perk…', title: 'a new perk for this hero from any perk as a template (Inflatable May: the decoy)', onclick: () => { clear(host); host.appendChild(TypedForms.newPerkDialog(doc, host, () => {})); } })));
+    out.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small', type: 'button', text: '+ New perk…', title: 'a new perk for this outlaw from any perk as a template (Inflatable May: the decoy)', onclick: () => { clear(host); host.appendChild(TypedForms.newPerkDialog(doc, host, () => {})); } })));
     out.appendChild(host);
     return out;
   }

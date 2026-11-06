@@ -248,7 +248,7 @@ const BossFights = (() => {
     s0.appendChild(svg('text', { x: 6, y: 14, class: 'tick-text', text: 'estimate: alive over two cycles' }));
     s0.appendChild(svg('text', { x: 6, y: 28, class: 'tick-text', text: `peak ≈${fmtN(cy.peak, 0)}${cy.max >= 0 ? ` · max ${cy.max}` : ''}` }));
     s0.appendChild(svg('text', { x: 6, y: 42, class: 'tick-text', text: `≈${fmtN(cy.spawned[cy.cycles - 1], 0)} spawned a cycle` }));
-    s0.appendChild(svg('title', {}, `What the window brings, an estimate: the hero kills ${Math.round(cy.turnover * 100)}% of the crowd a second, the fight starts with only the boss alive (the stage's leftovers and the boss's summons are not in it). Dashed: Max count. The line in the middle: where the second cycle starts. The run charts above still model the fight without its window.`));
+    s0.appendChild(svg('title', {}, `What the window brings, an estimate: the outlaw kills ${Math.round(cy.turnover * 100)}% of the crowd a second, the fight starts with only the boss alive (the stage's leftovers and the boss's summons are not in it). Dashed: Max count. The line in the middle: where the second cycle starts. The run charts above still model the fight without its window.`));
     wrap.appendChild(s0);
     return wrap;
   }

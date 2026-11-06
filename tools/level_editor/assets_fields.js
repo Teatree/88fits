@@ -17,9 +17,9 @@ const AFIELDS = (() => {
   // ------------------------------------------------------------------ vocabularies (defaults; /api/vocab wins where it answers)
 
   const VOCAB = {
-    brains: [opt('chase', 'chase', 'walks at the hero'), opt('flock', 'flock', 'walks at the hero, keeps with its pack'), opt('kite', 'kite', 'keeps its distance and shoots (the ranged block)'),
+    brains: [opt('chase', 'chase', 'walks at the outlaw'), opt('flock', 'flock', 'walks at the outlaw, keeps with its pack'), opt('kite', 'kite', 'keeps its distance and shoots (the ranged block)'),
       opt('charge', 'charge', 'winds up and rushes (the charge block)'), opt('kamikaze', 'kamikaze', 'runs in and blows up (the kamikaze block)'), opt('artillery', 'artillery', 'stands off and fires rockets (the artillery block)'),
-      opt('boss', 'boss', 'runs the attack script (the boss block)'), opt('dummy', 'dummy', 'the arena dummies: stands still'), opt('ambush', 'ambush', 'hides in the sand until the hero is near (the ambush block, ranged for its silk)'),
+      opt('boss', 'boss', 'runs the attack script (the boss block)'), opt('dummy', 'dummy', 'the arena dummies: stands still'), opt('ambush', 'ambush', 'hides in the sand until the outlaw is near (the ambush block, ranged for its silk)'),
       opt('caster', 'caster', 'keeps away and casts from the attack script (caster + boss blocks)'), opt('support', 'support', 'heals and frenzies the crowd round it (the support block)'),
       // pass 73 (lane SNIPER)
       opt('sniper', 'sniper', 'walks in like the kite to its range (never runs), freezes to aim a gathering red-line laser across the map (the sniper block)'),
@@ -27,7 +27,7 @@ const AFIELDS = (() => {
       opt('squad', 'squad', 'comes and fights as a squad (the squad block, the Monk): those spawned together walk as one group in a formation, keep the kite\'s band, and all stop and fire at once')],
     archetypes: [opt('walker', 'walker', 'a label'), opt('swarmer', 'swarmer', 'a label'), opt('spitter', 'spitter', 'a label'), opt('brute', 'brute', 'a label'), opt('tank', 'tank', 'a label'), opt('runner', 'runner', 'a label'),
       opt('elite', 'elite (mini-boss)', 'its HP follows elite.hp_mult_per_stage, a crown, a chest every time, never stunned or grabbed'), opt('boss', 'boss', 'the stage boss: boss.hp_mult_per_stage, the bar, the skull, the purse')],
-    telegraphs: [opt('none'), opt('line', 'line', 'a red line ahead'), opt('rect', 'rectangle', 'a wide red rectangle ahead, length x width (Come Here)'), opt('ring', 'ring', 'a ring round the creature'), opt('ring_at_hero', 'ring at the hero', 'a ring where the hero stands (slam_at, burrow and boulder need it)'),
+    telegraphs: [opt('none'), opt('line', 'line', 'a red line ahead'), opt('rect', 'rectangle', 'a wide red rectangle ahead, length x width (Come Here)'), opt('ring', 'ring', 'a ring round the creature'), opt('ring_at_hero', 'ring at the outlaw', 'a ring where the outlaw stands (slam_at, burrow and boulder need it)'),
       opt('sector', 'sector', 'a wedge ahead'), opt('fan', 'fan', 'several lines over a spread'), opt('spokes', 'spokes', 'lines all round')],
     shotKinds: [opt('', 'spit (the default)'), opt('pellet'), opt('spike'), opt('shard'), opt('harpoon', 'harpoon', 'set by `harpoon: true` in the game'),
       // pass 85 / pass 111 (lane ENEMY): the thrown explosives, each by its own block below
@@ -39,8 +39,8 @@ const AFIELDS = (() => {
       opt('auto_magnet', 'auto magnet', 'gems come to him on their own'), opt('motherlode', 'motherlode', 'x1.5 gold from the Strongbox and extraction')],
     // pass 69 (lane UI wired the purchase loop): Registry.hero_state reads these; an unlock quest (Requirement below) gates either
     availability: [opt('available', 'free', 'owned from the start, nothing to pay; with a requirement: owned the moment its quest is done'),
-      opt('purchase', 'to buy', 'on the title and in the hero drawer as a black silhouette: locked until his requirement is done (none = on sale at once), then BUY for the price'),
-      opt('hidden', 'hidden', 'out of play: not on the title, not in the drawer; his perks and hero mutation hidden too')],
+      opt('purchase', 'to buy', 'on the title and in the outlaw drawer as a black silhouette: locked until his requirement is done (none = on sale at once), then BUY for the price'),
+      opt('hidden', 'hidden', 'out of play: not on the title, not in the drawer; his perks and outlaw mutation hidden too')],
     // pass 111 (lane SKINS): the currencies come from the registry (content/currencies, the server's vocab
     // `currency_records`, which Assets.vocab puts in place of this list); gold only stands in until the vocab is read
     // (as the server's vocab.CURRENCIES does when the folder has none)
@@ -51,30 +51,30 @@ const AFIELDS = (() => {
     rarityPlate: { common: '#d2cfc7', uncommon: '#8cc97a', rare: '#6b9fd8', epic: '#a585c8', legendary: '#e0a060' },
     behaviors: ['Beam', 'ConeWave', 'GravityGun', 'LaserBeam', 'Lobber', 'MineLayer', 'MissilePod', 'Orbiter', 'ProjectileEmitter', 'Smasher', 'Spawner', 'SunScepter', 'Thruster'].map((b) => opt(b))
       // pass 69: the Salt's patches laid behind the hero (lane SALT) and the Frisbee's curving discs (lane FRIS)
-      .concat([opt('SaltShaker', 'SaltShaker', 'pass 69, the Salt: a shaker floats round the hero and pours patches behind him that hurt what stands in them (params: salt, shaker)'),
+      .concat([opt('SaltShaker', 'SaltShaker', 'pass 69, the Salt: a shaker floats round the outlaw and pours patches behind him that hurt what stands in them (params: salt, shaker)'),
         opt('Frisbee', 'Frisbee', 'pass 69: discs thrown at a creature on an arc bending left or right at random, cutting through everything to the end of their range (params: bend, fan, falloff, disc, carry, loop)'),
         // pass 95 (lane BREATH): the Dragon's Breath
-        opt('FireBreath', 'FireBreath', 'pass 95, the Dragon\'s Breath: every cooldown the hero breathes a cone of fire from his face where he faces for `duration` s (+1 s per amount past the first); whatever stands in it takes `damage` every second and catches fire (params: breath)')]),
+        opt('FireBreath', 'FireBreath', 'pass 95, the Dragon\'s Breath: every cooldown the outlaw breathes a cone of fire from his face where he faces for `duration` s (+1 s per amount past the first); whatever stands in it takes `damage` every second and catches fire (params: breath)')]),
     targeting: [opt('nearest'), opt('priority', 'priority', 'the strongest enemy nearby'), opt('densest'), opt('densest_healthy', 'densest healthy', 'the Molotov and Skull Rain: the densest crowd of healthy enemies'), opt('orbit'), opt('random'), opt('healthy'), opt('forward'), opt('ground')],
-    mutationKinds: [opt('element'), opt('volume'), opt('motion'), opt('stance', 'stance', 'no mutation uses it yet'), opt('hero', 'hero', 'one hero\'s own: needs `hero`')],
+    mutationKinds: [opt('element'), opt('volume'), opt('motion'), opt('stance', 'stance', 'no mutation uses it yet'), opt('hero', 'hero', 'one outlaw\'s own: needs `hero`')],
     elements: [opt('', 'none'), opt('fire'), opt('poison')],
     ops: [opt('add', 'add', 'base + value'), opt('mul', 'mul', 'x (1 + value): 0.25 is +25%'), opt('set', 'set', 'replaces the base')],
-    targets: [opt('self', 'self', 'the item\'s own sheet'), opt('player', 'player', 'the hero\'s sheet'), opt('all_weapons', 'all weapons'), opt('weapon:', 'weapon:<id>', 'one weapon by id'), opt('tag:', 'tag:<tag>', 'every weapon with the tag')],
+    targets: [opt('self', 'self', 'the item\'s own sheet'), opt('player', 'player', 'the outlaw\'s sheet'), opt('all_weapons', 'all weapons'), opt('weapon:', 'weapon:<id>', 'one weapon by id'), opt('tag:', 'tag:<tag>', 'every weapon with the tag')],
     questTypes: [opt('kills_with_weapon', 'kills with a weapon', '{weapon, count} across runs'), opt('kills_of_enemy', 'kills of a creature', '{enemy, count} across runs'), opt('open_chests', 'chests opened', '{count}'),
       opt('evolve_any', 'any evolution', '{count}'), opt('reach_level', 'reach a level', '{level} in one run'), opt('survive_minutes', 'survive minutes', '{minutes} in one run'),
       opt('survive_minutes_no_lift', 'survive minutes without a lift', '{minutes}'), opt('kills_in_run_of_enemy', 'kills of a creature in one run', '{enemy, count}'), opt('extract_after_stage', 'extract after a stage', '{map, stage}'),
       opt('kill_boss', 'kill a boss', '{map, stage}'), opt('kills_total', 'kills in all', '{count}'), opt('runs_total', 'runs in all', '{count}'), opt('pickups_total', 'power-ups in all', '{count}'), opt('gold_total', 'gold in all', '{count}'), opt('reach_stage', 'reach a stage', '{stage}'),
       // pass 100 (lane QUESTS): levels, upgrades and evolutions, all in one run (QuestDef's header)
-      opt('hero_level', 'reach a level with a hero', '{hero, level} in one run'), opt('item_level', 'an item to a level', '{kind, id?, level | rung} in one run'),
+      opt('hero_level', 'reach a level with an outlaw', '{hero, level} in one run'), opt('item_level', 'an item to a level', '{kind, id?, level | rung} in one run'),
       opt('evolve_item', 'evolve an item', '{id} or {kind}: a weapon at a chest, a card into its Risen card, a passive item onto Evolved'), opt('weapon_paths', 'all of a weapon\'s mutations', '{weapon?} in one run'),
       opt('items_maxed', 'items at max level at once', '{kind, count}'),
       // pass 111 (lane SKINS): a stage's boss killed in a run of that stage
-      opt('beat_stage', 'beat a stage (with a hero)', '{map, stage, hero?}: that stage\'s boss killed in a run of that stage, with that hero (empty = any hero)'),
+      opt('beat_stage', 'beat a stage (with an outlaw)', '{map, stage, hero?}: that stage\'s boss killed in a run of that stage, with that outlaw (empty = any outlaw)'),
       // pass 113 (lane TASKS): across runs (the run going on counts too), or in one run with "In one run" ticked
       opt('damage_with_weapon', 'damage with a weapon', '{weapon, count}: the damage the weapon and its evolution deal (never overkill)'),
       opt('heal_with_item', 'HP restored by an item', '{item, count}: life steal, regen, Siesta, Vulture, Cake Slices or the Canteen from that card or passive item (its share when others heal the same way)'),
       opt('heal_with_source', 'HP restored by a power-up or structure', '{source, count}: "pickup:heart" the Heart, "structure:healing_well" the Healing Well ("pickup:" any power-up)'),
-      opt('element_damage', 'fire or poison damage', '{element, count}: burns (fire) or poison ticks the hero\'s side deals (empty = both)'),
+      opt('element_damage', 'fire or poison damage', '{element, count}: burns (fire) or poison ticks the outlaw\'s side deals (empty = both)'),
       opt('barrels_total', 'barrels broken', '{count}'),
       opt('totems_total', 'Totem gifts taken', '{count}: a gift taken at a Totem Pole')],
     // pass 113 (lane TASKS): the elements the fire / poison quests take
@@ -137,6 +137,8 @@ const AFIELDS = (() => {
     Lobber: ['death_of', 'death_pool', 'halo', 'land_blast', 'model', 'model_metallic', 'model_roughness', 'model_scale', 'sticky', 'tint', 'bounce', 'bomblets', 'bomblet_damage_mult', 'burst_spawn',
       // pass 76 (lane DYN): the dynamite's fuse, its models by form and colour, the Drifter's mass mini crits
       'fuse', 'models', 'model_form', 'model_colour', 'fuse_tip', 'mass_mini',
+      // pass 128 (lane DYNA): look B's red stick in barbed wire (the shrapnel mutation) and in tar (Sticky)
+      'model_wire', 'model_tar',
       // pass 79 (lane WORLD): the Dynamite Stick thrown ahead of its crowd
       'lead'],
     MineLayer: ['extra_supply', 'jackrabbit', 'lay_ahead', 'max_mines', 'trigger_radius', 'spring'],
@@ -184,7 +186,7 @@ const AFIELDS = (() => {
   const isBall = (params) => isObj(params) && (isObj(params.catch) || String(params.amount_mode || '') === 'bounces');
   const PARAM_GROUPS = [
     { id: 'salt', label: 'Salt patches', behaviors: ['SaltShaker'], show: 'always', src: 'core/behaviors/SaltShaker.gd, core/systems/SaltPatches.gd',
-      help: 'the white patches the Salt lays behind the hero; its base stats above are a tick\'s damage, the cooldown between pours, the amount (patches a pour), the area (× the radius) and the duration (seconds a patch lies)', rows: [
+      help: 'the white patches the Salt lays behind the outlaw; its base stats above are a tick\'s damage, the cooldown between pours, the amount (patches a pour), the area (× the radius) and the duration (seconds a patch lies)', rows: [
         P('salt.radius', 'Patch radius (m)', 'number', 1.4, 'a patch\'s radius at area 1 (radius × area × Size ×)', { min: 0.1, step: 0.1 }),
         P('salt.tick', 'Tick (s)', 'number', 0.5, 'seconds between damage ticks: every creature standing in any patch takes one hit a tick (two patches over it still hit once)', { min: 0.05, step: 0.05 }),
         P('salt.spacing', 'Spacing (m)', 'number', 1.2, 'metres between the patches of one pour, back along his way (the first 0.4 m behind his heels); standing still they go round his feet', { min: 0, step: 0.1 }),
@@ -196,30 +198,30 @@ const AFIELDS = (() => {
         P('salt.damage_mult', 'Damage ×', 'number', 1, '× a tick\'s damage (Sea Salt 0.95)', { min: 0, step: 0.05 }),
         P('salt.area_mult', 'Size ×', 'number', 1, '× the patch radius (Salt Spill 1.6, Hiwa Kai 1.8)', { min: 0.1, step: 0.05 }),
         P('salt.luck_mult', 'Power-up luck ×', 'number', 1, 'Thing About Luck: a creature killed while standing in a patch rolls the power-up drop at this factor (3; Hiwa Kai 4); any weapon\'s kill counts', { min: 0, step: 0.5 }),
-        P('salt.momentum_on_enter', 'Full speed on walking in', 'bool3', false, 'Salt Flats (Jeżyk\'s hero mutation): walking INTO a patch from outside it puts his speed-up (momentum) at full at once; a patch laid round his feet counts only once he has walked out and back in'),
+        P('salt.momentum_on_enter', 'Full speed on walking in', 'bool3', false, 'Salt Flats (Jeżyk\'s outlaw mutation): walking INTO a patch from outside it puts his speed-up (momentum) at full at once; a patch laid round his feet counts only once he has walked out and back in'),
         P('salt.crystals.count', 'Crystals a patch', 'int', null, 'Hiwa Kai: little hard crystals strewn on every patch (7); empty or 0 = none', { min: 0 }),
         P('salt.crystals.color', 'Crystal colour', 'swatch', '#0B0B0D', 'Hiwa Kai: the crystals\' colour'),
         P('salt.crunch.mult', 'Crunch ×', 'number', null, 'Hiwa Kai: a creature that walks into the salt (it was not in it at the last tick) takes one extra hit of this × a tick\'s damage (2); empty = none', { min: 0, step: 0.5 }),
         P('salt.slow', 'Slow', 'number', 0, 'Hiwa Kai: creatures standing in the salt move this much slower (0.3 = 30%), refreshed every tick, at most 0.95', { min: 0, max: 0.95, step: 0.05 }),
       ] },
     { id: 'shaker', label: 'The floating shaker', behaviors: ['SaltShaker'], show: 'always', src: 'core/behaviors/SaltShaker.gd (art/props/salt_shaker.glb)',
-      help: 'the 3D salt shaker that floats round the hero and gives a little shake at each pour', rows: [
-        P('shaker.distance', 'Distance (m)', 'number', 1.2, 'how far from the hero it floats', { min: 0, step: 0.1 }),
+      help: 'the 3D salt shaker that floats round the outlaw and gives a little shake at each pour', rows: [
+        P('shaker.distance', 'Distance (m)', 'number', 1.2, 'how far from the outlaw it floats', { min: 0, step: 0.1 }),
         P('shaker.height', 'Height (m)', 'number', 1.25, 'how high over his feet', { min: 0, step: 0.05 }),
         P('shaker.orbit_speed', 'Orbit speed (rad/s)', 'number', 0.55, 'how fast it circles him (6.28 = one turn a second)', { min: 0, step: 0.05 }),
         P('shaker.bob', 'Bob (m)', 'number', 0.08, 'how far it bobs up and down', { min: 0, step: 0.01 }),
       ] },
     // pass 95 (lane BREATH): the Dragon's Breath's cone
     { id: 'breath', label: 'The breath', behaviors: ['FireBreath'], show: 'always', src: 'core/behaviors/FireBreath.gd',
-      help: 'the cone of fire breathed from the hero\'s face where he faces; its base stats above are a tick\'s damage, the cooldown between breaths (the slowest in the game), the amount (+seconds_per_amount s of breath per point past the first), the duration (seconds a breath lasts), the range (the cone\'s length), the area (× the cone\'s width) and the burn (fire_damage every 0.6 s for fire_duration, fire_spread)', rows: [
+      help: 'the cone of fire breathed from the outlaw\'s face where he faces; its base stats above are a tick\'s damage, the cooldown between breaths (the slowest in the game), the amount (+seconds_per_amount s of breath per point past the first), the duration (seconds a breath lasts), the range (the cone\'s length), the area (× the cone\'s width) and the burn (fire_damage every 0.6 s for fire_duration, fire_spread)', rows: [
         P('breath.cone_deg', 'Cone (°)', 'number', 50, 'the cone\'s width at area 1 (× the area stat; 360 = a full ring)', { min: 15, max: 360, step: 1 }),
         P('breath.tick', 'Tick (s)', 'number', 1.0, 'seconds between hits on a creature standing in the fire (the first the moment it is inside)', { min: 0.1, step: 0.1 }),
         P('breath.seconds_per_amount', 'Seconds per extra amount', 'number', 1.0, 'seconds of breath added for every point of amount past the first (Multishot, the amount buff)', { min: 0, step: 0.25 }),
         P('breath.max_seconds', 'Longest breath (s)', 'number', 6, 'the breath never lasts longer than this before Held Breath\'s doubling', { min: 0.5, step: 0.5 }),
         P('breath.wait', 'Wait (s)', 'number', 2, 'with the cooldown ready it waits this long for a creature to stand in the cone; then it breathes where he faces if anyone is within reach', { min: 0, step: 0.5 }),
-        P('breath.knock', 'Shove a tick', 'number', 0, 'Backdraft: every tick also shoves the creature straight away from the hero with this force (through the map\'s hero share; 5 on Backdraft)', { min: 0, step: 0.5 }),
+        P('breath.knock', 'Shove a tick', 'number', 0, 'Backdraft: every tick also shoves the creature straight away from the outlaw with this force (through the map\'s outlaw share; 5 on Backdraft)', { min: 0, step: 0.5 }),
         P('breath.look.intensity', 'Fire intensity', 'number', 1, 'the flames\' size and count (Backdraft 1.5, the Fire Eater 1.8)', { min: 0.1, step: 0.1 }),
-        P('breath.still.seconds', 'Held Breath: still for (s)', 'number', null, 'Held Breath: an attack that starts after the hero has stood still and unhit this long is a held breath; empty = no Held Breath', { min: 0, step: 0.5 }),
+        P('breath.still.seconds', 'Held Breath: still for (s)', 'number', null, 'Held Breath: an attack that starts after the outlaw has stood still and unhit this long is a held breath; empty = no Held Breath', { min: 0, step: 0.5 }),
         P('breath.still.duration_mult', 'Held Breath: lasts ×', 'number', 2, 'a held breath lasts this many times as long', { min: 1, step: 0.25 }),
         P('breath.still.damage_mult', 'Held Breath: tick ×', 'number', 1.5, 'standing in a held breath\'s fire deals this many times the tick', { min: 0, step: 0.25 }),
         P('breath.still.ring', 'Held Breath: all round', 'bool3', true, 'a held breath comes from all sides of his face (a full ring)'),
@@ -314,7 +316,7 @@ const AFIELDS = (() => {
       ] },
     { id: 'nonstop', label: 'Fire without a target (Trigger Happy)', behaviors: ['ProjectileEmitter'], show: 'set', src: 'core/behaviors/ProjectileEmitter.gd (stream_gap, _stream_dir)',
       help: 'May\'s Trigger Happy: the gun fires on its clock even with nobody in range, along her facing, and a burst spreads its rounds over the whole cooldown so it never pauses; pay for it with a damage cut in the effects', rows: [
-        P('fire_without_target', 'Fire with no target', 'bool3', false, 'a gun with the usual targeting (nearest / priority) fires on its clock even with no creature in range, along the hero\'s facing (the Blunderbuss\'s fire_blind is the same for "forward" targeting)'),
+        P('fire_without_target', 'Fire with no target', 'bool3', false, 'a gun with the usual targeting (nearest / priority) fires on its clock even with no creature in range, along the outlaw\'s facing (the Blunderbuss\'s fire_blind is the same for "forward" targeting)'),
         P('stream', 'Stream the burst', 'bool3', false, 'a burst weapon spreads its rounds evenly over the whole cooldown (gap = cooldown × 0.97 / amount) instead of 50 ms apart: the gun never pauses; each round aims at the creature it would aim at now, else along her facing'),
       ] },
     // pass 81 (lane POLISH): the Killer Bees' trail look, one key away (research and pictures in tools/dl/p81/POLISH/)
@@ -330,7 +332,7 @@ const AFIELDS = (() => {
       present: ['pollen.flower_size', 'pollen.sway', 'pollen.pulse', 'pollen.halo'],
       src: 'core/systems/FlowerField.gd (FLOWER_SIZE, SWAY_DEG, PULSE, HALO)',
       help: 'how the flowers Pollen grows on the sand look (their timing, distance and buff are the other pollen keys in the JSON box): bigger, gently swaying and breathing, with a soft ring under each so they are easy to spot on every stage', rows: [
-        P('pollen.flower_size', 'Flower size ×', 'number', 1.6, 'x every flower\'s height (each is 0.58 to 0.9 m at 1, a cake slice; 1.6 = 0.92 to 1.44 m, about half to three quarters of the hero\'s height). The hero still picks one when he walks within 1.2 m of its foot', { min: 0.25, step: 0.05 }),
+        P('pollen.flower_size', 'Flower size ×', 'number', 1.6, 'x every flower\'s height (each is 0.58 to 0.9 m at 1, a cake slice; 1.6 = 0.92 to 1.44 m, about half to three quarters of the outlaw\'s height). The outlaw still picks one when he walks within 1.2 m of its foot', { min: 0.25, step: 0.05 }),
         P('pollen.sway', 'Sway (degrees)', 'number', 9, 'how far each way it leans as it sways in the wind, about once every 3.7 s (pass 48 to 114: 4)', { min: 0, max: 45, step: 1 }),
         P('pollen.pulse', 'Breathing', 'number', 0.07, 'the share it grows and shrinks by as it breathes, about once every 2 s (0.07 = 7% bigger and smaller); 0 = still', { min: 0, max: 0.5, step: 0.01 }),
         P('pollen.halo', 'Ring under it', 'number', 0.55, 'how solid the soft ring on the sand under each flower is (in its colour, paler, breathing with it; never darkened by Nightfall or the Blood Moon); 0 = no ring', { min: 0, max: 1, step: 0.05 }),
@@ -347,7 +349,7 @@ const AFIELDS = (() => {
         P('tracer_width', 'Width (m)', 'number', null, 'the trail\'s width at the bullet, glow included (it tapers behind); empty = the style\'s (0.1; the line 0.05)', { min: 0.005, step: 0.01 }),
         P('tracer_life', 'Life (s)', 'number', null, 'how long each piece of the trail lives, so its length = speed × life; empty = the style\'s (streak 0.13, ribbon 0.3, wisp 0.55, toon 0.2, line 1.4)', { min: 0.05, step: 0.01 }),
         P('tracer_hot', 'Hot part', 'number', null, 'the share of the life the white-hot middle lasts (the wisp: its streak before the smoke), 0..1; empty = the style\'s (wisp 0.3, streak 0.7, ribbon 0.4, toon 0.5)', { min: 0.02, max: 1, step: 0.05 }),
-        P('tracer_clear', 'Clear of the hero (m)', 'number', 0, 'no trail within this many metres of the hero (the Revolver 1.1: its companion gun fires past him)', { min: 0, step: 0.1 }),
+        P('tracer_clear', 'Clear of the outlaw (m)', 'number', 0, 'no trail within this many metres of the outlaw (the Revolver 1.1: its companion gun fires past him)', { min: 0, step: 0.1 }),
       ] },
   ];
   /** The typed groups a document shows: [{group, on}] where `on` = shown open (its knobs) and the rest are offered.
@@ -386,8 +388,8 @@ const AFIELDS = (() => {
     decoy: PS('special', 'Inflatable May: every `every` s (the first after `first` s) she throws an inflatable double of herself `throw_min`..`throw_max` m away in a random direction; it flies `flight` s and lands; a faint circle of `radius` m marks it and for `duration` s every creature inside (Elites too, never a boss) goes for the doll instead of her, a pink ? bobbing over it; then it pops', { every: 30, first: 6, throw_min: 4, throw_max: 7, flight: 0.6, radius: 6.5, duration: 2 }),
     periodic_buff: PS('special', 'Buzzer Beater: after `first` s (else `every`), then every `every` s, the `buff` effects (target player) for `seconds` s, a timed buff under the perk\'s name', { every: 30, first: null, seconds: 5, buff: null }),
     timeout: PS('id', 'Fadeaway\'s Timeout: drops the pickup `pickup` `side` m to his left or right, first after `first` s, then `every` s after the last one went', { every: 20, first: 10, side: 3, pickup: null }),
-    box: PS('special', 'Invisible Box: after `first` s, then every `every` s, a see-through box `width` x `height` m with white edges stands round the hero for `seconds` s, turning `spin` turns a second; it blocks every hit like the Shield power-up and drawn over its bubble', { every: 20, first: 8, seconds: 3, width: 2, height: 2.4, spin: 0.35 }),
-    trampoline: PS('special', 'Hang Time: after `first` s, then `every` s after the last one folded, a 3D trampoline drops `side` m beside the hero and stands `lifetime` s; walking onto it (within `radius` m of its middle) throws him `launch_height` m up and `launch_distance` m along the way he walked, `air_time` s in the air, the stick steering at `air_control` of his walking speed, untouchable up there; it folds after `uses` jumps', { every: 20, first: 10, side: 3.5, lifetime: 30, radius: 1.1, uses: 1, launch_height: 4, launch_distance: 8, air_time: 1.1, air_control: 0.35 }),
+    box: PS('special', 'Invisible Box: after `first` s, then every `every` s, a see-through box `width` x `height` m with white edges stands round the outlaw for `seconds` s, turning `spin` turns a second; it blocks every hit like the Shield power-up and drawn over its bubble', { every: 20, first: 8, seconds: 3, width: 2, height: 2.4, spin: 0.35 }),
+    trampoline: PS('special', 'Hang Time: after `first` s, then `every` s after the last one folded, a 3D trampoline drops `side` m beside the outlaw and stands `lifetime` s; walking onto it (within `radius` m of its middle) throws him `launch_height` m up and `launch_distance` m along the way he walked, `air_time` s in the air, the stick steering at `air_control` of his walking speed, untouchable up there; it folds after `uses` jumps', { every: 20, first: 10, side: 3.5, lifetime: 30, radius: 1.1, uses: 1, launch_height: 4, launch_distance: 8, air_time: 1.1, air_control: 0.35 }),
     overdrive: PS('id', 'Jeżyk\'s Overdrive: every `every` s at full momentum is one gear of `step` attack damage, up to `max`; a hit that lands drops every gear', { every: 5, step: 0.05, max: 0.25 }),
     ram: PS('id', 'Jeżyk\'s Ram: at a charge of `from` or more a creature that touches him is shoved `shove` and takes `flat` + `per_level` × level + `thorns_mult` × thorns instead of biting', { thorns_mult: 3, flat: 12, per_level: 0, shove: 9, from: 0.99 }),
     high_noon: PS('id', 'the Drifter\'s High Noon: every `every` s (the first after `first`) every creature moves at `slow` speed for `seconds` s', { every: 30, first: 20, seconds: 3, slow: 0.3 }),
@@ -424,8 +426,8 @@ const AFIELDS = (() => {
 
   const BLOCKS = {
     ranged: { label: 'Ranged', help: 'read by kite, by ambush (its silk) and by the ranged arena dummy: keeps its distance and shoots', rows: [
-      { key: 'keep_distance', label: 'Keep distance (m)', type: 'number', min: 0, def: 5, help: 'backs off when the hero is nearer than this − 0.5' },
-      { key: 'range', label: 'Range (m)', type: 'number', min: 0, def: 8, help: 'shoots when the hero is within it (ambush 9, the cone sector 5)' },
+      { key: 'keep_distance', label: 'Keep distance (m)', type: 'number', min: 0, def: 5, help: 'backs off when the outlaw is nearer than this − 0.5' },
+      { key: 'range', label: 'Range (m)', type: 'number', min: 0, def: 8, help: 'shoots when the outlaw is within it (ambush 9, the cone sector 5)' },
       { key: 'telegraph', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, def: 0.6, help: 'seconds the shot is announced (x 1/pace)' },
       { key: 'cooldown', label: 'Cooldown (s)', type: 'number', min: 0.1, step: 0.1, def: 2.5, help: 'seconds between shots' },
       { key: 'straight', label: 'Straight shot', type: 'bool', def: false, help: 'a straight shot instead of a lobbed spit' },
@@ -436,10 +438,10 @@ const AFIELDS = (() => {
       { key: 'life', label: 'Shot life (s)', type: 'number', min: 0, help: 'cone 0.45, straight 1.4 when empty' },
       { key: 'shot', label: 'Shot look', type: 'select', options: (v) => v.shotKinds, def: '', help: 'pellet / spike / shard; anything else is the green spit' },
       { key: 'knockback', label: 'Shot knockback', type: 'number', min: 0, def: 0, help: '0 = 0.7 x the shooter\'s own bite knockback' },
-      { key: 'pull', label: 'Pulls the hero', type: 'bool', def: false, help: 'the silk line pulls the hero toward the shooter' },
-      { key: 'harpoon', label: 'Harpoon', type: 'bool', def: false, help: 'the harpoon kind: tethers the hero (the tether block)' },
+      { key: 'pull', label: 'Pulls the outlaw', type: 'bool', def: false, help: 'the silk line pulls the outlaw toward the shooter' },
+      { key: 'harpoon', label: 'Harpoon', type: 'bool', def: false, help: 'the harpoon kind: tethers the outlaw (the tether block)' },
       { key: 'tether', label: 'Tether', type: 'json', help: '{seconds 5, away_speed 0.7, min_length 1.8}' },
-      { key: 'lead', label: 'Leads the hero', type: 'bool', def: false, help: 'aims where the hero will be' },
+      { key: 'lead', label: 'Leads the outlaw', type: 'bool', def: false, help: 'aims where the outlaw will be' },
       { key: 'land_only', label: 'Hurts on landing only', type: 'bool', def: false, help: 'an arcing spit hurts where it lands and draws a red landing ring' },
       { key: 'trail', label: 'Trail', type: 'json', help: '{color "#62F27F", alpha, size 1.0, life 1.4, step 0.055}: read from the base creature, never from a row override' },
       { key: 'pulse', label: 'Pulse', type: 'json', help: '{hz 3, size 0.12, glow 0.3, halo 1.6, color "#9CFF6E"}' },
@@ -455,7 +457,7 @@ const AFIELDS = (() => {
       { key: 'speed', label: 'Speed (m/s)', type: 'number', min: 0, def: 9, help: 'x pace' },
       { key: 'duration', label: 'Duration (s)', type: 'number', min: 0, step: 0.05, def: 0.7 },
       { key: 'cooldown', label: 'Cooldown (s)', type: 'number', min: 0, step: 0.1, def: 4 },
-      { key: 'trigger_range', label: 'Trigger range (m)', type: 'number', min: 0, def: 6, help: 'starts the wind-up when the hero is this near' },
+      { key: 'trigger_range', label: 'Trigger range (m)', type: 'number', min: 0, def: 6, help: 'starts the wind-up when the outlaw is this near' },
       { key: 'knockback', label: 'Charge knockback', type: 'number', min: 0, def: 0, help: 'the shove of a connecting charge bite' },
       { key: 'shake', label: 'Shake', type: 'number', min: 0, def: 0, help: 'look: trembles while winding up' },
       { key: 'crouch', label: 'Crouch', type: 'number', min: 0, max: 0.5, step: 0.05, def: 0, help: 'look: squats this much of its height (0..0.5)' },
@@ -482,7 +484,7 @@ const AFIELDS = (() => {
     caster: { label: 'Caster', help: 'the caster brain: keeps away, sidesteps, casts its tricks from the attack script', rows: [
       { key: 'keep_distance', label: 'Keep distance (m)', type: 'number', min: 0, def: 7 },
       { key: 'side', label: 'Sidestep (m)', type: 'number', min: 0, def: 4.5 },
-      { key: 'attack_range', label: 'Attack range (m)', type: 'number', min: 0, help: 'the script waits while the hero is beyond it' },
+      { key: 'attack_range', label: 'Attack range (m)', type: 'number', min: 0, help: 'the script waits while the outlaw is beyond it' },
     ] },
     support: { label: 'Support', help: 'the support brain: heals and frenzies the crowd round it (x1.3 speed)', rows: [
       { key: 'keep_distance', label: 'Keep distance (m)', type: 'number', min: 0, def: 7 },
@@ -492,7 +494,7 @@ const AFIELDS = (() => {
       { key: 'heal', label: 'Heal (share of HP)', type: 'number', min: 0, max: 1, step: 0.05, def: 0.25 },
       { key: 'frenzy_seconds', label: 'Frenzy (s)', type: 'number', min: 0, def: 3 },
     ] },
-    ambush: { label: 'Ambush', help: 'the ambush brain: spawns hidden, pops up when the hero is near, hides again', rows: [
+    ambush: { label: 'Ambush', help: 'the ambush brain: spawns hidden, pops up when the outlaw is near, hides again', rows: [
       { key: 'trigger', label: 'Trigger (m)', type: 'number', min: 0, def: 5 },
       { key: 'rehide_distance', label: 'Re-hide beyond (m)', type: 'number', min: 0, def: 12 },
       { key: 'rehide_after', label: 'Re-hide after (s)', type: 'number', min: 0, def: 6 },
@@ -513,28 +515,28 @@ const AFIELDS = (() => {
       { key: 'hp_mult_per_stage', label: 'HP x per stage', type: 'number', min: 0, step: 0.1, def: 1.8, help: 'HP = hp x this^stage x max(stage_mult, 1) x creature_hp_mult' },
     ] },
     // pass 73 (lane SNIPER): the Saiga Sniper's brain (EnemyManager._sniper_*) and flee on hit, for any creature
-    sniper: { label: 'Sniper', help: 'the sniper brain (the Saiga Sniper): placed stand-off away like the Vulture Raider; past "Walks in past" it walks towards the hero (the kite\'s way, pass 81), inside it holds where it is (it never backs off; inside "Runs inside", 0 = never, it would run from him); there it freezes in its aiming pose (the attack strip) while red lines gather on the hero and follow him for Aim s, then lock, hold for Hold s, and a laser crosses the map along the locked line. Aim and Hold × 1/pace like every wind-up', rows: [
-      { key: 'stand_off', label: 'Stand-off (m)', type: 'number', min: 0, def: 26, help: 'where it is placed when it spawns (never nearer the hero), inside the wall' },
-      { key: 'flee_range', label: 'Runs inside (m)', type: 'number', min: 0, def: 0, help: 'it runs straight away from the hero (along the wall when backed against it) while he is nearer than this; never while it aims. 0 = it never runs (the Saiga since pass 81; the code\'s own is 0)' },
-      { key: 'follow', label: 'Walks in past (m)', type: 'number', min: 0, def: 38, help: 'it walks towards the hero while he is farther than this, then holds and aims (the Spit Cactus\'s range; the Saiga 16); empty = stand-off + 12' },
+    sniper: { label: 'Sniper', help: 'the sniper brain (the Saiga Sniper): placed stand-off away like the Vulture Raider; past "Walks in past" it walks towards the outlaw (the kite\'s way, pass 81), inside it holds where it is (it never backs off; inside "Runs inside", 0 = never, it would run from him); there it freezes in its aiming pose (the attack strip) while red lines gather on the outlaw and follow him for Aim s, then lock, hold for Hold s, and a laser crosses the map along the locked line. Aim and Hold × 1/pace like every wind-up', rows: [
+      { key: 'stand_off', label: 'Stand-off (m)', type: 'number', min: 0, def: 26, help: 'where it is placed when it spawns (never nearer the outlaw), inside the wall' },
+      { key: 'flee_range', label: 'Runs inside (m)', type: 'number', min: 0, def: 0, help: 'it runs straight away from the outlaw (along the wall when backed against it) while he is nearer than this; never while it aims. 0 = it never runs (the Saiga since pass 81; the code\'s own is 0)' },
+      { key: 'follow', label: 'Walks in past (m)', type: 'number', min: 0, def: 38, help: 'it walks towards the outlaw while he is farther than this, then holds and aims (the Spit Cactus\'s range; the Saiga 16); empty = stand-off + 12' },
       { key: 'first', label: 'First aim after (s)', type: 'number', min: 0, step: 0.1, def: 2.5, help: 'seconds after it arrives before its first aim' },
-      { key: 'aim', label: 'Aim (s)', type: 'number', min: 0.1, step: 0.1, def: 2, help: 'the lines gather on the hero and follow him this long (× 1/pace)' },
+      { key: 'aim', label: 'Aim (s)', type: 'number', min: 0.1, step: 0.1, def: 2, help: 'the lines gather on the outlaw and follow him this long (× 1/pace)' },
       { key: 'lock', label: 'Hold (s)', type: 'number', min: 0, step: 0.1, def: 1, help: 'the locked line holds still this long before the shot (× 1/pace): the time to step off it' },
       { key: 'interval', label: 'Shot every (s)', type: 'number', min: 1, step: 0.5, def: 9, help: 'from one shot to the next, the aim and the hold included' },
       { key: 'interval_jitter', label: 'Shot every ± (s)', type: 'number', min: 0, step: 0.1, def: 1.5, help: 'the interval varies this much either way, at random' },
       { key: 'recover', label: 'After a spoiled aim (s)', type: 'number', min: 0, step: 0.1, def: 2.5, help: 'a hit (Spoiled by a hit), a stun, a freeze or a launch drops the aim; the next one waits at least this long' },
       { key: 'spoil_on_hit', label: 'Spoiled by a hit', type: 'bool', def: true, help: 'pass 81: a hit that lands (never a poison or fire tick) drops its aim or lock under way: that shot never comes (no running; flee on hit is a separate block)' },
-      { key: 'cone_deg', label: 'Line cone (°)', type: 'number', min: 1, max: 180, def: 44, help: 'the lines start on the two sides of a cone this wide round his aim and sweep in to the hero' },
+      { key: 'cone_deg', label: 'Line cone (°)', type: 'number', min: 1, max: 180, def: 44, help: 'the lines start on the two sides of a cone this wide round his aim and sweep in to the outlaw' },
       { key: 'lines', label: 'Lines', type: 'int', min: 1, def: 14, help: 'how many lines gather over the aim: closer and closer together, each sweeping in faster than the last' },
-      { key: 'beam', label: 'Beam', type: 'json', help: '{length 60 (m across the map), width 0.5, seconds 0.15 (how long it shows), damage_from "rocketeer" + damage_mult 0.7 (the hero takes that share of that creature\'s rocket damage, at the sniper\'s own stage), damage 15.4 (used without damage_from), knockback 5, creature_frac 0.05 + creature_max 40 (what each creature on the line takes), push 3 (m off the line), sparks 1.5 (s they shimmer)}' },
+      { key: 'beam', label: 'Beam', type: 'json', help: '{length 60 (m across the map), width 0.5, seconds 0.15 (how long it shows), damage_from "rocketeer" + damage_mult 0.7 (the outlaw takes that share of that creature\'s rocket damage, at the sniper\'s own stage), damage 15.4 (used without damage_from), knockback 5, creature_frac 0.05 + creature_max 40 (what each creature on the line takes), push 3 (m off the line), sparks 1.5 (s they shimmer)}' },
       { key: 'muzzle', label: 'Muzzle', type: 'json', help: '{up, side, forward} in metres at the def\'s size: where the lines and the beam leave, the rifle\'s end as painted (side = towards the barrel, screen-right in the painting)' },
     ] },
     // pass 112 (lane MONK): the squad brain (core/systems/Squads.gd, EnergyOrbs.gd); every key optional (EnemyDef.SQUAD_DEFAULTS)
-    squad: { label: 'Squad', help: 'the squad brain (the Monk): the creatures one pack brings are one squad (a roster row\'s whole draw: a size from Sizes by Size weights, or the row\'s own Pack; never cut by the burst, never a partial squad: when it does not fit it comes as the largest size that fits, else it waits). The squad has one centre that walks like a kiting Spit Cactus (its band from the formation\'s near edge), every member keeps its own slot of a hex blob Spacing m apart round it, facing the squad\'s heading. Every Cooldown s (start to start) while it stands in its band every member stops for Stop s (plain seconds on every map): its hands rise (the attack strip\'s wind-up frames), hold up (the hands-up frames), a blue glow gathers between them, and at Release at s every one looses one sphere at the hero in the same tick', rows: [
+    squad: { label: 'Squad', help: 'the squad brain (the Monk): the creatures one pack brings are one squad (a roster row\'s whole draw: a size from Sizes by Size weights, or the row\'s own Pack; never cut by the burst, never a partial squad: when it does not fit it comes as the largest size that fits, else it waits). The squad has one centre that walks like a kiting Spit Cactus (its band from the formation\'s near edge), every member keeps its own slot of a hex blob Spacing m apart round it, facing the squad\'s heading. Every Cooldown s (start to start) while it stands in its band every member stops for Stop s (plain seconds on every map): its hands rise (the attack strip\'s wind-up frames), hold up (the hands-up frames), a blue glow gathers between them, and at Release at s every one looses one sphere at the outlaw in the same tick', rows: [
       { key: 'sizes', label: 'Sizes', type: 'json', help: '[10, 20, 30]: how many come together; a roster row\'s Pack wins' },
       { key: 'weights', label: 'Size weights', type: 'json', help: '[1, 1, 1]: one weight per size (0 = never)' },
       { key: 'spacing', label: 'Spacing (m)', type: 'number', min: 0.3, step: 0.1, def: 1.4, help: 'between two neighbours of the formation' },
-      { key: 'keep_distance', label: 'Keep distance (m)', type: 'number', min: 0, def: 5.5, help: 'backs off together when its near edge is nearer the hero than this - 0.5 (the Spit Cactus\'s)' },
+      { key: 'keep_distance', label: 'Keep distance (m)', type: 'number', min: 0, def: 5.5, help: 'backs off together when its near edge is nearer the outlaw than this - 0.5 (the Spit Cactus\'s)' },
       { key: 'range', label: 'Range (m)', type: 'number', min: 0, def: 8, help: 'walks in while its near edge is farther than this; between, it stands and may attack' },
       { key: 'band_from', label: 'Band measured from', type: 'select', options: () => [opt('edge', 'near edge', 'the formation\'s nearest members (the default)'), opt('center', 'centre', 'the formation\'s middle')], def: 'edge', help: 'where the band above is measured from' },
       { key: 'cooldown', label: 'Cooldown (s)', type: 'number', min: 0.1, step: 0.1, def: 5.2, help: 'from one volley\'s start to the next (the Spit Cactus: 2.6)' },
@@ -547,10 +549,10 @@ const AFIELDS = (() => {
       { key: 'catch_up', label: 'Catch-up x', type: 'number', min: 1, step: 0.1, def: 1.5, help: 'at most this x its own walk' },
       { key: 'leash', label: 'Leash (m)', type: 'number', min: 0.1, step: 0.1, def: 1.2, help: 'the centre waits when its members are this far behind it' },
       { key: 'hands', label: 'Hands', type: 'json', help: '{up 1.75, from_up 1.05, side 0, forward 0.2}: where the glow gathers, metres at the creature\'s size (as a muzzle), rising from from_up to up with the hands' },
-      { key: 'orb', label: 'Sphere', type: 'json', help: '{aim "cloud" (pass 113: the volley flies as one cloud, every sphere on the line from its centre to the hero; "each" = every sphere at the hero on its own), speed 4, range 17.5, size 0.5, hit_radius 0.22, damage_mult 1, lead 0, hover 1, knockback 0, color "#2F7BFF", pulse_hz 3, pulse 0.12, trail {every 0.04, life 0.35, size 0.6, alpha 0.45}}: flies straight on the creatures\' shot clock, through every creature, hurts only the hero (its damage x the creature\'s), gone at range m' },
+      { key: 'orb', label: 'Sphere', type: 'json', help: '{aim "cloud" (pass 113: the volley flies as one cloud, every sphere on the line from its centre to the outlaw; "each" = every sphere at the outlaw on its own), speed 4, range 17.5, size 0.5, hit_radius 0.22, damage_mult 1, lead 0, hover 1, knockback 0, color "#2F7BFF", pulse_hz 3, pulse 0.12, trail {every 0.04, life 0.35, size 0.6, alpha 0.45}}: flies straight on the creatures\' shot clock, through every creature, hurts only the outlaw (its damage x the creature\'s), gone at range m' },
       { key: 'glow', label: 'Glow', type: 'json', help: '{from 0.2}: the gathering glow starts at this share of the sphere\'s size' },
     ] },
-    flee_on_hit: { label: 'Flee on hit', help: 'any creature: a hit that lands (never a poison or fire tick) sends it running straight away from the hero for Runs for s at its speed × Speed ×; with Spoils its attack it drops a wind-up, aim or scripted attack under way (that shot never comes). A new hit starts the run again (never faster). Never a boss', rows: [
+    flee_on_hit: { label: 'Flee on hit', help: 'any creature: a hit that lands (never a poison or fire tick) sends it running straight away from the outlaw for Runs for s at its speed × Speed ×; with Spoils its attack it drops a wind-up, aim or scripted attack under way (that shot never comes). A new hit starts the run again (never faster). Never a boss', rows: [
       { key: 'seconds', label: 'Runs for (s)', type: 'number', min: 0, step: 0.1, def: 1, help: 'how long one hit sends it running (0 = off)' },
       { key: 'speed_mult', label: 'Speed ×', type: 'number', min: 0, step: 0.1, def: 1.8, help: 'its walk times this while it runs' },
       { key: 'interrupts', label: 'Spoils its attack', type: 'bool', def: true, help: 'the hit drops a wind-up, an aim or a scripted attack under way' },
@@ -564,45 +566,45 @@ const AFIELDS = (() => {
   const ATTACK_COMMON = [
     { key: 'windup', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, def: 1, help: 'seconds announced before it lands, x 1/pace on the map' },
     { key: 'telegraph', label: 'Telegraph', type: 'select', options: (v) => v.telegraphs, help: 'what the ground shows during the wind-up (empty = the name\'s usual)' },
-    { key: 'reach', label: 'Reach (m)', type: 'number', min: 0, help: 'waits, walking on, until the hero is within reach + radius' },
-    { key: 'min_range', label: 'Skip inside (m)', type: 'number', min: 0, help: 'skipped while the hero is nearer than this' },
-    { key: 'max_range', label: 'Skip beyond (m)', type: 'number', min: 0, help: 'skipped while the hero is farther than this' },
+    { key: 'reach', label: 'Reach (m)', type: 'number', min: 0, help: 'waits, walking on, until the outlaw is within reach + radius' },
+    { key: 'min_range', label: 'Skip inside (m)', type: 'number', min: 0, help: 'skipped while the outlaw is nearer than this' },
+    { key: 'max_range', label: 'Skip beyond (m)', type: 'number', min: 0, help: 'skipped while the outlaw is farther than this' },
     // pass 95 (lane BOSS): EnemyManager._attack_chance_misses
     { key: 'chance', label: 'Chance', type: 'number', min: 0, max: 1, step: 0.05, help: 'rolled as its turn comes (0..1): a miss skips to the next attack in the list; empty = always plays (the Scorpion\'s tail sniper 0.7)' },
   ];
   const ATTACKS = {
     roll: { label: 'Roll', telegraph: 'line', help: 'rushes along the line at `speed` for `duration` (the boss brain only runs it right)', keys: [k('speed', 'Speed (m/s)', 'number', 12), k('duration', 'Duration (s)', 'number', 1.2), k('damage', 'Damage', 'number', 25, 'x stage x host'), k('length', 'Line length (m)', 'number', null, 'the telegraph\'s line; empty = speed x duration + its radius')] },
     spawn_ring: { label: 'Spawn ring', telegraph: 'none', help: 'a ring of `count` creatures 5 m out (brood numbers)', keys: [k('enemy', 'Creature', 'enemy', '', 'the creature it brings (the game\'s default "coyote" no longer exists)'), k('count', 'Count', 'int', 10), k('looks', 'Looks', 'json', null, 'pass 127: looks of the creature to mix, e.g. ["SM-A", "SM-B"]: each ring its own random split (40% of the time all one look); empty = its played look', { min: undefined })] },
-    slam_at: { label: 'Slam at the hero', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'a blast where the hero stood at the wind-up', keys: [k('radius', 'Radius (m)', 'number', 2.6), k('damage', 'Damage', 'number', 18), k('knockback', 'Knockback', 'number', 6)] },
+    slam_at: { label: 'Slam at the outlaw', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'a blast where the outlaw stood at the wind-up', keys: [k('radius', 'Radius (m)', 'number', 2.6), k('damage', 'Damage', 'number', 18), k('knockback', 'Knockback', 'number', 6)] },
     blink: { label: 'Blink', telegraph: 'none', help: 'teleports: `to` "screen" uses the caster\'s keep / side distance', keys: [k('to', 'To', 'select', '', '', { options: (v) => v.blinkTo, min: undefined }), k('distance', 'Distance (m)', 'number', 8)] },
-    burrow: { label: 'Burrow', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'under the sand for the wind-up (a mound swells at the ring), then up at the hero; the wind-up runs from the dig to the eruption (pass 73: the sink, the wait under the sand, a predicted spot\'s warning). Pass 73: it can sink in sight, wait unseen and erupt where the hero is heading, throwing him and the crowd', keys: [k('radius', 'Radius (m)', 'number', 5), k('damage', 'Damage', 'number', 28), k('knockback', 'Knockback', 'number', 8, 'the old shove, when it throws no one (Throw hero up empty)'),
+    burrow: { label: 'Burrow', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'under the sand for the wind-up (a mound swells at the ring), then up at the outlaw; the wind-up runs from the dig to the eruption (pass 73: the sink, the wait under the sand, a predicted spot\'s warning). Pass 73: it can sink in sight, wait unseen and erupt where the outlaw is heading, throwing him and the crowd', keys: [k('radius', 'Radius (m)', 'number', 5), k('damage', 'Damage', 'number', 28), k('knockback', 'Knockback', 'number', 8, 'the old shove, when it throws no one (Throw outlaw up empty)'),
       k('sink', 'Sink (s)', 'number', 0, 'seconds it sinks out of sight where it stands, in a ring of dust and a spray of sand (0 = gone at once, as before pass 73); ×1/pace on the map'),
       k('rise', 'Rise (s)', 'number', 0.4, 'seconds it takes to come up out of the sand at the eruption (the game\'s 0.4 when empty)'),
-      k('predict', 'Predict (s)', 'number', 0, 'above 0: no ring and no mound before; Warning seconds before it erupts it picks the spot where the hero will be this many seconds on (his place + his velocity × this, on the walkable map) and rings it (the Gila\'s 0.6 = about two steps ahead); 0: the ring at the hero'),
+      k('predict', 'Predict (s)', 'number', 0, 'above 0: no ring and no mound before; Warning seconds before it erupts it picks the spot where the outlaw will be this many seconds on (his place + his velocity × this, on the walkable map) and rings it (the Gila\'s 0.6 = about two steps ahead); 0: the ring at the outlaw'),
       k('warn', 'Warning (s)', 'number', 0.4, 'with Predict: the red ring on the spot this long before it erupts (×1/pace on the map)'),
       k('mound', 'Mound', 'bool', true, 'the sand swells into a mound at the ring through the wind-up (never with Predict)', { min: undefined }),
-      k('throw_up', 'Throw hero up (m)', 'number', 0, 'a hit that lands throws the hero this high on a real arc (his airborne flight: nothing hits him up there) instead of the Knockback shove; 0 = the shove'),
-      k('throw_out', 'Throw hero out (m)', 'number', 0, 'how far the throw carries him, away from the eruption\'s middle'),
+      k('throw_up', 'Throw outlaw up (m)', 'number', 0, 'a hit that lands throws the outlaw this high on a real arc (his airborne flight: nothing hits him up there) instead of the Knockback shove; 0 = the shove'),
+      k('throw_out', 'Throw outlaw out (m)', 'number', 0, 'how far the throw carries him, away from the eruption\'s middle'),
       k('throw_air', 'Throw air time (s)', 'number', null, 'seconds he is up; empty = from the height at his own gravity (2.5 m: 0.91 s)'),
       k('throw_control', 'Air control', 'number', 0.15, 'the share of his walk the stick adds to the throw\'s arc (0..1)', { max: 1, step: 0.05 }),
       k('creature_up', 'Throw crowd up (m)', 'number', 0, 'every creature within the radius (not the burrower) is thrown this high and away; the boss, an Elite or an elite-modded one only takes the damage and a shove'),
       k('creature_out', 'Throw crowd out (m)', 'number', 0, 'how far they fly away from the middle (× their own share of a shove, knockback resist)'),
       k('creature_damage', 'Crowd damage', 'number', 0, 'the share of its max HP each creature in the radius takes as it lands (0.03 = 3%)', { max: 1, step: 0.01 })] },
-    rain: { label: 'Rain', telegraph: 'none', help: '`count` strikes every `interval` within `spread` of the hero, each warned `warn` s', keys: [k('count', 'Strikes', 'int', 10), k('interval', 'Interval (s)', 'number', 0.3), k('spread', 'Spread (m)', 'number', 5), k('radius', 'Strike radius (m)', 'number', 1.6), k('damage', 'Damage', 'number', 14), k('warn', 'Warning (s)', 'number', 0.55), k('pillar', 'Pillar', 'bool', false, '', { min: undefined }), k('knockback', 'Knockback', 'number', 0)] },
+    rain: { label: 'Rain', telegraph: 'none', help: '`count` strikes every `interval` within `spread` of the outlaw, each warned `warn` s', keys: [k('count', 'Strikes', 'int', 10), k('interval', 'Interval (s)', 'number', 0.3), k('spread', 'Spread (m)', 'number', 5), k('radius', 'Strike radius (m)', 'number', 1.6), k('damage', 'Damage', 'number', 14), k('warn', 'Warning (s)', 'number', 0.55), k('pillar', 'Pillar', 'bool', false, '', { min: undefined }), k('knockback', 'Knockback', 'number', 0)] },
     erupt: { label: 'Erupt', telegraph: 'none', help: 'the rain, and a creature rises from every strike', keys: [k('count', 'Strikes', 'int', 10), k('interval', 'Interval (s)', 'number', 0.3), k('spread', 'Spread (m)', 'number', 5), k('radius', 'Strike radius (m)', 'number', 1.6), k('damage', 'Damage', 'number', 14), k('warn', 'Warning (s)', 'number', 0.55), k('spawn', 'Rises', 'enemy', '', 'the creature each strike brings'), k('pillar', 'Pillar', 'bool', false, '', { min: undefined }), k('knockback', 'Knockback', 'number', 0)] },
     spit_volley: { label: 'Spit volley', telegraph: 'fan', help: '`count` shots over `spread_deg`; straight (x level too) or lobbed', keys: [k('count', 'Shots', 'int', 7), k('spread_deg', 'Spread (°)', 'number', 90), k('speed', 'Speed (m/s)', 'number', 14, 'straight 14, lob 7'), k('damage', 'Damage', 'number', 12), k('splash', 'Splash (m)', 'number', 0.5, 'straight 0.5, lob 1.4'), k('life', 'Life (s)', 'number', 1), k('straight', 'Straight', 'bool', false, '', { min: undefined }), k('shot', 'Shot look', 'select', '', '', { options: (v) => v.shotKinds, min: undefined }), k('knockback', 'Knockback', 'number', 0), k('length', 'Fan length (m)', 'number', 14, 'the telegraph\'s lines')] },
-    slam: { label: 'Slam', telegraph: 'ring', help: 'a blast round the creature', keys: [k('radius', 'Radius (m)', 'number', 6), k('damage', 'Damage', 'number', 30), k('knockback', 'Knockback', 'number', 6), k('lift', 'Lift (m)', 'number', null, 'throws the hero up (Player.blast)')] },
+    slam: { label: 'Slam', telegraph: 'ring', help: 'a blast round the creature', keys: [k('radius', 'Radius (m)', 'number', 6), k('damage', 'Damage', 'number', 30), k('knockback', 'Knockback', 'number', 6), k('lift', 'Lift (m)', 'number', null, 'throws the outlaw up (Player.blast)')] },
     rumble: { label: 'Rumble', telegraph: 'fan', help: '`count` cracks of `length` racing out over `spread_deg`', keys: [k('count', 'Cracks', 'int', 7), k('spread_deg', 'Spread (°)', 'number', 90), k('length', 'Length (m)', 'number', 14), k('speed', 'Speed (m/s)', 'number', 13), k('width', 'Width (m)', 'number', 1.2), k('damage', 'Damage', 'number', 16), k('knockback', 'Knockback', 'number', 10), k('lift', 'Lift (m)', 'number', 3)] },
     brand: { label: 'Brand', telegraph: 'line', help: 'a line of hellfire on the ground for `life` seconds (Game.hell_line; the crowd takes half)', keys: [k('length', 'Length (m)', 'number', 16), k('life', 'Burns for (s)', 'number', 9), k('width', 'Width (m)', 'number', 1.1), k('damage', 'Damage a tick', 'number', 12), k('tick', 'Tick (s)', 'number', 0.5)] },
     tumbleweed_volley: { label: 'Tumbleweed volley', telegraph: 'spokes', help: '`count` tumbleweeds roll out all round for `life` seconds', keys: [k('count', 'Tumbleweeds', 'int', 12), k('speed', 'Speed (m/s)', 'number', 9), k('damage', 'Damage', 'number', 14), k('life', 'Life (s)', 'number', 2.6), k('knockback', 'Knockback', 'number', 14), k('lift', 'Lift (m)', 'number', 2.5), k('spoke_length', 'Spoke length (m)', 'number', null, 'the telegraph\'s lines; empty = how far a tumbleweed rolls')] },
     swoop: { label: 'Swoop', telegraph: 'sector', help: 'a sweep over a wedge ahead, then a fall', keys: [k('count', 'Count', 'int', 14), k('duration', 'Duration (s)', 'number', 0.8), k('fall', 'Fall (s)', 'number', 0.45), k('radius', 'Radius (m)', 'number', 6.5), k('deg', 'Wedge (°)', 'number', 180), k('damage', 'Damage', 'number', 24), k('knockback', 'Knockback', 'number', 14), k('lift', 'Lift (m)', 'number', 3), k('throw', 'Throw', 'number', 12), k('throw_radius', 'Throw radius (m)', 'number', 1.8)] },
-    boulder: { label: 'Boulder', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'a boulder thrown at the hero\'s spot (Game.throw_boulder reads the whole block)', keys: [k('flight', 'Flight (s)', 'number', 1.6), k('radius', 'Radius (m)', 'number', 4.6), k('damage', 'Damage', 'number', 30), k('knockback', 'Knockback', 'number', 26), k('lift', 'Lift (m)', 'number', 6), k('creature_frac', 'Crowd share', 'number', 0.5), k('throw', 'Throw', 'number', 22), k('throw_radius', 'Throw radius (m)', 'number', 6.5), k('size', 'Boulder size', 'number', 1.7), k('arc', 'Arc', 'number', 9)] },
+    boulder: { label: 'Boulder', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'a boulder thrown at the outlaw\'s spot (Game.throw_boulder reads the whole block)', keys: [k('flight', 'Flight (s)', 'number', 1.6), k('radius', 'Radius (m)', 'number', 4.6), k('damage', 'Damage', 'number', 30), k('knockback', 'Knockback', 'number', 26), k('lift', 'Lift (m)', 'number', 6), k('creature_frac', 'Crowd share', 'number', 0.5), k('throw', 'Throw', 'number', 22), k('throw_radius', 'Throw radius (m)', 'number', 6.5), k('size', 'Boulder size', 'number', 1.7), k('arc', 'Arc', 'number', 9)] },
     // pass 95 (lane BOSS): the King's jump and three stomps (EnemyManager._stomp_*), the Scorpion Elite's tail beam (_tail_*)
-    stomp: { label: 'Stomp', telegraph: 'ring', help: 'after the wind-up (and its ring) it springs up and lands `stomps` times, `gap` s on the ground between hops: each landing hurts the hero within `radius` + 0.5 m (`damage` x stage x level x host), pushes him `knockback` at the special share and sends a wave of light and dust over the sand; a ring warns before every landing (the King: the old slam, 60% of its damage a stomp, three of them)', keys: [k('stomps', 'Stomps', 'int', 3), k('gap', 'Gap (s)', 'number', 0.45, 'on the ground between a landing and the next hop (x 1/pace); landings come gap + up + down apart'), k('jump', 'Jump', 'json', null, '{"height": 2.2, "up": 0.35, "down": 0.2}: how high it springs (m), the rise and the fall (s); empty = those', { min: undefined }), k('radius', 'Radius (m)', 'number', 6), k('damage', 'Damage a stomp', 'number', 18), k('knockback', 'Knockback', 'number', 6), k('lift', 'Lift (m)', 'number', null, 'throws the hero up instead of the push (Player.blast)')] },
-    tail_sniper: { label: 'Tail sniper', telegraph: 'none', help: 'the Saiga Sniper\'s shot from any creature: after the wind-up it freezes, red lines gather from the muzzle on the hero and follow him `aim` s, lock `lock` s, a beam crosses the map (the hero on its line takes the damage and `beam.knockback` at the special share, every creature on it a nick and a push); `count` beams one after the other, `gap` s frozen between, each aimed afresh at where he stands (a moving hero dodges the next); then the cooldown. Nothing but a stun, a freeze, a launch, a grab or hiding spoils it', keys: [k('count', 'Beams', 'int', 3), k('gap', 'Gap (s)', 'number', 0.6, 'frozen between a beam and the next aim, and after the last (x 1/pace)'), k('aim', 'Aim (s)', 'number', 1, 'the lines gather on the hero and follow him this long (x 1/pace)'), k('lock', 'Hold (s)', 'number', 0.4, 'the locked line holds still this long before the beam (x 1/pace): the time to step off it'), k('lines', 'Lines', 'int', 8), k('cone_deg', 'Line cone (°)', 'number', 40), k('damage', 'Damage', 'number', 30.8, 'used without Damage from; x stage x level x host'), k('damage_from', 'Damage from', 'enemy', '', 'a sniper creature: its beam\'s own base (the Saiga: the Vulture Raider\'s rocket x 0.7 = 15.4) x Damage x is the base instead'), k('damage_mult', 'Damage x', 'number', 2, 'with Damage from: the Scorpion\'s 2 = twice the Saiga\'s'), k('beam', 'Beam', 'json', null, '{"length": 60, "width": 0.5, "seconds": 0.15, "knockback": 5, "creature_frac": 0.05, "creature_max": 40, "push": 3, "sparks": 1.5}: the Saiga\'s look and numbers without one', { min: undefined }), k('muzzle', 'Muzzle', 'json', null, '{"up": 2, "side": 0, "forward": -0.4}: where the lines and the beam leave, in metres at the def\'s size (the Scorpion\'s tail tip: up along the painting, forward along the aim)', { min: undefined }), k('sfx', 'Sounds', 'json', null, '{"aim", "lock", "shot"}: sound ids over the creature\'s own, over the Saiga\'s (en_sniper_aim, en_sniper_lock, en_sniper_shot)', { min: undefined })] },
+    stomp: { label: 'Stomp', telegraph: 'ring', help: 'after the wind-up (and its ring) it springs up and lands `stomps` times, `gap` s on the ground between hops: each landing hurts the outlaw within `radius` + 0.5 m (`damage` x stage x level x host), pushes him `knockback` at the special share and sends a wave of light and dust over the sand; a ring warns before every landing (the King: the old slam, 60% of its damage a stomp, three of them)', keys: [k('stomps', 'Stomps', 'int', 3), k('gap', 'Gap (s)', 'number', 0.45, 'on the ground between a landing and the next hop (x 1/pace); landings come gap + up + down apart'), k('jump', 'Jump', 'json', null, '{"height": 2.2, "up": 0.35, "down": 0.2}: how high it springs (m), the rise and the fall (s); empty = those', { min: undefined }), k('radius', 'Radius (m)', 'number', 6), k('damage', 'Damage a stomp', 'number', 18), k('knockback', 'Knockback', 'number', 6), k('lift', 'Lift (m)', 'number', null, 'throws the outlaw up instead of the push (Player.blast)')] },
+    tail_sniper: { label: 'Tail sniper', telegraph: 'none', help: 'the Saiga Sniper\'s shot from any creature: after the wind-up it freezes, red lines gather from the muzzle on the outlaw and follow him `aim` s, lock `lock` s, a beam crosses the map (the outlaw on its line takes the damage and `beam.knockback` at the special share, every creature on it a nick and a push); `count` beams one after the other, `gap` s frozen between, each aimed afresh at where he stands (a moving outlaw dodges the next); then the cooldown. Nothing but a stun, a freeze, a launch, a grab or hiding spoils it', keys: [k('count', 'Beams', 'int', 3), k('gap', 'Gap (s)', 'number', 0.6, 'frozen between a beam and the next aim, and after the last (x 1/pace)'), k('aim', 'Aim (s)', 'number', 1, 'the lines gather on the outlaw and follow him this long (x 1/pace)'), k('lock', 'Hold (s)', 'number', 0.4, 'the locked line holds still this long before the beam (x 1/pace): the time to step off it'), k('lines', 'Lines', 'int', 8), k('cone_deg', 'Line cone (°)', 'number', 40), k('damage', 'Damage', 'number', 30.8, 'used without Damage from; x stage x level x host'), k('damage_from', 'Damage from', 'enemy', '', 'a sniper creature: its beam\'s own base (the Saiga: the Vulture Raider\'s rocket x 0.7 = 15.4) x Damage x is the base instead'), k('damage_mult', 'Damage x', 'number', 2, 'with Damage from: the Scorpion\'s 2 = twice the Saiga\'s'), k('beam', 'Beam', 'json', null, '{"length": 60, "width": 0.5, "seconds": 0.15, "knockback": 5, "creature_frac": 0.05, "creature_max": 40, "push": 3, "sparks": 1.5}: the Saiga\'s look and numbers without one', { min: undefined }), k('muzzle', 'Muzzle', 'json', null, '{"up": 2, "side": 0, "forward": -0.4}: where the lines and the beam leave, in metres at the def\'s size (the Scorpion\'s tail tip: up along the painting, forward along the aim)', { min: undefined }), k('sfx', 'Sounds', 'json', null, '{"aim", "lock", "shot"}: sound ids over the creature\'s own, over the Saiga\'s (en_sniper_aim, en_sniper_lock, en_sniper_shot)', { min: undefined })] },
     // pass 126 (lane BOSS): Black Sunday becomes the storm (core/systems/BossWhirl.gd)
-    come_here: { label: 'Come Here', telegraph: 'rect', help: 'pass 127: after a quick wind-up the dust stands up all over the rectangle and everyone in it leaps towards the creature: the further away the harder, never nearer than its radius + Keep; no damage. The hero is pulled unless the bubble or the box holds him; creatures leap, big ones only slide', keys: [k('length', 'Length (m)', 'number', 17), k('width', 'Width (m)', 'number', 6), k('pull_near', 'Pull, at its feet', 'number', 0.2, 'the share of the way to it', { max: 1, step: 0.05 }), k('pull_far', 'Pull, at the far end', 'number', 0.7, 'the share of the way to it', { max: 1, step: 0.05 }), k('keep', 'Keep (m)', 'number', 2, 'a pull stops this far past its body'), k('hop_time', 'Leap time (s)', 'number', 0.42), k('hop_time_per', 'Leap time per m', 'number', 0.03), k('hop_height', 'Leap height (m)', 'number', 1.1), k('hop_height_per', 'Leap height per m', 'number', 0.16), k('sound', 'Sound', 'text', 'wd_gust')] },
-    whirl: { label: 'Whirl', telegraph: 'ring', help: 'after the wind-up (and its ring) it is a tornado for `seconds` real seconds: it hunts the hero at `speed` x pace, every creature within `radius` m rides it (spun, flung out, hurt on landing: the only boss attack that hurts its own crowd), the hero within `radius` + 0.5 m is thrown and hit at most once per toss cooldown; it stays a target and takes normal hits, it does not bite; then it stands dazed, taking `damage_taken` x damage', keys: [k('radius', 'Radius (m)', 'number', 5), k('seconds', 'Seconds', 'number', 6, 'real seconds, not stretched by the pace knob'), k('speed', 'Speed (m/s)', 'number', 3.2, 'x pace, as a roll: 3.2 x 0.81 = 2.6 m/s, 72% of a fresh hero'), k('turn', 'Turn (°/s)', 'number', 150), k('damage', 'Damage a toss', 'number', 26), k('toss', 'Toss', 'json', null, '{"up": 13.4, "out": 7.2, "cooldown": 1.6}: his throw (m/s) and the least seconds between two; empty = those', { min: undefined }), k('lift', 'Ride (s)', 'number', 1.7), k('lift_height', 'Ride height (m)', 'number', 4.5, 'x its size'), k('fling', 'Fling', 'number', 2, '1 = as a dust devil: it comes down 1.1 radii past the grab; 2 = twice that'), k('landing_damage', 'Landing damage', 'number', 0.75, 'share of its max HP the fall takes'), k('landing_damage_big', 'Landing, big ones', 'number', 0.12, 'an Elite, a coloured special, anything big'), k('dazed', 'Dazed', 'json', null, '{"seconds": 2.5, "damage_taken": 1.5}: he stands, hits on him x damage_taken; empty = those', { min: undefined }), k('look', 'Look', 'json', null, 'the funnel and the ground: color, height, funnel, opacity, skirt_opacity, flip_hz, hover, rim, rim_color, ring_color, ring_alpha, edge_color, dazed_tint, shake; empty = BossWhirl.DEFAULTS', { min: undefined }), k('sound', 'Sound (loop)', 'text', 'wd_dust_devil'), k('end_sound', 'End sound', 'text', 'en_boulder_land')] },
+    come_here: { label: 'Come Here', telegraph: 'rect', help: 'pass 127: after a quick wind-up the dust stands up all over the rectangle and everyone in it leaps towards the creature: the further away the harder, never nearer than its radius + Keep; no damage. The outlaw is pulled unless the bubble or the box holds him; creatures leap, big ones only slide', keys: [k('length', 'Length (m)', 'number', 17), k('width', 'Width (m)', 'number', 6), k('pull_near', 'Pull, at its feet', 'number', 0.2, 'the share of the way to it', { max: 1, step: 0.05 }), k('pull_far', 'Pull, at the far end', 'number', 0.7, 'the share of the way to it', { max: 1, step: 0.05 }), k('keep', 'Keep (m)', 'number', 2, 'a pull stops this far past its body'), k('hop_time', 'Leap time (s)', 'number', 0.42), k('hop_time_per', 'Leap time per m', 'number', 0.03), k('hop_height', 'Leap height (m)', 'number', 1.1), k('hop_height_per', 'Leap height per m', 'number', 0.16), k('sound', 'Sound', 'text', 'wd_gust')] },
+    whirl: { label: 'Whirl', telegraph: 'ring', help: 'after the wind-up (and its ring) it is a tornado for `seconds` real seconds: it hunts the outlaw at `speed` x pace, every creature within `radius` m rides it (spun, flung out, hurt on landing: the only boss attack that hurts its own crowd), the outlaw within `radius` + 0.5 m is thrown and hit at most once per toss cooldown; it stays a target and takes normal hits, it does not bite; then it stands dazed, taking `damage_taken` x damage', keys: [k('radius', 'Radius (m)', 'number', 5), k('seconds', 'Seconds', 'number', 6, 'real seconds, not stretched by the pace knob'), k('speed', 'Speed (m/s)', 'number', 3.2, 'x pace, as a roll: 3.2 x 0.81 = 2.6 m/s, 72% of a fresh outlaw'), k('turn', 'Turn (°/s)', 'number', 150), k('damage', 'Damage a toss', 'number', 26), k('toss', 'Toss', 'json', null, '{"up": 13.4, "out": 7.2, "cooldown": 1.6}: his throw (m/s) and the least seconds between two; empty = those', { min: undefined }), k('lift', 'Ride (s)', 'number', 1.7), k('lift_height', 'Ride height (m)', 'number', 4.5, 'x its size'), k('fling', 'Fling', 'number', 2, '1 = as a dust devil: it comes down 1.1 radii past the grab; 2 = twice that'), k('landing_damage', 'Landing damage', 'number', 0.75, 'share of its max HP the fall takes'), k('landing_damage_big', 'Landing, big ones', 'number', 0.12, 'an Elite, a coloured special, anything big'), k('dazed', 'Dazed', 'json', null, '{"seconds": 2.5, "damage_taken": 1.5}: he stands, hits on him x damage_taken; empty = those', { min: undefined }), k('look', 'Look', 'json', null, 'the funnel and the ground: color, height, funnel, opacity, skirt_opacity, flip_hz, hover, rim, rim_color, ring_color, ring_alpha, edge_color, dazed_tint, shake; empty = BossWhirl.DEFAULTS', { min: undefined }), k('sound', 'Sound (loop)', 'text', 'wd_dust_devil'), k('end_sound', 'End sound', 'text', 'en_boulder_land')] },
   };
   const ATTACK_NAMES = Object.keys(ATTACKS);
   // pass 72 (lane BOSS): the custom attacks of content/boss_attacks (the Boss attacks tab's list; none under Node)
@@ -631,14 +633,14 @@ const AFIELDS = (() => {
       { key: 'retired', label: 'Retired', type: 'bool', def: false, help: 'out of the game but kept: no map brings it, the Collection leaves it out' },
     ]),
     T('Body', [
-      { key: 'hp', label: 'HP', type: 'number', min: 0.1, def: 10, help: 'at spawn x stage x the HP curve x the hero\'s level x creature_hp_mult' },
+      { key: 'hp', label: 'HP', type: 'number', min: 0.1, def: 10, help: 'at spawn x stage x the HP curve x the outlaw\'s level x creature_hp_mult' },
       { key: 'damage', label: 'Bite', type: 'number', min: 0, def: 5, help: 'contact damage (and a ranged creature\'s shot damage) x stage x level x creature_damage_mult x the damage curve' },
       { key: 'knockback', label: 'Knockback', type: 'number', min: 0.01, step: 0.1, required: true, ph: (d) => M.plain(M.defaultKnockback(num(d.damage, 5))), help: 'the bite\'s shove in m/s; every creature carries one > 0 (the game\'s own would be clamp(3.4 x sqrt(damage / 4), 2.5, 7)); x1.6 for bosses and elites' },
       { key: 'speed', label: 'Speed (m/s)', type: 'number', min: 0, def: 2.5, help: 'x stage_speed_mult x the variance jitter x pace' },
       { key: 'size', label: 'Size (m)', type: 'number', min: 0.05, step: 0.05, def: 1, help: 'the sprite\'s height in metres (one number; a range is a roster row\'s)' },
       { key: 'radius', label: 'Radius (m)', type: 'number', min: 0.05, step: 0.05, def: 0.5, help: 'contact and separation radius; the bite reaches radius + 0.45' },
       { key: 'damage_reduction', label: 'Damage reduction', type: 'number', min: 0, max: 0.9, step: 0.05, def: 0, help: 'share of every hit removed, 0..0.9' },
-      { key: 'knockback_resist', label: 'Knockback resist', type: 'number', min: 0, max: 1, step: 0.05, def: 0, help: 'the OTHER direction from Knockback above: the share of every shove from the hero\'s side (a hit\'s knockback, a blast\'s throw, the Lasso\'s pull, Buck\'s Ram) it shrugs off, 0..1: 0 = thrown as its size says, 0.67 = a third of the push (the Hammer Giant), 1 = never moved. Not a damage reduction. A boss keeps 0 (its own 0.15 stays on top). Pass 67' },
+      { key: 'knockback_resist', label: 'Knockback resist', type: 'number', min: 0, max: 1, step: 0.05, def: 0, help: 'the OTHER direction from Knockback above: the share of every shove from the outlaw\'s side (a hit\'s knockback, a blast\'s throw, the Lasso\'s pull, Buck\'s Ram) it shrugs off, 0..1: 0 = thrown as its size says, 0.67 = a third of the push (the Hammer Giant), 1 = never moved. Not a damage reduction. A boss keeps 0 (its own 0.15 stays on top). Pass 67' },
       { key: 'contact_cd', label: 'Bite every (s)', type: 'number', min: 0.05, step: 0.05, def: 0.6, help: 'seconds between bites' },
       { key: 'blood', label: 'Blood', type: 'swatch', ph: '#C70D0D', help: 'the death splash\'s colour, #RRGGBB (a test wants a valid one in every file)' },
       { key: 'shadow.scale', label: 'Shadow scale', type: 'shadow_scale', help: 'one number, or [width, depth]' },
@@ -683,7 +685,7 @@ const AFIELDS = (() => {
     // takes the map's special_defaults (Settings → Coloured specials), else the game's (EnemyDef.SPECIAL_DEFAULTS); the
     // section's table says which applies
     T('Special', [
-      { key: 'variance.special_chance', label: 'Chance', type: 'number', min: 0, max: 1, step: 0.005, def: 0, help: 'the chance one comes as its coloured special, × (1 + the hero\'s difficulty) with Hot Sauce, once the map\'s colour_after_kills is reached (a swarm event set to Special brings it for sure). Pass 69: a third of what it was (the goblin 0.04 = one in 25)' },
+      { key: 'variance.special_chance', label: 'Chance', type: 'number', min: 0, max: 1, step: 0.005, def: 0, help: 'the chance one comes as its coloured special, × (1 + the outlaw\'s difficulty) with Hot Sauce, once the map\'s colour_after_kills is reached (a swarm event set to Special brings it for sure). Pass 69: a third of what it was (the goblin 0.04 = one in 25)' },
       { key: 'variance.special.size', label: 'Size ×', type: 'number', min: 0.1, step: 0.05, def: 1.5, help: 'a special is exactly this much taller than the creature\'s own size (its body too; the plain ones\' size spread does not apply to it, pass 69); in a row with a size range it grows towards the range\'s top, never past it. Pass 72: ×1.5 (was ×1.25)' },
       { key: 'variance.special.hp', label: 'HP ×', type: 'number', min: 0.1, step: 0.5, def: 15, help: 'its health × this (pass 72: ×15, was ×10)' },
       { key: 'variance.special.damage', label: 'ATK ×', type: 'number', min: 0.1, step: 0.1, def: 2, help: 'its bites and shots × this (pass 69: ×2)' },
@@ -751,20 +753,20 @@ const AFIELDS = (() => {
       { key: 'id', label: 'Id', type: 'slug', required: true, help: 'the folder\'s name' },
       { key: 'name', label: 'Name', type: 'text', required: true, help: '"The " is added for the drifter only' },
       { key: 'flavour', label: 'Flavour', type: 'text', help: 'the line under the name on the title' },
-      { key: 'order', label: 'Order', type: 'int', min: 1, def: 100, help: 'the title carousel\'s order among playable heroes (warns on a clash)' },
+      { key: 'order', label: 'Order', type: 'int', min: 1, def: 100, help: 'the title carousel\'s order among playable outlaws (warns on a clash)' },
       { key: 'pronoun', label: 'Pronoun', type: 'select', options: (v) => v.pronouns, def: 'they', help: 'he / she / they: hints, "his" in the trait note, the sheet' },
-      { key: 'hidden', label: 'Hidden', type: 'bool', def: false, help: 'out of play; kept in step with Availability below (pass 69: ticking it sets Availability hidden, unticking a hidden hero sets it free)', after: (d, v) => { if (v) d.availability = 'hidden'; else if (d.availability == null || d.availability === 'hidden') d.availability = 'available'; } },
+      { key: 'hidden', label: 'Hidden', type: 'bool', def: false, help: 'out of play; kept in step with Availability below (pass 69: ticking it sets Availability hidden, unticking a hidden outlaw sets it free)', after: (d, v) => { if (v) d.availability = 'hidden'; else if (d.availability == null || d.availability === 'hidden') d.availability = 'available'; } },
     ]),
     T('Trait', [
       { key: 'trait_name', label: 'Trait name', type: 'text', help: 'the plaque and sheet title ("Long Road")' },
       { key: 'trait_per_level', label: 'Per level', type: 'stat_effects', stats: 'player', target: 'player', help: 'the signature stat(s): one Effect per entry worth value x level' },
       { key: 'trait_preview', label: 'Reads as', type: 'trait_preview', help: 'TextGen.hero_trait from the rule above, and what it comes to at level 20' },
-      { key: 'trait_text', label: 'Trait text', type: 'textarea', help: 'read when there is no per-level rule (the hidden heroes), and said after the rule for a hero with a special (pass 67: Buck\'s charge); a test wants it equal to the rule\'s sentence for the other played heroes' },
-      { key: 'trait', label: 'Flat trait (legacy)', type: 'stat_effects', stats: 'player', target: 'player', help: 'added to the sheet once; empty on every played hero (a test wants it empty)' },
+      { key: 'trait_text', label: 'Trait text', type: 'textarea', help: 'read when there is no per-level rule (the hidden outlaws), and said after the rule for an outlaw with a special (pass 67: Buck\'s charge); a test wants it equal to the rule\'s sentence for the other played outlaws' },
+      { key: 'trait', label: 'Flat trait (legacy)', type: 'stat_effects', stats: 'player', target: 'player', help: 'added to the sheet once; empty on every played outlaw (a test wants it empty)' },
       { key: 'level_heal', label: 'Heal per level', type: 'percent', def: 0, help: 'share of max HP healed on every level-up (Astro 8%)' },
     ]),
     T('Favourites', [
-      { key: 'favourite_weapon', label: 'Favourite weapon', type: 'id_select', kind: 'weapon', help: 'FAVOURITE plate; bypasses its unlock quest; his hero mutation sits on it' },
+      { key: 'favourite_weapon', label: 'Favourite weapon', type: 'id_select', kind: 'weapon', help: 'FAVOURITE plate; bypasses its unlock quest; his outlaw mutation sits on it' },
       { key: 'favourite_bonus.type', label: 'Favourite arrives', type: 'select', options: (v) => v.favouriteBonus, def: 'level', help: 'at a level, or with effects' },
       { key: 'favourite_bonus.value', label: 'At level', type: 'int', min: 1, def: 2, only: (d) => !d.favourite_bonus || (d.favourite_bonus.type || 'level') === 'level' },
       { key: 'favourite_bonus.effects', label: 'With effects', type: 'stat_effects', stats: 'weapon', target: 'self', only: (d) => d.favourite_bonus && d.favourite_bonus.type === 'effects' },
@@ -781,16 +783,16 @@ const AFIELDS = (() => {
       { key: 'momentum.might_bonus', label: 'Momentum damage', type: 'number', min: 0, step: 0.05, def: 0.5, only: (d) => Array.isArray(d.specials) && d.specials.includes('momentum') },
       { key: 'momentum.evade_bonus', label: 'Momentum evade', type: 'number', min: 0, max: 0.9, step: 0.05, def: 0, help: 'evade chance added at full charge (Run._build_player_sheet; an evaded hit never touches the charge). Pass 67', only: (d) => Array.isArray(d.specials) && d.specials.includes('momentum') },
       { key: 'momentum.hit_loss', label: 'A hit knocks off (share)', type: 'number', min: 0, max: 1, step: 0.05, def: 1, help: 'the share of the charge a hit that lands takes (Player.take_damage): 0.5 = half, 1 = all of it (the old reset). Pass 67', only: (d) => Array.isArray(d.specials) && d.specials.includes('momentum') },
-      { key: 'unlock_quest', label: 'Unlock quest', type: 'readonly', help: 'a dead key: never read. A hero is gated by a quest whose unlocks names him' },
+      { key: 'unlock_quest', label: 'Unlock quest', type: 'readonly', help: 'a dead key: never read. An outlaw is gated by a quest whose unlocks names him' },
     ]),
     T('Availability', [
       // pass 69 (lane UI wired it: Registry.hero_state owned | buyable | locked | hidden): changing it keeps `hidden` in step
-      { key: 'availability', label: 'Availability', type: 'select', options: (v) => v.availability, def: 'available', help: 'free = owned from the start (with a Requirement: owned once its quest is done); to buy = on the title and in the hero drawer as a black silhouette, locked until the Requirement is done, then BUY for the price; hidden = out of play. A bought hero is kept in the save (heroes_owned)', after: (d, v) => { const hide = v === 'hidden'; if ('hidden' in d || hide) d.hidden = hide; } },
+      { key: 'availability', label: 'Availability', type: 'select', options: (v) => v.availability, def: 'available', help: 'free = owned from the start (with a Requirement: owned once its quest is done); to buy = on the title and in the outlaw drawer as a black silhouette, locked until the Requirement is done, then BUY for the price; hidden = out of play. A bought outlaw is kept in the save (heroes_owned)', after: (d, v) => { const hide = v === 'hidden'; if ('hidden' in d || hide) d.hidden = hide; } },
       { key: 'price', label: 'Price', type: 'int', min: 0, def: 0, only: (d) => d.availability === 'purchase', help: 'what BUY costs, spent from the gold he banked (Save.buy_hero; the Coins board\'s sink "hero"). 0 = free once the requirement is done' },
       { key: 'currency_type', label: 'Currency', type: 'select', options: (v) => v.currencies, def: 'gold', only: (d) => d.availability === 'purchase', help: 'the currency the price is paid in (content/currencies)' },
     ]),
     T('Art words', [
-      { key: 'art_prompt', label: 'Subject', type: 'textarea', help: 'the painter\'s subject (default "a small goofy hero called <name>, <flavour>")' },
+      { key: 'art_prompt', label: 'Subject', type: 'textarea', help: 'the painter\'s subject (default "a small goofy outlaw called <name>, <flavour>")' },
       { key: 'appearance', label: 'Appearance', type: 'textarea', help: 'who he or she is, without a pose: the Character words the badge and title cut-out candidates start from (pass 68; a look\'s recipe may carry its own); empty = the Subject with its pose clause cut ("; standing straight, both arms relaxed at her sides")' },
       { key: 'portrait_prompt', label: 'Badge portrait', type: 'textarea', help: 'the round badge\'s action: "smiling at the viewer" (the Action of the badge candidates)' },
       { key: 'motion', label: 'Free clip motion', type: 'textarea', help: '"running in place at a steady jog, arms and legs swinging naturally"' },
@@ -809,7 +811,7 @@ const AFIELDS = (() => {
       { key: 'pose_drivers.bd', label: 'Driver: back-diagonal', type: 'driver' },
       { key: 'still_keys', label: 'Still keys', type: 'json', help: '{view: cache key} when a view\'s still was painted under another name' },
       { key: 'run_fps', label: 'Run fps (recipe)', type: 'int', min: 1, def: 36, help: '36; 14 when a clip fell back' },
-      { key: 'screen', label: 'Screen', type: 'select', options: (v) => v.screens, def: '', help: 'heroes are keyed off blue unless named' },
+      { key: 'screen', label: 'Screen', type: 'select', options: (v) => v.screens, def: '', help: 'outlaws are keyed off blue unless named' },
       { key: 'key_sat', label: 'Key saturation', type: 'number', min: 0, max: 1, step: 0.05, def: 0.35 },
       { key: 'key_min_value', label: 'Key min value', type: 'number', min: 0, max: 1, step: 0.05, def: 0.2 },
       { key: 'key_cut_shadow', label: 'Key cuts shadow', type: 'bool', def: true },
@@ -832,7 +834,7 @@ const AFIELDS = (() => {
       { key: 'frame_px', label: 'Cell (px)', type: 'int', min: 16, def: 256 },
       { key: 'strip_cols', label: 'Strip columns', type: 'int', min: 0, def: 0 },
       { key: 'anims', label: 'Frames per animation', type: 'anims', help: 'CHAR_ORDER: idle, run, turn, hit, die, cheer, idle_f, run_f, idle_s, run_s, idle_bd, run_bd, idle_fd, run_fd, hit_f, hit_s, hit_bd, hit_fd' },
-      { key: 'fps', label: 'Frame rates', type: 'fps_table', keys: ['run', 'hit', 'die', 'idle', 'cheer'], help: 'BillboardSprite: run 14, hit 6, die 5, idle 4, cheer 4 when absent (the heroes carry run 36, hit 12, die 8)' },
+      { key: 'fps', label: 'Frame rates', type: 'fps_table', keys: ['run', 'hit', 'die', 'idle', 'cheer'], help: 'BillboardSprite: run 14, hit 6, die 5, idle 4, cheer 4 when absent (the outlaws carry run 36, hit 12, die 8)' },
       // pass 112 (lane ENEMY): the run cycle follows his walk (Player.run_rate)
       { key: 'run_anim', label: 'Run cycle follows his speed', type: 'json', help: 'pass 112: his run cycle plays at his walk\'s share of his full speed (a half-pushed stick, the harpoon\'s rope, the water, a wall he runs into slow it): {min 0.35 (the slowest it plays, never frozen mid-stride), max 1.0 (the fastest; above 1 a Sprint would speed it up too), follow 12 (how quickly it catches up, 1/s)}. Empty = the game\'s' },
     ]),
@@ -845,7 +847,7 @@ const AFIELDS = (() => {
       { key: 'flavour', label: 'Flavour', type: 'text', help: 'the card\'s line' },
       { key: 'rarity', label: 'Rarity', type: 'select', options: (v) => v.rarities, def: 'common', help: 'card weight x RARITY_W (common 1, uncommon 0.75, rare 0.55, epic 0.3, legendary 0.15) and the plate\'s colour' },
       { key: 'weight', label: 'Weight', type: 'number', min: 0, def: 10, help: 'the card pool\'s weight' },
-      { key: 'hero', label: 'Hero only', type: 'id_select', kind: 'hero', help: 'only this hero is offered it; empty = everyone\'s' },
+      { key: 'hero', label: 'Outlaw only', type: 'id_select', kind: 'hero', help: 'only this outlaw is offered it; empty = everyone\'s' },
       { key: 'tags', label: 'Tags', type: 'tags', help: 'gun, blade, melody, melee, homing, explosive, thrown, magic: effects with target tag:<tag> reach it' },
       { key: 'is_evolution', label: 'Evolution', type: 'readonly', only: (d) => !!d.is_evolution, help: 'an evolved form: level 1 only, delivered by a chest' },
       { key: 'evolved_from', label: 'Evolved from', type: 'readonly', only: (d) => !!d.is_evolution },
@@ -863,7 +865,7 @@ const AFIELDS = (() => {
     T('Evolution & path', [
       { key: 'evolves_into', label: 'Evolves into', type: 'id_select', kind: 'evolution', only: notEvo, help: 'its evolved form (at level 5 with all three path mutations, from a chest)' },
       { key: 'evolves_with', label: 'Evolves with', type: 'id_select', kind: 'passive', only: notEvo, help: 'must stay empty: evolutions come from the path, not an item (a test)' },
-      { key: 'path', label: 'Path', type: 'path_strip', only: notEvo, help: 'its three path mutations (element, volume, motion) and its hero mutations' },
+      { key: 'path', label: 'Path', type: 'path_strip', only: notEvo, help: 'its three path mutations (element, volume, motion) and its outlaw mutations' },
     ]),
     T('Params', [
       // pass 69 (lane LE): the knobs the pass's behaviours and mechanisms read, typed (PARAM_GROUPS), above the JSON
@@ -954,12 +956,12 @@ const AFIELDS = (() => {
       { key: 'weapon', label: 'Weapon', type: 'id_select', kind: 'weapon', required: true, help: 'the family it mutates' },
       { key: 'kind', label: 'Kind', type: 'select', options: (v) => v.mutationKinds, def: 'motion', help: 'a weapon\'s path is one of each: element, volume, motion' },
       { key: 'element', label: 'Element', type: 'select', options: (v) => v.elements, def: '' },
-      { key: 'hero', label: 'Hero', type: 'id_select', kind: 'hero', only: (d) => d.kind === 'hero' || !!d.hero, help: 'the hero whose own this is (kind hero)' },
+      { key: 'hero', label: 'Outlaw', type: 'id_select', kind: 'hero', only: (d) => d.kind === 'hero' || !!d.hero, help: 'the outlaw whose own this is (kind hero)' },
     ]),
     T('Effect', [
       { key: 'text', label: 'Card text', type: 'textarea', required: true, help: 'shown verbatim on the card' },
       { key: 'vfx', label: 'Look', type: 'text', help: 'descriptive: what it looks like' },
-      { key: 'effects', label: 'Effects', type: 'stat_effects', stats: 'weapon', target: 'self', help: 'on the weapon\'s sheet (target player reaches the hero)' },
+      { key: 'effects', label: 'Effects', type: 'stat_effects', stats: 'weapon', target: 'self', help: 'on the weapon\'s sheet (target player reaches the outlaw)' },
       { key: 'params_typed', label: 'Typed params', type: 'params_fields', help: 'pass 69: the params its weapon\'s behaviour reads, typed; an empty box keeps the weapon\'s value (shown with where it comes from); a value here is merged deep over the weapon\'s' },
       { key: 'params', label: 'Params', type: 'params_json', help: 'merged deep over the weapon\'s params' },
     ]),
@@ -985,10 +987,10 @@ const AFIELDS = (() => {
       { key: 'id', label: 'Id', type: 'slug', required: true, help: 'the folder\'s name' },
       { key: 'name', label: 'Name', type: 'text', required: true, help: 'the card\'s title' },
       { key: 'flavour', label: 'Flavour', type: 'text', help: 'the card\'s line' },
-      { key: 'hero', label: 'Hero', type: 'id_select', kind: 'hero', required: true, help: 'the only hero offered it (pass66_shape_test: every perk names a hero who is there)' },
+      { key: 'hero', label: 'Outlaw', type: 'id_select', kind: 'hero', required: true, help: 'the only outlaw offered it (pass66_shape_test: every perk names an outlaw who is there)' },
       { key: 'rarity', label: 'Rarity', type: 'select', options: (v) => v.rarities, def: 'rare', help: 'the plate\'s colour and the card weight factor' },
       { key: 'weight', label: 'Weight', type: 'number', min: 0, def: 6, help: 'the card pool\'s weight among his cards' },
-      { key: 'hidden', label: 'Hidden', type: 'bool', def: false, help: 'never offered (a hidden hero\'s perks count as hidden anyway)' },
+      { key: 'hidden', label: 'Hidden', type: 'bool', def: false, help: 'never offered (a hidden outlaw\'s perks count as hidden anyway)' },
     ]),
     T('Card', [
       { key: 'text', label: 'Card text', type: 'textarea', required: true, help: 'shown verbatim on the card: say what it does in a sentence or two (the numbers you set below)' },
@@ -1038,7 +1040,7 @@ const AFIELDS = (() => {
       limits: (q) => itemLevelLimits(q) },
     { key: 'condition.minutes', label: 'Minutes', type: 'number', min: 0, only: (q) => ['survive_minutes', 'survive_minutes_no_lift'].includes((q.condition || {}).type) },
     // pass 100 (lane QUESTS): the build quests' fields
-    { key: 'condition.hero', label: 'Hero', type: 'id_select', kind: 'hero', only: (q) => ['hero_level', 'beat_stage'].includes((q.condition || {}).type), help: 'the hero the level is reached (or the stage beaten) with (pick one the player can own: a chain on a later quest dead-ends); beat_stage: empty = any hero' },
+    { key: 'condition.hero', label: 'Outlaw', type: 'id_select', kind: 'hero', only: (q) => ['hero_level', 'beat_stage'].includes((q.condition || {}).type), help: 'the outlaw the level is reached (or the stage beaten) with (pick one the player can own: a chain on a later quest dead-ends); beat_stage: empty = any outlaw' },
     { key: 'condition.kind', label: 'Item kind', type: 'select', options: (v) => v.questItemKinds, def: 'any', only: (q) => ['item_level', 'evolve_item', 'items_maxed'].includes((q.condition || {}).type), help: 'which items count; an Item below wins over it' },
     { key: 'condition.id', label: 'Item', type: 'id_select', kind: 'any_item', only: (q) => ['item_level', 'evolve_item'].includes((q.condition || {}).type), help: 'empty = any item of the kind; a weapon, a card or a passive item (an evolved form\'s id works too)' },
     { key: 'condition.rung', label: 'Rung', type: 'select', options: (v) => v.questRungs, def: '', only: (q) => (q.condition || {}).type === 'item_level', help: 'passive items only: the rarity rung to reach (their level count differs by rarity: common 6 .. epic 3); set, it replaces Level' },
@@ -1169,7 +1171,7 @@ const AFIELDS = (() => {
       E('doc', (d) => !str(d.doc), 'doc is empty: the Collection page would be blank (pass25_test wants it non-empty)'),
       E('blood', (d) => d.blood != null && !M.HEX_RE.test(String(d.blood)), (d) => `blood "${d.blood}" is not #RRGGBB (pass58_fx_test)`),
       E('knockback', (d, c) => !String((c && c.id) || d.id || '').startsWith('training_dummy') && !(M.isNum(d.knockback) && d.knockback > 0), (d) => `knockback must be a number above 0 (pass54_waves_test; the game's own would be ${M.plain(M.defaultKnockback(num(d.damage, 5)))})`),
-      E('knockback_resist', (d) => d.knockback_resist != null && !(M.isNum(d.knockback_resist) && d.knockback_resist >= 0 && d.knockback_resist <= 1), 'knockback resist must be 0..1 (the share of the hero\'s shoves it shrugs off; 1 = never moved; the game clamps it)'),
+      E('knockback_resist', (d) => d.knockback_resist != null && !(M.isNum(d.knockback_resist) && d.knockback_resist >= 0 && d.knockback_resist <= 1), 'knockback resist must be 0..1 (the share of the outlaw\'s shoves it shrugs off; 1 = never moved; the game clamps it)'),
       E('hp', (d) => d.hp != null && !(M.isNum(d.hp) && d.hp > 0), 'hp must be a number above 0'),
       E('damage', (d) => d.damage != null && !(M.isNum(d.damage) && d.damage >= 0), 'bite must be a number of 0 or more'),
       E('size', (d) => d.size != null && !(M.isNum(d.size) && d.size > 0), 'size is one number in metres above 0 (a [min, max] range belongs to a roster row: a list here fails to load)'),
@@ -1233,14 +1235,14 @@ const AFIELDS = (() => {
       W('favourite_weapon', (d, c) => !!d.hidden && str(d.favourite_weapon) && flat(c, 'weapons') && !findIn(flat(c, 'weapons'), d.favourite_weapon), (d) => `favourite_weapon "${d.favourite_weapon}" is not a weapon (fine while hidden)`),
       // pass 69 (lane UI's rule, JsonContent.build): only availability "hidden" hides; a purchase hero is on the title
       // whatever `hidden` says; an available one with hidden: true stays hidden. The page keeps them in step.
-      W('hidden', (d) => d.availability != null && !!d.hidden !== (d.availability === 'hidden'), (d) => `hidden (${!!d.hidden}) and availability (${d.availability}) disagree: ${d.availability === 'purchase' ? 'a hero to buy is on the title whatever hidden says' : d.availability === 'available' ? 'the game hides an available hero whose hidden is true' : 'availability hidden hides him'}; set Availability again to put them in step`),
+      W('hidden', (d) => d.availability != null && !!d.hidden !== (d.availability === 'hidden'), (d) => `hidden (${!!d.hidden}) and availability (${d.availability}) disagree: ${d.availability === 'purchase' ? 'an outlaw to buy is on the title whatever hidden says' : d.availability === 'available' ? 'the game hides an available outlaw whose hidden is true' : 'availability hidden hides him'}; set Availability again to put them in step`),
       // pass 69: pass66_shape_test wants every hero on the title (free or to buy) whole: a perk and exactly one hero mutation
-      W('availability', (d, c) => d.availability != null && d.availability !== 'hidden' && c && c.record && Array.isArray(c.record.perks) && c.record.perks.length === 0, 'a hero on the title needs at least one perk (pass66_shape_test): add one under His own'),
-      W('availability', (d, c) => d.availability != null && d.availability !== 'hidden' && liveHeroMutations(d, c) != null && liveHeroMutations(d, c).length !== 1, (d, c) => `a hero on the title needs exactly one hero mutation in play, on his favourite weapon (pass66_shape_test); he has ${liveHeroMutations(d, c).length}${liveHeroMutations(d, c).length ? ': ' + liveHeroMutations(d, c).join(', ') : ''}`),
-      W('price', (d) => d.availability === 'purchase' && !(Number(d.price) > 0), 'a hero to buy at price 0 is free once his requirement is done (the BUY button still shows)'),
+      W('availability', (d, c) => d.availability != null && d.availability !== 'hidden' && c && c.record && Array.isArray(c.record.perks) && c.record.perks.length === 0, 'an outlaw on the title needs at least one perk (pass66_shape_test): add one under His own'),
+      W('availability', (d, c) => d.availability != null && d.availability !== 'hidden' && liveHeroMutations(d, c) != null && liveHeroMutations(d, c).length !== 1, (d, c) => `an outlaw on the title needs exactly one outlaw mutation in play, on his favourite weapon (pass66_shape_test); he has ${liveHeroMutations(d, c).length}${liveHeroMutations(d, c).length ? ': ' + liveHeroMutations(d, c).join(', ') : ''}`),
+      W('price', (d) => d.availability === 'purchase' && !(Number(d.price) > 0), 'an outlaw to buy at price 0 is free once his requirement is done (the BUY button still shows)'),
       W('order', (d, c) => { const hs = heroes(c); if (!hs || d.order == null) return false; return hs.some((h) => String(h.id) !== String((c && c.id) || d.id) && !h.hidden && h.order === d.order); }, (d) => `order ${d.order} is another playable hero's too`),
-      W('perks', (d, c) => !!d.hidden && str(d.favourite_weapon) && c && c.record && Array.isArray(c.record.perks) && c.record.perks.length === 0, 'a hidden hero with a favourite weapon and no perk: pass26_test looped over hidden heroes too (lane G removes that loop); harmless once re-pinned'),
-      W('unlock_quest', (d) => str(d.unlock_quest), 'unlock_quest is a dead key: a hero is gated by a quest whose unlocks names him'),
+      W('perks', (d, c) => !!d.hidden && str(d.favourite_weapon) && c && c.record && Array.isArray(c.record.perks) && c.record.perks.length === 0, 'a hidden outlaw with a favourite weapon and no perk: pass26_test looped over hidden outlaws too (lane G removes that loop); harmless once re-pinned'),
+      W('unlock_quest', (d) => str(d.unlock_quest), 'unlock_quest is a dead key: an outlaw is gated by a quest whose unlocks names him'),
     ]),
     weapon: [].concat(common('weapon'), rarityRules, [
       E('behavior', (d, c) => d.behavior != null && !vals(vocabOf(c).behaviors).includes(str(d.behavior)), (d) => `unknown behaviour "${d.behavior}" (a new one needs code: ask Claude)`),
@@ -1252,7 +1254,7 @@ const AFIELDS = (() => {
       E('evolves_with', (d) => str(d.evolves_with), 'evolves_with must stay empty: weapons evolve through their path (pass26_test)'),
       E('evolves_into', (d, c) => !d.is_evolution && !d.hidden && flat(c, 'evolutions') && !findIn(flat(c, 'evolutions'), d.evolves_into), (d) => str(d.evolves_into) ? `evolves_into "${d.evolves_into}" is not an evolution (Registry.problems)` : 'no evolution: Create templates in Evolution & path, or keep the weapon hidden'),
       E('path', (d, c) => { if (d.is_evolution || d.hidden) return false; const ms = flat(c, 'mutations'); if (!ms) return false; const p = M.pathOf((c && c.id) || d.id, ms); return !(p.element && p.volume && p.motion); }, (d, c) => { const p = M.pathOf((c && c.id) || d.id, flat(c, 'mutations')); const miss = ['element', 'volume', 'motion'].filter((kk) => !p[kk]); return `an available weapon needs a non-hidden path mutation of each kind (pass48_p0_test:273-278); missing: ${miss.join(', ')}${p.hidden.length ? ` (hidden: ${p.hidden.map((m) => m.id).join(', ')})` : ''}`; }),
-      E('hero', (d, c) => str(d.hero) && heroes(c) && !findIn(heroes(c), d.hero), (d) => `hero "${d.hero}" is not a hero`),
+      E('hero', (d, c) => str(d.hero) && heroes(c) && !findIn(heroes(c), d.hero), (d) => `outlaw "${d.hero}" is not an outlaw`),
       E('badJson', (d, c) => c && c.badJson && Object.keys(c.badJson).length > 0, (d, c) => `a JSON box does not parse: ${Object.keys(c.badJson).join(', ')}`),
       W('params', (d) => unknownParams(d.params, str(d.behavior) || 'ProjectileEmitter').length > 0, (d) => `params keys no behaviour script reads: ${unknownParams(d.params, str(d.behavior) || 'ProjectileEmitter').join(', ')}`),
       W('sfx', (d, c) => unknownSfx(d, c).length > 0, (d, c) => `unknown sound id, silent in the game: ${unknownSfx(d, c).join(', ')}`),
@@ -1297,7 +1299,7 @@ const AFIELDS = (() => {
     mutation: [].concat(common('mutation'), rarityRules, [
       E('kind', (d, c) => d.kind != null && !vals(vocabOf(c).mutationKinds).includes(str(d.kind)), (d) => `unknown kind "${d.kind}" (element / volume / motion / stance / hero)`),
       E('weapon', (d, c) => !str(d.weapon) || (flat(c, 'weapons') && !findIn(flat(c, 'weapons'), d.weapon)), (d) => str(d.weapon) ? `weapon "${d.weapon}" is not a weapon` : 'a mutation names the weapon it mutates'),
-      E('hero', (d, c) => str(d.hero) && heroes(c) && !findIn(heroes(c), d.hero), (d) => `hero "${d.hero}" is not a hero`),
+      E('hero', (d, c) => str(d.hero) && heroes(c) && !findIn(heroes(c), d.hero), (d) => `outlaw "${d.hero}" is not an outlaw`),
       E('hero', (d) => str(d.kind) === 'hero' && !str(d.hero), 'kind hero needs a hero: without one it would count as a fourth path kind'),
       E('effects', (d, c) => badEffects(d.effects, 'any', vocabOf(c)).length > 0, (d, c) => `effects: ${badEffects(d.effects, 'any', vocabOf(c)).join('; ')}`),
       E('behavior', (d, c) => str(d.behavior) && !vals(vocabOf(c).behaviors).includes(str(d.behavior)), (d) => `unknown behaviour "${d.behavior}"`),
@@ -1307,8 +1309,8 @@ const AFIELDS = (() => {
     ]),
     // pass 69 (lane LE): a hero's perk
     perk: [].concat(common('perk'), rarityRules, [
-      E('hero', (d) => !str(d.hero), 'a perk names its hero (pass66_shape_test: every perk names a hero who is there)'),
-      E('hero', (d, c) => str(d.hero) && heroes(c) && !findIn(heroes(c), d.hero), (d) => `hero "${d.hero}" is not a hero`),
+      E('hero', (d) => !str(d.hero), 'a perk names its outlaw (pass66_shape_test: every perk names an outlaw who is there)'),
+      E('hero', (d, c) => str(d.hero) && heroes(c) && !findIn(heroes(c), d.hero), (d) => `outlaw "${d.hero}" is not an outlaw`),
       E('effects', (d, c) => badEffects(d.effects, 'player', vocabOf(c)).length > 0, (d, c) => `effects: ${badEffects(d.effects, 'player', vocabOf(c)).join('; ')}`),
       E('params', (d) => d.params != null && !isObj(d.params), 'params is an object of numbers (or {} for none)'),
       E('badJson', (d, c) => c && c.badJson && Object.keys(c.badJson).length > 0, (d, c) => `a JSON box does not parse: ${Object.keys(c.badJson).join(', ')}`),

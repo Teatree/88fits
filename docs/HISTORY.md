@@ -4306,3 +4306,62 @@ Where the older words and the data disagreed, the data went into the docs, and t
 Known gaps in the docs: the Level Editor's Frames and Sim tabs have no fresh picture. Staged captures come from the arena, so they read `00:03` on the clock and often `LV 1`. 36 unused webp files stay in `docs/design/img` because `make_onepager.py` also reads that folder. Headless Chromium cannot paint the 216,000 px bible as one image, and one such check hung for 30 minutes, so its layout was proved by DOM checks at 390 and 1280 px, the top of the page, and a cut test page; nobody has yet scrolled the whole page on a phone.
 
 **Lesson.** The two lanes of this pass cost 1.16 million tokens between them, in a session Garry was closing to save tokens. A docs or art lane's brief needs a stated budget as well as a scope.
+
+## Pass 128 (2026-11-06): the blob relocates, the dynamite is red, Outlaws, and the road to the Trail
+
+Garry's message had three parts: a list of adjustments from play, five new variations of every piece of environment
+art on a page for him to pick from, and the Upgrade board rebuilt as "The Trail" (a long node track in the mould of
+Survivor.io, up to 500 levels, edited in the Level Editor). The chat opened in plan mode: three read-only explorations,
+then twelve questions (six on meaning, six on design); he answered all twelve and switched plan mode off before a plan
+was shown, so the work ran on his answers and on assumptions the lead named to him. His answers: an outlaw's weapon
+needs him owned; scenery props only for the variations; a Trail node gives its gift outright; the Trail takes every
+outlaw but the Drifter and Ironwood and some quest-locked items; icons painted on the AI server; level by level; the
+"Steady" relocation; about 100 runs for the first 100 nodes with prices growing as a polynomial; node 100 stronger than
+today's board; choices permanent; Stakes as optional nodes; only The Dust Bowl and Blood Moon newly locked, with the
+other lock types available to him. This pass is the adjustments (four lanes from `tools/dl/p128/<LANE>/brief.md`,
+shared rules in `tools/dl/p128/RULES.md`); the Trail is pass 129 (`docs/trail_schema.md` and
+`game/content/trail/trail.json` with its 35 upgrade types and no nodes were written here; nothing reads them yet).
+
+Far creatures: Red Canyon's far speed raised (max_mult 4, max_speed 8) and **relocation** (`timeline_data.relocate`,
+core/systems/CrowdRelocate.gd): a regular creature beyond 16 m for 5 s joins a queue, one every 0.4 s sinks and rises
+19-24 m from the outlaw in the emptiest of 12 sectors; per-row `relocate` (WaveTimeline.row_relocate, carried on
+EnemyManager.row_relocate around the row's spawns); Monks off by default; the Level Editor's Relocation card and the
+row card's "Relocates when far" with its source; no native change (`_p125_NATIVE_proof`: 255 checks equal with 195
+relocations in the run); the probe `game/tools/_p128_BLOB_probe.gd` (rear-120 share 95.0% off, 92.3% on, 84.7% at
+`every` 0.1). `pass115_POLISH_test` re-pinned: the cap is no longer under a fast Jeżyk's run.
+
+Lane UI. Pass 128 (lane UI): the Boss Chest's speed bar starts past its multiplier (`BossChestScreen.meter_bar_x`); a board's
+scroll never starts above its sheet's inner edge (`ScreenBase.scroll_top`); the player, the arena, the Watch and the
+Level Editor read **Outlaw(s)** wherever they read Hero(es) (identifiers, ids, save keys and the painter's prompts keep
+hero); an outlaw's start weapon is offered only once he is owned (`Registry.hero_may_use` / `weapon_comes_with`,
+BALANCING 70.KEY), `unlock_pike` and `unlock_big_mouth` retired, "Comes with <name>" in the Collection opening the
+Outlaws screen on him (`HeroesScreen.open_on`). CLAUDE.md's Heroes paragraph and its "Heroes screen" mentions want the
+
+Lane DYNA (the dynamite is red). Garry: "I wanted to make it sand-brown at first, then the player would upgrade it to
+make it red. Let's not do that." Look B, the played look of the Dynamite family, is a classic red stick from the start.
+`tools/blender_dynamite.py` builds look b's stick red and two overlays into the same mesh (a projectile kind is one mesh
+in a MultiMesh, so every combination is its own GLB rather than layers): barbed wire wound round the stick or the whole
+bundle with fat spikes, and amber tar poured over the top with drips and beads; eight models
+`art/props/dynamite_b_{stick|bundle}{,_wire}{,_tar}.glb` replace the four tan / red ones. The shrapnel mutation (`frag`)
+is "Barbed Wire" in look B and sets `model_wire`, Sticky sets `model_tar`, the Dynamite Bundle keeps `model_form`;
+`Lobber.model_key` builds the model's key from the two flags, so any order of the mutations gives the same model, and a
+look that still names `model_colour` (C, D) chooses as before. Five look-B icons were repainted by Klein from the new
+renders (4 seeds each, 20 renders, picks c0 / c1 / c1 / c2 / c2), the old ones kept in the Level Editor's icon history
+(a copy under `tools/level_editor/backups/<id>/` and an `icon_history` step; the file painted over under its own name).
+The evolution (Boomtown) is untouched. Found on the way: `dynamite_b_stick_red.glb` was also the creatures' dynamite
+(`ProjectileManager.DYN_MODEL`, the Spit Cactus's `ranged.dynamite.model`, a pin in pass85_bandit_test), all repointed
+to `dynamite_b_stick.glb`; and Fire in the Hole's `mass_mini` is the blast's Mini Crit rule, not small sticks, so it
+wears nothing and its icon keeps pass 76's picture with the stick red. Capture tool `game/tools/_p128_DYNA_shots.gd`
+(the real weapon throws each combination, the target crowd despawned once the stick is in the air so it lies, even with
+Sticky; stage filters by `stage=`). Tests `pass128_dynamite_test.gd` (9), pass76_dynart_test and pass85_bandit_test
+re-pinned. Lesson: before deleting an asset, grep code and every content type for its path, not only its own family.
+
+Lessons. A lane that deletes an asset must grep every content type and the code for its path. A straight 60 s sprint
+is the worst case for relocation (whatever rises ahead is passed in four or five seconds): the probe's small number
+is honest but is not how a run is played; Garry tunes `every` in the Relocation card. The far-speed cap at 8 m/s ends
+pass 115's "a fast Jezyk always gains on a far crowd"; the test was re-pinned and Garry told.
+
+Still waiting on Garry: whether the Collection may name an outlaw he has not met ("Comes with May"); the extra line
+under it; relocation's pace after he has played it; the far cap against Jezyk; "Barbed Wire" as the shrapnel
+mutation's name on the dynamite (its flavour line and Boomtown's "12 coffin nails" were left); everything still open
+from pass 127.

@@ -147,8 +147,8 @@ const TypedForms = (() => {
     const defs = F.perk;
     pane.appendChild(Assets.header(doc, iss));
     const hero = String(doc.data.hero || '');
-    if (hero) pane.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small ghost', type: 'button', text: `← ${hero}`, title: 'his hero form', onclick: () => Assets.open('hero', hero) }),
-      el('span', { class: 'muted small', text: 'A perk is a card only his hero is offered, taken once: its effects go on his sheet, its special is a mechanism the game runs, tuned by its numbers (Run.perk_param).' })));
+    if (hero) pane.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small ghost', type: 'button', text: `← ${hero}`, title: 'his outlaw form', onclick: () => Assets.open('hero', hero) }),
+      el('span', { class: 'muted small', text: 'A perk is a card only his outlaw is offered, taken once: its effects go on his sheet, its special is a mechanism the game runs, tuned by its numbers (Run.perk_param).' })));
     for (const name of F.SECTIONS.perk) {
       const nodes = Assets.rows(doc, defs, name, iss);
       if (name === 'Art') { const ic = iconCandidates(doc); if (ic) nodes.push(ic); }
@@ -169,7 +169,7 @@ const TypedForms = (() => {
     const who = String(heroDoc.data.name || heroDoc.id);
     const box = Assets.createDialog('perk', templates, taken, {
       label: `perk for ${who}`, docRequired: false, copyArt: false, fields: { fields: { hero: heroDoc.id } },
-      note: `A copy of the template's numbers, text and special, ${who}'s own (its Hero is ${heroDoc.id}). Inflatable May (decoy) and Buzzer Beater (periodic_buff) are the specials any perk can carry; the others fire only for their own perk's id. A placeholder icon comes with the register job.`,
+      note: `A copy of the template's numbers, text and special, ${who}'s own (its Outlaw is ${heroDoc.id}). Inflatable May (decoy) and Buzzer Beater (periodic_buff) are the specials any perk can carry; the others fire only for their own perk's id. A placeholder icon comes with the register job.`,
       onCreate: async (body) => { const d = await Assets.create('perk', body); if (d && onDone) onDone(); },
       onCancel: () => { clear(host); if (onDone) onDone(); },
     });
@@ -206,13 +206,13 @@ const TypedForms = (() => {
     const av = doc.data.availability || (doc.data.hidden ? 'hidden' : 'available');
     const draft = doc.ui.reqDraft;
     const wrap = el('div', { class: 'frow wide-ctl', 'data-key': 'requirement' });
-    wrap.appendChild(el('label', { class: 'flabel', text: 'Requirement', title: 'a quest whose unlocks is {type: character, id: ' + doc.id + '} (content/quests/unlock_' + doc.id + '): the hero stays locked (a black silhouette with these words over the plaque) until it is done' }));
+    wrap.appendChild(el('label', { class: 'flabel', text: 'Requirement', title: 'a quest whose unlocks is {type: character, id: ' + doc.id + '} (content/quests/unlock_' + doc.id + '): the outlaw stays locked (a black silhouette with these words over the plaque) until it is done' }));
     const ctl = el('div', { class: 'fctl' });
     if (q && !draft) {
       ctl.appendChild(el('div', { class: 'small' }, el('b', { text: `"${questWords(q)}"` }), el('span', { class: 'muted small', text: ` · ${q.id} (${(q.condition && q.condition.type) || '?'})` })));
       ctl.appendChild(el('div', { class: 'alt-actions' },
         el('button', { class: 'btn small', type: 'button', text: 'Edit requirement', onclick: () => { doc.ui.reqDraft = JSON.parse(JSON.stringify(q)); Assets.redraw(doc, 'editor'); } }),
-        el('button', { class: 'btn small danger', type: 'button', text: 'Remove requirement', title: 'the quest file moves to the backups: a free hero is owned from the start, a hero to buy goes on sale at once', onclick: () => { if (confirm(`Remove ${q.id}? ${doc.id} needs nothing any more.`)) Assets.availabilityOp(doc, { availability: savedAvail, quest: null }); } })));
+        el('button', { class: 'btn small danger', type: 'button', text: 'Remove requirement', title: 'the quest file moves to the backups: a free outlaw is owned from the start, an outlaw to buy goes on sale at once', onclick: () => { if (confirm(`Remove ${q.id}? ${doc.id} needs nothing any more.`)) Assets.availabilityOp(doc, { availability: savedAvail, quest: null }); } })));
     } else if (!draft) {
       ctl.appendChild(el('div', { class: 'small muted', text: av === 'hidden' ? 'none (hidden: nothing to unlock)' : av === 'purchase' ? 'none: on sale at once (BUY on the title)' : 'none: owned from the start' }));
       ctl.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small', type: 'button', text: '+ Add a requirement', onclick: () => { doc.ui.reqDraft = { id: `unlock_${doc.id}`, name: String(doc.data.name || doc.id), condition: { type: 'kills_total', count: 2500 }, unlocks: { type: 'character', id: doc.id } }; Assets.redraw(doc, 'editor'); } })));
@@ -234,14 +234,14 @@ const TypedForms = (() => {
       // pass 113 (lane TASKS): the picture the game draws for the goal (tasks.js)
       if (typeof TaskPics !== 'undefined') box.appendChild(TaskPics.row(draft));
       box.appendChild(el('div', { class: 'alt-actions' },
-        el('button', { class: 'btn small primary', type: 'button', text: q ? 'Save requirement' : 'Create requirement', title: 'writes content/quests/unlock_' + doc.id + ' at once and imports it (the hero JSON is not touched)', onclick: async () => { const ok = await Assets.availabilityOp(doc, { availability: savedAvail, quest: { condition: draft.condition, quest_text: draft.quest_text || '', name: draft.name || '' } }); if (ok) doc.ui.reqDraft = null; } }),
+        el('button', { class: 'btn small primary', type: 'button', text: q ? 'Save requirement' : 'Create requirement', title: 'writes content/quests/unlock_' + doc.id + ' at once and imports it (the outlaw JSON is not touched)', onclick: async () => { const ok = await Assets.availabilityOp(doc, { availability: savedAvail, quest: { condition: draft.condition, quest_text: draft.quest_text || '', name: draft.name || '' } }); if (ok) doc.ui.reqDraft = null; } }),
         el('button', { class: 'btn small ghost', type: 'button', text: 'Cancel', onclick: () => { doc.ui.reqDraft = null; Assets.redraw(doc, 'editor'); } })));
       ctl.appendChild(box);
     }
     // what the title shows for him, in words (Registry.hero_state)
     const price = Number(doc.data.price) || 0;
-    const words = av === 'hidden' ? 'In play: hidden. Not on the title, not in the hero drawer; his perks and hero mutation are out of the card pool.'
-      : av === 'purchase' ? `In play: on the title and in the hero drawer. ${q ? `Locked (a black silhouette, "Unknown", the requirement over the plaque) until "${questWords(q)}" is done, then` : 'On sale at once:'} BUY for ${price} ${doc.data.currency_type || 'gold'} over the preview; once bought the save keeps the hero (heroes_owned).`
+    const words = av === 'hidden' ? 'In play: hidden. Not on the title, not in the outlaw drawer; his perks and outlaw mutation are out of the card pool.'
+      : av === 'purchase' ? `In play: on the title and in the outlaw drawer. ${q ? `Locked (a black silhouette, "Unknown", the requirement over the plaque) until "${questWords(q)}" is done, then` : 'On sale at once:'} BUY for ${price} ${doc.data.currency_type || 'gold'} over the preview; once bought the save keeps the outlaw (heroes_owned).`
         : `In play: free. ${q ? `Locked (a black silhouette with the requirement over the plaque) until "${questWords(q)}" is done, then owned, nothing to pay.` : 'Owned from the start.'}`;
     ctl.appendChild(el('div', { class: 'anote', text: words }));
     if (av !== savedAvail) ctl.appendChild(el('div', { class: 'muted small', text: `Availability changed to ${av} in the form: Save asset writes it (the requirement buttons write the quest only).` }));

@@ -23,7 +23,7 @@ const BossAttacks = (() => {
     o('burning_tumbleweed', 'burning tumbleweed (pattern)'), o('venom_blob', 'venom blob (pattern)'), o('brand_fireball', 'branded fireball (pattern)'), o('grit_clod', 'tumbling grit clod (pattern)')];
   // pass 113 (lane BOSS): a pattern's emitter shapes, aims, the boss's wind-up looks and his shells
   const ESHAPE_OPTS = [o('spiral', 'spiral: arms turning as they fire'), o('ring', 'ring: all round, an opening facing its aim'), o('fan', 'fan: a spread of bullets'), o('sweep', 'sweep: a fan swinging left and right (a sprinkler)'), o('wall', 'wall: a line across, an opening in it'), o('rose', 'rose: a ring that opens into petals')];
-  const EAIM_OPTS = [o('hero', 'at the hero (as the bullets begin)'), o('track', 'at the hero, every volley'), o('fixed', 'fixed (due east)'), o('random', 'a random way, every volley')];
+  const EAIM_OPTS = [o('hero', 'at the outlaw (as the bullets begin)'), o('track', 'at the outlaw, every volley'), o('fixed', 'fixed (due east)'), o('random', 'a random way, every volley')];
   const TLOOK_OPTS = [o('none', 'none'), o('spin', 'spin: he spins up (the King)'), o('rear', 'rear: rears up, throat glowing (the Gila)'), o('drive', 'drive: drives his iron into the ground (the Brander)')];
   // pass 115 (lane BOSS): a pattern's barrier (BossAttackDef.BARRIER_LOOKS, BARRIER_MODES, BARRIER_HOLDS, ...)
   const BLOOK_OPTS = [o('none', 'none (no barrier, no reach rule)'), o('tumbleweed_fence', 'tumbleweed fence: staked tumbleweeds and ropes, smouldering (the King)'), o('cactus_fence', 'cactus fence: spiny organ-pipe cactus with venom blooms (the Gila)'), o('iron_fence', 'iron fence: black bars with white-hot spear heads and branding irons (the Brander)'), o('cross_fence', 'cross fence: crooked grave crosses, straw and barbed wire (Black Sunday)')];
@@ -34,16 +34,16 @@ const BossAttacks = (() => {
   const SHELL_OPTS = [o('none', 'none (his glowing rim only)'), o('tornado', 'tornado: a sand tornado round him'), o('scales', 'scales: a glow behind him, armour-bright'), o('pillar', 'pillar: a pillar of fire')];
   const SHAPE_OPTS = [o('rings', 'rings round the centre'), o('grid', 'a hex grid'), o('spiral', 'a sunflower spiral'), o('random', 'random, kept apart')];
   const ORDER_OPTS = [o('out', 'out: nearest first'), o('in', 'in: farthest first'), o('random', 'random'), o('sweep', 'sweep: round like a clock hand')];
-  const AIM_OPTS = [o('hero', 'at the hero'), o('random', 'a random way'), o('fixed', 'fixed (due east)')];
-  const CENTER_OPTS = [o('boss', 'round the boss'), o('hero', 'round the hero\'s spot')];
+  const AIM_OPTS = [o('hero', 'at the outlaw'), o('random', 'a random way'), o('fixed', 'fixed (due east)')];
+  const CENTER_OPTS = [o('boss', 'round the boss'), o('hero', 'round the outlaw\'s spot')];
   const TEL_OPTS = [o('circles', 'circles on the landing spots'), o('lines', 'lines down the shots\' way'), o('ring', 'a ring round its reach'), o('none', 'no warning')];
   // pass 73 (lane GROUND): a rain's landing (BossAttackDef.LANDING_MODES)
   const MODE_OPTS = [o('stagger', 'stagger: one after another, from its back'), o('volley', 'volley: one spew from its mouth, landing together')];
   const KIND_OPTS = [
-    o('rain', 'rain: shots thrown up and out, landing on a pattern', 'projectiles thrown up and out in every direction, landing on the points of a pattern round the boss, each spot warned before it lands; the hero is hit only inside a landing circle'),
-    o('volley', 'volley: straight shots out from the boss', 'shots flying straight out over a fan (or all round), in waves; a shot hits the hero once and is gone'),
-    o('ring', 'ring: rings racing out', 'rings racing out from the boss; each hits the hero once as it passes him'),
-    o('slam', 'slam: a blast round the boss', 'a blast round the boss (or the hero\'s spot) after the wind-up'),
+    o('rain', 'rain: shots thrown up and out, landing on a pattern', 'projectiles thrown up and out in every direction, landing on the points of a pattern round the boss, each spot warned before it lands; the outlaw is hit only inside a landing circle'),
+    o('volley', 'volley: straight shots out from the boss', 'shots flying straight out over a fan (or all round), in waves; a shot hits the outlaw once and is gone'),
+    o('ring', 'ring: rings racing out', 'rings racing out from the boss; each hits the outlaw once as it passes him'),
+    o('slam', 'slam: a blast round the boss', 'a blast round the boss (or the outlaw\'s spot) after the wind-up'),
     o('script', 'script: a built-in with your numbers', 'one of the built-in attacks (rumble, slam, roll, ...) under its own name with its own numbers'),
     // pass 113 (lane BOSS)
     o('pattern', 'pattern: a bullet heaven (rare, long, guarded)', 'a bullet-heaven attack: never in the boss\'s cycle, it comes on its own trigger (not before 15 s of the fight, the first under 60% HP or 45 s in, then every 45 s); a big tell, then several seconds of slow bullets from its emitters while the boss is guarded; then he is spent and takes extra'),
@@ -58,20 +58,20 @@ const BossAttacks = (() => {
     ['projectile', 'Projectile', 'what flies: its look, colour and size, how it flies'],
     ['pattern', 'Pattern', 'where it lands or goes: the layout, the ranges, the gap rule'],
     ['landing', 'Landing', 'the circle a rain\'s shot hurts in'],
-    ['telegraph', 'Telegraph', 'how the hero is warned'],
+    ['telegraph', 'Telegraph', 'how the outlaw is warned'],
     ['_top', 'Damage and push', 'what a hit does'],
     ['timing', 'Timing', 'wind-up, stagger, rest'],
     ['spew', 'Spew', 'a volley rain: the crouch, and the shots out of the boss\'s mouth (pass 73)'],
     ['sounds', 'Sounds', 'ids from content/sounds/soundmap.json'],
     // pass 113 (lane BOSS): a bullet-heaven pattern's groups (its emitters are a list of their own above these)
     ['trigger', 'When it comes', 'a pattern is never in his cycle: these say when it comes'],
-    ['tell', 'The tell (foreshadowing)', 'what warns the hero before the bullets'],
-    ['hit', 'A bullet\'s hit', 'what one bullet does to the hero'],
+    ['tell', 'The tell (foreshadowing)', 'what warns the outlaw before the bullets'],
+    ['hit', 'A bullet\'s hit', 'what one bullet does to the outlaw'],
     ['guard', 'Guard', 'how hard he is to hurt while it runs'],
     ['spent', 'Spent (the payoff)', 'after the bullets: he stands dazed and takes extra'],
     ['shell', 'His shell (the look)', 'what shows he is guarded'],
     // pass 115 (lane BOSS)
-    ['barrier', 'The barrier', 'a 3D wall round him and the hero while it runs: the hero cannot run out of the bullets\' reach'],
+    ['barrier', 'The barrier', 'a 3D wall round him and the outlaw while it runs: the outlaw cannot run out of the bullets\' reach'],
   ];
   const FIELDS = [
     { g: 'projectile', k: 'look', label: 'Shot look', type: 'select', opts: LOOK_OPTS, kinds: SHOTSP, help: 'the shot\'s shape: spike = a barb flying point first (the centipede\'s), spit = the Spit Cactus\'s ball, pellet = a small lead ball, shard = a flat golden sliver, rock = a stone, fire = a glowing ball' },
@@ -83,27 +83,27 @@ const BossAttacks = (() => {
     { g: 'projectile', k: 'trail', label: 'Trail', type: 'bool', kinds: ['rain', 'pattern'], help: 'three smaller copies follow each shot' },
     { g: 'projectile', k: 'speed', label: 'Speed (m/s)', type: 'number', min: 0.5, step: 0.5, kinds: ['volley', 'ring'], help: 'volley: how fast a shot flies; ring: how fast the ring races out on average (fast at first, slowing)' },
     { g: 'projectile', k: 'range', label: 'Range (m)', type: 'number', min: 1, step: 1, kinds: ['volley', 'pattern'], help: 'how far a shot flies (the warning lines are this long)' },
-    { g: 'projectile', k: 'hit_radius', label: 'Hit radius (m)', type: 'number', min: 0.05, step: 0.05, kinds: ['volley', 'pattern'], help: 'how close a shot must pass the hero\'s middle to hit him (+0.3 m for his body)' },
+    { g: 'projectile', k: 'hit_radius', label: 'Hit radius (m)', type: 'number', min: 0.05, step: 0.05, kinds: ['volley', 'pattern'], help: 'how close a shot must pass the outlaw\'s middle to hit him (+0.3 m for his body)' },
     { g: 'pattern', k: 'shape', label: 'Layout', type: 'select', opts: SHAPE_OPTS, kinds: ['rain'], help: 'how the landing spots are laid out: rings round the centre, a hex grid, a sunflower spiral, or random spots kept a spacing apart' },
-    { g: 'pattern', k: 'center', label: 'Centre', type: 'select', opts: CENTER_OPTS, kinds: ['rain', 'slam'], help: 'round the boss, or round the spot the hero stood on when the wind-up began' },
+    { g: 'pattern', k: 'center', label: 'Centre', type: 'select', opts: CENTER_OPTS, kinds: ['rain', 'slam'], help: 'round the boss, or round the spot the outlaw stood on when the wind-up began' },
     { g: 'pattern', k: 'radius_min', label: 'Inner radius (m)', type: 'number', min: 0, step: 0.2, kinds: ['rain'], help: 'no spot nearer the centre than this (keep it past the boss\'s body: the Gila\'s is 2.4 m)' },
     { g: 'pattern', k: 'radius_max', label: 'Outer radius (m)', type: 'number', min: 0.5, step: 0.5, kinds: ['rain', 'ring', 'slam'], help: 'rain: the outer edge of the spots; ring: how far the ring races; slam: the blast\'s radius' },
     { g: 'pattern', k: 'spacing', label: 'Spacing (m)', type: 'number', min: 0.3, step: 0.1, kinds: ['rain'], help: 'the distance between neighbouring spots\' centres (never below 2 × the landing radius + the gap: it is raised to that)' },
-    { g: 'pattern', k: 'gap', label: 'Gap (m)', type: 'number', min: 0, step: 0.1, kinds: ['rain'], help: 'THE GAP RULE: the least free sand between two neighbouring circles, edge to edge. A spot that would come closer is dropped. The hero is 0.9 m wide: 1.0 leaves him room' },
+    { g: 'pattern', k: 'gap', label: 'Gap (m)', type: 'number', min: 0, step: 0.1, kinds: ['rain'], help: 'THE GAP RULE: the least free sand between two neighbouring circles, edge to edge. A spot that would come closer is dropped. The outlaw is 0.9 m wide: 1.0 leaves him room' },
     { g: 'pattern', k: 'jitter', label: 'Jitter', type: 'number', min: 0, max: 1, step: 0.05, kinds: ['rain'], help: 'how far each spot moves at random, a share of half the spacing (it never closes a gap below the rule)' },
     { g: 'pattern', k: 'count', label: 'Count', type: 'int', min: 0, step: 1, kinds: ['rain', 'volley', 'ring'], help: 'rain: at most this many spots (0 = every spot that fits); volley: shots in each wave; ring: how many rings' },
     { g: 'pattern', k: 'turn', label: 'Turn at random', type: 'bool', kinds: ['rain'], help: 'the whole layout turned at random each time, so it never falls on the same places' },
     { g: 'pattern', k: 'order', label: 'Landing order', type: 'select', opts: ORDER_OPTS, kinds: ['rain'], help: 'which spots land first: out = the nearest first (a ripple outwards), in = the farthest first, random, sweep = round like a clock hand' },
     { g: 'pattern', k: 'spread_deg', label: 'Spread (°)', type: 'number', min: 0, max: 360, step: 5, kinds: ['volley'], help: 'the fan the shots spread over; 360 = all round' },
-    { g: 'pattern', k: 'aim', label: 'Aim', type: 'select', opts: AIM_OPTS, kinds: ['volley'], help: 'the middle of the fan: at the hero (where he stood as the wind-up began), a random way, or always the same way' },
+    { g: 'pattern', k: 'aim', label: 'Aim', type: 'select', opts: AIM_OPTS, kinds: ['volley'], help: 'the middle of the fan: at the outlaw (where he stood as the wind-up began), a random way, or always the same way' },
     { g: 'pattern', k: 'waves', label: 'Waves', type: 'int', min: 1, step: 1, kinds: ['volley'], help: 'how many volleys' },
     { g: 'pattern', k: 'wave_gap', label: 'Between waves (s)', type: 'number', min: 0, step: 0.05, kinds: ['volley', 'ring'], help: 'seconds between two volleys, or two rings' },
     { g: 'pattern', k: 'width', label: 'Ring width (m)', type: 'number', min: 0.1, step: 0.1, kinds: ['ring'], help: 'how thick each ring is' },
-    { g: 'landing', k: 'radius', label: 'Landing radius (m)', type: 'number', min: 0.1, step: 0.05, kinds: ['rain'], help: 'the circle each shot lands in: the hero is hit only inside it (his middle within the radius + 0.2 m)' },
+    { g: 'landing', k: 'radius', label: 'Landing radius (m)', type: 'number', min: 0.1, step: 0.05, kinds: ['rain'], help: 'the circle each shot lands in: the outlaw is hit only inside it (his middle within the radius + 0.2 m)' },
     { g: 'landing', k: 'mode', label: 'Landing', type: 'select', opts: MODE_OPTS, kinds: ['rain'], help: 'stagger: the shots leave the boss\'s back one after another and land over the Stagger; volley (pass 73, the Gila\'s cactus rain): the boss crouches, rears up and spews them all from its mouth, each leaving within the Spew\'s Burst and landing within the Stagger of the others, the nearest first' },
     { g: 'telegraph', k: 'kind', label: 'Warning', type: 'select', opts: TEL_OPTS, kinds: ALL, help: 'rain: a red circle on each landing spot (and the edge of the area through the wind-up); volley: a line down each shot\'s way; ring and slam: a circle round its reach; none = no warning' },
     { g: 'telegraph', k: 'color', label: 'Warning colour', type: 'color', kinds: ALL, help: 'the warning\'s colour' },
-    { g: 'telegraph', k: 'seconds', label: 'Circle shows (s)', type: 'number', min: 0, step: 0.05, kinds: ['rain'], help: 'how long before a shot lands its circle shows (×1/pace on the map). The hero walks about 3 m a second: 0.9 s is time to step out of a 0.9 m circle. With All circles at once: how long before the spikes leave every circle lights up (the wind-up is made at least this long)' },
+    { g: 'telegraph', k: 'seconds', label: 'Circle shows (s)', type: 'number', min: 0, step: 0.05, kinds: ['rain'], help: 'how long before a shot lands its circle shows (×1/pace on the map). The outlaw walks about 3 m a second: 0.9 s is time to step out of a 0.9 m circle. With All circles at once: how long before the spikes leave every circle lights up (the wind-up is made at least this long)' },
     { g: 'telegraph', k: 'all_at_once', label: 'All circles at once', type: 'bool', kinds: ['rain'], help: 'pass 73: every landing circle lights up together, Circle shows seconds before the shots leave (at the wind-up\'s start when the wind-up is no longer), full size from the start, and stays lit until its own shot lands, filling in as it comes down; off: each circle shows Circle shows seconds before its own shot lands' },
     { g: '_top', k: 'damage', label: 'Damage × bite', type: 'number', min: 0, step: 0.05, kinds: ALL, help: 'a hit takes this × the boss\'s bite (its JSON damage: the Gila\'s 24), then the stage, hero-level and map factors, as every scripted attack' },
     { g: '_top', k: 'knockback', label: 'Knockback (m/s)', type: 'number', min: 0, step: 0.5, kinds: ALLP, help: 'the shove where it hits him (an evade or the Invincibility bubble ignores it)' },
@@ -114,7 +114,7 @@ const BossAttacks = (() => {
     { g: 'timing', k: 'hold', label: 'Stands (s)', type: 'number', min: -1, step: 0.1, kinds: ALL, help: 'seconds the boss stands still after it fires; -1 = while its shots leave (the stagger, the volleys)' },
     { g: 'sounds', k: 'windup', label: 'Wind-up sound', type: 'sound', kinds: ALLP, help: 'played as the wind-up starts (the boss\'s own attack sound plays anyway)' },
     { g: 'sounds', k: 'fire', label: 'Fire sound', type: 'sound', kinds: ALLP, help: 'played as the shots leave (a rain: every 0.35 s while they leave)' },
-    { g: 'sounds', k: 'land', label: 'Land sound', type: 'sound', kinds: ['rain'], help: 'played as shots land near the hero (at most one every 0.12 s)' },
+    { g: 'sounds', k: 'land', label: 'Land sound', type: 'sound', kinds: ['rain'], help: 'played as shots land near the outlaw (at most one every 0.12 s)' },
     // pass 73 (lane GROUND; Garry: "the boss does his animation of all those projectiles flying out of his mouth but they
     // all land around the same time"): a volley rain's spew (read only with Landing = volley)
     { g: 'spew', k: 'crouch', label: 'Crouch (s)', type: 'number', min: 0, step: 0.05, kinds: ['rain'], help: 'volley: the boss crouches, squashed, through the last this many seconds of its wind-up (×1/pace on the map)' },
@@ -127,7 +127,7 @@ const BossAttacks = (() => {
     { g: 'projectile', k: 'wobble', label: 'Wobble', type: 'number', min: 0, max: 2, step: 0.1, kinds: PAT, help: 'pattern: how much a venom blob wobbles as it flies (0 a little, 1 a lot); only the venom blob reads it' },
     { g: 'timing', k: 'duration', label: 'Bullets for (s)', type: 'number', min: 0.5, step: 0.5, kinds: PAT, help: 'pattern: seconds of bullets after the tell (Garry: "some 5+ seconds during which player is supposed to try and survive"); on the creatures\' clock (×1/pace on the map)' },
     { g: 'timing', k: 'clear', label: 'Burn out (s)', type: 'number', min: 0, step: 0.1, kinds: PAT, help: 'pattern: the bullets still flying when the bullets end shrink away over this many seconds and hurt nobody (0 = gone at once), so the payoff is a clear screen' },
-    { g: 'hit', k: 'hit_frac', label: 'A bullet takes (share of max HP)', type: 'number', min: 0, max: 1, step: 0.01, kinds: PAT, help: 'pattern: each bullet that touches the hero takes this share of his max HP (0.12 = 12%: about 8 hits from full without armour), then it is gone; an evade, the Shield power-up and the blink after a hit stop it as they stop any shot. The danger is the number of bullets, never one hit' },
+    { g: 'hit', k: 'hit_frac', label: 'A bullet takes (share of max HP)', type: 'number', min: 0, max: 1, step: 0.01, kinds: PAT, help: 'pattern: each bullet that touches the outlaw takes this share of his max HP (0.12 = 12%: about 8 hits from full without armour), then it is gone; an evade, the Shield power-up and the blink after a hit stop it as they stop any shot. The danger is the number of bullets, never one hit' },
     // pass 114 (lane EDITOR; Garry: "make it a range between 10 and 15 for example"): Not before, At the latest and Then
     // every each take one number (fixed) or a range (min and max): the game rolls a number in the range from the fight's
     // own dice (the same in a replay)
@@ -150,7 +150,7 @@ const BossAttacks = (() => {
     { g: 'spent', k: 'still', label: 'Stands still while spent', type: 'bool', kinds: PAT, help: 'pattern: yes = he stands still while spent (no = he walks again, still taking the extra)' },
     { g: 'shell', k: 'look', label: 'Shell', type: 'select', opts: SHELL_OPTS, kinds: PAT, help: 'pattern: what shows he is guarded, besides his own glowing rim: a sand tornado round him, a glow behind him like armour, or a pillar of fire; it forms through the tell and collapses or gutters out as he is spent' },
     { g: 'shell', k: 'color', label: 'Shell colour', type: 'color', kinds: PAT, help: 'pattern: the shell\'s colour, and his rim while guarded' },
-    { g: 'shell', k: 'height', label: 'Shell height (m)', type: 'number', min: 1, step: 0.5, kinds: PAT, help: 'pattern: how tall the tornado or the pillar is (the hero is about 1.9 m)' },
+    { g: 'shell', k: 'height', label: 'Shell height (m)', type: 'number', min: 1, step: 0.5, kinds: PAT, help: 'pattern: how tall the tornado or the pillar is (the outlaw is about 1.9 m)' },
     { g: 'shell', k: 'radius', label: 'Shell radius (m)', type: 'number', min: 0.5, step: 0.1, kinds: PAT, help: 'pattern: how wide the tornado or the pillar is round him' },
     { g: 'shell', k: 'opacity', label: 'Shell opacity', type: 'number', min: 0.5, max: 1, step: 0.05, kinds: PAT, help: 'pattern, the tornado (pass 113): how solid its dust is, 0.5 to 1 (lower lets the boss show through it; 0.62 for the King)' },
     { g: 'shell', k: 'sigil_radius', label: 'Brand sigil (m)', type: 'number', min: 0, step: 0.5, kinds: PAT, help: 'pattern: a glowing brand sigil this wide (radius) burns into the sand under him through the tell and brightens through the bullets (0 = none; the Brander\'s is 6)' },
@@ -158,19 +158,19 @@ const BossAttacks = (() => {
     // pass 115 (lane BOSS; Garry: "add a barrier that appears around the boss and the hero. This makes it so this Boss
     // attack should only happen if Player is within the range of as far as the projectiles reach ... Avoid making it so
     // the Player gets stuck in this barrier when it goes up. Barrier falls apart and disappears when the attack is done")
-    { g: 'barrier', k: 'look', label: 'Barrier', type: 'select', opts: BLOOK_OPTS, kinds: PAT, help: 'pattern: a 3D wall that comes up out of the sand round the boss and the hero as the tell begins (nearest the hero first), holds him inside while the bullets fly, then falls apart and sinks. With a barrier THE REACH RULE plays: the attack only begins with the hero within its reach of the boss (the preview\'s dashed circle); when it is due and he is further off, it waits and begins the moment he comes in (its clock is not reset). So the wall never comes up on him: he stands at least 0.5 m inside it. none = no wall and no reach rule' },
-    { g: 'barrier', k: 'radius_mode', label: 'Where it stands', type: 'select', opts: BMODE_OPTS, kinds: PAT, help: 'pattern: range = the Inset inside the bullets\' Range (Projectile), so every spot inside it can be hit; fixed = at the Radius below. The phone shows about 12 m round the hero' },
-    { g: 'barrier', k: 'radius', label: 'Radius (m, fixed)', type: 'number', min: 3, step: 0.5, kinds: PAT, help: 'pattern, Where it stands = fixed: the wall\'s middle this far from where the boss stands (the hero is held 0.85 m inside it at the default thickness)' },
+    { g: 'barrier', k: 'look', label: 'Barrier', type: 'select', opts: BLOOK_OPTS, kinds: PAT, help: 'pattern: a 3D wall that comes up out of the sand round the boss and the outlaw as the tell begins (nearest the outlaw first), holds him inside while the bullets fly, then falls apart and sinks. With a barrier THE REACH RULE plays: the attack only begins with the outlaw within its reach of the boss (the preview\'s dashed circle); when it is due and he is further off, it waits and begins the moment he comes in (its clock is not reset). So the wall never comes up on him: he stands at least 0.5 m inside it. none = no wall and no reach rule' },
+    { g: 'barrier', k: 'radius_mode', label: 'Where it stands', type: 'select', opts: BMODE_OPTS, kinds: PAT, help: 'pattern: range = the Inset inside the bullets\' Range (Projectile), so every spot inside it can be hit; fixed = at the Radius below. The phone shows about 12 m round the outlaw' },
+    { g: 'barrier', k: 'radius', label: 'Radius (m, fixed)', type: 'number', min: 3, step: 0.5, kinds: PAT, help: 'pattern, Where it stands = fixed: the wall\'s middle this far from where the boss stands (the outlaw is held 0.85 m inside it at the default thickness)' },
     { g: 'barrier', k: 'inset', label: 'Inset (m, range)', type: 'number', min: 0, step: 0.5, kinds: PAT, help: 'pattern, Where it stands = range: the wall stands this far inside the bullets\' Range' },
-    { g: 'barrier', k: 'height', label: 'Height (m)', type: 'number', min: 0.5, max: 4, step: 0.1, kinds: PAT, help: 'pattern: how tall the wall is (the hero is about 1.9 m); its pieces grow with it' },
-    { g: 'barrier', k: 'thickness', label: 'Thickness (m)', type: 'number', min: 0.2, max: 3, step: 0.1, kinds: PAT, help: 'pattern: how thick it is: the hero stops at its inner face, the bullets vanish there, the creatures outside stop at its outer face' },
+    { g: 'barrier', k: 'height', label: 'Height (m)', type: 'number', min: 0.5, max: 4, step: 0.1, kinds: PAT, help: 'pattern: how tall the wall is (the outlaw is about 1.9 m); its pieces grow with it' },
+    { g: 'barrier', k: 'thickness', label: 'Thickness (m)', type: 'number', min: 0.2, max: 3, step: 0.1, kinds: PAT, help: 'pattern: how thick it is: the outlaw stops at its inner face, the bullets vanish there, the creatures outside stop at its outer face' },
     { g: 'barrier', k: 'rise_s', label: 'Rise (s)', type: 'number', min: 0.1, step: 0.1, kinds: PAT, help: 'pattern: seconds each stretch takes to come up out of the sand (a little overshoot and a wobble)' },
-    { g: 'barrier', k: 'spread_s', label: 'Spread (s)', type: 'number', min: 0, step: 0.1, kinds: PAT, help: 'pattern: the rise runs round the ring from the hero\'s side to the far side over this long (0 = all at once); the pieces also fall apart at random over this long' },
+    { g: 'barrier', k: 'spread_s', label: 'Spread (s)', type: 'number', min: 0, step: 0.1, kinds: PAT, help: 'pattern: the rise runs round the ring from the outlaw\'s side to the far side over this long (0 = all at once); the pieces also fall apart at random over this long' },
     { g: 'barrier', k: 'fall_s', label: 'Fall (s)', type: 'number', min: 0.1, step: 0.1, kinds: PAT, help: 'pattern: seconds each piece takes to topple (or roll away) and sink as the barrier falls apart' },
-    { g: 'barrier', k: 'hold', label: 'Stands', type: 'select', opts: BHOLD_OPTS, kinds: PAT, help: 'pattern: bullets = it falls apart as the bullets end, as he is dazed (the hero is free to go); spent = it stands through his dazed seconds too' },
+    { g: 'barrier', k: 'hold', label: 'Stands', type: 'select', opts: BHOLD_OPTS, kinds: PAT, help: 'pattern: bullets = it falls apart as the bullets end, as he is dazed (the outlaw is free to go); spent = it stands through his dazed seconds too' },
     { g: 'barrier', k: 'color', label: 'Barrier colour x', type: 'color', kinds: PAT, help: 'pattern: times the wall\'s own paint (#FFFFFF = as made; a darker colour darkens it)' },
     { g: 'barrier', k: 'glow_color', label: 'Glow colour', type: 'color', kinds: PAT, help: 'pattern: the colour of its glowing bits (the King\'s embers, the Gila\'s venom blooms, the Brander\'s white-hot iron)' },
-    { g: 'barrier', k: 'hero_block', label: 'Holds the hero', type: 'bool', kinds: PAT, help: 'pattern: the hero cannot cross it while it stands (walking, shoved, thrown, leaping: he slides along it; a Teleport lands inside it)' },
+    { g: 'barrier', k: 'hero_block', label: 'Holds the outlaw', type: 'bool', kinds: PAT, help: 'pattern: the outlaw cannot cross it while it stands (walking, shoved, thrown, leaping: he slides along it; a Teleport lands inside it)' },
     { g: 'barrier', k: 'creatures', label: 'Creatures', type: 'select', opts: BCRE_OPTS, kinds: PAT, help: 'pattern: block = every creature stays on the side it was on as it rose (the ones outside pile up against it); pass = they walk through it' },
     { g: 'barrier', k: 'bullets', label: 'Bullets at it', type: 'select', opts: BBUL_OPTS, kinds: PAT, help: 'pattern: stop = a bullet that reaches its inner face stops there and shrinks away with a spark; pass = it flies on to its Range' },
   ];
@@ -569,7 +569,7 @@ const BossAttacks = (() => {
     { k: 'shape', label: 'Shape', type: 'select', opts: ESHAPE_OPTS, shapes: SH_ALL, help: 'spiral: arms that turn as they fire (bullets fly straight out, so each arm curls); ring: bullets all round with an opening; fan: a spread of bullets round its aim; sweep: a fan swinging left and right like a garden sprinkler; wall: a line of bullets across its aim flying together; rose: a ring that opens into petals as it grows' },
     { k: 'count', label: 'Bullets a volley', type: 'int', min: 1, step: 1, shapes: SH_ALL, help: 'spiral, fan, sweep: bullets on each arm; ring, rose: bullets all round; wall: bullets along the line' },
     { k: 'arms', label: 'Arms', type: 'int', min: 1, step: 1, shapes: SH_ARMS, help: 'spiral, fan, sweep: that many arms evenly round (3 = three arms 120° apart)' },
-    { k: 'speed', label: 'Speed (m/s)', type: 'number', min: 0.1, step: 0.1, shapes: SH_ALL, help: 'how fast each bullet flies. The hero walks about 5 m/s: 2.5-4 is slow enough to weave through' },
+    { k: 'speed', label: 'Speed (m/s)', type: 'number', min: 0.1, step: 0.1, shapes: SH_ALL, help: 'how fast each bullet flies. The outlaw walks about 5 m/s: 2.5-4 is slow enough to weave through' },
     { k: 'rate', label: 'Volleys a second', type: 'number', min: 0, step: 0.1, shapes: SH_ALL, help: 'how many volleys it fires a second while it is on (the first as it comes on)' },
     { k: 'spin', label: 'Spin (°/s)', type: 'number', step: 1, shapes: SH_ALL, help: 'degrees a second the whole emitter turns (minus = the other way): the spiral\'s arms, a ring\'s opening, a fan' },
     { k: 'reverse_at', label: 'Spin turns back at', type: 'number', min: -1, max: 1, step: 0.05, shapes: SH_ALL, help: 'the share of the bullets\' time at which the spin turns back the other way (0.5 = halfway: the King\'s arms reverse, so the safe lanes change); -1 = never' },
@@ -582,8 +582,8 @@ const BossAttacks = (() => {
     { k: 'bloom_hz', label: 'Petals breathe (/s)', type: 'number', min: 0, step: 0.05, shapes: ['rose'], help: 'rose: the petals open and close this many times a second (the depth swinging between 0 and Petal depth); 0 = held' },
     { k: 'turn_every', label: 'Turn every (s)', type: 'number', min: 0, step: 0.5, shapes: SH_ALL, help: 'a jump round every this many seconds (the Brander\'s mandala turns every 3 s); 0 = never' },
     { k: 'turn_deg', label: 'Turn by (°)', type: 'number', step: 1, shapes: SH_ALL, help: 'how far each jump turns it (a five-petal rose: 36° = half a petal, so the petals come where the gaps were)' },
-    { k: 'offset_deg', label: 'Turned from its aim (°)', type: 'number', step: 1, shapes: SH_ALL, help: 'turned this far from its aim (60 with three arms puts the hero between two arms at the start)' },
-    { k: 'aim', label: 'Aim', type: 'select', opts: EAIM_OPTS, shapes: SH_ALL, help: 'hero: at the hero where he stands as the bullets begin; track: at the hero at every volley; fixed: due east; random: a new random way every volley (the opening of a ring somewhere else each time)' },
+    { k: 'offset_deg', label: 'Turned from its aim (°)', type: 'number', step: 1, shapes: SH_ALL, help: 'turned this far from its aim (60 with three arms puts the outlaw between two arms at the start)' },
+    { k: 'aim', label: 'Aim', type: 'select', opts: EAIM_OPTS, shapes: SH_ALL, help: 'hero: at the outlaw where he stands as the bullets begin; track: at the outlaw at every volley; fixed: due east; random: a new random way every volley (the opening of a ring somewhere else each time)' },
     { k: 'start', label: 'From (share)', type: 'number', min: 0, max: 1, step: 0.05, shapes: SH_ALL, help: 'it is on from this share of the bullets\' time (0 = from the first moment)' },
     { k: 'stop', label: 'To (share)', type: 'number', min: 0, max: 1, step: 0.05, shapes: SH_ALL, help: '...to this share (1 = to the end)' },
     { k: 'pulse_every', label: 'On and off every (s)', type: 'number', min: 0, step: 0.5, shapes: SH_ALL, help: 'it comes on and goes off in a rhythm this long (0 = always on): the Gila\'s second fan comes on every second sweep' },
@@ -601,8 +601,8 @@ const BossAttacks = (() => {
       '<b>Timing → Bullets for (s)</b>: the seconds of bullets after the warning (the King\'s Royal Dust Devil: 16). The warning (<b>Tell (s)</b>, 2) comes before it and his dazed seconds (<b>Spent for (s)</b>, 2.5) after it.',
       'Each emitter\'s <b>From (share)</b> and <b>To (share)</b> are shares of that time (0.15 to 0.9 = from 15% to 90% of it), so a longer attack keeps its shape.']],
     ['How far the bullets fly', [
-      '<b>Projectile → Range (m)</b>: a bullet shrinks away this far from where the boss stood (the King: 48 m; the screen shows about 12 m round the hero).',
-      'Each emitter\'s <b>Speed (m/s)</b>: how fast its bullets fly (the hero walks about 5). Faster bullets reach the range sooner, so fewer are in the air.']],
+      '<b>Projectile → Range (m)</b>: a bullet shrinks away this far from where the boss stood (the King: 48 m; the screen shows about 12 m round the outlaw).',
+      'Each emitter\'s <b>Speed (m/s)</b>: how fast its bullets fly (the outlaw walks about 5). Faster bullets reach the range sooner, so fewer are in the air.']],
     ['How far apart the bullets are (each emitter on its own)', [
       '<b>Bullets a volley</b>: fewer = more room between them (a ring of 16 instead of 20 = a quarter more room).',
       '<b>Spread (°)</b> (spiral, fan, sweep): a wider spread with the same bullets = more room between them.',
@@ -615,9 +615,9 @@ const BossAttacks = (() => {
       'Each of the three can be <b>fixed</b> (one number) or a <b>range</b> (min and max): the game picks a number between them, Not before and At the latest once per fight, Then every after each attack. 10 to 15 = somewhere from 10 s to 15 s.',
       'The line <b>In a fight</b> under the preview shows when the first three can start and end, earliest to latest.']],
     // pass 115 (lane BOSS)
-    ['The barrier round him and the hero', [
-      '<b>The barrier → Barrier</b>: its look (the King\'s tumbleweed fence, the Gila\'s cactus fence, the Brander\'s iron fence) or none. It comes up out of the sand as the warning begins, on the hero\'s side first, holds him inside while the bullets fly and falls apart as the bullets end (<b>Stands</b>: or when his dazed seconds end).',
-      'With a barrier the attack only begins when the hero is within its reach of the boss (the white dashed circle in the preview); due while he is further off, it waits and begins the moment he comes in. So the wall never comes up on him.',
+    ['The barrier round him and the outlaw', [
+      '<b>The barrier → Barrier</b>: its look (the King\'s tumbleweed fence, the Gila\'s cactus fence, the Brander\'s iron fence) or none. It comes up out of the sand as the warning begins, on the outlaw\'s side first, holds him inside while the bullets fly and falls apart as the bullets end (<b>Stands</b>: or when his dazed seconds end).',
+      'With a barrier the attack only begins when the outlaw is within its reach of the boss (the white dashed circle in the preview); due while he is further off, it waits and begins the moment he comes in. So the wall never comes up on him.',
       '<b>Where it stands</b>: range = the <b>Inset</b> inside the bullets\' Range (every spot inside can be hit; off the screen until he runs out to it); fixed = at the <b>Radius</b> you type (12 to 16 m keeps it on the screen while he dodges; the bullets vanish at it).',
       '<b>Rise</b>, <b>Spread</b>, <b>Fall</b> (s): how it comes up and falls apart; <b>Creatures</b>: kept on their side or walking through; <b>Bullets at it</b>: vanish at it or fly on.']],
     ['Then', [
@@ -741,7 +741,7 @@ const BossAttacks = (() => {
     s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: bossR * ppm, class: 'bp-boss', stroke: guarded ? (M.val(d, 'shell', 'color') || '#C9A46A') : '#e0a63a', 'stroke-width': guarded ? 5 : 3 }));
     s.appendChild(svg('text', { x: X(0), y: Y(0) + 4, class: 'bp-label mid', text: boss.name || 'boss' }));
     s.appendChild(svg('circle', { cx: X(heroAt[0]), cy: Y(heroAt[1]), r: Math.max(2.5, M.HERO_RADIUS * ppm), class: 'bp-hero' }));
-    s.appendChild(svg('text', { x: X(heroAt[0]) + 8, y: Y(heroAt[1]) + 4, class: 'bp-label', text: 'hero (to scale)' }));
+    s.appendChild(svg('text', { x: X(heroAt[0]) + 8, y: Y(heroAt[1]) + 4, class: 'bp-label', text: 'outlaw (to scale)' }));
     s.appendChild(svg('line', { x1: 12, y1: W - 14, x2: 12 + 5 * ppm, y2: W - 14, class: 'bp-bar' }));
     s.appendChild(svg('text', { x: 12, y: W - 19, class: 'bp-label', text: '5 m' }));
     const phase = t < tell ? `the tell ${fmtN(t, 1)} / ${fmtN(tell, 1)} s: ${(M.val(d, 'tell', 'banner') || d.name || '').toUpperCase()}` : (t < tell + bul ? `bullets ${fmtN(t - tell, 1)} / ${fmtN(bul, 1)} s · ${sim ? sim.at.length : 0} in the air` : `spent ${fmtN(t - tell - bul, 1)} / ${fmtN(spent, 1)} s: DAZED`);
@@ -765,16 +765,16 @@ const BossAttacks = (() => {
     const span = (r) => (Math.abs(r[0] - r[1]) < 0.05 ? `${fmtN(r[0], 1)} s` : `${fmtN(r[0], 1)}–${fmtN(r[1], 1)} s`);
     li(`<b>In a fight</b> (seconds since he arrived, earliest–latest; his own attacks can only make one later, ×1/pace on the map): ${sched.map((x) => `${['1st', '2nd', '3rd'][x.k - 1]} starts ${span(x.start)}, over ${span(x.end)}`).join(' · ')}`);
     li(`<b>${fmtN(tell, 1)} s tell</b> (banner, dark ground, wind-up sound, music down ${fmtN(-M.num(M.val(d, 'tell', 'duck_db'), -14), 0)} dB, his wind-up) → <b>${fmtN(bul, 1)} s of bullets</b> → <b>${fmtN(spent, 1)} s spent</b>: about ${fmtN(total, 1)} s in all (×1/pace on the map). Meanwhile no other attack of his and no new creatures from the boss fight's rows`);
-    li(`<b>${all.peak}</b> bullets in the air at most (at ${fmtN(all.peak_t, 1)} s), ${all.fired} in all over ${all.volleys} volleys (without a hero to hit)`);
+    li(`<b>${all.peak}</b> bullets in the air at most (at ${fmtN(all.peak_t, 1)} s), ${all.fired} in all over ${all.volleys} volleys (without an outlaw to hit)`);
     // pass 115 (lane BOSS): the barrier in words
     if (M.barrierOn(d)) {
       const lk = { tumbleweed_fence: 'a tumbleweed fence', cactus_fence: 'a cactus fence', iron_fence: 'an iron fence', cross_fence: 'a fence of crosses' }[String(M.val(d, 'barrier', 'look'))] || 'a barrier';
-      li(`<b>Barrier:</b> ${lk} ${fmtN(M.barrierRadius(d), 1)} m round him (the hero held within ${fmtN(M.barrierHeroLimit(d), 1)} m of him${M.val(d, 'barrier', 'hero_block') ? '' : ': <b>off</b>, he can walk through it'}); it begins <b>only with the hero within ${fmtN(M.barrierReach(d), 1)} m</b> (the dashed circle: due while he is further off, it waits for him to come in); bullets ${M.barrierStopsBullets(d) ? `vanish at it (${fmtN(M.bulletReach(d), 1)} m)` : 'fly through it'}; creatures ${String(M.val(d, 'barrier', 'creatures')) === 'pass' ? 'walk through it' : 'stay on their side'}; it falls apart ${String(M.val(d, 'barrier', 'hold')) === 'spent' ? 'when his dazed seconds end' : 'as the bullets end'}`);
+      li(`<b>Barrier:</b> ${lk} ${fmtN(M.barrierRadius(d), 1)} m round him (the outlaw held within ${fmtN(M.barrierHeroLimit(d), 1)} m of him${M.val(d, 'barrier', 'hero_block') ? '' : ': <b>off</b>, he can walk through it'}); it begins <b>only with the outlaw within ${fmtN(M.barrierReach(d), 1)} m</b> (the dashed circle: due while he is further off, it waits for him to come in); bullets ${M.barrierStopsBullets(d) ? `vanish at it (${fmtN(M.bulletReach(d), 1)} m)` : 'fly through it'}; creatures ${String(M.val(d, 'barrier', 'creatures')) === 'pass' ? 'walk through it' : 'stay on their side'}; it falls apart ${String(M.val(d, 'barrier', 'hold')) === 'spent' ? 'when his dazed seconds end' : 'as the bullets end'}`);
     }
     li(`a bullet takes <b>${fmtN(M.num(M.val(d, 'hit', 'hit_frac'), 0.12) * 100, 0)}%</b> of the hero's max HP and is gone; the ones left when the bullets end burn out over ${fmtN(M.num(M.val(d, 'timing', 'clear'), 0.6), 1)} s, harmless`);
     li(`guarded: he takes <b>${fmtN((1 - Math.min(Math.max(M.num(M.val(d, 'guard', 'share'), 0.8), 0), 0.95)) * 100, 0)}%</b> of every hit (grey numbers, a grey bar); spent: <b>×${fmtN(M.num(M.val(d, 'spent', 'damage_taken'), 1.5), 2)}</b>`);
     side.appendChild(facts);
-    side.appendChild(el('p', { class: 'muted small', text: 'From above, to scale, the hero standing still 8 m off (track aims follow him there; random aims are one example). White-rimmed bullets are being pulled home by a finale.' }));
+    side.appendChild(el('p', { class: 'muted small', text: 'From above, to scale, the outlaw standing still 8 m off (track aims follow him there; random aims are one example). White-rimmed bullets are being pulled home by a finale.' }));
     wrap.appendChild(side);
     return wrap;
   }
@@ -881,7 +881,7 @@ const BossAttacks = (() => {
     s.appendChild(svg('circle', { cx: X(0), cy: Y(0), r: bossR * ppm, class: 'bp-boss' }));
     s.appendChild(svg('text', { x: X(0), y: Y(0) + 4, class: 'bp-label mid', text: boss.name || 'boss' }));
     s.appendChild(svg('circle', { cx: X(heroAt[0]), cy: Y(heroAt[1]), r: Math.max(2.5, M.HERO_RADIUS * ppm), class: 'bp-hero' }));
-    s.appendChild(svg('text', { x: X(heroAt[0]) + 8, y: Y(heroAt[1]) + 4, class: 'bp-label', text: 'hero (to scale)' }));
+    s.appendChild(svg('text', { x: X(heroAt[0]) + 8, y: Y(heroAt[1]) + 4, class: 'bp-label', text: 'outlaw (to scale)' }));
     s.appendChild(svg('line', { x1: 12, y1: W - 14, x2: 12 + 5 * ppm, y2: W - 14, class: 'bp-bar' }));
     s.appendChild(svg('text', { x: 12, y: W - 19, class: 'bp-label', text: '5 m' }));
     s.appendChild(svg('text', { x: W - 10, y: 18, class: 'bp-label end', text: fired ? `${fmtN(tc, 2)} s after it fires` : `wind-up ${fmtN(t, 2)} / ${fmtN(wind, 2)} s` }));
@@ -897,7 +897,7 @@ const BossAttacks = (() => {
     const li = (h) => { const x = el('li'); x.innerHTML = h; facts.appendChild(x); };
     if (kind === 'rain') {
       li(`<b>${lay.pts.length}</b> landing spots between ${fmtN(lay.rmin, 1)} and ${fmtN(lay.rmax, 1)} m (${pat.shape}, ${pat.order === 'out' ? 'nearest first' : pat.order})`);
-      li(`the narrowest gap <b>${isFinite(lay.gap) ? fmtN(lay.gap, 2) : '—'} m</b> between two circles (the rule: at least ${fmtN(M.num(pat.gap, 1), 2)} m; the hero is ${fmtN(2 * M.HERO_RADIUS, 1)} m wide) <span class="bp-gapkey">━</span>`);
+      li(`the narrowest gap <b>${isFinite(lay.gap) ? fmtN(lay.gap, 2) : '—'} m</b> between two circles (the rule: at least ${fmtN(M.num(pat.gap, 1), 2)} m; the outlaw is ${fmtN(2 * M.HERO_RADIUS, 1)} m wide) <span class="bp-gapkey">━</span>`);
       li(`the circles cover <b>${fmtN(lay.cover * 100, 0)}%</b> of the ring`);
       if (M.isVolley(d)) li(`one spew from its mouth after the ${fmtN(wind, 2)} s wind-up (it crouches the last ${fmtN(M.num(M.val(d, 'spew', 'crouch'), 0.35), 2)} s): every shot lands between ${fmtN(lay.first, 2)} s and ${fmtN(lay.lasts, 2)} s after it, <b>all within ${fmtN(lay.lasts - lay.first, 2)} s</b> (×1/pace on the map)`);
       else li(`after the ${fmtN(wind, 2)} s wind-up the shots land from ${fmtN(lay.flight, 2)} s to ${fmtN(lay.lasts, 2)} s, each circle showing ${fmtN(M.num(M.val(d, 'telegraph', 'seconds'), 0.9), 2)} s before (×1/pace on the map)`);
@@ -905,7 +905,7 @@ const BossAttacks = (() => {
     }
     if (kind === 'volley') li(`${Math.max(Math.round(M.num(pat.count, 1)), 1)} shots a wave × ${Math.max(Math.round(M.num(pat.waves, 1)), 1)} over ${fmtN(M.num(pat.spread_deg, 360), 0)}°, ${fmtN(M.num(M.val(d, 'projectile', 'range'), 18), 0)} m at ${fmtN(M.num(M.val(d, 'projectile', 'speed'), 12), 1)} m/s`);
     if (kind === 'ring') li(`${Math.max(Math.round(M.num(pat.count, 1)), 1)} ring(s) to ${fmtN(rmax, 1)} m, ${fmtN(M.num(pat.width, 1.2), 1)} m thick`);
-    if (kind === 'slam') li(`a blast of ${fmtN(rmax, 1)} m round the ${pat.center === 'hero' ? 'hero\'s spot' : 'boss'}`);
+    if (kind === 'slam') li(`a blast of ${fmtN(rmax, 1)} m round the ${pat.center === 'hero' ? 'outlaw\'s spot' : 'boss'}`);
     li(`a hit: ${fmtN(M.topVal(d, 'damage'), 2)} × ${boss.name ? boss.name + '\'s' : 'the'} bite ${fmtN(bite, 0)} = <b>${fmtN(M.hitDamage(d, bite, 1), 1)}</b> before the stage, level and map factors; knockback ${fmtN(M.topVal(d, 'knockback'), 1)}${M.topVal(d, 'lift') > 0 ? ', lift ' + fmtN(M.topVal(d, 'lift'), 1) : ''}`);
     side.appendChild(facts);
     side.appendChild(el('p', { class: 'muted small', text: 'From above, to scale. The game turns and jitters a rain\'s layout at random every time it fires; this is one example with the same rules (the gap rule holds in every one).' }));
@@ -955,7 +955,7 @@ const BossAttacks = (() => {
     const ol = (...steps) => el('ol', { class: 'howto' }, steps.map((s) => li(s)));
     const how = (title, steps) => { root.appendChild(el('h3', { text: title })); root.appendChild(steps); };
     root.appendChild(el('h2', { text: 'Pass 72: boss HP pegged to DPS, custom boss attacks' }));
-    root.appendChild(el('h3', { text: 'Boss HP pegged to the hero\'s DPS (Settings → Boss HP)' }));
+    root.appendChild(el('h3', { text: 'Boss HP pegged to the outlaw\'s DPS (Settings → Boss HP)' }));
     const ul = el('ul', {});
     for (const w of (typeof BossScaling !== 'undefined' ? BossScaling.WORDS : [])) ul.appendChild(li(w));
     root.appendChild(ul);
@@ -971,7 +971,7 @@ const BossAttacks = (() => {
     root.appendChild(kinds);
     how('Make one and give it to a boss', ol(
       'Boss attacks tab → <b>+ New attack</b>: a name (the id follows it), <i>Start from</i> a blank kind or a copy of an attack → <b>Make it</b>. It is written and imported at once.',
-      'Tune it with the preview: the boss, the hero to scale 8 m off, the landing spots and the narrowest gap (the yellow line), the time slider and <b>▶ Play</b> (circles show red before their shot lands, landed spots fill in its colour). <b>New layout</b> throws another random turn and jitter (the game throws one every time).',
+      'Tune it with the preview: the boss, the outlaw to scale 8 m off, the landing spots and the narrowest gap (the yellow line), the time slider and <b>▶ Play</b> (circles show red before their shot lands, landed spots fill in its colour). <b>New layout</b> throws another random turn and jitter (the game throws one every time).',
       'Every box shows the game\'s default in grey; <b>?</b> says what it does. Save attack (Ctrl+S). Ctrl+Z / Ctrl+Y step back and forth.',
       'Tick the bosses under <i>In the script of</i>: it goes to the end of their attack cycle (Enemies tab → the boss → <i>Attack script</i> to reorder it, give it a <i>Skip inside / beyond</i> range or its own wind-up for that boss).',
       '<b>Delete…</b> takes it out of every script first and moves the folder to the editor\'s backups.'));

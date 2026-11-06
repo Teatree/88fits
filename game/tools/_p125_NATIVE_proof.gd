@@ -21,6 +21,10 @@ func _say_native() -> void:
 	var pt = em.get("patterns")
 	if pt != null:
 		_say("patterns: started %d ended %d fired %d hits %d" % [pt.started, pt.ended, pt.fired, pt.hits])
+	# pass 128 (lane BLOB): whether the run really relocated creatures (CrowdRelocate)
+	var rl = em.get("relocate")
+	if rl != null:
+		_say("relocate: on %s, relocated %d, sunk %d, queued %d, dropped %d, by creature %s" % [str(rl.on), rl.relocated, rl.sunk, rl.queued_total, rl.dropped, str(rl.relocated_by)])
 
 
 func _end_report(why: String) -> void:

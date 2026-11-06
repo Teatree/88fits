@@ -66,7 +66,7 @@
   "variant": "DRI-A",
   "variants": {
     "DRI-A": {
-      "note": "The hero's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it)."
+      "note": "The outlaw's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it)."
     },
     "DRI-B": {
       "note": "pass 126: black duster and hat, red bandana, silver skull buckle: Klein edits of his own paintings, view by view (tools/gen_skin_views.py), walked on his own driver",

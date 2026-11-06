@@ -175,7 +175,9 @@ func test_the_cactus_throws_red_pulsing_dynamite_faster_than_the_spit() -> void:
 	assert_float(float(dy["lead"])).is_less(0.6)
 	assert_bool(ResourceLoader.exists(str(dy["model"]))).is_true()
 	assert_str(str(dy["model"])).contains("bomb")
-	assert_str(str(r["dynamite"]["model"])).contains("red")
+	# pass 128 (lane DYNA): look B's stick is red from the start, so its model's name no longer says "red"
+	assert_str(str(r["dynamite"]["model"])).is_equal(ProjectileManager.DYN_MODEL)
+	assert_bool(ResourceLoader.exists(str(r["dynamite"]["model"]))).is_true()
 	# the pulse is kept, red
 	var c := Color(str(r["pulse"]["color"]))
 	assert_float(c.r).is_greater(0.8)

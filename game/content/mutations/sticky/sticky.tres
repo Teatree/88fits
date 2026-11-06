@@ -38,9 +38,10 @@ variants = {
 "fresh": true,
 "icon": ExtResource("3_0qdje"),
 "icon_file": "sticky_icon_b.png",
-"note": "B · the stick keeps its own paper and its spark (no amber tint, no blinking light); the icon in amber resin",
+"note": "B · amber tar poured over the stick (or the bundle), dripping; its spark kept (no amber tint, no blinking light)",
 "params": {
 "look": null,
+"model_tar": true,
 "tint": null
 }
 },

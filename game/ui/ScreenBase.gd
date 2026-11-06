@@ -21,6 +21,8 @@ const SUNSET := [[0.0, Color("120c3a")], [0.28, Color("2d1a5a")], [0.48, Color("
 const SUNSET_GROUND := [[0.57, Color("2a1430")], [1.0, Color("0c0918")]]
 ## The dark overlay over the Royale backdrop behind a screen of panels (backdrop_dim()'s default).
 const ROYALE_DIM := 0.25
+## The board sheet's border (px); the scroll never starts above its inner edge (scroll_top, pass 128).
+const SHEET_EDGE := 3
 
 var content: VBoxContainer
 var margin: MarginContainer
@@ -58,12 +60,13 @@ func _ready() -> void:
 		title_label = header.title
 	# the scroll runs the full width and the margins sit inside it, so a seal hanging off a panel's corner is not cut;
 	# it starts no higher than the header's foot, so the back square keeps all of its own touches
-	var room := board_room()
+	# pass 128: and no higher than the sheet's inner top edge (scroll_top): the room over the board is what is left
+	var room := board_top() - scroll_top()
 	scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.offset_left = 0
 	scroll.offset_right = 0
-	scroll.offset_top = board_top() - room + W.safe_top()
+	scroll.offset_top = scroll_top() + W.safe_top()
 	scroll.offset_bottom = -bottom_total()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
@@ -193,7 +196,7 @@ func _add_board_sheet() -> void:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = R.SHEET
 	sb.border_color = R.SHEET_EDGE
-	sb.set_border_width_all(3)
+	sb.set_border_width_all(SHEET_EDGE)
 	sb.set_corner_radius_all(R.RADIUS_TAB)
 	sb.anti_aliasing = true
 	board_sheet_node.add_theme_stylebox_override("panel", sb)
@@ -254,6 +257,17 @@ func solid_sheet(pad: Vector2 = Vector2(24, 24)) -> PanelContainer:
 ## header's foot. A screen with a fixed strip over its board (the Collection's tabs) returns 0.
 func board_room() -> float:
 	return 50.0 if not use_header() else clampf(board_top() - 160.0, 0.0, 50.0)
+
+
+## Pass 128: where the scroll's rect starts (design px, before the cutout's inset): board_room() over the board, but on a
+## board sheet never above the sheet's inner top edge. Scrolled content used to show in the band between the two, over
+## the bare backdrop, and was then cut by a straight line (the Outlaws screen's running figure lost his head outside the
+## sheet). The page starts where it did at rest: the margin over the board is board_top() - scroll_top().
+func scroll_top() -> float:
+	var top := board_top() - board_room()
+	if board_sheet():
+		top = maxf(top, sheet_insets().position.y - W.safe_top() + float(SHEET_EDGE))
+	return minf(top, board_top())
 
 
 ## The board's side margins (48 on the menus; the results use 60).

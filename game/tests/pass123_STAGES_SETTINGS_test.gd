@@ -289,7 +289,7 @@ func test_the_choices_read_in_capitals_and_set_the_settings() -> void:
 	assert_str(_texts(cam)).contains("FIXED")
 	assert_str(_texts(cam)).contains("FOLLOW")
 	assert_str(_texts(cam)).contains("north stays up")
-	assert_str(_texts(cam)).contains("swings behind the hero")
+	assert_str(_texts(cam)).contains("swings behind the outlaw")
 	for t in cam.find_children("*", "WText", true, false):
 		var w := t as WText
 		if w.text == "FIXED" or w.text == "FOLLOW":

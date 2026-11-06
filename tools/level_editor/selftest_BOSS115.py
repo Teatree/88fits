@@ -138,7 +138,7 @@ def checks(check, run_node, server):
     b = res["bad"]["errors"]
     check(sum(1 for e in b if "barrier" in e) >= 5 and any("#rrggbb" in e for e in b), "BOSS115: unknown barrier choices and a bad colour are refused: %s" % b)
     w = res["warn"]["warnings"]
-    check(any("past the bullets" in x for x in w) and any("still rising" in x for x in w) and any("does not hold the hero" in x for x in w),
+    check(any("past the bullets" in x for x in w) and any("still rising" in x for x in w) and any("does not hold the outlaw" in x for x in w),
           "BOSS115: a wall past the range, one still rising at the bullets, one that does not hold the hero are warned: %s" % w)
     check(any("very little room" in x for x in res["cramped"]["warnings"]), "BOSS115: a cramped barrier is warned: %s" % res["cramped"]["warnings"])
     check(not res["off"]["on"] and res["off"]["reach"] == "INF" and not res["off"]["rainOn"], "BOSS115: no look, no barrier and no reach rule; only a pattern has one: %s" % res["off"])

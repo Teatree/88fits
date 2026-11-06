@@ -224,7 +224,7 @@ func _items() -> void:
 			v.add_child(_item(w, "own", "Signature weapon", 1, "", sheet))
 	for m: MutationDef in Registry.hero_mutations(hero.id):
 		var on := Registry.weapon(m.weapon)
-		v.add_child(_item(m, "mutation", "Hero mutation · " + (on.display_name if on else m.weapon), 1, "", sheet))
+		v.add_child(_item(m, "mutation", "Outlaw mutation · " + (on.display_name if on else m.weapon), 1, "", sheet))
 	for pk: PerkDef in Registry.perks_of(hero.id):
 		v.add_child(_item(pk, "perk", "Perk", 1, "", sheet))
 
@@ -288,7 +288,7 @@ func _item(def: ContentDef, role: String, word: String, level: int, bonus: Strin
 	var k := W.kind_of(def)
 	col.add_child(W.label(word + ((" · " + W.lv(level)) if level > 1 else ""), 18, W.KIND_WORD.get(k, W.INK_SOFT), 0.12))
 	col.add_child(W.text("?" if locked else def.display_name, W.slab(), 38, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
-	var d := W.serif_text("Unknown until this hero is yours." if locked else describe(def, level, sheet), 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	var d := W.serif_text("Unknown until this outlaw is yours." if locked else describe(def, level, sheet), 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	d.name = "Text"
 	d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(d)
@@ -572,7 +572,7 @@ func _locked_box_royale() -> Control:
 		row.add_child(pr)
 		v.add_child(row)
 		var said := ("Requirement met: %s " % TextGen.quest_text(q)) if q else ""
-		var t := W.serif_text(said + "Buy on the Heroes screen.", 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+		var t := W.serif_text(said + "Buy on the Outlaws screen.", 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 		t.color = R.WHITE
 		v.add_child(t)
 		return p
@@ -628,7 +628,7 @@ func _stats_royale() -> void:
 	for st: String in STATS:
 		grid.add_child(_stat_cell_royale(st, "?" if locked else stat_value(st, sheet.get_stat(st)), st in mine and not locked))
 	v.add_child(grid)
-	var words := "Every number is unknown until this hero is yours." if locked else ("Signature stat in green. " + (
+	var words := "Every number is unknown until this outlaw is yours." if locked else ("Signature stat in green. " + (
 		"Your Upgrade board ranks are counted in." if ups else "Ranks on the Upgrade board add to these."))
 	var note := W.serif_text(words, R_NOTE_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
 	note.name = "Note"
@@ -838,7 +838,7 @@ static func items_of(c: CharacterDef) -> Array:
 			out.append({"def": w, "role": "own", "word": "Signature weapon", "level": 1})
 	for m: MutationDef in Registry.hero_mutations(c.id):
 		var on := Registry.weapon(m.weapon)
-		out.append({"def": m, "role": "mutation", "word": "Hero mutation · " + (on.display_name if on else m.weapon), "level": 1})
+		out.append({"def": m, "role": "mutation", "word": "Outlaw mutation · " + (on.display_name if on else m.weapon), "level": 1})
 	for pk: PerkDef in Registry.perks_of(c.id):
 		out.append({"def": pk, "role": "perk", "word": "Perk", "level": 1})
 	return out
@@ -854,7 +854,7 @@ static func royale_item_row(it: Dictionary, sheet: StatSheet, unknown: bool, fra
 	var word := str(it.get("word", ""))
 	var level := int(it.get("level", 1))
 	var bonus := str(it.get("bonus", ""))
-	var words := "Unknown until this hero is yours." if unknown else describe(def, level, sheet)
+	var words := "Unknown until this outlaw is yours." if unknown else describe(def, level, sheet)
 	if unknown:
 		word = word.get_slice(" · ", 0)
 		level = 1

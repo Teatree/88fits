@@ -197,6 +197,10 @@ func _apply_mults() -> void:
 	# pass 95 (lane WORLD): regular creatures far from the hero and off the screen despawn (EnemyManager.set_despawn,
 	# the map's timeline_data.despawn); never in the arena, where creatures are spawned to be looked at
 	em.set_despawn({} if Run.arena else timeline.despawn_cfg())
+	# pass 128 (lane BLOB): regular creatures far from the outlaw for long enough sink and rise round him
+	# (EnemyManager.set_relocate, the map's timeline_data.relocate); never in the arena
+	if em.has_method("set_relocate"):
+		em.set_relocate({} if Run.arena else timeline.relocate_cfg())
 	# pass 125: how often the crowd steers (the map's timeline_data.crowd)
 	if em.has_method("set_cadence"):
 		em.set_cadence(int(timeline.crowd.get("steer_every", WaveTimeline.CROWD_DEFAULTS["steer_every"])), int(timeline.crowd.get("steer_far_every", WaveTimeline.CROWD_DEFAULTS["steer_far_every"])))
@@ -823,6 +827,16 @@ func _spawn_group(id: String, n: int, pattern: String, pack: int, mod: EliteModD
 	return came
 
 
+## Pass 128 (lane BLOB): _spawn_group for roster row `r`: what the row says about relocating (WaveTimeline.row_relocate)
+## rides on the manager's transient flag around the spawns (EnemyManager.row_relocate), as force_special does.
+func _spawn_group_row(r: Dictionary, id: String, n: int, pattern: String, pack: int, mod: EliteModDef, variant: String, stats: Dictionary, point: Callable = Callable(), src: Dictionary = {}) -> int:
+	var em: EnemyManager = game.enemies
+	em.row_relocate = WaveTimeline.row_relocate(r)
+	var came := _spawn_group(id, n, pattern, pack, mod, variant, stats, point, src)
+	em.row_relocate = -1
+	return came
+
+
 ## The "ring" pattern's radius round the hero (pass 57, Garry: "spawn in a Ring around the Player (kind of like what we
 ## have in the debug option in the Arena), but about 30% further from the Player"): the arena's ring (ArenaPanel
 ## _place_point "ring", 9 m) times 1.3. The swarm event's own ring stays 16 m, and the elite "ring" format 12 m.
@@ -981,7 +995,7 @@ func spawn_portal_wave() -> int:
 		var pattern := str(row.get("pattern", "pack"))
 		var n: int = mini(pack, left) if pattern != "single" else 1
 		# the row's own numbers (pass 58 fix round: it is that row's creature, beside the ones the hero was just shooting)
-		_spawn_group(def.id, n, pattern, pack, null, str(row.get("variant", "")), _stats_of(row), _around_point, _row_src(row))
+		_spawn_group_row(row, def.id, n, pattern, pack, null, str(row.get("variant", "")), _stats_of(row), _around_point, _row_src(row))
 		left -= n
 	portal_wave_spawned = maxi(em.alive_count() - before, 0)
 	return portal_wave_spawned
@@ -1223,7 +1237,7 @@ func spawn_endless_wave(w: int) -> int:
 		var n: int = _endless_room(def, mini(clampi(int(row.get("pack", def.pack_size)), 1, 12), left))
 		if n <= 0:
 			continue
-		_spawn_group(def.id, n, "pack", n, null, str(row.get("variant", "")), _stats_of(row), _around_point, _row_src(row))
+		_spawn_group_row(row, def.id, n, "pack", n, null, str(row.get("variant", "")), _stats_of(row), _around_point, _row_src(row))
 		left -= n
 	return maxi(em.alive_count() - before, 0)
 
@@ -1250,7 +1264,7 @@ func _endless_fill() -> void:
 		var n: int = _endless_room(def, mini(mini(clampi(int(row.get("pack", def.pack_size)), 1, 12), maxi(int(ceil(burst / share)), 1)), bodies))
 		if n <= 0:
 			continue
-		_spawn_group(def.id, n, "pack", n, null, str(row.get("variant", "")), _stats_of(row), Callable(), _row_src(row))
+		_spawn_group_row(row, def.id, n, "pack", n, null, str(row.get("variant", "")), _stats_of(row), Callable(), _row_src(row))
 		burst -= float(n) * share
 		bodies -= n
 
@@ -1382,7 +1396,7 @@ func _burst_from(roster: Array, room: float, bodies: int, due: Array = []) -> in
 		if _row_new84(chosen, -1):
 			_spawn_drawn84(chosen, def, n)
 		else:
-			_spawn_group(def.id, n, pattern, pack, null, str(chosen.get("variant", "")), _stats_of(chosen), Callable(), _row_src(chosen))
+			_spawn_group_row(chosen, def.id, n, pattern, pack, null, str(chosen.get("variant", "")), _stats_of(chosen), Callable(), _row_src(chosen))
 		burst -= float(n) * share
 		bodies -= n
 		# pass 112 (lane MONK): a squad is a draw of its own: it takes the rest of this burst
@@ -1762,7 +1776,7 @@ func _row_wave_spawn(r: Dictionary, st: Dictionary, def: EnemyDef) -> int:
 		var sq_n := squad_take(def, r, int(st["owed"]), _squad_fit(def, r))
 		if sq_n <= 0:
 			return 0
-		var sc := _spawn_group(def.id, sq_n, "pack", sq_n, null, str(r.get("variant", "")), _stats_of(r), Callable(), _row_src(r))
+		var sc := _spawn_group_row(r, def.id, sq_n, "pack", sq_n, null, str(r.get("variant", "")), _stats_of(r), Callable(), _row_src(r))
 		st["owed"] = maxi(int(st["owed"]) - sc, 0)
 		st["came"] = int(st["came"]) + sc
 		return sc
@@ -1780,7 +1794,7 @@ func _row_wave_spawn(r: Dictionary, st: Dictionary, def: EnemyDef) -> int:
 	if n <= 0:
 		return 0
 	var pack: int = maxi(int(r.get("pack", def.pack_size)), 1)
-	var came := _spawn_group(def.id, n, str(r.get("pattern", "pack")), pack, null, str(r.get("variant", "")), _stats_of(r), Callable(), _row_src(r))
+	var came := _spawn_group_row(r, def.id, n, str(r.get("pattern", "pack")), pack, null, str(r.get("variant", "")), _stats_of(r), Callable(), _row_src(r))
 	st["owed"] = maxi(int(st["owed"]) - came, 0)
 	st["came"] = int(st["came"]) + came
 	return came
@@ -2551,6 +2565,10 @@ func _spawn_pick84(r: Dictionary, pick: Dictionary, n: int) -> int:
 	var pattern := str(r.get("pattern", "pack"))
 	var pack: int = maxi(int(r.get("pack", def.pack_size)), 1)
 	em.force_special = bool(r.get("special", false))
+	# pass 128 (lane BLOB): what the row says about relocating (a "roster" row that says nothing: the row it drew from)
+	em.row_relocate = WaveTimeline.row_relocate(r)
+	if em.row_relocate < 0:
+		em.row_relocate = WaveTimeline.row_relocate(pick.get("row"))
 	var came := 0
 	if pattern == "ring" and r.has("ring_radius"):
 		var radius := maxf(float(r.get("ring_radius", RING_RADIUS)), 1.0)
@@ -2561,6 +2579,7 @@ func _spawn_pick84(r: Dictionary, pick: Dictionary, n: int) -> int:
 	else:
 		came = _spawn_group(id, n, pattern, pack, mod, variant, stats, Callable(), src)
 	em.force_special = false
+	em.row_relocate = -1
 	_log84("row", id, came)
 	return came
 
@@ -2684,7 +2703,7 @@ func _floor_fill() -> void:
 		if _row_new84(row, -1):
 			_spawn_drawn84(row, def, n)
 		else:
-			_spawn_group(def.id, n, str(row.get("pattern", "pack")), pack, null, str(row.get("variant", "")), _stats_of(row), Callable(), _row_src(row))
+			_spawn_group_row(row, def.id, n, str(row.get("pattern", "pack")), pack, null, str(row.get("variant", "")), _stats_of(row), Callable(), _row_src(row))
 		var came := maxi(em.alive_count() - before, 0)
 		if came <= 0:
 			break

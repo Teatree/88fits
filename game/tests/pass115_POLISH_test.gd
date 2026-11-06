@@ -4,9 +4,10 @@ extends GdUnitTestSuite
 ## 1. Far creatures catch up harder the further they trail (timeline_data.far_speed: `curve` and `max_speed` since pass
 ##    115; EnemyManager.far_speed_mult / far_speed_k): the ramp is monotonic, 1 inside its distance, capped at max_mult
 ##    past distance + ramp, at least pass 111's everywhere and more past 20 m; the boost never takes a walk past
-##    max_speed, never slows one; Jeżyk's measured top speed (level 20, full Momentum, The Chariot at level 4) stays above
-##    what the fastest regular creature on the map walks at its fastest far away, a typical Jeżyk (level 10, Momentum)
-##    gains less on a far skeleton than under pass 111.
+##    max_speed, never slows one; a typical Jeżyk (level 10, Momentum) gains less on a far skeleton than under pass 111.
+##    (Until pass 128 Jeżyk's measured top speed, level 20 with full Momentum and The Chariot at level 4, also stayed
+##    above the cap; Garry's pass 128 numbers, max_mult 4 and max_speed 8, put the cap above it: the test now holds the
+##    cap at 1.2 times the Drifter's run or more.)
 ## 2. The tornado (timeline_data.dust_devils): bigger (radius x1.25, the funnel x1.25), three times as long, about 0.75 as
 ##    solid, the hero thrown and creatures lifted about 1.4 times as high; the dust devil wears those numbers.
 ## 3. Barrels throw out a power-up half as often (timeline_data.barrels.*.powerup_chance).
@@ -198,8 +199,11 @@ func test_a_fast_jezyk_still_outruns_the_fastest_far_creature_and_gains_less_tha
 		far = maxf(best, cap)
 	print("pass115 POLISH: Jezyk start %.2f, typical %.2f, fast %.2f m/s; Drifter %.2f; fastest regular %s %.2f m/s, far %.2f m/s (pass 111: %.2f)" % [
 		start, typical, fast, drifter, best_id, best, far, best * 2.0])
-	assert_float(fast).is_greater(far)
-	assert_float(fast).is_greater(cap)
+	# pass 128 (lane BLOB; Garry raised the boost against the trailing blob: max_mult 4, max_speed 8): the cap is no
+	# longer under a fast Jeżyk's run (7.5 m/s), so the fastest far creature at its cap closes on him too; what holds now
+	# is the cap well above the Drifter's run (at least 1.2 times it) and the far creature never past the cap
+	assert_float(cap).is_greater_equal(1.2 * drifter)
+	assert_float(far).is_less_equal(maxf(best, cap) + 1e-4)
 	# a far skeleton: he gains less on it than under pass 111 (x2 at 40 m)
 	var sk: EnemyDef = Registry.enemy("skeleton")
 	var walk := sk.speed * Run.move_pace() * tl.creature_speed_mult

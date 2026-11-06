@@ -2013,7 +2013,7 @@ const Model = (() => {
   const WAVE_BURST_DEF = 5;
   /** The order a converted row's keys are written in (the rest after, as they came). */
   const ROW84_ORDER = ['id', 'name', 't', 'until', 'enemy', 'enemy_weights', 'variant', 'weights', 'pace', 'every', 'offset', 'count',
-    'pattern', 'ring_radius', 'pack', 'respect_cap', 'respect_hard_cap', 'channel', 'elite', 'special', 'banner', 'chance', 't_jitter', 'role', 'stats'];
+    'pattern', 'ring_radius', 'pack', 'respect_cap', 'respect_hard_cap', 'channel', 'elite', 'special', 'relocate', 'banner', 'chance', 't_jitter', 'role', 'stats'];
 
   const rowSingleEnemy = (r) => isObj(r) && !Array.isArray(r.enemy) && String(r.enemy == null ? '' : r.enemy) !== ROW_ENEMY_ROSTER;
   const rowElite = (r) => (isObj(r) && r.elite != null && r.elite !== false && r.elite !== true ? String(r.elite) : '');
@@ -2651,6 +2651,111 @@ const Model = (() => {
     return out;
   }
 
+  // ------------------------------------------------------------------ pass 128 (lane BLOB): far creatures relocate
+  //
+  // Garry: creatures chasing a faster outlaw "form one big trailing blob". A regular creature far from him for long
+  // enough sinks into the ground and rises where the ring round him has the fewest creatures (the map's
+  // `timeline_data.relocate`, core/systems/CrowdRelocate.gd); a roster row's own `relocate` (true / false) wins over its
+  // default, and the file stores it only when it differs from that default.
+
+  /** WaveTimeline.RELOCATE_DEFAULTS: the map's `relocate` block's keys and the game's values for the missing ones. */
+  const RELOCATE_DEFAULTS = { enabled: true, distance: 16, seconds: 5, every: 0.4, ring: [19, 24], sectors: 12, sink: 0.35, scan: 0.5, squads: false };
+  /** The block whole, every key filled (WaveTimeline.relocate_cfg): `ring` always [near, far] (one number = both), `sectors`
+   *  a whole number of at least 1, no negative number. */
+  function relocateCfg(tl) {
+    const b = isObj(tl) && isObj(tl.relocate) ? tl.relocate : {};
+    const out = {};
+    for (const k of Object.keys(RELOCATE_DEFAULTS)) {
+      const dv = RELOCATE_DEFAULTS[k];
+      const v = b[k];
+      if (typeof dv === 'boolean') out[k] = v == null ? dv : (typeof v === 'boolean' || typeof v === 'number' ? !!v : dv);
+      else if (Array.isArray(dv)) {
+        let lo = dv[0], hi = dv[1];
+        if (Array.isArray(v) && v.length && typeof v[0] === 'number') { lo = v[0]; hi = typeof v[v.length - 1] === 'number' ? v[v.length - 1] : lo; }
+        else if (typeof v === 'number' && isFinite(v)) { lo = v; hi = v; }
+        out[k] = [Math.max(Math.min(lo, hi), 0), Math.max(Math.max(lo, hi), 0)];
+      } else if (k === 'sectors') out[k] = typeof v === 'number' && isFinite(v) ? Math.max(Math.trunc(v), 1) : dv;
+      else out[k] = typeof v === 'number' && isFinite(v) ? Math.max(v, 0) : dv;
+    }
+    return out;
+  }
+  /** Why a creature of a row never relocates whatever anyone says ('' when it may): a boss or an Elite by its kind, a
+   *  special type (the gear badge), a training dummy (EnemyManager.despawn_kind). */
+  function relocateNever(c) {
+    if (!c) return '';
+    const arch = archOf(c);
+    if (arch === 'boss') return 'a boss never relocates';
+    if (arch === 'elite') return 'an Elite never relocates';
+    if (c.badge === 'gear') return 'a special type (the gear badge) never relocates';
+    if (c.brain === 'dummy') return 'a training dummy never relocates';
+    return '';
+  }
+  /** What row `r`'s creatures do about relocating, and why (WaveTimeline.row_relocate + CrowdRelocate.may). `creatures`:
+   *  the records of the creatures the row names (one, a list; none for the "roster" draw). Returns {value (what plays),
+   *  def (the row's default: true, false, or null when its creatures differ), own (the row's own key: true, false or
+   *  null), locked (nothing can switch it on), source ('elite' | 'special' | 'kind' | 'row' | 'squad' | 'mixed' |
+   *  'roster' | 'default'), mapOff (the whole map's relocation is off), text (one line for the row card)}. */
+  function rowRelocate(tl, r, creatures) {
+    const cfg = relocateCfg(tl);
+    const row = isObj(r) ? r : {};
+    const list = (Array.isArray(creatures) ? creatures : [creatures]).filter((c) => isObj(c));
+    const own = typeof row.relocate === 'boolean' ? row.relocate : null;
+    const off = cfg.enabled ? '' : ' Relocation is switched off for the whole map (Settings → Relocation).';
+    const locked = (source, why) => ({ value: false, def: false, own, locked: true, source, mapOff: !cfg.enabled, text: `off: ${why}.${off}` });
+    if (rowElite(row) !== '') return locked('elite', 'an Elite row never relocates (its creatures wear an elite modifier)');
+    if (row.special === true) return locked('special', 'a special row never relocates (its creatures are coloured specials)');
+    const never = list.map(relocateNever);
+    if (list.length && never.every((w) => w !== '')) return locked('kind', never[0]);
+    const may = list.filter((c, k) => never[k] === '');
+    const squads = may.filter((c) => c.brain === 'squad').length;
+    // the row's default: regular creatures on; squad creatures (the Monk) only while the map's Squads too is on
+    const def = !may.length || squads === 0 || cfg.squads ? true : squads === may.length ? false : null;
+    const value = own != null ? own : def !== false;
+    let source = 'default';
+    let text;
+    if (own != null) {
+      source = 'row';
+      text = own ? 'on: this row says so' : 'off: this row says so';
+      if (own && squads && !cfg.squads) text += ' (a squad creature leaves its squad and walks back to it)';
+    } else if (def === null) {
+      source = 'mixed';
+      text = 'default: its regular creatures relocate, its squad creatures do not (tick or untick to set them all)';
+    } else if (def === false) {
+      source = 'squad';
+      text = 'off: the default for a squad creature (tick to switch it on for this row; Squads too in Settings → Relocation switches every squad on)';
+    } else if (String(row.enemy) === ROW_ENEMY_ROSTER) {
+      source = 'roster';
+      text = 'default: each creature follows the row it is drawn from (tick or untick to set them all)';
+    } else text = squads ? 'on: the default (Squads too is on in Settings → Relocation)' : 'on: the default for a regular creature';
+    return { value, def, own, locked: false, source, mapOff: !cfg.enabled, text: text + '.' + off };
+  }
+  /** The row card's checkbox, written sparsely: a value equal to the row's default takes the key out of the row; one
+   *  that differs (or any value while the row's creatures have different defaults) is stored. A locked row is not changed. */
+  function setRowRelocate(tl, r, creatures, checked) {
+    const st = rowRelocate(tl, r, creatures);
+    if (st.locked) return false;
+    if (st.def !== null && !!checked === st.def) delete r.relocate;
+    else r.relocate = !!checked;
+    return true;
+  }
+  /** The Settings card's one line: what the block adds up to. */
+  function relocateText(tl) {
+    const c = relocateCfg(tl);
+    if (!c.enabled) return 'Relocation: off (a crowd left behind walks after the outlaw, or despawns past the despawn distance).';
+    const perMin = c.every > 0 ? Math.round(60 / c.every) : 0;
+    return `A regular creature farther than ${c.distance} m from the outlaw for ${c.seconds} s (checked every ${c.scan} s) joins the queue; one leaves it every ${c.every} s (at most ${perMin} a minute): it sinks over ${c.sink} s and rises ${c.ring[0]} to ${c.ring[1]} m from him in the emptiest of ${c.sectors} sectors round him. Never a boss, an Elite, a coloured special, a special type, a boss's summon or a dummy, never in the middle of an attack, and nothing while a boss barrier stands; squad creatures ${c.squads ? 'too' : 'only where their row says so'}. Not a spawn: no cap, no count, no XP. A row's own switch: its card on the Timeline (Where and how → Relocates when far).`;
+  }
+  /** What reads as a mistake in the block. */
+  function relocateIssues(tl) {
+    const c = relocateCfg(tl);
+    const out = [];
+    if (!c.enabled) return out;
+    if (c.ring[0] < c.distance) out.push(`Comes up at ${c.ring[0]} m is nearer than Far from ${c.distance} m: a relocated creature could rise where it would not count as far`);
+    if (c.every <= 0) out.push('One every 0 s: the queue would hand over a creature every tick (60 a second)');
+    if (c.scan <= 0) out.push('Check every 0 s: the crowd would be checked every tick');
+    return out;
+  }
+
   // ------------------------------------------------------------------ pass 120 (lane EDITOR): a row's card
   //
   // Garry (2026-11-01): "upon highlight we surface the HP and ATK stats at the top, but I think we should also surface SPD
@@ -2822,6 +2927,8 @@ const Model = (() => {
   });
   // pass 111 (lane ENEMY): far creatures walk faster (timeline_data.far_speed)
   Object.assign(api, { FAR_SPEED_DEFAULTS, farSpeedCfg, farSpeedMult, farSpeedIssues });
+  // pass 128 (lane BLOB): far creatures relocate (timeline_data.relocate, a row's `relocate`)
+  Object.assign(api, { RELOCATE_DEFAULTS, relocateCfg, relocateNever, rowRelocate, setRowRelocate, relocateText, relocateIssues });
   // pass 115 (lane POLISH): the far-speed curve's shapes
   Object.assign(api, { FAR_CURVES, farCurve });
   // pass 120 (lane EDITOR): a row's walk speed and schedule for its card, a forced special's numbers

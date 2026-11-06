@@ -60,7 +60,7 @@ const Enemies = (() => {
     const maps = (App.S.maps || []).map((m) => ({ v: m.id, label: m.name || m.id }));
     if (!maps.some((m) => m.v === 'red_canyon')) maps.unshift({ v: 'red_canyon', label: 'Red Canyon' });
     const mapSel = Forms.select(maps, ui.map || 'red_canyon', (v) => { ui.map = v || 'red_canyon'; Assets.redraw(doc, 'editor'); }, { path: 'compare.map' });
-    body.appendChild(el('div', { class: 'compare-bar' }, el('span', { class: 'muted small', text: 'template' }), pick, el('span', { class: 'muted small', text: 'on' }), mapSel, el('span', { class: 'muted small', text: `hero level ${App.S.level} (the top bar)` })));
+    body.appendChild(el('div', { class: 'compare-bar' }, el('span', { class: 'muted small', text: 'template' }), pick, el('span', { class: 'muted small', text: 'on' }), mapSel, el('span', { class: 'muted small', text: `outlaw level ${App.S.level} (the top bar)` })));
     const tl = Assets.mapTl(ui.map || 'red_canyon');
     const tbl = el('table', { class: 'kv ctable' });
     tbl.appendChild(el('tr', {}, el('th'), el('th', { text: tmpl ? tmpl.name : 'template' }), el('th', { text: d.name || doc.id }), el('th', { text: 'Δ' })));
@@ -76,7 +76,7 @@ const Enemies = (() => {
     row('speed m/s', t.speed, mine.speed);
     row('XP ×', t.xp_mult, mine.xp_mult);
     row('knockback', tmpl ? Model.knockbackOf(t, null).value : null, Model.knockbackOf(mine, null).value, (x) => fmtN(x, 2), 'the bite\'s shove (the game\'s default when the file has none)');
-    row('KB resist', t.knockback_resist, mine.knockback_resist, (x) => `${Math.round(x * 100)} %`, 'the share of every shove from the hero\'s side it shrugs off (pass 67; the other way round from knockback)');
+    row('KB resist', t.knockback_resist, mine.knockback_resist, (x) => `${Math.round(x * 100)} %`, 'the share of every shove from the outlaw\'s side it shrugs off (pass 67; the other way round from knockback)');
     row('size m', t.size, mine.size);
     row('radius m', t.radius, mine.radius);
     row('pack', t.pack_size, mine.pack_size, (x) => String(x));
@@ -96,12 +96,12 @@ const Enemies = (() => {
       }
       for (const s of times) {
         const a = at(tmpl, s), b = at(mine, s);
-        row(`bites to kill the hero at ${fmtT(s)}`, a ? M.hitsToKill(a.atk) : null, b ? M.hitsToKill(b.atk) : null, (x) => (isFinite(x) ? String(x) : '∞'), 'ceil(100 max HP / the bite at that second: bite × stage × damage curve × creature_damage_mult × level)');
+        row(`bites to kill the outlaw at ${fmtT(s)}`, a ? M.hitsToKill(a.atk) : null, b ? M.hitsToKill(b.atk) : null, (x) => (isFinite(x) ? String(x) : '∞'), 'ceil(100 max HP / the bite at that second: bite × stage × damage curve × creature_damage_mult × level)');
       }
     } else body.appendChild(el('p', { class: 'muted small', text: 'reading the map for the HP curve…' }));
     body.appendChild(tbl);
     const ring = U.ringCount(mine.radius);
-    body.appendChild(el('p', { class: 'muted small', text: `A ring of these: about ${ring.row} shoulder to shoulder round the hero (${fmtN(U.RING_RADIUS, 1)} m), ${ring.thick} as a thick ring. Wind-ups on ${(ui.map || 'red_canyon')}: ×${tl ? fmtN(M.paceOf(tl), 2) : '…'} (1 / (move_pace × creature_speed_mult)).` }));
+    body.appendChild(el('p', { class: 'muted small', text: `A ring of these: about ${ring.row} shoulder to shoulder round the outlaw (${fmtN(U.RING_RADIUS, 1)} m), ${ring.thick} as a thick ring. Wind-ups on ${(ui.map || 'red_canyon')}: ×${tl ? fmtN(M.paceOf(tl), 2) : '…'} (1 / (move_pace × creature_speed_mult)).` }));
     card.appendChild(body);
     return card;
   }
@@ -275,7 +275,7 @@ const Enemies = (() => {
     // the creature, the hero, a 5 m bar
     svg.appendChild(U.svg('circle', { cx, cy, r: Math.max(3, radius * ppm), class: 'tp-creature' }));
     svg.appendChild(U.svg('circle', { cx, cy: up(heroDist), r: 4.5, class: 'tp-hero' }));
-    svg.appendChild(U.svg('text', { x: cx + 8, y: up(heroDist) + 4, class: 'tp-label', text: 'hero 8 m' }));
+    svg.appendChild(U.svg('text', { x: cx + 8, y: up(heroDist) + 4, class: 'tp-label', text: 'outlaw 8 m' }));
     svg.appendChild(U.svg('line', { x1: 10, y1: H - 10, x2: 10 + 5 * ppm, y2: H - 10, class: 'tp-bar' }));
     svg.appendChild(U.svg('text', { x: 10, y: H - 14, class: 'tp-label', text: '5 m' }));
     const wind = M.num(atk.windup, 1);
@@ -310,7 +310,7 @@ const Enemies = (() => {
     svg.appendChild(U.svg('text', { x: W - 8, y: top + barH + 26, class: 'tp-label right', text: `cycle ${fmtN(seq.total, 1)} s · rest ${fmtN(seq.gap, 1)} s between attacks` }));
     const wrap = el('div', { class: 'seqwrap' }, el('div', { class: 'muted small', text: 'The sequence: red = the wind-up (the telegraph shows), hatched = the attack, grey = cooldown_between. The first attack comes 2 s after spawn; the runner skips one out of its range.' }), svg);
     const pace = tl ? `${fmtN(M.num(tl.move_pace, 1), 2)} × ${fmtN(M.num(tl.creature_speed_mult, 1), 2)}` : '…';
-    wrap.appendChild(el('div', { class: 'muted small', text: `Wind-ups last 1/pace: ×${fmtN(pf, 2)} on ${mapId} (move_pace × creature_speed_mult = ${pace}), so the slower hero still gets clear; the rest between attacks is not scaled.` }));
+    wrap.appendChild(el('div', { class: 'muted small', text: `Wind-ups last 1/pace: ×${fmtN(pf, 2)} on ${mapId} (move_pace × creature_speed_mult = ${pace}), so the slower outlaw still gets clear; the rest between attacks is not scaled.` }));
     return wrap;
   }
 

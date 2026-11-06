@@ -116,16 +116,16 @@ func _refresh() -> void:
 	_list.add_child(_switch("Debug buttons on modals", "debug_modal_buttons"))
 	_list.add_child(_switch("Free revive button", "free_revive_button"))
 	_list.add_child(_switch("Hit log on Down! · copy", "hit_log"))
-	_list.add_child(_switch("Hidden heroes as locked on the title", "preview_locked_heroes"))
+	_list.add_child(_switch("Hidden outlaws as locked on the title", "preview_locked_heroes"))
 	# pass 69: the heroes to buy, for tests: every one owned at once (no gold, no quest), or back to the free ones
 	var on_sale: Array = Registry.characters.values().filter(func(c: CharacterDef) -> bool: return not c.hidden and c.availability == "purchase")
 	var owned_n := on_sale.filter(func(c: CharacterDef) -> bool: return Save.owns_hero(c.id)).size()
-	var own_row := _row("Heroes · own every one", "%d / %d" % [owned_n, on_sale.size()], func():
+	var own_row := _row("Outlaws · own every one", "%d / %d" % [owned_n, on_sale.size()], func():
 		Save.own_every_hero()
 		_refresh())
 	own_row.name = "OwnEveryHero"
 	_list.add_child(own_row)
-	var forget_row := _row("Heroes · forget the bought ones", "›", func():
+	var forget_row := _row("Outlaws · forget the bought ones", "›", func():
 		Save.forget_bought_heroes()
 		_refresh())
 	forget_row.name = "ForgetBoughtHeroes"
@@ -135,7 +135,7 @@ func _refresh() -> void:
 	pf_row.name = "PierceFalloffRow"
 	_list.add_child(pf_row)
 	# pass 88: the hero's knockback from hits, off by default (also in Settings' Debug panel)
-	var hk_row := _switch("Full hero knockback", "hero_knockback")
+	var hk_row := _switch("Full outlaw knockback", "hero_knockback")
 	hk_row.name = "HeroKnockbackRow"
 	_list.add_child(hk_row)
 	# pass 95 (lane ITEMS): "Fire forward", off by default (also in Settings' Debug panel): the Sabre, Spear, Hammer,

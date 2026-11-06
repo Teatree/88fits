@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>88fits Level Editor</title>
-<meta name="description" content="The wave timeline of an 88fits map on a calendar: the cap, the roster, the waves, the events; edit, check, save, import. Since pass 66 also the enemies, heroes and items themselves and the art jobs for the local AI.">
+<meta name="description" content="The wave timeline of an 88fits map on a calendar: the cap, the roster, the waves, the events; edit, check, save, import. Since pass 66 also the enemies, outlaws and items themselves and the art jobs for the local AI.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%231a1a19'/%3E%3Cpath d='M2 11L6 7l3 2 5-5' fill='none' stroke='%233987e5' stroke-width='2'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="preview.css">
@@ -43,7 +43,7 @@
   <span id="map-file" class="map-file" title="the file Save writes"></span>
   <span id="dirty-dot" class="dirty-dot" hidden title="unsaved changes">●</span>
   <span class="spacer"></span>
-  <label class="level-pick" title="the hero level the hover cards and the readout assume: creatures gain level_hp_per_level of HP and level_damage_per_level of damage per level above 1 (a page setting, never written to the map)">Hero level <input id="assume-level" class="num tiny" type="number" min="1" max="99" step="1" value="1"></label>
+  <label class="level-pick" title="the outlaw level the hover cards and the readout assume: creatures gain level_hp_per_level of HP and level_damage_per_level of damage per level above 1 (a page setting, never written to the map)">Outlaw level <input id="assume-level" class="num tiny" type="number" min="1" max="99" step="1" value="1"></label>
   <button id="btn-undo" class="btn" type="button" title="Undo (Ctrl+Z)" disabled>Undo</button>
   <button id="btn-redo" class="btn" type="button" title="Redo (Ctrl+Y)" disabled>Redo</button>
   <button id="btn-revert" class="btn" type="button" title="Back to the file as it was saved" disabled>Revert</button>
@@ -56,7 +56,7 @@
   <button type="button" data-tab="sim" title="pass 77: the run sim: the game plays the saved map N times with a bot, every second averaged into charts (DPS, HP, deaths, danger, the crowd, coins, damage, kills, level, XP)">Sim</button>
   <button type="button" data-tab="settings">Settings</button>
   <button type="button" data-tab="creatures" title="every creature of the game: the palette, and since pass 66 the editor for enemies, elites and bosses">Enemies</button>
-  <button type="button" data-tab="heroes" title="pass 66: the heroes as the game plays them, and their editor">Heroes</button>
+  <button type="button" data-tab="heroes" title="pass 66: the outlaws as the game plays them, and their editor">Outlaws</button>
   <button type="button" data-tab="items" title="pass 66: weapons with their mutations and evolutions, lines and passive items">Items</button>
   <button type="button" data-tab="jobs" title="pass 66: the local AI's jobs: queued, running, waiting for a pick, done">Jobs<span id="jobs-badge" class="jobs-badge" hidden></span></button>
   <button type="button" data-tab="drivers" title="pass 93: every driver in tools/dl/drivers (the 3D motions the video model paints over): play them frame by frame with their frame numbers, the clay and look stills, the folder">Drivers</button>

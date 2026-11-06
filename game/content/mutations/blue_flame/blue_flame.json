@@ -9,7 +9,7 @@
   "element": "fire",
   "hero": "",
   "text": "The breath burns blue: 25% further, −20% damage, burns last 75% longer.",
-  "vfx": "a pale blue jet of fire from the hero's face and blue flames on everything it set burning",
+  "vfx": "a pale blue jet of fire from the outlaw's face and blue flames on everything it set burning",
   "effects": [
     {
       "stat": "range",

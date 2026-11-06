@@ -14,16 +14,16 @@ const BossScaling = (() => {
 
   // the pegged mode's thinking (pass 72), shown when that mode is picked
   const WORDS = [
-    'Why: a strong build melts a boss in seconds, a weak one is stuck with it for minutes. When a boss arrives the game reads the hero\'s damage a second over the last <b>window</b> seconds (what his hits really took off creatures, the same numbers as the Results screen) and gives the boss <b>(his DPS ÷ the boss\'s reference DPS) ^ exponent</b> times its HP, held between the floor and the ceiling.',
+    'Why: a strong build melts a boss in seconds, a weak one is stuck with it for minutes. When a boss arrives the game reads the outlaw\'s damage a second over the last <b>window</b> seconds (what his hits really took off creatures, the same numbers as the Results screen) and gives the boss <b>(his DPS ÷ the boss\'s reference DPS) ^ exponent</b> times its HP, held between the floor and the ceiling.',
     'Why not 1 to 1: if the HP grew as fast as the DPS, every fight would last the same and a stronger build would be worth nothing against a boss. With the exponent <b>0.5</b> the HP grows with the square root of the DPS: <b>twice</b> the reference DPS gives the boss 1.41 times its HP and the fight is still <b>29% shorter</b>; four times: twice the HP, the fight half as long. Exponent 0 = never scaled, 1 = every fight as long as at the reference.',
-    'The <b>floor</b> (0.75) gives a weak build a softer boss but never a pushover; the <b>ceiling</b> (3×) keeps a monster build from a sponge. The <b>references</b> are the DPS of the builds the difficulty was tuned on (tools/difficulty_probe.gd before each boss: Calavera and Drifter, the stage\'s build and Upgrade board): a hero at the reference meets the boss exactly as before. The debug arena never scales.',
+    'The <b>floor</b> (0.75) gives a weak build a softer boss but never a pushover; the <b>ceiling</b> (3×) keeps a monster build from a sponge. The <b>references</b> are the DPS of the builds the difficulty was tuned on (tools/difficulty_probe.gd before each boss: Calavera and Drifter, the stage\'s build and Upgrade board): an outlaw at the reference meets the boss exactly as before. The debug arena never scales.',
     'A caution: the DPS counts only what a hit took off (a 500 hit on a 20 HP goblin is 20), so when the crowd dies faster than it comes, the DPS shows the crowd more than the build. In endless a returning boss\'s reference grows with its own HP growth since its stage.',
   ];
   // pass 83: the seconds mode's thinking
   const SECONDS_WORDS = [
-    '<b>Full DPS</b> is the hero\'s damage a second on ONE target that every shot hits, read the moment the boss arrives: every weapon\'s pause-screen "dps" with its crowd guess taken out, its burn or poison kept up, times his average crit, and Big Game Hunter\'s bonus on bosses (the Hero power card below spells it out). It is a ceiling: nobody lands every shot.',
-    'So the seconds are a <b>least</b>: "25" means even a perfect player who never misses needs 25 seconds on the King. Measured on a boss held still in front of the hero (game/tools/_p83_SCALE_boss_probe.gd), the kills took 1.1 to 2.3 times the seconds (4 times for a Salt build, whose patches the boss must walk into): some weapons miss a big body (the Tommy Gun\'s scattered rounds), orbits and blades reach it only close up, the Salt only where it walks. A real fight is longer again: he dodges, kites, its minions take shots.',
-    'The boss never comes with less than its own data HP (its hp × hp_mult_per_stage per stage × the stage multiplier): a weak hero meets the boss as it was before any scaling. Crits and burns are in the full DPS already; the boss\'s own damage reduction is folded in (the HP is the full DPS × the seconds × (1 − its reduction)), so armour does not lengthen the fight. Elites and a boss spawned by hand or in the debug arena are never scaled. In endless a returning boss takes the same seconds of the DPS the hero has then.',
+    '<b>Full DPS</b> is the outlaw\'s damage a second on ONE target that every shot hits, read the moment the boss arrives: every weapon\'s pause-screen "dps" with its crowd guess taken out, its burn or poison kept up, times his average crit, and Big Game Hunter\'s bonus on bosses (the Outlaw power card below spells it out). It is a ceiling: nobody lands every shot.',
+    'So the seconds are a <b>least</b>: "25" means even a perfect player who never misses needs 25 seconds on the King. Measured on a boss held still in front of the outlaw (game/tools/_p83_SCALE_boss_probe.gd), the kills took 1.1 to 2.3 times the seconds (4 times for a Salt build, whose patches the boss must walk into): some weapons miss a big body (the Tommy Gun\'s scattered rounds), orbits and blades reach it only close up, the Salt only where it walks. A real fight is longer again: he dodges, kites, its minions take shots.',
+    'The boss never comes with less than its own data HP (its hp × hp_mult_per_stage per stage × the stage multiplier): a weak outlaw meets the boss as it was before any scaling. Crits and burns are in the full DPS already; the boss\'s own damage reduction is folded in (the HP is the full DPS × the seconds × (1 − its reduction)), so armour does not lengthen the fight. Elites and a boss spawned by hand or in the debug arena are never scaled. In endless a returning boss takes the same seconds of the DPS the outlaw has then.',
   ];
 
   /** The card's own block (after fields.js's rows): the "how it works" box, the mode's own rows and chart, the words. */
@@ -51,22 +51,22 @@ const BossScaling = (() => {
     const base0 = b0 ? M.bossBaseHp(c0, tl, b0.stage) : 0;
     const p = (html) => { const n = el('p', { class: 'small' }); n.innerHTML = html; box.appendChild(n); };
     box.appendChild(el('h3', { class: 'block-title', text: 'How it works' }));
-    if (!cfg.enabled) { p('Scaling is <b>off</b>: each boss has the HP its JSON gives it (hp × hp_mult_per_stage per stage × the stage multiplier), whatever the hero deals.'); return box; }
+    if (!cfg.enabled) { p('Scaling is <b>off</b>: each boss has the HP its JSON gives it (hp × hp_mult_per_stage per stage × the stage multiplier), whatever the outlaw deals.'); return box; }
     const bhs = tl && tl.boss_hp_scaling && typeof tl.boss_hp_scaling === 'object' ? tl.boss_hp_scaling : {};
     const refs = bhs.ref_dps && typeof bhs.ref_dps === 'object' ? bhs.ref_dps : {};
     if (mode === 'seconds') {
       const secs = M.num(M.secondsOf(tl)[b0 ? b0.id : ''], 0);
       const dps = 300;
-      p('When a boss arrives, its HP = <b>the hero\'s full DPS at that moment × the boss\'s seconds</b> (the rows below), never less than its own data HP. More seconds = a tougher boss. Full DPS = every weapon\'s damage a second on one target that every shot hits (the Hero power card spells it out).');
-      if (b0 && secs > 0) p(`Example, ${name0} (${fmtT(b0.t)}): its data HP is <b>${fmtN(base0, 0)}</b>. A hero with <b>${dps}</b> full DPS faces ${name0} with ${dps} × ${secs} = <b>${fmtN(Math.max(base0, dps * secs), 0)} HP</b>: ${secs} seconds if every one of his shots lands on it, longer in a real fight. A hero with ${fmtN(base0 / secs, 0)} full DPS or less meets its data HP.`);
+      p('When a boss arrives, its HP = <b>the outlaw\'s full DPS at that moment × the boss\'s seconds</b> (the rows below), never less than its own data HP. More seconds = a tougher boss. Full DPS = every weapon\'s damage a second on one target that every shot hits (the Outlaw power card spells it out).');
+      if (b0 && secs > 0) p(`Example, ${name0} (${fmtT(b0.t)}): its data HP is <b>${fmtN(base0, 0)}</b>. An outlaw with <b>${dps}</b> full DPS faces ${name0} with ${dps} × ${secs} = <b>${fmtN(Math.max(base0, dps * secs), 0)} HP</b>: ${secs} seconds if every one of his shots lands on it, longer in a real fight. An outlaw with ${fmtN(base0 / secs, 0)} full DPS or less meets its data HP.`);
       const odd = bosses.filter((b) => M.num(refs[b.id], 0) > 0);
-      if (odd.length) p(`The <b>reference DPS</b> numbers this map still has (${odd.map((b) => fmtN(refs[b.id], 0)).join(' / ')}) belong to the pegged mode and do nothing now. Why the King went down in seconds before: in the pegged mode a <b>bigger reference makes the boss softer</b> (its HP × (the hero's DPS ÷ the reference) ^ 0.5); a hero dealing about ${fmtN(M.REF_DEFAULTS.tumbleweed_king || 600, 0)} real DPS at 7:10 against a reference of ${fmtN(M.num(refs.tumbleweed_king, 0), 0)} got the floor, ×0.75 of the data HP.`);
+      if (odd.length) p(`The <b>reference DPS</b> numbers this map still has (${odd.map((b) => fmtN(refs[b.id], 0)).join(' / ')}) belong to the pegged mode and do nothing now. Why the King went down in seconds before: in the pegged mode a <b>bigger reference makes the boss softer</b> (its HP × (the hero's DPS ÷ the reference) ^ 0.5); an outlaw dealing about ${fmtN(M.REF_DEFAULTS.tumbleweed_king || 600, 0)} real DPS at 7:10 against a reference of ${fmtN(M.num(refs.tumbleweed_king, 0), 0)} got the floor, ×0.75 of the data HP.`);
     } else {
-      p('When a boss arrives, its data HP is multiplied by <b>(the hero\'s real DPS over the last window ÷ the boss\'s reference DPS) ^ exponent</b>, held between the floor and the ceiling. The reference is the DPS at which a boss keeps its data HP (×1), so a <b>bigger reference makes the boss softer</b>.');
+      p('When a boss arrives, its data HP is multiplied by <b>(the outlaw\'s real DPS over the last window ÷ the boss\'s reference DPS) ^ exponent</b>, held between the floor and the ceiling. The reference is the DPS at which a boss keeps its data HP (×1), so a <b>bigger reference makes the boss softer</b>.');
       const ref = M.num(cfg.ref[b0 ? b0.id : ''], 0);
       if (b0 && ref > 0) {
         const d = 600, m = M.hpMult(cfg, d, ref);
-        p(`Example, ${name0}: data HP <b>${fmtN(base0, 0)}</b>, reference ${fmtN(ref, 0)}. A hero dealing ${d} real DPS gets ×${fmtN(m, 2)} = <b>${fmtN(base0 * m, 0)} HP</b>, about ${fmtN(base0 * m / d, 0)} s if all of his damage went into the boss.`);
+        p(`Example, ${name0}: data HP <b>${fmtN(base0, 0)}</b>, reference ${fmtN(ref, 0)}. An outlaw dealing ${d} real DPS gets ×${fmtN(m, 2)} = <b>${fmtN(base0 * m, 0)} HP</b>, about ${fmtN(base0 * m / d, 0)} s if all of his damage went into the boss.`);
       }
     }
     return box;
@@ -107,7 +107,7 @@ const BossScaling = (() => {
     const creature = App.creature(b.id);
     const base = M.bossBaseHp(creature, tl, b.stage);
     const box = el('div', { class: 'bscale-chart' });
-    if (!(secs > 0)) { box.appendChild(el('p', { class: 'muted small', text: `${b.id} has 0 seconds: it keeps its data HP whatever the hero deals.` })); return box; }
+    if (!(secs > 0)) { box.appendChild(el('p', { class: 'muted small', text: `${b.id} has 0 seconds: it keeps its data HP whatever the outlaw deals.` })); return box; }
     const typ = M.TYPICAL_FULL_DPS[b.id] || Math.max(M.secondsCross(base, secs) * 4, 100);
     const xMax = Math.max(typ * 2, M.secondsCross(base, secs) * 2);
     const yMax = Math.max(M.secondsHp(base, xMax, secs, 0), base) * 1.08;
@@ -125,7 +125,7 @@ const BossScaling = (() => {
       s.appendChild(svg('line', { x1: L, y1: y(h), x2: W - R, y2: y(h), class: 'bs-grid' }));
       s.appendChild(svg('text', { x: L - 6, y: y(h) + 4, class: 'bs-tick end', text: fmtN(h, 0) }));
     }
-    s.appendChild(svg('text', { x: (L + W - R) / 2, y: H - 14, class: 'bs-axis mid', text: 'the hero\'s FULL DPS when the boss arrives (every shot landing on it)' }));
+    s.appendChild(svg('text', { x: (L + W - R) / 2, y: H - 14, class: 'bs-axis mid', text: 'the outlaw\'s FULL DPS when the boss arrives (every shot landing on it)' }));
     s.appendChild(svg('text', { x: 10, y: 12, class: 'bs-axis m', text: 'boss HP' }));
     s.appendChild(svg('line', { x1: x(0), y1: y(base), x2: x(xMax), y2: y(base), class: 'bs-plain' }));
     const N = 60;
@@ -174,7 +174,7 @@ const BossScaling = (() => {
       const creature = App.creature(b.id) || null;
       const gdef = M.REF_DEFAULTS[b.id];
       const def = { key: `boss_hp_scaling.ref_dps.${b.id}`, label: `${creature ? creature.name : b.id} · ${fmtT(b.t)}`, type: 'number', min: 0, step: 50, def: gdef,
-        help: `${b.id}'s reference DPS: the hero's real damage a second over the window at which it keeps its data HP (×1). A hero above it meets a tougher boss, below it a softer one (down to the floor), so a BIGGER reference makes the boss SOFTER. 0 = this boss is never scaled; empty = ${gdef ? 'the game\'s ' + gdef + ' (measured: what a tuned build really deals before it)' : 'never scaled (the game has no reference for it)'}. Measured with tools/difficulty_probe.gd (the DPS45 line) over the 45 s before ${fmtT(b.t)}.` };
+        help: `${b.id}'s reference DPS: the hero's real damage a second over the window at which it keeps its data HP (×1). An outlaw above it meets a tougher boss, below it a softer one (down to the floor), so a BIGGER reference makes the boss SOFTER. 0 = this boss is never scaled; empty = ${gdef ? 'the game\'s ' + gdef + ' (measured: what a tuned build really deals before it)' : 'never scaled (the game has no reference for it)'}. Measured with tools/difficulty_probe.gd (the DPS45 line) over the 45 s before ${fmtT(b.t)}.` };
       const base = M.bossBaseHp(creature, tl, b.stage);
       const ref = M.num(cfg.ref[b.id], 0);
       const note = ref > 0 ? `HP ${fmtN(base, 0)} at ×1 · at 2× this DPS: ${fmtN(base * M.hpMult(cfg, ref * 2, ref), 0)}` : 'never scaled';
@@ -202,7 +202,7 @@ const BossScaling = (() => {
     const base = M.bossBaseHp(creature, tl, b.stage);
     const ref = M.num(cfg.ref[b.id], 0);
     const box = el('div', { class: 'bscale-chart' });
-    if (!(ref > 0)) { box.appendChild(el('p', { class: 'muted small', text: `${b.id} has no reference DPS: it keeps its data HP whatever the hero deals.` })); return box; }
+    if (!(ref > 0)) { box.appendChild(el('p', { class: 'muted small', text: `${b.id} has no reference DPS: it keeps its data HP whatever the outlaw deals.` })); return box; }
     const LO = 3, HI = 4;   // 2^-3 .. 2^4 of the reference
     const W = 640, H = 300, L = 54, R = 58, T = 18, B = 46;
     const pts = M.chartSeries(cfg, ref, LO, HI, 200);
@@ -234,7 +234,7 @@ const BossScaling = (() => {
       s.appendChild(svg('text', { x: L - 6, y: yM(m) + 4, class: 'bs-tick end', text: `×${fmtN(m, 1)}` }));
     }
     for (let f = 0; f <= maxF + 1e-9; f += 0.5) s.appendChild(svg('text', { x: W - R + 6, y: yF(f) + 4, class: 'bs-tick f', text: `${Math.round(f * 100)}%` }));
-    s.appendChild(svg('text', { x: (L + W - R) / 2, y: H - 4, class: 'bs-axis mid', text: 'the hero\'s DPS when the boss arrives (× the reference, and in damage a second)' }));
+    s.appendChild(svg('text', { x: (L + W - R) / 2, y: H - 4, class: 'bs-axis mid', text: 'the outlaw\'s DPS when the boss arrives (× the reference, and in damage a second)' }));
     s.appendChild(svg('text', { x: 10, y: 12, class: 'bs-axis m', text: 'HP ×' }));
     s.appendChild(svg('text', { x: W - 6, y: 12, class: 'bs-axis f end', text: 'fight length' }));
     // the curves: the fight without scaling (dashed), with it, the multiplier
@@ -274,7 +274,7 @@ const BossScaling = (() => {
       el('span', { class: 'lg m', text: 'HP multiplier (left)' }), el('span', { class: 'lg f', text: 'fight length with the scaling (right)' }),
       el('span', { class: 'lg p', text: 'without it' }), cfg.enabled ? el('span', { class: 'lg z', text: 'floor / ceiling holds' }) : el('span', { class: 'lg off', text: 'scaling is OFF: every boss keeps ×1' })));
     box.appendChild(read);
-    box.appendChild(el('div', { class: 'muted small', text: `HP at ×1: ${fmtN(base, 0)} (stage ${b.stage + 1}: hp × hp_mult_per_stage^stage × the stage multiplier). The fight's length is against the fight a hero at the reference has (100%): the boss's HP over the DPS, the crowd taking the same share of it at any DPS. Each step right doubles the DPS.` }));
+    box.appendChild(el('div', { class: 'muted small', text: `HP at ×1: ${fmtN(base, 0)} (stage ${b.stage + 1}: hp × hp_mult_per_stage^stage × the stage multiplier). The fight's length is against the fight an outlaw at the reference has (100%): the boss's HP over the DPS, the crowd taking the same share of it at any DPS. Each step right doubles the DPS.` }));
     return box;
   }
 

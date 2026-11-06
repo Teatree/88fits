@@ -633,8 +633,8 @@ const BossModel = (() => {
       if (!LANDING_MODES.includes(String(val(a, 'landing', 'mode')))) errors.push(`unknown landing "${val(a, 'landing', 'mode')}" (${LANDING_MODES.join(', ')})`);
       if (!litAtOnce(a) && num(val(a, 'telegraph', 'seconds'), 0.9) > num(val(a, 'projectile', 'flight'), 1) + num(val(a, 'timing', 'stagger'), 1.5)) warnings.push('the circles show before the first spike is even thrown');
       if (isVolley(a) && num(val(a, 'spew', 'burst'), 0.12) > num(val(a, 'timing', 'stagger'), 1.5)) warnings.push('the burst is longer than the stagger: the spikes cannot all land within the stagger');
-      if (num(val(a, 'telegraph', 'seconds'), 0.9) < 0.4 && val(a, 'telegraph', 'kind') !== 'none') warnings.push('under 0.4 s of warning: hard to step out of a circle (the hero walks about 3 m a second)');
-      if (num(pat.gap, 1) < 2 * HERO_RADIUS) warnings.push(`a gap under ${2 * HERO_RADIUS} m is narrower than the hero`);
+      if (num(val(a, 'telegraph', 'seconds'), 0.9) < 0.4 && val(a, 'telegraph', 'kind') !== 'none') warnings.push('under 0.4 s of warning: hard to step out of a circle (the outlaw walks about 3 m a second)');
+      if (num(pat.gap, 1) < 2 * HERO_RADIUS) warnings.push(`a gap under ${2 * HERO_RADIUS} m is narrower than the outlaw`);
       if (lay.pts.length > 200) warnings.push(`${lay.pts.length} spots: heavy on a phone (keep it under 200)`);
     }
     if (kind === 'volley' && num(pat.count, 1) * num(pat.waves, 1) > 120) warnings.push('more than 120 shots');
@@ -648,7 +648,7 @@ const BossModel = (() => {
         if (!EMITTER_SHAPES.includes(String(e.shape))) errors.push(`unknown emitter shape "${e.shape}" (${EMITTER_SHAPES.join(', ')})`);
         if (!EMITTER_AIMS.includes(String(e.aim))) errors.push(`unknown emitter aim "${e.aim}" (${EMITTER_AIMS.join(', ')})`);
         if (num(e.rate, 4) <= 0) warnings.push(`an emitter (${e.shape}) with rate 0 never fires`);
-        if (num(e.speed, 3) > 6) warnings.push(`an emitter flies at ${num(e.speed, 3)} m/s: faster than the hero (about 5 m/s) is hard to weave`);
+        if (num(e.speed, 3) > 6) warnings.push(`an emitter flies at ${num(e.speed, 3)} m/s: faster than the outlaw (about 5 m/s) is hard to weave`);
       }
       if (!Object.keys(BB_RADIUS).includes(String(val(a, 'projectile', 'look')))) warnings.push('a pattern draws one of the bullet looks (burning_tumbleweed, venom_blob, brand_fireball, grit_clod); any other plays the first');
       if (patternDuration(a) < 5) warnings.push('under 5 s of bullets (Garry: "some 5+ seconds during which player is supposed to try and survive")');
@@ -672,10 +672,10 @@ const BossModel = (() => {
       for (const c of [val(a, 'barrier', 'color'), val(a, 'barrier', 'glow_color')]) if (c && !/^#[0-9a-fA-F]{6}$/.test(String(c))) errors.push(`a colour is #rrggbb: ${c}`);
       if (barrierOn(a)) {
         const rngM = Math.max(num(val(a, 'projectile', 'range'), 18), 0.5);
-        if (barrierRadius(a) - barrierHalf(a) > rngM + 0.01) warnings.push(`the barrier stands at ${fmt1(barrierRadius(a))} m, past the bullets' range (${fmt1(rngM)} m): a hero between them is out of reach`);
-        if (barrierReach(a) < 6) warnings.push(`the hero must stand within ${fmt1(barrierReach(a))} m of the boss for it to begin: very little room inside the barrier`);
+        if (barrierRadius(a) - barrierHalf(a) > rngM + 0.01) warnings.push(`the barrier stands at ${fmt1(barrierRadius(a))} m, past the bullets' range (${fmt1(rngM)} m): an outlaw between them is out of reach`);
+        if (barrierReach(a) < 6) warnings.push(`the outlaw must stand within ${fmt1(barrierReach(a))} m of the boss for it to begin: very little room inside the barrier`);
         if (Math.max(num(val(a, 'barrier', 'rise_s'), 0.8), 0) + Math.max(num(val(a, 'barrier', 'spread_s'), 0.6), 0) > Math.max(num(val(a, 'tell', 'seconds'), 2), 0)) warnings.push('the barrier is still rising when the bullets begin (Rise + Spread is longer than the tell)');
-        if (!val(a, 'barrier', 'hero_block')) warnings.push("the barrier does not hold the hero: he can walk out of the bullets' reach");
+        if (!val(a, 'barrier', 'hero_block')) warnings.push("the barrier does not hold the outlaw: he can walk out of the bullets' reach");
       }
       const sim = simulate(a, 1 / 20);
       // pass 114: 600 (twice as long and twice as far: the King's Royal Dust Devil peaks at about 450; the pattern's tick

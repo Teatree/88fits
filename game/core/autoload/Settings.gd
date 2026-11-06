@@ -307,4 +307,4 @@ func float_scale() -> float:
 
 
 func camera_name() -> String:
-	return ["Fixed · north up", "Follow · behind the hero"][clampi(camera_mode, 0, 1)]
+	return ["Fixed · north up", "Follow · behind the outlaw"][clampi(camera_mode, 0, 1)]

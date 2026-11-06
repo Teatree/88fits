@@ -46,7 +46,7 @@ PARTS = ("stick_tan", "stick_red", "bundle_tan", "bundle_red", "evo")
 
 
 def args():
-    out = {"look": "b", "only": "", "refs": "1", "review": "1"}
+    out = {"look": "b", "only": "", "refs": "1", "review": "1", "lane": ""}
     if "--" in sys.argv:
         for a in sys.argv[sys.argv.index("--") + 1:]:
             if "=" in a:
@@ -120,10 +120,10 @@ class Mesh:
             for k in range(n):
                 self.f([c, rings[-1][(k + 1) % n], rings[-1][k]], cap1)
 
-    def tube(self, pts, r, rgba, n=8, tip=None, tip_frac=0.18, cap_end=True, r_end=None):
-        """A cord swept along a smooth curve through `pts` (Catmull-Rom), capped at its far end; the last tip_frac of
-        its length in `tip` (a charred end). r_end: the radius at the far end (a taper)."""
-        path = catmull(pts, 6)
+    def tube(self, pts, r, rgba, n=8, tip=None, tip_frac=0.18, cap_end=True, r_end=None, steps=6, cap_start=False):
+        """A cord swept along a smooth curve through `pts` (Catmull-Rom, `steps` points a span), capped at its far end;
+        the last tip_frac of its length in `tip` (a charred end). r_end: the radius at the far end (a taper)."""
+        path = catmull(pts, steps)
         total = sum((path[i + 1] - path[i]).length for i in range(len(path) - 1))
         tang = []
         for i in range(len(path)):
@@ -161,7 +161,42 @@ class Mesh:
             c = self.v(path[-1] + tang[-1] * (r if r_end is None else r_end) * 0.6)
             for k in range(n):
                 self.f([c, ring[k], ring[(k + 1) % n]], tip if tip is not None else rgba)
+        if cap_start:
+            ring, _ = rings[0]
+            c = self.v(path[0] - tang[0] * r * 0.6)
+            for k in range(n):
+                self.f([c, ring[(k + 1) % n], ring[k]], rgba)
         return path[-1] + tang[-1] * (r if r_end is None else r_end) * 0.6
+
+    def blob(self, c, ax, rgba, n=10, rings=6, top=None):
+        """An ellipsoid centred at c; ax: its three half-axes as vectors (ax[1] the pole axis). top: the colour of the
+        half towards +ax[2] (a lit crown), else rgba all over."""
+        c = Vector(c)
+        a0, a1, a2 = Vector(ax[0]), Vector(ax[1]), Vector(ax[2])
+        if a0.cross(a1).dot(a2) < 0.0:
+            a0 = -a0
+        rows = []
+        for i in range(1, rings):
+            ph = math.pi * i / rings
+            row = []
+            for k in range(n):
+                th = 2.0 * math.pi * k / n
+                # the lathe's order (x cos, z sin about the pole axis), so the faces wind outwards the same way
+                row.append(self.v(c + a0 * (math.sin(ph) * math.cos(th)) - a1 * math.cos(ph) + a2 * (math.sin(ph) * math.sin(th))))
+            rows.append(row)
+        p0 = self.v(c - a1)
+        p1 = self.v(c + a1)
+
+        def col(k):
+            if top is None:
+                return rgba
+            return top if math.sin(2.0 * math.pi * (k + 0.5) / n) > 0.25 else rgba
+        for k in range(n):
+            k2 = (k + 1) % n
+            self.f([p0, rows[0][k], rows[0][k2]], col(k))
+            for i in range(len(rows) - 1):
+                self.f([rows[i][k], rows[i + 1][k], rows[i + 1][k2], rows[i][k2]], col(k))
+            self.f([p1, rows[-1][k2], rows[-1][k]], col(k))
 
     def hull_band(self, circles, t0, t1, thick, rgba, M=Matrix(), samples=64):
         """A band round several parallel round things (circles [(x, z, r)] in the local XZ plane), from t0 to t1 along
@@ -366,9 +401,160 @@ def b_fuse(m, x, y0, z, flip=1.0):
     return m.tube(pts, 0.016, B["fuse"], n=8, tip=B["char"], tip_frac=0.2)
 
 
-def b_stick(colour):
+# Pass 128 (lane DYNA, Garry: "I wanted to make it sand-brown at first, then the player would upgrade it to make it red.
+# Let's not do that."): look b's stick is the plain red stick, and its mutations show as overlays in the same one mesh:
+#   wire  dark iron barbed wire wound round the stick (round the whole bundle), fat, its barbs standing out
+#   tar   one patch of amber tar draped over the middle third of the upper side, three or four drips running down that
+#         end in beads (on the bundle: one patch on the top stick, its drips stretched down to the sticks under it, and
+#         a few strands sagging between the sticks). The paper stays the dominant colour from every side (the lead,
+#         pass 128: the first tar coated two thirds of the stick and it read as a yellow stick).
+# A part is "<form>" or "<form>_wire", "<form>_tar", "<form>_wire_tar"; the fuse and its tip stay where they were.
+B128 = {"wire": lin("2E3136"), "barb": lin("7A8088"), "knot": lin("4A4E55"),
+        "tar": lin("D98A12"), "tar_lit": lin("F4B63A"), "tar_dark": lin("A8650C")}
+
+
+def hull_ring(circles, grow, n):
+    """n points evenly round the convex hull of the circles [(x, z, r)] grown by `grow`, counter-clockwise in (x, z)."""
+    pts = []
+    for (x, z, r) in circles:
+        for k in range(72):
+            a = 2.0 * math.pi * k / 72
+            pts.append((x + (r + grow) * math.cos(a), z + (r + grow) * math.sin(a)))
+    return resample(convex_hull(pts), n)
+
+
+def ring_normal(ring, i):
+    """The outward normal (x, z) of a counter-clockwise ring at point i."""
+    a = ring[(i - 1) % len(ring)]
+    b = ring[(i + 1) % len(ring)]
+    tx, tz = b[0] - a[0], b[1] - a[1]
+    d = math.hypot(tx, tz) or 1.0
+    return (tz / d, -tx / d)
+
+
+def barbed_wire(m, circles, y0, y1, turns, wr=0.0125, per_turn=18, barb_every=0.29, barb_len=0.058, phase=0.0):
+    """Barbed wire wound `turns` times round the circles' hull from y0 to y1: one fat strand, and every `barb_every` of
+    a turn a barb: a knot and two spikes standing out in a V along the stick."""
+    ring = hull_ring(circles, wr * 0.75, per_turn)
+    total = int(round(turns * per_turn))
+    off = int(round(phase * per_turn))
+    pts = []
+    for i in range(total + 1):
+        x, z = ring[(i + off) % per_turn]
+        pts.append(Vector((x, y0 + (y1 - y0) * i / float(total), z)))
+    m.tube(pts, wr, B128["wire"], n=6, steps=1, cap_start=True)
+    k = 0.5 * barb_every
+    while k < turns - 0.05:
+        f = k * per_turn
+        i = int(f)
+        t = f - i
+        p = pts[i].lerp(pts[min(i + 1, total)], t)
+        nx, nz = ring_normal(ring, (i + off) % per_turn)
+        out = Vector((nx, 0.0, nz))
+        along = Vector((0.0, 1.0, 0.0))
+        m.blob(p + out * wr * 0.3, (along * wr * 1.9, out * wr * 1.5, out.cross(along) * wr * 1.5), B128["knot"], n=6, rings=4)
+        for sgn in (-1.0, 1.0):
+            d = (out * 0.8 + along * 0.6 * sgn).normalized()
+            m.tube([p + d * wr * 0.4, p + d * barb_len], wr * 0.72, B128["barb"], n=5, r_end=0.0012, steps=1)
+        k += barb_every
+
+
+def tar_sheet(m, circles, yc, ly, w0, drips, t_max=0.017, rows=72, cols=16, wob=(1.3, 4.1)):
+    """Amber tar poured over the top of the circles' hull, centred at yc and reaching ly either way along the stick: a
+    sheet w0 wide (arc length from the top) either side with a wavy edge, and `drips` [(side, y, half_width, reach)]
+    running further down, each ending in a bead. Its edge sinks under the paper."""
+    ring = hull_ring(circles, 0.0, 240)
+    n = len(ring)
+    top = max(range(n), key=lambda i: (round(ring[i][1], 5), -abs(ring[i][0])))
+    seg = [math.hypot(ring[(i + 1) % n][0] - ring[i][0], ring[(i + 1) % n][1] - ring[i][1]) for i in range(n)]
+    step = sum(seg) / n
+
+    def on_hull(u):
+        """The hull's point and outward normal at arc length u from the top (+ = counter-clockwise)."""
+        f = u / step
+        i0 = int(math.floor(f))
+        t = f - i0
+        a, b = ring[(top + i0) % n], ring[(top + i0 + 1) % n]
+        na, nb = ring_normal(ring, (top + i0) % n), ring_normal(ring, (top + i0 + 1) % n)
+        nx, nz = na[0] + (nb[0] - na[0]) * t, na[1] + (nb[1] - na[1]) * t
+        d = math.hypot(nx, nz) or 1.0
+        return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, nx / d, nz / d)
+
+    def width(side, y):
+        v = (y - yc) / ly
+        if abs(v) >= 1.0:
+            return 0.0
+        ph = wob[0] if side > 0 else wob[1]
+        w = w0 * math.sqrt(1.0 - abs(v) ** 3) * (1.0 + 0.13 * math.sin(7.3 * v + ph) + 0.07 * math.sin(15.7 * v + 2.0 * ph))
+        for (sd, yk, wk, reach) in drips:
+            if sd != side:
+                continue
+            q = abs(y - yk) / wk
+            if q < 1.0:
+                w = max(w, w + (reach - w) * (1.0 - q * q) ** 0.8)
+        return w
+
+    grid = []
+    for r in range(rows + 1):
+        y = yc - ly + 2.0 * ly * r / rows
+        v = (y - yc) / ly
+        end = math.sqrt(max(0.0, 1.0 - abs(v) ** 4))
+        wl, wr_ = width(-1, y), width(1, y)
+        row = []
+        for c in range(cols + 1):
+            q = -1.0 + 2.0 * c / cols
+            u = q * (wr_ if q >= 0.0 else wl)
+            x, z, nx, nz = on_hull(u)
+            t = t_max * end * math.sqrt(max(0.0, 1.0 - abs(q) ** 2.4)) - 0.004
+            row.append(m.v(Vector((x + nx * t, y, z + nz * t))))
+        grid.append(row)
+    for r in range(rows):
+        for c in range(cols):
+            q = abs(-1.0 + 2.0 * (c + 0.5) / cols)
+            colr = B128["tar_lit"] if q < 0.22 else (B128["tar_dark"] if q > 0.8 else B128["tar"])
+            # +u runs counter-clockwise round the hull, the way a lathe's angle grows: wound like the lathe's quads
+            m.f([grid[r][c], grid[r + 1][c], grid[r + 1][c + 1], grid[r][c + 1]], colr)
+    for (sd, yk, wk, reach) in drips:
+        x, z, nx, nz = on_hull(sd * (reach - wk * 0.55))
+        out = Vector((nx, 0.0, nz))
+        along = Vector((0.0, 1.0, 0.0))
+        flow = out.cross(along) * (-sd)
+        m.blob(Vector((x, yk, z)) + out * wk * 0.25, (along * wk * 0.95, flow * wk * 1.45, out * wk * 0.95), B128["tar"],
+               n=8, rings=5, top=B128["tar_lit"])
+
+
+def tar_strand(m, a, b, sag, r=0.007):
+    """A thin strand of tar from a to b, sagging by `sag` (a vector) in its middle, a little bead on it."""
+    a, b = Vector(a), Vector(b)
+    mid = (a + b) * 0.5 + Vector(sag)
+    m.tube([a, a.lerp(mid, 0.55) + Vector(sag) * 0.2, mid, b.lerp(mid, 0.55) + Vector(sag) * 0.2, b], r, B128["tar"], n=5, steps=3,
+           cap_start=True)
+    m.blob(mid, (Vector((r * 1.9, 0, 0)), Vector((0, r * 1.9, 0)), Vector((0, 0, r * 2.6))), B128["tar_lit"], n=6, rings=4)
+
+
+B_DRIPS = [(1, 0.045, 0.019, 0.185), (1, -0.05, 0.015, 0.14),
+           (-1, -0.015, 0.019, 0.178), (-1, 0.062, 0.014, 0.128)]
+B_BUNDLE_DRIPS = [(1, 0.05, 0.021, 0.3), (1, -0.05, 0.017, 0.215),
+                  (-1, -0.005, 0.021, 0.285), (-1, 0.068, 0.016, 0.2)]
+
+
+def b_overlays(variant):
+    v = [x for x in str(variant or "").split("_") if x]
+    bad = [x for x in v if x not in ("wire", "tar")]
+    if bad:
+        raise SystemExit("blender_dynamite: look b's parts are <form>[_wire][_tar], not %r" % variant)
+    return "wire" in v, "tar" in v
+
+
+def b_stick(variant=""):
+    wire, tar = b_overlays(variant)
     m = Mesh()
-    m.lathe(b_stick_prof(B[colour]), n=24, cap0=B["end"], cap1=B["end"])
+    R = B["R"]
+    m.lathe(b_stick_prof(B["red"]), n=24, cap0=B["end"], cap1=B["end"])
+    if wire:
+        barbed_wire(m, [(0.0, 0.0, R)], -0.172, 0.172, 4.0)
+    if tar:
+        tar_sheet(m, [(0.0, 0.0, R)], 0.0, 0.092, 0.054, B_DRIPS, t_max=0.014, rows=44, cols=12)
     tip = b_fuse(m, 0.0, B["H"], 0.0)
     return m.finish("Dynamite", rough=B["rough"]), tip
 
@@ -376,14 +562,23 @@ def b_stick(colour):
 B_BUNDLE = [(-0.087, -0.05, -0.012), (0.087, -0.05, 0.01), (0.0, 0.1, 0.0)]
 
 
-def b_bundle(colour):
+def b_bundle(variant=""):
+    wire, tar = b_overlays(variant)
     m = Mesh()
     R = B["R"]
     for (x, z, dy) in B_BUNDLE:
-        m.lathe(b_stick_prof(B[colour]), M=at(x, z) @ Matrix.Translation((0, dy, 0)), n=24, cap0=B["end"], cap1=B["end"])
+        m.lathe(b_stick_prof(B["red"]), M=at(x, z) @ Matrix.Translation((0, dy, 0)), n=24, cap0=B["end"], cap1=B["end"])
     circles = [(x, z, R) for (x, z, _dy) in B_BUNDLE]
     for (t0, t1) in ((-0.175, -0.13), (0.13, 0.175)):
         m.hull_band(circles, t0, t1, 0.006, B["tape"])
+    if wire:
+        barbed_wire(m, circles, -0.1, 0.1, 2.6, wr=0.014, per_turn=30, barb_every=0.215, barb_len=0.066, phase=0.2)
+    if tar:
+        tar_sheet(m, circles, 0.0, 0.105, 0.07, B_BUNDLE_DRIPS, t_max=0.015, rows=48, cols=12, wob=(0.4, 2.9))
+        # strands across the grooves between the top stick and the two under it, and between those two at the fuse end
+        for (sx, y) in ((1, 0.225), (-1, 0.235), (1, -0.232), (-1, -0.222)):
+            tar_strand(m, (sx * 0.062, y, 0.045), (sx * 0.118, y + 0.012, 0.03), (sx * 0.004, 0.0, -0.028))
+        tar_strand(m, (-0.05, 0.262, -0.075), (0.05, 0.272, -0.07), (0.0, 0.012, -0.03))
     tip = b_fuse(m, 0.0, B["H"], 0.1)
     return m.finish("Dynamite", rough=B["rough"]), tip
 
@@ -436,7 +631,9 @@ def b_evo():
     return m.finish("Boomtown", rough=0.5), tip
 
 
-LOOKS["b"] = {"stick": b_stick, "bundle": b_bundle, "evo": b_evo, "rough": B["rough"], "evo_rough": 0.5}
+LOOKS["b"] = {"stick": b_stick, "bundle": b_bundle, "evo": b_evo, "rough": B["rough"], "evo_rough": 0.5,
+              "parts": ("stick", "stick_wire", "stick_tar", "stick_wire_tar",
+                        "bundle", "bundle_wire", "bundle_tar", "bundle_wire_tar", "evo")}
 
 # --- c: the chunky cartoon stick
 C = {
@@ -900,11 +1097,13 @@ def main():
     look = a["look"].lower()
     if look not in LOOKS:
         raise SystemExit("blender_dynamite: look must be one of %s" % ", ".join(sorted(LOOKS)))
-    only = [x for x in a["only"].split(",") if x] or list(PARTS)
     L = LOOKS[look]
+    only = [x for x in a["only"].split(",") if x] or list(L.get("parts", PARTS))
+    lane = os.path.join(REPO, a["lane"]) if a["lane"] else LANE
+    review = os.path.join(lane, "review")
     os.makedirs(PROPS, exist_ok=True)
-    os.makedirs(REVIEW, exist_ok=True)
-    tips_path = os.path.join(LANE, "tips_%s.json" % look)
+    os.makedirs(review, exist_ok=True)
+    tips_path = os.path.join(lane, "tips_%s.json" % look)
     try:
         tips = json.load(open(tips_path, encoding="utf-8"))
     except (OSError, ValueError):
@@ -914,8 +1113,9 @@ def main():
         if part == "evo":
             o, tip = L["evo"]()
         else:
-            form, colour = part.split("_")
-            o, tip = L[form](colour)
+            # look b (pass 128): "<form>" or "<form>_wire_tar"; c and d: "<form>_<tan|red>"
+            form, _sep, rest = part.partition("_")
+            o, tip = L[form](rest)
         glb = os.path.join(PROPS, "dynamite_%s_%s.glb" % (look, part))
         # exported with the long axis across (Blender +Y turned onto +X, Godot +X): a shot spins about the way it flies,
         # so a stick across its flight tumbles like a thrown stick (along it, it flew like a dart); it lies along its
@@ -938,7 +1138,7 @@ def main():
             render_view(o, tip, os.path.join(DL, "dynamite_%s_%s_ref.png" % (look, part)), view, 768, True)
         if a["review"] == "1":
             for view in ("game", "side"):
-                render_view(o, tip, os.path.join(REVIEW, "%s_%s_%s.png" % (look, part, view)), view, 512, False, True, True)
+                render_view(o, tip, os.path.join(review, "%s_%s_%s.png" % (look, part, view)), view, 512, False, True, True)
     with open(tips_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(tips, f, indent=1)
     print("blender_dynamite: done", look, tips_path)

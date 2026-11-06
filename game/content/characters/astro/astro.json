@@ -77,7 +77,7 @@
   "variant": "AST-A",
   "variants": {
     "AST-A": {
-      "note": "The hero's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it)."
+      "note": "The outlaw's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it)."
     },
     "AST-B": {
       "note": "pass 126: a black and gold spacesuit: Klein edits of her own paintings, view by view (tools/gen_skin_views.py), walked on her own driver",

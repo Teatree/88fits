@@ -2366,3 +2366,22 @@ The Timeline shows Sundown, Nightfall, The Dust Bowl and Blood Moon (nothing in 
 ## Pass 127: the walk Fly (lane ART)
 
 The creature methods' **walk** select has **Fly** (`fly`): the creature never touches the ground. Idle, walk, attack and hit hang in the air on a wing beat, its shadow on the sand well under it (the Carrion Crow's CC-B, the Vampire Survivors bats' feel). Paint the front and back with the wings level; the wings are cut out and turned about the shoulders, so a Fly look costs three Klein stills (front, back, dead) and no video. The recipe key `fly` holds the hover, the bob, the wing angles and where the body and shoulders are (docs/assets_schema.md "Pass 127"). Pair it with the death **fall** (shot out of the air, it drops onto the dead still) and a look's own `shadow` (`up` 0, a small `scale`). Colour looks with `recolour_strip.py --mode lift --max-val` keep white eyes on a body with no hue of its own (the Dust Bunny's DB-C, DB-D).
+
+## Pass 128: Relocation (lane BLOB)
+
+Creatures that chase a faster outlaw used to trail him as one blob. Two things answer it. The far-speed numbers on the
+Scaling card are raised for Red Canyon (Far speed x 4, Far speed cap 8 m/s). And **Relocation**, a card of its own on the
+Settings tab: a regular creature farther than **Far from** (16 m) for **Far for** (5 s) joins a queue; **One every**
+(0.4 s) the queue's first sinks into the ground over **Sinks over** (0.35 s) and rises **Comes up at** (19 to 24 m) from
+the outlaw in the emptiest of **Sectors** (12) round him. **Check every** is how often the crowd is checked, **Squads
+too** lets squad creatures (the Monk) relocate by default, and **Relocate far creatures** switches the whole rule off.
+Under the rows the card reads the block back in one sentence and warns of numbers that read as a mistake (rising nearer
+than Far from, a clock of 0). It is the same creature, not a spawn: no cap, no count, no XP change. Never a boss, an
+Elite, a coloured special, a special type, a boss's summon or a dummy, never in the middle of an attack, nothing while a
+boss barrier stands, never in the arena.
+
+Every row's card (a boss-fight window's rows too) has **Relocates when far** under Where and how. The box shows what
+the game will play and, beside it, where that comes from: "on: the default for a regular creature", "off: the default
+for a squad creature" (tick it to switch that row's Monks on), "on / off: this row says so" in bold, or, greyed and
+locked, "off: an Elite row never relocates" (the same for a special row, a boss, an Elite by its kind, a special type and
+a dummy). The file stores the box only where it differs from the row's default, so a map full of defaults stays clean.

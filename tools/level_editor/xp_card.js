@@ -299,7 +299,7 @@ const XpCard = (() => {
       s.appendChild(svg('text', { x: x(L), y: H - B + 15, class: 'xpc-tick mid', text: String(L) }));
     }
     s.appendChild(svg('line', { x1: L0, y1: H - B, x2: W - R, y2: H - B, class: 'xpc-axis' }));
-    s.appendChild(svg('text', { x: W - R, y: H - 3, class: 'xpc-axis-t end', text: 'hero level' }));
+    s.appendChild(svg('text', { x: W - R, y: H - 3, class: 'xpc-axis-t end', text: 'outlaw level' }));
     const path = (ser) => pts(ser).map((p, k) => `${k ? 'L' : 'M'}${x(p.L).toFixed(1)},${y(val(p)).toFixed(1)}`).join(' ');
     if (showBase) s.appendChild(svg('path', { d: path(base), class: 'xpc-base' }));
     s.appendChild(svg('path', { d: path(mine), class: 'xpc-mine' }));
@@ -387,7 +387,7 @@ const XpCard = (() => {
   function simWords(st, started, heroName) {
     const when = started ? new Date(started) : null;
     const hm = when && !isNaN(when.getTime()) ? `${when.getMonth() + 1}/${when.getDate()} ${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}` : '';
-    return `${hm} · ${heroName || st.hero || 'a hero'} ×${st.players || '?'} to ${fmtT(Number(st.limit) || 0)}`;
+    return `${hm} · ${heroName || st.hero || 'an outlaw'} ×${st.players || '?'} to ${fmtT(Number(st.limit) || 0)}`;
   }
 
   /** The line under the charts: when a run gaining XP as the latest sim did reaches levels 10, 20 and 30 with this curve

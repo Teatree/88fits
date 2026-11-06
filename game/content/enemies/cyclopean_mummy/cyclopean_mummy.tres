@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_fmy4i")
 archetype = "tank"
-doc = "A squat goblin wrapped head to belly in bandages, one big green slit-pupilled eye staring out of the wrappings; it plods after the hero with a spiked mace held up at its shoulder."
+doc = "A squat goblin wrapped head to belly in bandages, one big green slit-pupilled eye staring out of the wrappings; it plods after the outlaw with a spiked mace held up at its shoulder."
 hp = 60.0
 speed = 0.85
 damage = 14.0

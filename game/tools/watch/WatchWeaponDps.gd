@@ -61,9 +61,9 @@ const FEED := ["might", "cooldown", "haste", "area", "projectile_speed", "durati
 const VIA_WORDS := {"starter": "the starting weapon", "card": "a level-up card", "path": "a mutation level-up", "chest": "a chest",
 	"boss_chest": "the boss chest", "stranger": "the Stranger", "shop": "bought at the shop", "debug": "the debug hand"}
 ## a source's kind in words (the dashboard's SRC_KIND_WORDS; "buff" live: a boost running now)
-const SRC_KIND_WORDS := {"passive": "passive item or card", "favourite": "the hero's favourite", "perk": "perk", "mutation": "mutation",
-	"talent": "Upgrade board", "trait": "the hero's trait", "hero": "the hero", "momentum": "the hero's momentum", "totem": "Totem gift",
-	"stranger": "the Stranger", "buff": "a boost running now", "weapon": "a weapon", "bonus": "the hero's favourite"}
+const SRC_KIND_WORDS := {"passive": "passive item or card", "favourite": "the outlaw's favourite", "perk": "perk", "mutation": "mutation",
+	"talent": "Upgrade board", "trait": "the outlaw's trait", "hero": "the outlaw", "momentum": "the outlaw's momentum", "totem": "Totem gift",
+	"stranger": "the Stranger", "buff": "a boost running now", "weapon": "a weapon", "bonus": "the outlaw's favourite"}
 
 ## the model the panel hands over (set_model): {t: PackedFloat32Array, keys: [line key], raw: {key: PackedFloat32Array},
 ## total: float, info: {key: {name, sub, color, weapon, icon, sources: [{icon, name, lines, times}], note}}, marks:
@@ -333,7 +333,7 @@ static func dps_marks(events: Array, by_sid: Dictionary, names: Dictionary) -> A
 				out.append(_mark(t, "weapons", id, "evolution", nm, [at + "★ " + _name(names, str(e.get("from", ""))) + " evolved into " + nm + how, est]))
 			"mutation":
 				var on := str(e.get("weapon", ""))
-				var l: Array = [at + nm + (" (hero mutation)" if bool(e.get("hero", false)) else " (mutation)") + ((" on " + _name(names, on)) if on != "" else "") + how, est]
+				var l: Array = [at + nm + (" (outlaw mutation)" if bool(e.get("hero", false)) else " (mutation)") + ((" on " + _name(names, on)) if on != "" else "") + how, est]
 				out.append(_mark(t, "weapons", id, "mutation", nm, l + _shaped(by_sid, "mutation:" + id, names)))
 			"passive", "passive_evolution", "line", "line_evolution", "perk":
 				var is_perk := kind == "perk"

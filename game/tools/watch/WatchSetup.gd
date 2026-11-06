@@ -339,7 +339,7 @@ func _build() -> void:
 	var head := HBoxContainer.new()
 	col.add_child(head)
 	var t := Label.new()
-	t.text = "Hero Settings"
+	t.text = "Outlaw Settings"
 	t.add_theme_font_size_override("font_size", 24)
 	t.add_theme_color_override("font_color", PANEL.ACCENT)
 	head.add_child(t)
@@ -380,7 +380,7 @@ func _build() -> void:
 		cancelled.emit())
 	_cancel_btn.custom_minimum_size = Vector2(110, 40)
 	foot.add_child(_cancel_btn)
-	_start_btn = _button("Start Run", "start a run with these settings: the hero comes down in the spawn beam (Enter)", _on_start)
+	_start_btn = _button("Start Run", "start a run with these settings: the outlaw comes down in the spawn beam (Enter)", _on_start)
 	_start_btn.custom_minimum_size = Vector2(170, 40)
 	_start_btn.add_theme_stylebox_override("normal", _sbox(PANEL.ACCENT, 5, 8, PANEL.ACCENT))
 	_start_btn.add_theme_stylebox_override("hover", _sbox(PANEL.ACCENT.lightened(0.15), 5, 8, PANEL.ACCENT))
@@ -439,7 +439,7 @@ func _build_run(parent: Control) -> void:
 	_hero = OptionButton.new()
 	_hero.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_hero.item_selected.connect(func(_i: int) -> void: _hero_changed(""))
-	_row(hg, "Hero", _hero, "who plays (hidden heroes too)")
+	_row(hg, "Outlaw", _hero, "who plays (hidden outlaws too)")
 	_look = OptionButton.new()
 	_look.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_look.item_selected.connect(func(_i: int) -> void: _show_hero())
@@ -468,7 +468,7 @@ func _build_run(parent: Control) -> void:
 	_stage_note.add_theme_font_size_override("font_size", 12)
 	_stage_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	stage_box.add_child(_stage_note)
-	_row(g, "Stage", stage_box, "the stage the run plays: a fresh hero at its start, its boss at its end, then the portal's countdown and Endless")
+	_row(g, "Stage", stage_box, "the stage the run plays: a fresh outlaw at its start, its boss at its end, then the portal's countdown and Endless")
 	_map.item_selected.connect(func(_i: int) -> void: _fill_stages(_stage_selected() + 1))
 	var seed_row := HBoxContainer.new()
 	_seed_random = CheckBox.new()

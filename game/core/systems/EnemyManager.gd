@@ -1738,6 +1738,8 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	_emerge_start(i, def)
 	# pass 95 (lane WORLD): when it came and whether a boss or a caster summoned it (the despawn rule reads both)
 	_despawn_note_spawn(i)
+	# pass 128 (lane BLOB): what its row said about relocating, a fresh far time (CrowdRelocate)
+	_relocate_note_spawn(i)
 	# pass 112 (lane MONK): a squad creature joins its squad (Squads.on_spawn)
 	if _t_squad[t] == 1:
 		_sq().on_spawn(i)
@@ -4266,6 +4268,9 @@ func _physics_process(delta: float) -> void:
 	# pass 95 (lane WORLD): regular creatures far from the hero and off the screen go, before the grid is built, so none
 	# of them sits in this tick's cells (the screen flags are last tick's: at 40 m none is near the screen's edge)
 	_tick_despawn(delta, player.global_position)
+	# pass 128 (lane BLOB): far regular creatures sink and rise round the outlaw (CrowdRelocate), before the grid too
+	if relocate != null:
+		relocate.tick(delta, player.global_position)
 	_rebuild_grid()
 	_obstacle_cells()
 	_cf_tick = _camera_forward()
@@ -8895,6 +8900,43 @@ func despawn(i: int) -> bool:
 	despawned_by[def.id] = int(despawned_by.get(def.id, 0)) + 1
 	if RunAnalytics.I: RunAnalytics.I.despawned(def)
 	return true
+
+
+# ---------------------------------------------------------------- relocate (pass 128, lane BLOB)
+## Garry (pass 128): creatures chasing a faster outlaw "form one big trailing blob". A regular creature far from him for
+## long enough sinks into the ground and rises where the ring round him has the fewest creatures: the whole rule lives
+## in core/systems/CrowdRelocate.gd (made the first time the director hands over an enabled `timeline_data.relocate`;
+## null without one, so a manager without a director never relocates, nor the arena). Here only what a creature carries:
+## `reloc_may` (CrowdRelocate.MAY_OFF / MAY_ON / MAY_DEFAULT, from `row_relocate` at its spawn), `reloc_far` (seconds it
+## has been far) and `reloc_queued` (1 while it waits in the queue). `row_relocate` is held by the director around a
+## roster row's spawns (WaveTimeline.row_relocate: 0 never, 1 yes, -1 the row does not say), as force_special is.
+var relocate: CrowdRelocate = null
+var row_relocate := -1
+var reloc_may := PackedByteArray()
+var reloc_far := PackedFloat32Array()
+var reloc_queued := PackedByteArray()
+
+
+## The director hands the map's block over (WaveTimeline.relocate_cfg); {} or enabled false = off.
+func set_relocate(cfg: Dictionary) -> void:
+	var enabled := cfg != null and bool(cfg.get("enabled", false))
+	if relocate == null:
+		if not enabled:
+			return
+		relocate = CrowdRelocate.new(self)
+	relocate.configure(cfg if enabled else {})
+
+
+## spawn() calls it last: what the creature's row said about relocating, a fresh far time, out of the queue (sized here,
+## lazily, as the despawn rule's arrays are).
+func _relocate_note_spawn(i: int) -> void:
+	if reloc_may.size() != pool_max:
+		reloc_may.resize(pool_max)
+		reloc_far.resize(pool_max)
+		reloc_queued.resize(pool_max)
+	reloc_may[i] = CrowdRelocate.MAY_DEFAULT if row_relocate < 0 else (CrowdRelocate.MAY_ON if row_relocate > 0 else CrowdRelocate.MAY_OFF)
+	reloc_far[i] = 0.0
+	reloc_queued[i] = 0
 
 
 # ---------------------------------------------------------------- far speed (pass 111, lane ENEMY)

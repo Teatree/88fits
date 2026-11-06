@@ -22,7 +22,7 @@ const Drivers = (() => {
   const DM = DriversModel;
   const el = (...a) => U.el(...a);
   const ROOT_HELP = 'Drivers are kept in tools/dl/drivers/<name>/ (one folder per driver), with a folder per view inside: front, fd (front ¾), side, bd (back ¾), back. '
-    + 'In a view folder, driver_00.png, driver_01.png … are OpenPose stick figures (the heroes\' and humanoid creatures\' walks, made from a Mixamo FBX by tools/pose_driver.py); '
+    + 'In a view folder, driver_00.png, driver_01.png … are OpenPose stick figures (the outlaws\' and humanoid creatures\' walks, made from a Mixamo FBX by tools/pose_driver.py); '
     + 'ctl_00.png, ctl_01.png … are depth frames of a 3D model (the creatures\' walks and deaths, made in Blender: light = near, dark = far); '
     + 'clay.png is the model standing in grey clay, look.png the model in its own colours, clay_NN.png a one-shot\'s clay at frame NN. '
     + 'meta.json says what made it; <view>_sheet.png and all_sheet.png are contact sheets. The frame index is the number in the file name, starting at 0: '
@@ -225,7 +225,7 @@ const Drivers = (() => {
       this.playBtn = B('▶ play', 'play / pause (Space)', () => (this.playing ? this.pause() : this.play()));
       this.scrub = el('input', { type: 'range', class: 'drv-scrub', min: 0, max: 0, step: 1, value: 0, title: 'drag through the frames' });
       this.scrub.addEventListener('input', () => { this.pause(); this.show(Number(this.scrub.value)); });
-      const speed = el('select', { title: 'frames a second (the game plays a creature walk at about 10, a hero run at 14)' });
+      const speed = el('select', { title: 'frames a second (the game plays a creature walk at about 10, an outlaw run at 14)' });
       for (const f of DM.SPEEDS) speed.appendChild(el('option', { value: f, text: `${f} fps`, selected: f === this.fps }));
       speed.addEventListener('change', () => { this.fps = Number(speed.value) || 12; });
       const loopCb = el('input', { type: 'checkbox' });
@@ -254,7 +254,7 @@ const Drivers = (() => {
       this.pathBox = el('div', { class: 'drv-pathbox' });
       info.appendChild(this.pathBox);
       const used = Array.isArray(d.used_by) ? d.used_by : [];
-      info.appendChild(el('div', {}, el('b', { text: `Used by ${used.length ? used.length : 'no'} look${used.length === 1 ? '' : 's'}${used.length ? ':' : ' (no enemy, boss or hero recipe names it)'} ` }),
+      info.appendChild(el('div', {}, el('b', { text: `Used by ${used.length ? used.length : 'no'} look${used.length === 1 ? '' : 's'}${used.length ? ':' : ' (no enemy, boss or outlaw recipe names it)'} ` }),
         used.map((u) => el('span', { class: 'drv-used' + (u.played ? ' played' : ''), text: DM.usedText(u) }))));
       if (d.has_meta) {
         const det = el('details', { class: 'drv-meta' }, el('summary', { text: 'meta.json (everything the tool recorded) · read-only (derived)' }), el('pre', { class: 'mono small', text: JSON.stringify(d.meta, null, 1) }));
@@ -483,7 +483,7 @@ const Drivers = (() => {
       el('p', { class: 'help', text: 'The 3D motions the video model paints over: a driver is a folder of numbered frames per view, and a look\'s recipe names it (pose_drivers, pose, drivers, death_drivers). Hover a card to play it; click it for every frame with its number, the clay and look stills, and the folder.' }),
       el('details', { class: 'drv-where' }, el('summary', { text: 'Where they are kept and how to look at them without the editor' }), el('p', { class: 'small', text: ROOT_HELP }),
         el('div', {}, el('code', { text: 'D:/_projects/88fits/tools/dl/drivers' }), el('button', { type: 'button', class: 'btn small', text: 'Copy path', onclick: () => copyText('D:/_projects/88fits/tools/dl/drivers') }), el('button', { type: 'button', class: 'btn small', text: 'Open folder', onclick: () => openFolder(null) }))));
-    const q = el('input', { type: 'search', class: 'txt', placeholder: 'search: a name, a model, a clip, a creature or hero that uses it…', value: S.q });
+    const q = el('input', { type: 'search', class: 'txt', placeholder: 'search: a name, a model, a clip, a creature or outlaw that uses it…', value: S.q });
     const kinds = [['all', 'All'], ['pose', 'OpenPose'], ['depth', 'Depth'], ['death', 'Deaths'], ['used', 'Used by a look'], ['unused', 'Unused']];
     const kindBox = el('span', { class: 'drv-kinds' });
     for (const [k, label] of kinds) kindBox.appendChild(el('button', { type: 'button', class: 'btn small' + (S.kind === k ? ' on' : ''), text: label, onclick: () => { S.kind = k; draw(); for (const b of kindBox.children) b.classList.toggle('on', b.textContent === label); } }));

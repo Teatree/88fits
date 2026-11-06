@@ -107,7 +107,7 @@ const TaskPics = (() => {
   /** The "Picture" row the quest editors add under the condition (typed_forms requirement, items quest lock, skins goal):
    *  a Forms row whose control is node(). */
   function row(draft) {
-    const def = { key: 'picture', label: 'Picture', help: 'what the game draws for this goal (the Wanted posters\' pictures: the weapon, the item, the Heart, the barrel, the Totem Pole, fire or poison); the Collection and the hero sheet show it beside the words' };
+    const def = { key: 'picture', label: 'Picture', help: 'what the game draws for this goal (the Wanted posters\' pictures: the weapon, the item, the Heart, the barrel, the Totem Pole, fire or poison); the Collection and the outlaw sheet show it beside the words' };
     return Forms.row(def, node((draft && draft.condition) || {}), {});
   }
 

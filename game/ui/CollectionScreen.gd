@@ -39,6 +39,9 @@ const CELL_GAP := 20.0
 
 ## Set by the developer menu before it opens this screen: one board of everything hidden, no tabs.
 static var hidden_only := false
+## Pass 128: the Outlaws screen (no class_name), for open_outlaw.
+const HEROES_SCREEN := "res://ui/HeroesScreen.tscn"
+const HEROES_SCREEN_SCRIPT := "res://ui/HeroesScreen.gd"
 
 ## Pass 123 (lane COLLECTION), Royale only (canvas px; each `W.safe_top()` lower under a camera cutout, the feet
 ## `W.safe_bottom()` higher over a gesture bar): the sheets' sides (the header's 40), the tabs' top and the grid sheet's
@@ -663,6 +666,16 @@ func _open_locked_royale(def: ContentDef) -> void:
 	var p := _hero_card_royale(def, true)
 	var v: VBoxContainer = p.find_child("Words", true, false)
 	v.add_child(W.label("Locked · " + _kind_line(def), RY_KIND_PX, W.ROCK))
+	# pass 128: an outlaw's start weapon is his until he is owned: no quest, "Comes with <name>", a tap to his page
+	var giver := comes_with(def)
+	if giver:
+		v.add_child(comes_with_line(giver, RY_EFFECT_PX, self))
+		# the outlaw's own pronoun (CharacterDef.pronoun, as WItem's "His favourite")
+		var who: String = {"he": "he is", "she": "she is"}.get(str(giver.get("pronoun")), "they are")
+		v.add_child(W.serif_text("Once %s yours, it joins every run's offers." % who, RY_FLAVOUR_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+		content.add_child(p)
+		_section_royale("What it does", _cell_royale("", _full_text(def)))
+		return
 	var words := W.serif_text(TextGen.quest_text(q) if q else "Not found yet.", RY_EFFECT_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EFFECT_PX * 1.3, true)
 	words.name = "Quest"
 	words.color = R.WHITE
@@ -793,7 +806,52 @@ func _found(def: ContentDef) -> bool:
 func _locked(def: ContentDef) -> bool:
 	if hidden_only or def is EnemyDef or def is PerkDef or def is MutationDef or def is CharacterDef:
 		return false
-	return not Registry.is_unlocked(W.content_kind(def), def.id)
+	return not Registry.is_unlocked(W.content_kind(def), def.id) or comes_with(def) != null
+
+
+## Pass 128: the outlaw a weapon comes with while he is not owned (Registry.weapon_comes_with: his start weapon is
+## offered in runs only once he is); null for anything else.
+static func comes_with(def: ContentDef) -> CharacterDef:
+	return Registry.weapon_comes_with(def as WeaponDef) if def is WeaponDef else null
+
+
+## Pass 128: what such a weapon reads in place of a quest.
+static func comes_with_words(c: CharacterDef) -> String:
+	return "Comes with %s" % (c.display_name if c else "an outlaw")
+
+
+## Pass 128: the line itself, "Comes with <name>" and a gold chevron: a tap opens the Outlaws screen on him (open_outlaw).
+## Named "ComesWith", meta "outlaw" his id; `from` is the screen it sits on.
+static func comes_with_line(c: CharacterDef, px: int, from: Node, soft: bool = false) -> WTap:
+	var t := WTap.new()
+	t.name = "ComesWith"
+	t.set_meta("outlaw", c.id if c else "")
+	t.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	t.add_child(row)
+	var words := W.serif_text(comes_with_words(c), px, W.INK_SOFT if soft else W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, px * 1.3, true)
+	words.name = "Words"
+	if not soft:
+		words.color = R.WHITE
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(words)
+	var go_mark := W.text("›" if R.body().has_char(0x203A) else ">", R.body(R.LABEL_WEIGHT), px + 6, R.GOLD_TEXT, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	go_mark.name = "Chevron"
+	go_mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(go_mark)
+	t.pressed.connect(func() -> void: open_outlaw(from, c))
+	return t
+
+
+## Pass 128: the Outlaws screen opened on `c` (HeroesScreen.open_on, read once by its build); Back there goes where it
+## always goes.
+static func open_outlaw(from: Node, c: CharacterDef) -> void:
+	if c == null or from == null or not from.is_inside_tree():
+		return
+	load(HEROES_SCREEN_SCRIPT).set("open_on", c.id)
+	UiFx.go(from.get_tree(), HEROES_SCREEN)
 
 
 func _tally(tab: int) -> Vector2i:
@@ -957,6 +1015,10 @@ func _still_to_find(def: ContentDef) -> String:
 	if def is PerkDef:
 		var hero := Registry.character((def as PerkDef).hero)
 		return "Play %s" % (hero.display_name if hero else (def as PerkDef).hero.capitalize())
+	# pass 128: an outlaw's start weapon while he is not owned
+	var giver := comes_with(def)
+	if giver:
+		return comes_with_words(giver)
 	var q := Registry.quest_for(W.content_kind(def), def.id)
 	if q == null and def.from_stage > 0:
 		return "Stage %d only" % def.from_stage
@@ -1053,7 +1115,7 @@ func _kind_line(def: ContentDef) -> String:
 		var w := Registry.weapon((def as MutationDef).weapon)
 		return "Mutation · %s" % (w.display_name if w else (def as MutationDef).weapon)
 	if def is CharacterDef:
-		return "Hero"
+		return "Outlaw"
 	if def is EnemyDef:
 		var e := def as EnemyDef
 		var role := danger_role(e)

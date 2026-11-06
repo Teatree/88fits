@@ -29,7 +29,7 @@ signal tab_pressed(id: String)
 
 const SELF_PATH := "res://ui/wanted/WTabBar.gd"
 const TABS := ["store", "heroes", "battle", "upgrade", "collections"]
-const WORDS := {"store": "STORE", "heroes": "HEROES", "battle": "BATTLE", "upgrade": "UPGRADE", "collections": "COLLECTIONS"}
+const WORDS := {"store": "STORE", "heroes": "OUTLAWS", "battle": "BATTLE", "upgrade": "UPGRADE", "collections": "COLLECTIONS"}
 ## Where each tab goes ("" nowhere: there is no store).
 const SCENES := {"store": "", "heroes": "res://ui/HeroesScreen.tscn", "battle": "res://ui/TitleScreen.tscn",
 	"upgrade": "res://ui/HomesteadScreen.tscn", "collections": "res://ui/CollectionScreen.tscn"}

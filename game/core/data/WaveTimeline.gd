@@ -274,6 +274,46 @@ func far_speed_cfg() -> Dictionary:
 		else:
 			out[k] = float(v) if (v is float or v is int) else float(dv)
 	return out
+
+
+## Pass 128 (lane BLOB; Garry: creatures chasing a faster outlaw "form one big trailing blob"): {"enabled", "distance",
+## "seconds", "every", "ring", "sectors", "sink", "scan", "squads"}. A regular creature (never a boss, an Elite, a
+## coloured special, a special type, a boss's summon while its boss lives, a training dummy, one held, roped, in the air,
+## rising or sinking; nothing while a boss barrier stands) that has been farther than `distance` m (flat) from the outlaw
+## for `seconds` (checked every `scan` s) joins a queue; every `every` s the queue's first sinks into the ground over
+## `sink` s and rises `ring` [near, far] m from him in the emptiest of `sectors` equal sectors round him
+## (core/systems/CrowdRelocate.gd). Not a spawn: no cap, no count, no XP change. `squads` false = squad creatures (the
+## Monk) stay put unless their row says `relocate: true`; a roster row's own `relocate` (true / false) wins over the
+## default. A key left out (the whole block too) plays RELOCATE_DEFAULTS; enabled false = off. The arena never relocates.
+@export var relocate: Dictionary = {}
+const RELOCATE_DEFAULTS := {"enabled": true, "distance": 16.0, "seconds": 5.0, "every": 0.4, "ring": [19.0, 24.0], "sectors": 12, "sink": 0.35, "scan": 0.5, "squads": false}
+
+
+## The relocate block whole, every key filled (pass 128): what EnemyManager.set_relocate takes. `ring` is always
+## [near, far] with near <= far (one number = both), `sectors` a whole number of at least 1.
+func relocate_cfg() -> Dictionary:
+	var out := {}
+	for k in RELOCATE_DEFAULTS:
+		var dv = RELOCATE_DEFAULTS[k]
+		var v = relocate.get(k, dv)
+		if dv is bool:
+			out[k] = bool(v) if (v is bool or v is int or v is float) else dv
+		elif dv is Array:
+			var lo := float((dv as Array)[0])
+			var hi := float((dv as Array)[1])
+			if v is Array and (v as Array).size() >= 1 and ((v as Array)[0] is float or (v as Array)[0] is int):
+				lo = float((v as Array)[0])
+				var last = (v as Array)[(v as Array).size() - 1]
+				hi = float(last) if (last is float or last is int) else lo
+			elif v is float or v is int:
+				lo = float(v)
+				hi = lo
+			out[k] = [maxf(minf(lo, hi), 0.0), maxf(maxf(lo, hi), 0.0)]
+		elif dv is int:
+			out[k] = maxi(int(v), 1) if (v is float or v is int) else int(dv)
+		else:
+			out[k] = maxf(float(v), 0.0) if (v is float or v is int) else float(dv)
+	return out
 ## Pass 112 (lane BARREL; Garry: barrels "should respawn every now and then ... a chance of a power up dropping from
 ## them ... never spawn where Player can see them"): {"respawn": {...}, "brown": {...}, "black": {...}}: the clock that
 ## lays barrels again off the screen and what each barrel type holds (core/systems/BarrelSpawns.gd; read as it is, its
@@ -677,6 +717,21 @@ static func row_single_enemy(r: Dictionary) -> bool:
 static func row_elite(r: Dictionary) -> String:
 	var e = r.get("elite", "")
 	return "" if e == null or e is bool else str(e)
+
+
+## Pass 128 (lane BLOB): a row's say on relocation as EnemyManager.row_relocate takes it around the row's spawns: 0 =
+## its creatures never relocate (an elite row, a special row, or `relocate: false`), 1 = they do (`relocate: true`, a
+## squad creature's too), -1 = the row does not say (the default: CrowdRelocate.may).
+static func row_relocate(r) -> int:
+	if not (r is Dictionary):
+		return -1
+	var d: Dictionary = r
+	if row_elite(d) != "" or bool(d.get("special", false)):
+		return 0
+	var v = d.get("relocate")
+	if v is bool or v is int or v is float:
+		return 1 if bool(v) else 0
+	return -1
 
 
 ## Whether roster row `r` is in the mix (pass 84): a row that names one creature by its id, wears no elite modifier, is

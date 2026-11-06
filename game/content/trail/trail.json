@@ -1,0 +1,540 @@
+{
+  "version": 1,
+  "currency": "gold",
+  "price": {
+    "base": 40,
+    "k": 1.5,
+    "power": 2.0,
+    "round": 10
+  },
+  "sections": [
+    {
+      "from": 1,
+      "name": "Sundown",
+      "top": "f7b24a",
+      "bottom": "ef7d22",
+      "motif": "cactus"
+    },
+    {
+      "from": 16,
+      "name": "Nightfall",
+      "top": "4a5fc4",
+      "bottom": "27307a",
+      "motif": "star"
+    },
+    {
+      "from": 31,
+      "name": "The Dust Bowl",
+      "top": "c9a063",
+      "bottom": "8c6a3c",
+      "motif": "dust"
+    },
+    {
+      "from": 46,
+      "name": "Blood Moon",
+      "top": "c43a3a",
+      "bottom": "6e1a2a",
+      "motif": "moon"
+    },
+    {
+      "from": 61,
+      "name": "High Noon",
+      "top": "ffe08a",
+      "bottom": "f2a23c",
+      "motif": "horseshoe"
+    }
+  ],
+  "upgrades": {
+    "might": {
+      "name": "Might",
+      "icon": "might",
+      "kind": "percent",
+      "text": "Attack damage",
+      "effects": [
+        {
+          "stat": "might",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "tempo": {
+      "name": "Tempo",
+      "icon": "tempo",
+      "kind": "percent",
+      "text": "Attack speed",
+      "effects": [
+        {
+          "stat": "cooldown",
+          "op": "mul",
+          "per": -1.0
+        }
+      ]
+    },
+    "area": {
+      "name": "Wide Load",
+      "icon": "area",
+      "kind": "percent",
+      "text": "Attack size",
+      "effects": [
+        {
+          "stat": "area",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "shot_speed": {
+      "name": "Hot Lead",
+      "icon": "shot_speed",
+      "kind": "percent",
+      "text": "Projectile speed",
+      "effects": [
+        {
+          "stat": "projectile_speed",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "duration": {
+      "name": "Long Fuse",
+      "icon": "duration",
+      "kind": "percent",
+      "text": "Effects last longer",
+      "effects": [
+        {
+          "stat": "duration",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "amount": {
+      "name": "Extra Barrel",
+      "icon": "amount",
+      "kind": "count",
+      "text": "Projectile",
+      "effects": [
+        {
+          "stat": "amount",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "crit_chance": {
+      "name": "Dead Eye",
+      "icon": "crit_chance",
+      "kind": "percent",
+      "text": "Critical chance",
+      "effects": [
+        {
+          "stat": "crit_chance",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "crit_damage": {
+      "name": "Kill Shot",
+      "icon": "crit_damage",
+      "kind": "percent",
+      "text": "Critical damage",
+      "effects": [
+        {
+          "stat": "crit_damage",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "big_game": {
+      "name": "Big Game",
+      "icon": "big_game",
+      "kind": "percent",
+      "text": "Damage to Elites and bosses",
+      "effects": [
+        {
+          "stat": "elite_damage",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "grip": {
+      "name": "Tight Grip",
+      "icon": "grip",
+      "kind": "percent",
+      "text": "Burns, poison and slows last longer",
+      "effects": [
+        {
+          "stat": "debuff_duration",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "health": {
+      "name": "Grit",
+      "icon": "health",
+      "kind": "percent",
+      "text": "Max health",
+      "effects": [
+        {
+          "stat": "max_hp",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "plate": {
+      "name": "Plate",
+      "icon": "plate",
+      "kind": "percent",
+      "text": "Damage taken",
+      "effects": [
+        {
+          "stat": "damage_reduction",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "regen": {
+      "name": "Poultice",
+      "icon": "regen",
+      "kind": "flat",
+      "text": "Health a second",
+      "effects": [
+        {
+          "stat": "regen",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "tonic": {
+      "name": "Tonic",
+      "icon": "tonic",
+      "kind": "percent",
+      "text": "Healing",
+      "effects": [
+        {
+          "stat": "heal_mult",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "evade": {
+      "name": "Slippery",
+      "icon": "evade",
+      "kind": "percent",
+      "text": "Chance to evade",
+      "effects": [
+        {
+          "stat": "evade",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "shield": {
+      "name": "Aegis",
+      "icon": "shield",
+      "kind": "flat",
+      "text": "Shield",
+      "effects": [
+        {
+          "stat": "shield_max",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "second_wind": {
+      "name": "Second Wind",
+      "icon": "second_wind",
+      "kind": "percent",
+      "text": "Health after a revive",
+      "effects": [
+        {
+          "stat": "revive_hp",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "extra_life": {
+      "name": "Boot Hill Pass",
+      "icon": "extra_life",
+      "kind": "count",
+      "text": "Revive a run",
+      "effects": [
+        {
+          "stat": "revives",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "boots": {
+      "name": "Boots",
+      "icon": "boots",
+      "kind": "percent",
+      "text": "Move speed",
+      "effects": [
+        {
+          "stat": "move_speed",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "magnet": {
+      "name": "Lodestone",
+      "icon": "magnet",
+      "kind": "percent",
+      "text": "Pickup reach",
+      "effects": [
+        {
+          "stat": "magnet",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "luck": {
+      "name": "Omen",
+      "icon": "luck",
+      "kind": "percent",
+      "text": "Luck",
+      "effects": [
+        {
+          "stat": "luck",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "greed": {
+      "name": "Greed",
+      "icon": "greed",
+      "kind": "percent",
+      "text": "Coins",
+      "effects": [
+        {
+          "stat": "greed",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "study": {
+      "name": "Field Notes",
+      "icon": "study",
+      "kind": "percent",
+      "text": "XP",
+      "effects": [
+        {
+          "stat": "xp_gain",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "loose_coins": {
+      "name": "Loose Coins",
+      "icon": "loose_coins",
+      "kind": "percent",
+      "text": "Coin drops",
+      "effects": [
+        {
+          "stat": "coin_drop",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "care_package": {
+      "name": "Care Package",
+      "icon": "care_package",
+      "kind": "percent",
+      "text": "Healing drops",
+      "effects": [
+        {
+          "stat": "heal_drop",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "long_buff": {
+      "name": "Slow Sip",
+      "icon": "long_buff",
+      "kind": "percent",
+      "text": "Power-ups last longer",
+      "effects": [
+        {
+          "stat": "powerup_duration",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "power_drop": {
+      "name": "Windfall",
+      "icon": "power_drop",
+      "kind": "percent",
+      "text": "Power-up drops",
+      "effects": [
+        {
+          "stat": "powerup_chance",
+          "op": "mul",
+          "per": 1.0
+        }
+      ]
+    },
+    "reroll": {
+      "name": "Reroll",
+      "icon": "reroll",
+      "kind": "count",
+      "text": "Reroll a run",
+      "effects": [
+        {
+          "stat": "rerolls",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "skip": {
+      "name": "Skip",
+      "icon": "skip",
+      "kind": "count",
+      "text": "Skip a stage",
+      "effects": [
+        {
+          "stat": "skips",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "banish": {
+      "name": "Banish",
+      "icon": "banish",
+      "kind": "count",
+      "text": "Banish a stage",
+      "effects": [
+        {
+          "stat": "banishes",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "grubstake": {
+      "name": "Grubstake",
+      "icon": "grubstake",
+      "kind": "flat",
+      "text": "Coins at the start of a run",
+      "effects": [
+        {
+          "stat": "start_gold",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "spirit": {
+      "name": "Spirit Guide",
+      "icon": "spirit",
+      "kind": "percent",
+      "text": "Totem gifts",
+      "effects": [
+        {
+          "stat": "totem_boost",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "bounty": {
+      "name": "Bounty",
+      "icon": "bounty",
+      "kind": "percent",
+      "text": "Boss chest pay",
+      "effects": [
+        {
+          "stat": "boss_purse",
+          "op": "add",
+          "per": 1.0
+        }
+      ]
+    },
+    "stakes": {
+      "name": "Stakes",
+      "icon": "stakes",
+      "kind": "percent",
+      "text": "Creatures tougher, better paid",
+      "effects": [
+        {
+          "stat": "danger_hp",
+          "op": "add",
+          "per": 1.0
+        },
+        {
+          "stat": "danger_attack",
+          "op": "add",
+          "per": 1.0
+        },
+        {
+          "stat": "danger_speed",
+          "op": "add",
+          "per": 0.4
+        },
+        {
+          "stat": "danger_bounty",
+          "op": "add",
+          "per": 0.5
+        }
+      ],
+      "warn": "Every creature gets tougher for good. This cannot be undone."
+    },
+    "boss_stakes": {
+      "name": "Boss Stakes",
+      "icon": "boss_stakes",
+      "kind": "percent",
+      "text": "Bosses tougher, better paid",
+      "effects": [
+        {
+          "stat": "boss_danger_hp",
+          "op": "add",
+          "per": 1.0
+        },
+        {
+          "stat": "boss_danger_attack",
+          "op": "add",
+          "per": 1.0
+        },
+        {
+          "stat": "boss_danger_speed",
+          "op": "add",
+          "per": 0.4
+        },
+        {
+          "stat": "boss_danger_bounty",
+          "op": "add",
+          "per": 0.5
+        }
+      ],
+      "warn": "Every boss gets tougher for good. This cannot be undone."
+    }
+  },
+  "nodes": [],
+  "end": {
+    "text": "To be continued"
+  }
+}

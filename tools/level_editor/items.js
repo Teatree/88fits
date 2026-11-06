@@ -80,7 +80,7 @@ const Items = (() => {
   }
   function statusChips(x, kind) {
     const out = [Assets.statusChip(availabilityOf(x, kind))];
-    if (x.hero) out.push(el('span', { class: 'achip hero', text: `${x.hero} only` }));
+    if (x.hero) out.push(el('span', { class: 'achip outlaw', text: `${x.hero} only` }));
     if (Number(x.from_stage) > 0) out.push(el('span', { class: 'achip stage', text: `stage ${x.from_stage}+` }));
     if (x.is_evolution) out.push(el('span', { class: 'achip', text: 'evolution' }));
     return out;
@@ -160,7 +160,7 @@ const Items = (() => {
       if (path[k]) subs.appendChild(sub('mutation', path[k], k, path[k].text ? '' : 'no text'));
       else subs.appendChild(el('div', { class: 'isub muted small' }, el('span', { class: 'achip ' + (w.hidden ? 'hidden' : 'bad'), text: k }), el('span', { text: `no ${k} mutation${path.hidden.some((m) => m.kind === k) ? ` (hidden: ${path.hidden.filter((m) => m.kind === k).map((m) => m.id).join(', ')})` : ''}` })));
     }
-    for (const m of path.hero) subs.appendChild(sub('mutation', m, `hero mutation · ${m.hero}`));
+    for (const m of path.hero) subs.appendChild(sub('mutation', m, `outlaw mutation · ${m.hero}`));
     for (const m of path.stance) subs.appendChild(sub('mutation', m, 'stance'));
     for (const m of path.extra || []) subs.appendChild(sub('mutation', m, `extra ${m.kind}`, 'a fourth path kind: the game picks the first of each'));
     art.appendChild(subs);
@@ -253,7 +253,7 @@ const Items = (() => {
       strip.appendChild(slot);
     }
     wrap.appendChild(strip);
-    if (path.hero.length) wrap.appendChild(el('div', { class: 'hisown' }, path.hero.map((m) => el('div', { class: 'isub' }, el('img', { src: icon('mutation', m.id), alt: '' }), el('span', { class: 'achip hero', text: `hero mutation · ${m.hero}` }), el('b', { text: m.name || m.id }), el('span', { class: 'muted small', text: m.text || '' }), el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', onclick: () => Assets.open('mutation', m.id) })))));
+    if (path.hero.length) wrap.appendChild(el('div', { class: 'hisown' }, path.hero.map((m) => el('div', { class: 'isub' }, el('img', { src: icon('mutation', m.id), alt: '' }), el('span', { class: 'achip outlaw', text: `outlaw mutation · ${m.hero}` }), el('b', { text: m.name || m.id }), el('span', { class: 'muted small', text: m.text || '' }), el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', onclick: () => Assets.open('mutation', m.id) })))));
     const missing = ['element', 'volume', 'motion'].filter((k) => !path[k] && !path.hidden.some((x) => x.kind === k));
     const noEvo = !doc.data.evolves_into || !fl.evolutions.some((e) => e.id === doc.data.evolves_into);
     if (missing.length || noEvo) wrap.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small primary', type: 'button', text: 'Create templates', title: 'POST make_path: <id>_element, <id>_volume, <id>_motion and <id>_evolved, all hidden, placeholder icons', onclick: () => Assets.makePath(doc) }), el('span', { class: 'muted small', text: `${missing.length ? `missing ${missing.join(', ')}` : ''}${missing.length && noEvo ? ' and ' : ''}${noEvo ? 'no evolution' : ''}: the templates are created hidden for you to fill` })));

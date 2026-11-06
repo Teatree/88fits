@@ -1146,7 +1146,10 @@ A key left out (the whole block too) plays `WaveTimeline.FAR_SPEED_DEFAULTS`. Re
 115): `"far_speed": {"enabled": true, "distance": 12.0, "max_mult": 3.0, "ramp": 24.0, "bosses": true, "curve":
 "ease_out", "max_speed": 6.0}`: x1 up to 12 m, x1.32 at 14 m, x2.11 at 20 m, x2.58 at 25 m, x2.88 at 30 m, x3 from 36 m
 (just inside the 40 m despawn line), never past 6 m/s (Jeżyk at full Momentum: 5.5 m/s at level 10, 7.5 at level 20
-with The Chariot 4). Pass 111 had x1 to 14 m, x1.5 at 17 m, x2 from 20 m, no cap.
+with The Chariot 4). Pass 111 had x1 to 14 m, x1.5 at 17 m, x2 from 20 m, no cap. **Pass 128 (lane BLOB)**: Red Canyon's
+file now plays `max_mult` 4.0 and `max_speed` 8.0 (the code's defaults stay 3 and 6): x1 up to 12 m, x1.48 at 14 m,
+x2.67 at 20 m, x3.37 at 25 m, x3.81 at 30 m, x4 from 36 m, never past 8 m/s. The Drifter runs 3.24 m/s, so the cap is
+2.47 times his run; it is above a fast Jeżyk's 7.5 m/s, so the far crowd at its cap now closes on him too.
 
 #### The rule (EnemyManager `far speed` section)
 - Only the walk a creature's brain chooses (`_steer`'s `spd`: chase, flock, kite, the kamikaze's run, a boss walking
@@ -1421,3 +1424,55 @@ the row table with comments in `tools/dl/p126/STAGE/make_stage.py`.
 How far from the middle a creature comes to rest, x this (`EnemyManager.swirl`; measured by pass126_STAGE_test: radius 3.6, fling 1 rests 3.78 m out, fling 2 7.59 m). The Level Editor's Settings card has a row; a stage's own numbers go in the stage's card ("Weather and dust devils", JSON windows).
 
 Level Editor: the stage card shows "Coins and items x", "Creature speed x" and the two JSON windows; the Wanted tab shows four stages. `content/wanted/wanted.json` has four entries in every `n` and in `reward.stage_mult` (a third stage between the old second and third).
+
+## Pass 128: far creatures relocate (lane BLOB)
+
+Garry: creatures chasing a faster outlaw form one big trailing blob. Two answers: the far-speed boost is raised (Red
+Canyon's `far_speed`: `max_mult` 4, `max_speed` 8 m/s; the code's defaults stay 3 and 6), and a regular creature that
+has been far from the outlaw long enough **relocates**: it sinks into the ground and rises where the ring round him has
+the fewest creatures. The player never sees a word for it.
+
+#### timeline_data.relocate (Object, optional)
+| key | type [default] | meaning |
+|---|---|---|
+| `enabled` | bool [true] | false = off: nobody relocates |
+| `distance` | metres [16] | farther than this (flat) from the outlaw counts as far |
+| `seconds` | s [5] | how long a creature must stay far before it joins the queue; within `distance` its time starts again from 0 |
+| `every` | s [0.4] | the queue hands over one creature every this many seconds, first in first out (within one check, in index order) |
+| `ring` | [near, far] metres [[19, 24]] | how far from the outlaw it rises (a fresh distance between them each time; one number = that distance) |
+| `sectors` | whole number [12] | the ring is cut into this many equal sectors; every living, unburied creature within `ring` far + 6 m of the outlaw counts in its sector; the emptiest wins (ties by the lane's own dice), the angle a jitter inside the sector |
+| `sink` | s [0.35] | it sinks where it stands over this long (the spawn rise played backwards, a puff of dust on the screen), is placed the tick it is under, and rises over `spawn_rise.seconds`; 0 = gone at once |
+| `scan` | s [0.5] | seconds between two checks of who is far; each adds this much to a far creature's time |
+| `squads` | bool [false] | false: a squad creature (the Monk) relocates only when its row says `relocate: true`; true: every squad creature by default |
+
+A key left out (the whole block too) plays `WaveTimeline.RELOCATE_DEFAULTS`; Red Canyon's file names every key. The
+debug arena never relocates, nor a crowd without a director.
+
+**Who.** A creature the despawn rule may ever take (`EnemyManager.despawn_kind`: never the boss, an Elite by its kind or
+its modifier, a coloured special, a special type with the gear badge, a training dummy, a boss's or a caster's summon
+while a boss lives, one held, roped, in the air, rising, sinking or dying) that is walking (never in the middle of an
+attack) and not buried. Nothing relocates while a boss barrier stands or the crowd is frozen. A flyer (`flies`: the
+Carrion Crow) has no ground to sink into: it is moved at once, and only while it is off the screen.
+
+**The place.** Inside the arena and clear of every rock's painting and of the water (`EnemyManager.spawn_clear`, a ring
+spawn's rule): three dice tries in the emptiest sector, then the next emptiest; when no sector has a clear point, the
+emptiest one's middle turned inside the arena.
+
+**Not a spawn.** The same creature with its health, its statuses and its numbers; its velocity, its knockback and its
+far time are set to 0. No cap, no count, no XP, no kill, no analytics. Deterministic: its own dice
+(`Dice.rng_for("crowd_relocate")`), clocks counted in physics ticks, the crowd read in index order; the compiled crowd
+needs no change (it hands every creature that is not walking, is buried, rising or sinking back to the script).
+
+#### Roster row (`timeline_data.roster[]`, a boss-fight window's rows too): new key
+| key | type | default | meaning |
+|---|---|---|---|
+| `relocate` | bool | true for a regular creature, false for a squad creature (unless the map's `relocate.squads`) | whether the row's creatures relocate. Sparse: the file holds it only where it differs from the row's default. An `elite` row and a `special` row never relocate, whatever the key says (`WaveTimeline.row_relocate`). A "roster" row that says nothing follows the row each creature is drawn from. |
+
+Code: `WaveTimeline.relocate`, `RELOCATE_DEFAULTS`, `relocate_cfg()`, static `row_relocate(r)` (0 never, 1 yes, -1 the
+row does not say); JsonContent reads the block as it is; `WaveDirector._apply_mults` -> `EnemyManager.set_relocate(cfg)`
+({} in the arena); the row's say rides on `EnemyManager.row_relocate` around the row's spawns (`_spawn_group_row`,
+`_spawn_pick84`, `BossFightWindow._spawn`) into `reloc_may`; `core/systems/CrowdRelocate.gd` holds the rule
+(`scan_crowd`, `hand_over`, `settle`, `place`, `pick_spot`, `sector_counts`); tests `game/tests/pass128_relocate_test.gd`.
+Level Editor: Settings, the **Relocation** card (nine rows `relocate.*`, a line that reads the block back, warnings); a
+row's card, Where and how, **Relocates when far** (the effective value and where it comes from); `Model.relocateCfg`,
+`rowRelocate`, `setRowRelocate`; `tools/level_editor/selftest_BLOB128.py`.

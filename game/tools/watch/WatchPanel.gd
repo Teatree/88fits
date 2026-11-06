@@ -157,7 +157,7 @@ func build(w: Node) -> void:
 	ch_head.add_child(sp)
 	_window_btn = _button("Whole run", "show the whole run instead of the last 3 minutes (G)", func() -> void: watch.toggle_window())
 	ch_head.add_child(_window_btn)
-	_power_btn = _button("Power", "the first chart: the DPS, or the hero's power level (P): sqrt((full DPS / 20.4) x (effective HP / 100)), a fresh level-1 Drifter = 1", func() -> void: watch.toggle_power())
+	_power_btn = _button("Power", "the first chart: the DPS, or the outlaw's power level (P): sqrt((full DPS / 20.4) x (effective HP / 100)), a fresh level-1 Drifter = 1", func() -> void: watch.toggle_power())
 	ch_head.add_child(_power_btn)
 	a.add_child(ch_head)
 	for t in ["DPS against the crowd", "HP, and Danger beneath", "Level and XP", "Damage share by source"]:
@@ -360,7 +360,7 @@ func _header() -> Control:
 	_end_btn = _button("End run", "end the run now: the record and the decision log are saved", func() -> void: watch.end_now())
 	row.add_child(_end_btn)
 	# pass 85: the Hero Settings pop-up again (the run ends when the new one starts) (R)
-	_restart_btn = _button("Restart run", "choose the next run's settings (hero, look, board, seed, bot ...): Start Run ends this run (recorded) and starts that one down the spawn beam (R)",
+	_restart_btn = _button("Restart run", "choose the next run's settings (outlaw, look, board, seed, bot ...): Start Run ends this run (recorded) and starts that one down the spawn beam (R)",
 		func() -> void: watch.open_setup(true))
 	row.add_child(_restart_btn)
 	return v
@@ -843,7 +843,7 @@ func refresh() -> void:
 			st_name = " " + str(run.map.timeline.stage_name(int(run.stage)))
 		var st_clock: float = float(run.stage_clock()) if run.has_method("stage_clock") else float(run.elapsed)
 		stage_txt = "stage %d%s%s · clock %s · played %s" % [int(run.stage) + 1, st_name, ph, DATA.mmss(st_clock), DATA.mmss(w.play_t())]
-	_title.text = "%s  ·  %s" % [w.hero_name(), stage_txt if stage_txt != "" else ("Hero Settings: choose the run, then Start Run" if w.setup_open() and game == null else "starting…")]
+	_title.text = "%s  ·  %s" % [w.hero_name(), stage_txt if stage_txt != "" else ("Outlaw Settings: choose the run, then Start Run" if w.setup_open() and game == null else "starting…")]
 	_sub.text = w.header_words()
 	_pause_btn.text = "Go on" if clk.paused else "Pause"
 	_show_hand(w)
@@ -1312,7 +1312,7 @@ func update_charts() -> void:
 	c1.title = "DPS against the crowd"
 	if show_power:
 		# pass 83 (lane SCALE): the hero's power level in its place (the P key, the Power button)
-		c1.title = "Hero power (fresh Drifter = 1)"
+		c1.title = "Outlaw power (fresh Drifter = 1)"
 		var pw_pts: PackedVector2Array = DATA.bucket(data.t, data.power, x0, x1, cols)
 		var ref_pw := _ref_pts(ref, "power", x0, x1, cols)
 		c1.series = []

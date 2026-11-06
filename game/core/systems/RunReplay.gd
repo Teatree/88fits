@@ -695,7 +695,7 @@ func _lock_hero(p: Node3D) -> void:
 			corpse_holds += 1
 			if not _corpse_said:
 				_corpse_said = true
-				notes.append("The hero is down here, but in the player's run he was up and walking (the replay had parted): his body stays where it fell")
+				notes.append("The outlaw is down here, but in the player's run he was up and walking (the replay had parted): his body stays where it fell")
 				_parted({"down": ["up", "down"]})
 			return
 		hero_fixes += 1
@@ -1509,7 +1509,9 @@ func _compare(i: int, rec: Dictionary) -> void:
 	for key in rec:
 		if key == "f" or key == "h" or key == "b" or key == "final":
 			continue
-		if last and (key == "crowd" or key == "cx" or key == "cz"):
+		# pass 128: nor is how many live or where the director's dice stand: the frame's spawns (three bodies and their
+		# rolls, seed 11 at 5:20) had not happened yet when the record took its last check, and had when the replay took its
+		if last and (key == "crowd" or key == "cx" or key == "cz" or key == "alive" or key == "wd"):
 			continue
 		var a = rec[key]
 		var b = now.get(key)
@@ -1601,7 +1603,7 @@ func _down_ran_out(rs: Node) -> String:
 	var i := _track_index(frame)
 	if i >= 0:
 		hp = _track_hp[i]
-	notes.append("Down!'s count ran out here, but the player's run goes on (the replay had parted): the safety net stood the hero up%s" % (
+	notes.append("Down!'s count ran out here, but the player's run goes on (the replay had parted): the safety net stood the outlaw up%s" % (
 		(" at the player's HP (%d)" % int(roundf(hp))) if hp > 0.0 else ""))
 	if rs != null and rs.has_method("_decide"):
 		rs._decide("replay")

@@ -118,6 +118,11 @@ const CRUMB_PX := 40.0
 const CRUMB_TILE_PX := 34.0
 const LOOKS_PER_ROW := 4
 
+## Pass 128: the outlaw this screen opens on next time it is built (his id; "" = the last one played, as ever). Set by
+## whoever sends the player here to look at one outlaw (the Collection's "Comes with <name>" line: CollectionScreen.
+## open_outlaw), read and cleared in build(), like CollectionScreen.hidden_only. Back goes where it always goes.
+static var open_on := ""
+
 ## The hero the top half shows, the heroes the grid lists (in the drawer's order), the details pop-up while it is up.
 var shown: CharacterDef
 var heroes: Array = []
@@ -185,17 +190,34 @@ func header_right() -> Control:
 
 
 func build() -> void:
-	set_title("Heroes")
+	set_title("Outlaws")
 	content.add_theme_constant_override("separation", 0)
 	heroes = _roster()
 	var last := Registry.playable_character(str(Save.data.get("last_character", Save.DEFAULT_HERO)))
 	shown = last if last and heroes.has(last) else (heroes[0] if not heroes.is_empty() else null)
+	# pass 128: opened on one outlaw by name (the Collection's "Comes with <name>"), once
+	var want: CharacterDef = Registry.character(open_on) if open_on != "" else null
+	open_on = ""
+	if want and heroes.has(want):
+		shown = want
 	# pass 126: each list moves only under a finger that came down on it; the thumb's gutter on the page's right
 	_touch.only_inside = true
 	margin.add_theme_constant_override("margin_right", int(SIDE) + PAGE_GUTTER)
 	_build_picker()
 	_build_page_marks()
 	_fill()
+	if want and shown == want:
+		_reveal_tile.call_deferred(want.id)
+
+
+## Pass 128: the picker's list moved so outlaw `id`'s tile shows (the screen opened on him: open_on).
+func _reveal_tile(id: String) -> void:
+	await get_tree().process_frame
+	if not is_inside_tree() or grid == null or grid_scroll == null:
+		return
+	var t := grid.get_node_or_null("Hero_" + id) as Control
+	if t:
+		grid_scroll.ensure_control_visible(t)
 
 
 ## Every hero the drawer lists (Registry.heroes_for_drawer: owned, on sale, locked), the hidden ones after them while the
@@ -728,7 +750,7 @@ func _fill_picker() -> void:
 	for h: CharacterDef in heroes:
 		if owned(h):
 			n_owned += 1
-	var lab := W.label("Heroes · %d of %d owned" % [n_owned, heroes.size()], LABEL_PX, W.INK_SOFT)
+	var lab := W.label("Outlaws · %d of %d owned" % [n_owned, heroes.size()], LABEL_PX, W.INK_SOFT)
 	lab.name = "Label"
 	lab.position = Vector2(SIDE, PICK_PAD)
 	lab.size = Vector2(1080.0 - SIDE * 2.0, PICK_LABEL_H)
@@ -874,7 +896,7 @@ func ask_buy() -> void:
 	if not Currency.can_afford(cur, price):
 		_refuse(select_btn)
 		return
-	WConfirm.open(self, "Buy this hero?", "%s from your purse. Yours to play from then on." % Currency.price_words(cur, price),
+	WConfirm.open(self, "Buy this outlaw?", "%s from your purse. Yours to play from then on." % Currency.price_words(cur, price),
 		"Buy · %s" % W.num(price), "Not now", func(): buy_now(c), Callable(), "buy", WButton.price_parts(price, "BUY", R.MODAL_BUTTON_PX, cur))
 
 

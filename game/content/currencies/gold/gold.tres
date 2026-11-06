@@ -8,6 +8,6 @@ script = ExtResource("2_edbut")
 word = "gold"
 id = "gold"
 display_name = "Gold"
-flavour = "Banked at the end of every run; spent on heroes, the Upgrade board and looks."
+flavour = "Banked at the end of every run; spent on outlaws, the Upgrade board and looks."
 icon = ExtResource("1_c4ljb")
 icon_file = "res://art/ui/wanted/coin.png"

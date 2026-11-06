@@ -86,7 +86,7 @@ variants = {
 },
 "frame_px": 256,
 "icon": "res://content/characters/ironwood/ironwood_icon.png",
-"note": "The hero's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it).",
+"note": "The outlaw's own painting, the look every player owns (pass 126 gave it a code so skins can stand beside it).",
 "shelved": false,
 "sprite": "res://content/characters/ironwood/ironwood_sprite.png",
 "sprite_file": "ironwood_sprite.png",

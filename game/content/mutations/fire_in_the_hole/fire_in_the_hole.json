@@ -44,16 +44,27 @@
       "fresh": true,
       "icon_picked": true,
       "recipe": {
-        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A lit sandy-brown paper stick of dynamite with dark rings and cream ends, its fuse spitting bright sparks, in front of a big round burst of orange and yellow flame, with a ring of nine small bright golden four-pointed stars circling round the burst, plain paper with no letters, numbers or writing anywhere on it",
-        "ref": "tools/dl/dynamite_b_stick_tan_ref.png",
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A lit bright red paper stick of dynamite with dark rings and cream ends, its fuse spitting bright sparks, in front of a big round burst of orange and yellow flame, with a ring of nine small bright golden four-pointed stars circling round the burst, plain paper with no letters, numbers or writing anywhere on it",
+        "ref": "tools/dl/dynamite_b_stick_ref.png",
         "screen": "blue"
       },
       "painted": {
-        "job": "j20261014-174632-329c",
-        "pick": "c3",
-        "seed": 737223060560,
+        "job": "p128-dyna p128_fire_in_the_hole_b_c2.png",
+        "pick": "c2",
+        "seed": 2062981,
         "model": "klein"
-      }
+      },
+      "icon_history": [
+        {
+          "icon": "fire_in_the_hole_icon_b.png",
+          "picked": true,
+          "shown": "fire_in_the_hole_icon_b.png",
+          "backup": "tools/level_editor/backups/fire_in_the_hole/fire_in_the_hole_icon_b_20261106-013410.png",
+          "to": "fire_in_the_hole_icon_b.png",
+          "at": "2026-11-06 01:34:10",
+          "why": "pass 128: repainted for the red dynamite stick (the file painted over)"
+        }
+      ]
     },
     "C": {
       "icon": "fire_in_the_hole_icon_c.png",

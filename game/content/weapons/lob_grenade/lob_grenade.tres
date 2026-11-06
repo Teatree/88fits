@@ -105,24 +105,27 @@ variants = {
 "icon": ExtResource("4_ikrwc"),
 "icon_file": "lob_grenade_icon_b.png",
 "name": "Dynamite Stick",
-"note": "B · classic paper stick: dark rings, cream ends, a pale cord fuse; the bundle three sticks in black tape",
+"note": "B · classic red paper stick: dark rings, cream ends, a pale cord fuse; the bundle three sticks in black tape; barbed wire round it (model_wire) and amber tar over it (model_tar) from its mutations",
 "noun": "stick",
 "nouns": "sticks",
 "params": {
-"model_colour": "tan",
 "model_form": "stick",
 "model_metallic": 0.0,
 "model_roughness": 0.85,
 "models": {
 "bundle": {
-"red": "res://art/props/dynamite_b_bundle_red.glb",
-"tan": "res://art/props/dynamite_b_bundle_tan.glb",
-"tip": [0.3589, 0.2171, -0.0229]
+"plain": "res://art/props/dynamite_b_bundle.glb",
+"tar": "res://art/props/dynamite_b_bundle_tar.glb",
+"tip": [0.3589, 0.2171, -0.0229],
+"wire": "res://art/props/dynamite_b_bundle_wire.glb",
+"wire_tar": "res://art/props/dynamite_b_bundle_wire_tar.glb"
 },
 "stick": {
-"red": "res://art/props/dynamite_b_stick_red.glb",
-"tan": "res://art/props/dynamite_b_stick_tan.glb",
-"tip": [0.3589, 0.1171, -0.0229]
+"plain": "res://art/props/dynamite_b_stick.glb",
+"tar": "res://art/props/dynamite_b_stick_tar.glb",
+"tip": [0.3589, 0.1171, -0.0229],
+"wire": "res://art/props/dynamite_b_stick_wire.glb",
+"wire_tar": "res://art/props/dynamite_b_stick_wire_tar.glb"
 }
 }
 }

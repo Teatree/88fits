@@ -148,7 +148,20 @@ const HERO_WEAPONS := {"revolver": "drifter", "gravity_gun": "astro", "guitarra"
 	"basketball": "fadeaway"}
 
 
+## Pass 128: an outlaw's start weapon is offered only once he is owned (Registry.hero_may_use): the save of these tests
+## owns every outlaw in HERO_WEAPONS (bought, his unlock quest done), so their weapons are guests as pass 118 pinned them.
+func _own_weapon_outlaws() -> void:
+	for wid: String in HERO_WEAPONS.keys():
+		var oid := str(HERO_WEAPONS[wid])
+		if not Save.heroes_owned().has(oid):
+			Save.heroes_owned().append(oid)
+		var oq := Registry.quest_for("character", oid)
+		if oq and not Save.quest_done(oq.id):
+			(Save.data["quests_done"] as Array).append(oq.id)
+
+
 func test_any_hero_is_offered_another_heros_weapon_at_its_guest_weight() -> void:
+	_own_weapon_outlaws()
 	for hid in ["drifter", "astro", "ironwood", "may"]:
 		_start(hid)
 		var cands := CardPool.candidates()
@@ -200,6 +213,8 @@ func _weapon_share(guests: bool, n: int, seed_: int) -> float:
 
 func test_the_weapon_card_share_rises_within_garrys_five_to_ten_percent() -> void:
 	# a fresh save (the most a guest can add: fewer weapons unlocked), the run's first offers and a mid-run build
+	# pass 128: with those outlaws owned (on a save that owns only the Drifter the Revolver is the one guest: +2.3%)
+	_own_weapon_outlaws()
 	var before := 0.0
 	var after := 0.0
 	for hid in ["drifter", "astro", "calavera", "fadeaway"]:

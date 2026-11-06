@@ -117,22 +117,22 @@ const AssetsModel = (() => {
     overheal: 'Snake Oil: heals that are not regen can go past full health up to this share of max HP; hits take it first, it never fades, pink on the HP bar',
     heal_pulse: 'Hot Springs: every heal (regen too, one pulse per 0.5 s at most) hurts creatures within 3 m for this + 2 per HP healed, 40 at most',
     last_stand: 'Last Stand: a hit that leaves him under 30% health slows time to half for 2 s and adds this much attack damage; a hidden 20 s cooldown',
-    xp_pull_radius: 'Magnet: every few seconds at random every EXP gem within this many metres flies to the hero (never chests, gold or power-ups); 8.5 m at most',
+    xp_pull_radius: 'Magnet: every few seconds at random every EXP gem within this many metres flies to the outlaw (never chests, gold or power-ups); 8.5 m at most',
     xp_pull_rate: 'Magnet: the pulls\' random 3-8 s wait is divided by 1 + this (1.0 = 1.5-4 s); the cards say "pulls more often", never a number',
     // pass 70 (lane LINES)
-    bronco_chance: 'Bucking Bronco: the chance a hero\'s hit that knocks a plain creature back throws it up and away instead (2.8 m up, 2.5-6 m away, 0.8 s, no fall damage); bosses and Elites only take the knock',
+    bronco_chance: 'Bucking Bronco: the chance an outlaw\'s hit that knocks a plain creature back throws it up and away instead (2.8 m up, 2.5-6 m away, 0.8 s, no fall damage); bosses and Elites only take the knock',
     debuff_jump: 'Prairie Fire: how many times a burn or poison that runs out, or whose creature dies, jumps to the nearest creature within 4 m that lacks it, at its full seconds (a fire never onto the boss)',
-    star_block_every: 'Marshal\'s Star: a gold star over the hero blocks one whole hit, then comes back after this many seconds; 0 = none',
-    gem_sweep_every: 'Mother Lode: every this many seconds every XP gem on the screen flies to the hero (the first 1 s after it is taken); 0 = none',
+    star_block_every: 'Marshal\'s Star: a gold star over the outlaw blocks one whole hit, then comes back after this many seconds; 0 = none',
+    gem_sweep_every: 'Mother Lode: every this many seconds every XP gem on the screen flies to the outlaw (the first 1 s after it is taken); 0 = none',
     vein_chance: 'Eureka: the chance a kill bursts into 5 more XP gems of its size (rolled with Prospector\'s extra gem, so it needs xp_drop_chance above 0)',
     gold_might: 'Gold Rush: attack damage for every 100 gold gained while held (after coin gain), up to +50% in all; spending takes nothing back',
     // pass 126 (lane ITEMS; BALANCING 68.ITEMS)
     skip_coins: 'Assayer\'s Scale: gold into the purse for every skip spent on a level-up, a mutation offer or a chest (through coin gain); a banish or a reroll pays nothing',
-    skip_xp: 'Assayer\'s Scale: XP for every skip spent, this share of what the next level needs (0.05 = 5%, Field Notes does not raise it); it can level the hero, and the cards wait their turn',
-    water_walk: 'Canteen: above 0, water never slows the hero (the map\'s water_slow); creatures still wade. Said in words, never with a number',
+    skip_xp: 'Assayer\'s Scale: XP for every skip spent, this share of what the next level needs (0.05 = 5%, Field Notes does not raise it); it can level the outlaw, and the cards wait their turn',
+    water_walk: 'Canteen: above 0, water never slows the outlaw (the map\'s water_slow); creatures still wade. Said in words, never with a number',
     leave_water_regen: 'Canteen: HP a second while the heal after leaving water runs (through Player.heal, credited to the item); nothing while he is in water',
     leave_water_seconds: 'Canteen: how long the heal runs after he walks out of a lake (Buff duration stretches it); walking out again starts it anew, it never stacks; 0 = no heal',
-    water_damage: 'Canteen (Evolved): extra damage on a creature standing in water, from everything the hero sends (0.25 = +25%)',
+    water_damage: 'Canteen (Evolved): extra damage on a creature standing in water, from everything the outlaw sends (0.25 = +25%)',
     // pass 118 (lane ITEMS): any stat named chest_<stat> banks <stat> at every chest opened (Run.chest_opened)
     chest_luck: 'Jade Key: every chest opened while it is held banks this much luck (0.01 = +1%) for the rest of the run; a later level raises only the chests after it',
     chest_might: 'Ruby Key: every chest opened while it is held banks this much attack damage (0.02 = +2%, the chests summed) for the rest of the run; a later level raises only the chests after it',
@@ -143,7 +143,7 @@ const AssetsModel = (() => {
     crit_arc_stun: "Lightning in a Bottle: each arc stuns its creature this many seconds (never a boss or an Elite); 0 = none",
     train_every: "Iron Horse: seconds between ghost trains charging down the hero's line (params.train: warning, damage shares, push); 0 = none",
     train_cross: "Iron Horse (Evolved): 1 = a second train crosses the first from the hero's left",
-    storm_every: "Personal Storm: seconds between storms gathering over the hero (params.storm: strikes a second, damage, push, marks); 0 = none",
+    storm_every: "Personal Storm: seconds between storms gathering over the outlaw (params.storm: strikes a second, damage, push, marks); 0 = none",
     storm_seconds: "Personal Storm: how long a storm's lightning strikes",
     grave_every: "Undertaker's Shovel: every this-many-th kill digs a grave where the body fell (a count, no dice); 0 = none",
     grave_max: "Undertaker's Shovel: the most graves (and their ghosts) standing at once; a grave due past it is not dug",
@@ -528,7 +528,7 @@ const AssetsModel = (() => {
       }
       case 'rect': { const L = num(a.length, 17), W = num(a.width, 6); return { kind: 'line', length: L, width: W, words: `a rectangle ${plain(L)} x ${plain(W)} m ahead` }; }
       case 'ring': { const R = num(a.radius, 6); return { kind: 'ring', radius: R, atHero: false, words: `a ring of ${plain(R)} m round it` }; }
-      case 'ring_at_hero': { const R = num(a.radius, 5); return { kind: 'ring', radius: R, atHero: true, words: `a ring of ${plain(R)} m on the hero` }; }
+      case 'ring_at_hero': { const R = num(a.radius, 5); return { kind: 'ring', radius: R, atHero: true, words: `a ring of ${plain(R)} m on the outlaw` }; }
       case 'sector': { const R = num(a.radius, 6.5), deg = num(a.deg, 180); return { kind: 'sector', radius: R, deg, words: `a ${plain(deg)}° wedge ${plain(R)} m deep ahead` }; }
       case 'fan': { const n = Math.max(1, Math.round(num(a.count, 7))), spread = num(a.spread_deg, 90), L = num(a.length, 14); return { kind: 'fan', count: n, spread, length: L, words: `${n} lines of ${plain(L)} m over ${plain(spread)}° ahead` }; }
       case 'spokes': {
@@ -613,7 +613,7 @@ const AssetsModel = (() => {
    *  Frisbee and five passive items came unlocked): non-hidden base weapons and base passives (no `evolves_from`) over
    *  those with an unlock quest. */
   // pass 119 (lane LEGEND_B): the floor 0.25, the legendary items came unlocked (23 of 88)
-  const BAND = { lo: 0.25, hi: 0.56 };
+  const BAND = { lo: 0.22, hi: 0.56 };
   function bandOf(weapons, passives, quests) {
     const base = [];
     for (const w of weapons || []) if (!w.hidden && !w.is_evolution) base.push({ id: w.id, kind: 'weapon' });

@@ -37,7 +37,7 @@
 class_name ArenaPanel
 extends Control
 
-const TABS := [["enemy", "ENEMY"], ["waves", "WAVES"], ["items", "ITEMS"], ["hero", "HERO"], ["drops", "DROPS"], ["world", "WORLD"], ["shots", "SHOTS"]]
+const TABS := [["enemy", "ENEMY"], ["waves", "WAVES"], ["items", "ITEMS"], ["hero", "OUTLAW"], ["drops", "DROPS"], ["world", "WORLD"], ["shots", "SHOTS"]]
 ## pass 110 (lane ARENA): the crowds' layouts (ArenaShots, by path: a new script's class name is unknown until the editor
 ## imports it)
 const SHOTS := preload("res://ui/ArenaShots.gd")
@@ -671,7 +671,7 @@ func _waves_tab() -> void:
 	_buttons([["30", func(): crowd(30)], ["100", func(): crowd(100)], ["200", func(): crowd(200)], ["Hard cap (%d)" % tl.hard_cap, func(): crowd(tl.hard_cap)]])
 	var last: EnemyDef = Registry.enemy(_last_enemy)
 	_section("A swarm of one kind")
-	_note("The last creature picked on ENEMY: %s, in a ring closing on the hero." % (last.display_name if last else "?"))
+	_note("The last creature picked on ENEMY: %s, in a ring closing on the outlaw." % (last.display_name if last else "?"))
 	_buttons([["20", func(): swarm(20)], ["50", func(): swarm(50)], ["100", func(): swarm(100)], ["200", func(): swarm(200)]])
 	_section("The director")
 	var d: WaveDirector = game.director
@@ -1265,8 +1265,8 @@ func _hero_tab() -> void:
 ## shows; the one playing is lit.
 func _hero_switch() -> void:
 	var now: CharacterDef = Run.character
-	_section("Hero · %s" % (now.display_name if now else "-"))
-	_note("Tap a hero to play as them here and now: their trait takes over, the items stay, the old hero's perks go (ITEMS hands perks out).")
+	_section("Outlaw · %s" % (now.display_name if now else "-"))
+	_note("Tap an outlaw to play as them here and now: their trait takes over, the items stay, the old outlaw's perks go (ITEMS hands perks out).")
 	_grid(Registry.sorted_characters(), 3, func(c: CharacterDef) -> Control: return _hero_tile(c, false))
 	if Settings.debug_mode:
 		var out: Array = Registry.characters.values().filter(func(c: CharacterDef) -> bool: return c.hidden)
@@ -1319,7 +1319,7 @@ func _hero_looks() -> void:
 			_shelved_choice("ShelvedLooksHero")
 		return
 	_section("Looks · %s" % c.display_name)
-	_note("Tap a look to see it on the hero now (this visit only). ● on the hero now, RUNS what every run starts with.")
+	_note("Tap a look to see it on the outlaw now (this visit only). ● on the outlaw now, RUNS what every run starts with.")
 	if shelved_any:
 		_shelved_choice("ShelvedLooksHero")
 	var shown := shown_look()
@@ -1422,7 +1422,7 @@ func _go_down() -> void:
 # ---------------------------------------------------------------- DROPS
 
 func _drops_tab() -> void:
-	_section("Power-ups on the sand by the hero")
+	_section("Power-ups on the sand by the outlaw")
 	var defs: Array = Registry.pickups.values()
 	defs.sort_custom(func(a, b): return a.display_name < b.display_name)
 	_grid(defs, 3, func(def: PickupDef) -> Control:
@@ -1623,7 +1623,7 @@ func _attackers_note() -> String:
 	if game and game.has_method("attackers_standing"):
 		melee = int(game.attackers_standing("melee"))
 		ranged = int(game.attackers_standing("ranged"))
-	return ("On the field: %d melee, %d ranged. Each comes on a spot of its own by you; melee chases you within %d m of its spot and bites for %d, ranged spits like the Spit Cactus for %d. The first one turns god mode off (HERO turns it on again); a death here respawns you at once." % [
+	return ("On the field: %d melee, %d ranged. Each comes on a spot of its own by you; melee chases you within %d m of its spot and bites for %d, ranged spits like the Spit Cactus for %d. The first one turns god mode off (OUTLAW turns it on again); a death here respawns you at once." % [
 		melee, ranged, int(EnemyManager.DUMMY_CHASE), _dummy_hit("training_dummy_melee", false), _dummy_hit("training_dummy_ranged", true)])
 
 
@@ -1670,7 +1670,7 @@ func _do_again() -> void:
 ## the hero, the game's speed, the freeze, the screenshot framing and the clean capture. Rows named for the touch audit.
 func _shots_tab() -> void:
 	_section("Big crowd")
-	_note("Pick one or more creatures (and their looks) below, a count and a layout, then SPAWN CROWD. Ring: the whole screen but a clear circle round the hero. Scatter: mixed at random. Chunks: each kind its own group round the hero.")
+	_note("Pick one or more creatures (and their looks) below, a count and a layout, then SPAWN CROWD. Ring: the whole screen but a clear circle round the outlaw. Scatter: mixed at random. Chunks: each kind its own group round the outlaw.")
 	var presets: Array = []
 	for c in CROWD_PRESETS:
 		presets.append([int(c), str(c)])
@@ -1702,10 +1702,10 @@ func _shots_tab() -> void:
 	_crowd_picker()
 	_section("Time")
 	_choice("Game speed", [[1.0, "1x"], [0.5, "½x"], [0.25, "¼x"]], _speed, func(v): set_speed(float(v))).name = "ShotsSpeed"
-	_note("Everything slows together: creatures, shots, effects, the hero. Keys 1, 2 and 4; the quick column's 1x ½ ¼.")
+	_note("Everything slows together: creatures, shots, effects, the outlaw. Keys 1, 2 and 4; the quick column's 1x ½ ¼.")
 	_section("Freeze")
 	_choice("Freeze crowd", freeze_options(), _freeze, func(v): set_freeze(int(v))).name = "ShotsFreeze"
-	_note("No creature walks, attacks or drifts; each keeps turning to face the hero. Walk in place keeps their legs going, Pose holds each picture still. Shots still hit and deaths still play. Key F; the quick column's FREEZE.")
+	_note("No creature walks, attacks or drifts; each keeps turning to face the outlaw. Walk in place keeps their legs going, Pose holds each picture still. Shots still hit and deaths still play. Key F; the quick column's FREEZE.")
 	_section("Screenshot framing")
 	_choice("Framing", [[false, "Off"], [true, "On"]], _frame_on, func(v): set_framing(bool(v))).name = "ShotsFraming"
 	_choice("Caption band", [[0.0, "None"], [0.2, "20%"], [0.25, "25%"], [0.3, "30%"], [0.35, "35%"], [0.4, "40%"]], _band, func(v): set_band(float(v))).name = "ShotsBand"
@@ -1717,7 +1717,7 @@ func _shots_tab() -> void:
 	bm.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	bm.pressed.connect(func(): set_band(_band - 0.01); _refresh())
 	bt.add_child(bm)
-	var bl := UiKit.label("band %d%% · hero at %d%% from the top" % [int(round(_band * 100.0)), int(round(frame_y() * 100.0))], 22, UiKit.ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
+	var bl := UiKit.label("band %d%% · outlaw at %d%% from the top" % [int(round(_band * 100.0)), int(round(frame_y() * 100.0))], 22, UiKit.ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
 	bl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bt.add_child(bl)
 	var bp := UiKit.button("+1%", 20, false, 64)
@@ -1746,7 +1746,7 @@ func _shots_tab() -> void:
 	zp.pressed.connect(func(): set_zoom(_zoom_now() + 0.1); _refresh())
 	zr.add_child(zp)
 	_content.add_child(zr)
-	_note("With framing on, the hero's middle sits in the middle of everything above the caption band, every frame (walking, a hit or a dash cannot pull the camera back). Zoom: 1x is the game's distance, lower is nearer. Key C; the quick column's FRAME.")
+	_note("With framing on, the outlaw's middle sits in the middle of everything above the caption band, every frame (walking, a hit or a dash cannot pull the camera back). Zoom: 1x is the game's distance, lower is nearer. Key C; the quick column's FRAME.")
 	_section("Clean capture")
 	_choice("HIDE hides", [[true, "HUD and controls"], [false, "Controls only"]], _hide_hud, func(v): _hide_hud = bool(v)).name = "ShotsHideWhat"
 	_choice("Damage numbers", [[true, "Show"], [false, "Hide"]], _numbers, func(v): _numbers = bool(v)).name = "ShotsNumbers"

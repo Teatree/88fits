@@ -9655,3 +9655,90 @@ Tests: game/tests/pass126_SKINS_test.gd; re-pinned pass123_HEROES_test (the Drif
   air, the tongue out to the left, no cloth. Same file, same height 3.54 m and collider radius 0.784 m (1.1 x the biggest boulder), shadow by hand
   in props.json {w 0.98, d 0.46, x 0.02, z -0.2, a 0.44}. A wheel on the painting is new against pass 126's "no wheels on it"; the two lower wheels are
   the ones MapDressing lays near it.
+
+## 70. Pass 128: far creatures relocate, an outlaw's weapon comes with him, the dynamite is red
+
+Garry's list of 2026-11-06 (blobbing, the red dynamite, starting weapons, the Outlaws wording, two screen fixes). His
+answers to the lead's questions are quoted where a rule follows from one. The Trail (the Upgrade board's replacement)
+is pass 129's; its contract is `docs/trail_schema.md`.
+
+### 70.BLOB Far creatures: faster, and relocated
+
+Garry: "enemies just try to catch the player. Because the player is so faster they all form a big blob ... if an
+enemy has been far away from the hero for long enough they just teleport by sinking into the ground and appearing in
+an area where there are fewest enemies ... a queue ... separate from the Spawning System and per enemy." He chose the
+"Steady" numbers (16 m, 5 s, one every 0.4 s). The lead's numbers for "let's increase it": `max_mult` 4, `max_speed` 8.
+
+**Far speed (Red Canyon's file only).** `far_speed.max_mult` 3 -> 4 and `max_speed` 6 -> 8 m/s (the code's defaults stay
+3 and 6): x1 to 12 m, x2.67 at 20 m, x4 from 36 m, never past 8 m/s. The Drifter runs 3.24 m/s, so the cap is 2.47x his
+run (the rule: at least 1.2x). It is now above a fast Jeżyk's 7.51 m/s (level 20, full Momentum, The Chariot 4), so the
+far crowd at its cap closes on him too: pass 115's "a fast Jeżyk always gains on a far crowd" no longer holds.
+
+**Relocation (`timeline_data.relocate`, core/systems/CrowdRelocate.gd; the player never sees a word for it).** Every
+`scan` 0.5 s a creature that may relocate and stands farther than `distance` 16 m (flat) from the outlaw gets 0.5 s of
+far time; within 16 m its far time goes back to 0. At `seconds` 5 it joins a queue (first in, first out; in one check,
+index order). Every `every` 0.4 s the queue hands over its first creature that is still alive, still allowed and still
+beyond 16 m (the others before it are dropped; one still far joins again at the next check): it stands and sinks over
+`sink` 0.35 s (dust when the spot is on the screen), is placed the tick it is under, and rises over the map's spawn
+rise (0.45 s). The place: the ring round the outlaw cut into `sectors` 12 equal sectors; every living, unburied
+creature within `ring` far + 6 m (30 m) counts in its sector, one placed a moment ago included; the emptiest sector
+wins, ties by the rule's own dice; the point is at a random angle inside that sector, `ring` 19 to 24 m from him, and
+must lie inside the arena and clear of every rock's painting and the water (three tries a sector, then the next
+emptiest; when none is clear, the emptiest one's middle turned inside the arena). **Never**: the boss, an Elite (by
+its kind or wearing a modifier), a coloured special, a special type with the gear badge (the Vulture Raider, the
+harpooner, the Saiga Sniper), a training dummy, a boss's or a caster's summon while a boss lives, one held, undying,
+roped, lifted, rising, sinking, buried or dying, one in the middle of an attack (only a walking creature goes), and
+nothing at all while a boss barrier stands, while the crowd is frozen, or in the arena. `squads` false: a squad
+creature (the Monk) stays unless its row says `relocate: true` (one that goes leaves its squad and walks back to it).
+A roster row's `relocate` (true / false; a boss-fight window's rows too) wins over the default; an elite row and a
+special row never relocate, also their plain creatures; a "roster" row that says nothing follows the row each creature
+is drawn from; creatures no row brings (split children, old events) play the default. A flyer (the Carrion Crow) has
+no ground to sink into: it is moved at once, and only while it is off the screen. **Separate from spawning**: the same
+creature with its health, statuses and numbers (velocity, knockback and far time set to 0); no cap, no count, no XP,
+no kill, no drop, no analytics; the despawn rule is untouched (40 m, off the screen). Deterministic for replays (own
+dice stream, tick-counted clocks). Measured (seed 11, a Drifter running 60 s through stage 1): 98 relocations, the
+share of the crowd in the rear 120 degrees 95.0% -> 92.3%; with `every` 0.1 s 84.7%.
+
+### 70.KEY An outlaw's starting weapon
+
+Garry: "whenever a player unlocks heroes that have their starting weapons, that starting weapon becomes available to
+players in their runs"; his answer: owning him is the only key.
+
+**70.KEY An outlaw's weapon comes with him.** A base weapon that is the `start_weapon` of an outlaw who is not hidden is
+offered in a run (level-up cards, the Stranger, the Wanted posters' weapon tasks) only once that outlaw is owned
+(`Registry.hero_may_use`, `Registry.weapon_comes_with`; owned = `Registry.hero_owned`: free, or his quest done and
+bought). Today: Revolver (Drifter, free, so always in), Gravity Gun (Astro), Guitarra (Calavera), Spear (Ironwood),
+Sun Scepter (Solenne), Basketball (Fadeaway), Frisbee (Jeżyk), Big Mouth (May). Always in, whatever the save owns: the
+weapon the run's own outlaw starts with, any weapon already held, and the run outlaw's favourite. Outlaws without a
+start weapon (Mira, Dad) and hidden outlaws gate nothing. `guest_weight` (0.45) is unchanged for an owned outlaw's
+weapon in another outlaw's run. The quests `unlock_pike` (survive 4 minutes) and `unlock_big_mouth` (300 armadillos)
+are retired; a save that had finished them gains nothing from that. The Collection and the Results read "Comes with
+<name>" for such a weapon, and a tap opens the Outlaws screen on him. The quest-locked share of the base items is 21 of
+90 (0.233); the tests' band is 0.22 to 0.56. On a save that owns only the Drifter, the heroes' weapons add 2.3% to the
+weapon-card share (pass 118 measured 5 to 10% with all of them in).
+
+### 70.DYNA The dynamite is red
+
+- Look B of the Dynamite family, the look the game plays, is a plain red stick from the start, icon and 3D (Garry: "I
+  wanted to make it sand-brown at first, then the player would upgrade it to make it red. Let's not do that."). No
+  number and no rule of play changed.
+- What a mutation shows on the thrown model, look B only: the shrapnel mutation (id `frag`), now named **Barbed Wire**
+  ("The burst throws six wire barbs out past the blast."), winds dark barbed wire round the stick (`model_wire: true`,
+  in place of pass 76's `model_colour: "red"`); **Sticky** pours amber tar over it (`model_tar: true`; still no amber
+  tint and no blinking light); **Dynamite Bundle** makes it the bundle (`model_form: "bundle"`). Eight models, one per
+  combination: `art/props/dynamite_b_{stick|bundle}{,_wire}{,_tar}.glb`. The weapon's look names them
+  `models {stick|bundle: {plain, wire, tar, wire_tar, tip}}` and `Lobber.model_key` builds the key from the two flags,
+  so the order the mutations were taken in never matters. Fire in the Hole draws nothing (it is the blast's Mini Crit
+  rule); Boomtown, the evolution, keeps its own model and icon.
+- Looks C and D are as pass 76 left them: a sandy stick that Coffin Nails colours red; a look that names
+  `model_colour` chooses by it.
+- A creature's dynamite (`ProjectileManager.DYN_MODEL`, the Spit Cactus's dormant `ranged.dynamite.model`) is the same
+  red stick, now `dynamite_b_stick.glb`.
+- For look B this replaces 23.DYNART's "Names, the same in B, C and D" (frag is Barbed Wire in B), its "Colour rule"
+  and its "Sticky in the dynamite looks" (the 3D stick now wears tar).
+
+### 70.WORDS Outlaws
+
+The player, the arena, the Watch and the Level Editor read "Outlaw(s)" wherever they read "Hero(es)" (Garry: "every
+mention of heroes should be, from now on, outlaws"). No rule or number changed; code names, ids and save keys keep
+`hero`.

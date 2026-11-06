@@ -69,7 +69,8 @@ func test_half_the_items_sit_behind_quests_spread_over_the_stages() -> void:
 	# pass 70 (lane LINES): four new lines (Lodestone, Mule Kick, Slow Burn, Tin Star) came unlocked: 23 of 79 (29%)
 	# pass 119 (lane LEGEND_B): the legendary items came unlocked (pass 118's keys and Grindstone, pass 119's four of lane
 	# LEGEND_B and two of LEGEND_A; a legendary is rare enough without a quest): 23 of 88 (26%)
-	assert_float(share).is_between(0.25, 0.56)
+	# pass 128: 21 of 90 (0.233) once the Spear's and the Big Mouth's quests retired (their outlaws are the key now)
+	assert_float(share).is_between(0.22, 0.56)
 	# 70 / 25 / 5 by the stage that can do them (within a couple of items)
 	# pass 54: 57 / 39 / 4. The map's timeline (the Level Editor's placement) brings the fire ants at 9:19, the mummies
 	# at 7:10 and the armadillos at 12:11 of a 7:10 stage, so the Land Mine, the Lob Grenade, Thirst, Big Mouth and

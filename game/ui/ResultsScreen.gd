@@ -740,7 +740,12 @@ func _progress_row(c: Dictionary) -> Dictionary:
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(W.serif_text(TextGen.quest_text(q), 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	# pass 128: a weapon that waits for its outlaw says so in place of the quest's words (a tap opens his page)
+	var giver := CollectionScreen.comes_with(_reward(q))
+	if giver:
+		v.add_child(CollectionScreen.comes_with_line(giver, 26, self))
+	else:
+		v.add_child(W.serif_text(TextGen.quest_text(q), 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	var bh := HBoxContainer.new()
 	bh.add_theme_constant_override("separation", 16)
 	bh.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1593,13 +1598,15 @@ func _unlocked(q: QuestDef) -> PanelContainer:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# pass 72: the word is the stamp's (UNLOCKED, or FOR SALE on a hero to buy: _build_unlocks)
 	p.set_meta("on_sale", on_sale)
-	var title := "A new hero" if on_sale else (def.display_name if def else q.display_name)
+	var title := "A new outlaw" if on_sale else (def.display_name if def else q.display_name)
 	if skin:
 		title = "%s · %s" % [def.display_name, (def as CharacterDef).skin_name((def as CharacterDef).look_code())]
 	var tpx := ROYALE_UNLOCK_PX
 	v.add_child(W.slab_text(title, tpx, W.INK, HORIZONTAL_ALIGNMENT_LEFT, float(tpx)))
 	h.add_child(v)
-	var why := W.serif_text(TextGen.quest_text(q), 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, true)
+	# pass 128: an unlocked weapon that still waits for its outlaw reads "Comes with <name>" (a tap opens his page)
+	var giver := CollectionScreen.comes_with(def)
+	var why: Control = CollectionScreen.comes_with_line(giver, 24, self, true) if giver 		else W.serif_text(TextGen.quest_text(q), 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, true)
 	why.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	why.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(why)

@@ -60,7 +60,7 @@ const Jobs = (() => {
   // the re-roll modes a look job carries as spec.reroll {mode, view} (pass 68, D3: the server applies them when it queues
   // the job); `only` = the methods a mode exists for
   const REROLL = [
-    { v: 'seeds', label: 'new seeds', help: 'the stills painted again under new seeds and the clips made again from them (their folders move to <key>_old<stamp>, anim_seed + 1); a look that shares the creature\'s or the hero\'s paintings gets its own first, so those are never touched' },
+    { v: 'seeds', label: 'new seeds', help: 'the stills painted again under new seeds and the clips made again from them (their folders move to <key>_old<stamp>, anim_seed + 1); a look that shares the creature\'s or the outlaw\'s paintings gets its own first, so those are never touched' },
     { v: 'clips', label: 'keep the stills, redo the clips', help: 'the stills stay; the clip folders move to <key>_old<stamp> and the walks are made again (anim_seed + 1)' },
     { v: 'view', label: 'redo one view', help: 'one view painted again as candidates to pick from (gen_ctl --view-cands)', only: ['creature_ctl'] },
     // pass 70 (lane LE): one view's walk again, on the driver the recipe names for that view now (May's side, Jezyk's back)
@@ -93,12 +93,12 @@ const Jobs = (() => {
   const CAND_FIELDS = {
     hero_badge: [
       { key: 'character', label: 'Character', type: 'textarea', help: CHARACTER_HELP },
-      { key: 'prompt', label: 'Action', type: 'textarea', help: 'what the portrait does: the expression and the gesture (the hero\'s portrait_prompt by default)' },
+      { key: 'prompt', label: 'Action', type: 'textarea', help: 'what the portrait does: the expression and the gesture (the outlaw\'s portrait_prompt by default)' },
       { key: 'ref', label: 'Reference picture', type: 'picture', help: 'the picture the portraits are edited from (the identity): the look\'s own front still by default; any picture can take its place (an upload, a turnaround)' },
     ],
     hero_title: [
       { key: 'character', label: 'Character', type: 'textarea', help: CHARACTER_HELP },
-      { key: 'pose', label: 'Pose', type: 'textarea', help: 'the pose of the full-body splash: the hero\'s title_pose, else the tool\'s own table, else "standing confidently in a heroic pose, full body"' },
+      { key: 'pose', label: 'Pose', type: 'textarea', help: 'the pose of the full-body splash: the outlaw\'s title_pose, else the tool\'s own table, else "standing confidently in a heroic pose, full body"' },
       { key: 'holds', label: 'Holds', type: 'text', help: 'the one thing held (title_holds): "the guitar is the only thing he holds"' },
       { key: 'camera', label: 'Camera', type: 'text', help: 'the shot (title_camera): "facing the viewer, seen from the front at eye level"' },
       { key: 'ref', label: 'Reference picture', type: 'picture', help: 'the identity picture: the look\'s own front still by default' },
@@ -840,7 +840,7 @@ const Jobs = (() => {
     if (rg) blocks.push(rg);
     const shown = new Set();
     if (!jobs.length) {
-      if (!S.emptyEl) S.emptyEl = el('div', { class: 'jempty' }, el('div', { class: 'jempty-what' }), el('div', { class: 'small', text: 'Queue one from a creature\'s or a hero\'s Looks (+ New look…, Re-roll…, Icon candidates…), an item\'s icon, or a hero\'s badge and title cut-out.' }));
+      if (!S.emptyEl) S.emptyEl = el('div', { class: 'jempty' }, el('div', { class: 'jempty-what' }), el('div', { class: 'small', text: 'Queue one from a creature\'s or an outlaw\'s Looks (+ New look…, Re-roll…, Icon candidates…), an item\'s icon, or an outlaw\'s badge and title cut-out.' }));
       const what = S.filter ? `no jobs of ${S.filter.look || S.filter.id} in the list` : S.apiMissing ? 'no jobs API yet' : 'no jobs';
       const w = S.emptyEl.querySelector('div.jempty-what');
       if (w && w.textContent !== what) w.textContent = what;
@@ -1923,7 +1923,7 @@ const Jobs = (() => {
         // still names it as its default
         const canInherit = inh != null && inh !== '' && typeof inh !== 'object';
         const inBox = canInherit && !PICTURE_KEYS.includes(f.key) && ['int', 'number', 'textarea', 'text', undefined, '', 'str'].includes(f.type);
-        const whoseJ = kind === 'hero' ? 'the hero\'s' : 'the creature\'s';
+        const whoseJ = kind === 'hero' ? 'the outlaw\'s' : 'the creature\'s';
         const f2 = inherited && !inBox ? Object.assign({}, f, { default: inh }) : f;
         const ctl = PICTURE_KEYS.includes(f.key) ? pictureControl(own, (v) => U.setPath(spec.recipe, f.key, v), { refs, dflt: inherited ? String(inh) : '' })
           : recipeControl(f2, own, (v) => U.setPath(spec.recipe, f.key, v), { drivers, refs, inherit: inBox ? { value: inh, from: `${whoseJ} own ${f.key}` } : null, inheritObj: inh && typeof inh === 'object' ? inh : null,
@@ -2130,7 +2130,7 @@ const Jobs = (() => {
     const spec = state.spec;
     if (!spec.job) spec.job = {};
     const d = state.defaults && state.defaults.jk === jk ? state.defaults : null;
-    const who = kind === 'hero' ? 'the hero' : (kind === 'enemy' || kind === 'boss') ? 'the creature' : 'the item';
+    const who = kind === 'hero' ? 'the outlaw' : (kind === 'enemy' || kind === 'boss') ? 'the creature' : 'the item';
     body.appendChild(el('h2', {}, 'What to paint', el('small', { text: `filled in from ${who}${fixedCode ? ' and its look ' + fixedCode : ''}; change anything: a field left empty is filled the same way when the job is queued` })));
     // where the pick will show in the game (pass 68 review: the default Live title shows no cut-out)
     const shown = jk === 'hero_badge' ? whereShown('badge') : jk === 'hero_title' ? whereShown('cutout') : '';
@@ -2255,7 +2255,7 @@ const Jobs = (() => {
     const { fromCode, srcStills, state, draw, kind } = c;
     const still = STILL_METHODS.includes(spec.method);
     const own = kind === 'hero' ? 'hero' : 'creature';
-    const what = spec.method === 'hero_fit' ? 'hero_fit walks the hero\'s own paintings (its still_keys): nothing new is painted, only the walks are made again.'
+    const what = spec.method === 'hero_fit' ? 'hero_fit walks the outlaw\'s own paintings (its still_keys): nothing new is painted, only the walks are made again.'
       : still ? 'Its stills are painted fresh under its own letter and its own seeds, so the Model settings below apply to them.' : '';
     const box = el('div', { class: 'jdup' }, el('div', {}, el('b', { text: state.draft ? `A draft made from ${fromCode}` : `Duplicate of ${fromCode}` }),
       el('span', { text: `: ${state.draft ? 'its recipe (copied from ' + fromCode + ', then yours to change) is below' : 'its recipe, words and painter are filled in below and the new look gets the next free code'}. ${what}` })));
@@ -2283,7 +2283,7 @@ const Jobs = (() => {
     else if (mid === 'front_from_picture') text = 'The picture is the Reference picture field above, the only picture this method reads (after the style anchor, unless "no style anchor" is ticked).';
     else if (mid === 'creature_ctl') text = 'gen_ctl reads its picture from look_ref and its motion from drivers, both in What to paint above: nothing else reaches it.';
     else if (mid === 'hero_puppet') text = 'The 3D reference rows above are the pictures the shape is made from (painted arms-out, a look\'s still or an uploaded picture). The walks are Wan clips of the look\'s stills on the puppet\'s own guides: no other picture is passed. A badge or a title cut-out takes a picture (their own forms).';
-    else if (mid === 'hero_pose5' || mid === 'hero_fit') text = 'Hero looks paint from words (art_prompt and the hints) with the style anchor, and walk on the pose drivers (pose_drivers above): no picture is passed to them. A badge or a title cut-out takes a picture (their own forms).';
+    else if (mid === 'hero_pose5' || mid === 'hero_fit') text = 'Outlaw looks paint from words (art_prompt and the hints) with the style anchor, and walk on the pose drivers (pose_drivers above): no picture is passed to them. A badge or a title cut-out takes a picture (their own forms).';
     else if (mid === 'recolour') text = 'A recolour reads its source look\'s strip and icon: no picture.';
     else if (jk === 'look') text = `This method paints from words: to start from a picture, use "${ffp ? ffp.name || ffp.id : 'front_from_picture'}" first, then paint the look with its stills slug.`;
     else if (mode === 'driver') text = 'The model is the src field above: an upload (tools/dl/uploads/3d/) or a Mixamo FBX.';
@@ -2349,7 +2349,7 @@ const Jobs = (() => {
     }
     const modes = [{ v: '', label: 'none (cached work reused)', help: 'the stills and clips already on disk are reused: only what is missing is made' }].concat(REROLL.filter((r) => allowed.includes(r.v)));
     if (spec.reroll.mode && !allowed.includes(spec.reroll.mode)) spec.reroll.mode = allowed[0];
-    if (REROLL_FOR[spec.method]) body.appendChild(el('div', { class: 'muted small', text: spec.method === 'hero_fit' ? 'hero_fit walks the hero\'s own paintings, which every look shares: only its clips can be made again (paint stills of its own with hero_pose5)' : spec.method === 'creature_ctl' ? 'gen_ctl paints its stills from the picked side with its code\'s own seeds: re-roll a view or the clips (new side candidates: a new look)' : 'creature_proc has no clips: its frames are procedural' }));
+    if (REROLL_FOR[spec.method]) body.appendChild(el('div', { class: 'muted small', text: spec.method === 'hero_fit' ? 'hero_fit walks the outlaw\'s own paintings, which every look shares: only its clips can be made again (paint stills of its own with hero_pose5)' : spec.method === 'creature_ctl' ? 'gen_ctl paints its stills from the picked side with its code\'s own seeds: re-roll a view or the clips (new side candidates: a new look)' : 'creature_proc has no clips: its frames are procedural' }));
     const rr = el('div', { class: 'row' });
     for (const r of modes) {
       const rb = el('input', { type: 'radio', name: 'reroll' }); rb.checked = (spec.reroll.mode || '') === r.v;
@@ -2372,7 +2372,7 @@ const Jobs = (() => {
       for (const v of ['front', 'fd', 'side', 'bd', 'back']) vs.appendChild(el('option', { value: v, text: v, selected: spec.reroll.view === v }));
       vs.addEventListener('change', () => { spec.reroll.view = vs.value; });
       body.appendChild(fieldLine('the view', vs, spec.reroll.mode === 'clip'
-        ? 'the view walked again: change its driver first in What to paint (pose_drivers.<view> for a hero, drivers for gen_ctl) when another driver is the fix'
+        ? 'the view walked again: change its driver first in What to paint (pose_drivers.<view> for an outlaw, drivers for gen_ctl) when another driver is the fix'
         : 'gen_ctl --view-cands=<view>: candidates of that one view to pick from'));
     }
     const rp = state.recordedPainter;

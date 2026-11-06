@@ -66,7 +66,7 @@ func test_every_passive_reads_as_a_passive() -> void:
 	for p: PassiveDef in Registry.passives.values():
 		assert_str(p.kind()).is_equal("passive")
 		assert_bool(W.is_evolved(p)).is_equal(p.is_evolved())
-	assert_str(WItem.word({"def": Registry.mutation("danza_macabra"), "level_from": 0, "level_to": 1})).is_equal("HERO MUTATION")
+	assert_str(WItem.word({"def": Registry.mutation("danza_macabra"), "level_from": 0, "level_to": 1})).is_equal("OUTLAW MUTATION")
 	# the former lines (lines again since pass 47) say "level" (pass 46), never "rank"
 	for id in FORMER_LINES:
 		var p: PassiveDef = Registry.passive(id)

@@ -95,11 +95,8 @@ func test_the_crab_and_the_jackalope_are_out_of_the_rotation() -> void:
 	assert_object(Registry.enemy("sand_crab")).is_not_null()
 	assert_object(Registry.enemy("jackalope")).is_not_null()
 	# and the laser is not locked behind a creature that never comes
-	var q: Dictionary = {}
-	for qd in Registry.quests.values():
-		if qd.id == "unlock_big_mouth":
-			q = qd.condition
-	assert_str(str(q.get("enemy", ""))).is_equal("armadillo")
+	# pass 128: it is locked behind no creature at all (unlock_big_mouth retired: the Big Mouth comes with May)
+	assert_object(Registry.quest_for("weapon", "big_mouth")).is_null()
 
 
 func test_the_fodder_comes_twice_as_many_at_half_each() -> void:

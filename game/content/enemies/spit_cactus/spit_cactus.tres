@@ -106,7 +106,7 @@ ranged = {
 },
 "lead": 0.35,
 "lead_max": 2.5,
-"model": "res://art/props/dynamite_b_stick_red.glb",
+"model": "res://art/props/dynamite_b_stick.glb",
 "out_before": 0.5,
 "scale": 0.6,
 "speed": 9.0

@@ -51,7 +51,7 @@
       "tint_strength": 0.6
     }
   },
-  "doc": "A crab with a live mine on its back, and it arrives alone rather than in a pack. Fast, two hits kill it, and it goes off either way: a blast at the hero when it reaches him, marked by a red ring, or a smaller one on its own death that throws whatever stands beside it. From the fourth minute, and a swarm late.",
+  "doc": "A crab with a live mine on its back, and it arrives alone rather than in a pack. Fast, two hits kill it, and it goes off either way: a blast at the outlaw when it reaches him, marked by a red ring, or a smaller one on its own death that throws whatever stands beside it. From the fourth minute, and a swarm late.",
   "anims": {
     "idle": 4,
     "run": 12,

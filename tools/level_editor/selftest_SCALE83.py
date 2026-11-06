@@ -146,10 +146,10 @@ def checks(check, run_node, server):
     check(all(rows[k][4] for k in ("boss_hp_scaling.exponent", "boss_hp_scaling.window", "boss_hp_scaling.min", "boss_hp_scaling.max"))
           and not rows["boss_hp_scaling.enabled"][4] and not m[4], "SCALE83: only the pegged numbers hide outside their mode")
     check(res["show"][0] == [True] * 4 and res["show"][1] == [False] * 4 and res["show"][2] == [False] * 4, "SCALE83: they show in the dps mode only: %s" % res["show"])
-    check(rows["power_hp_scaling"][1] == "Hero power" and abs(rows["power_hp_scaling"][2] - gd["SCALING"]) < 1e-9 and abs(rows["power_hp_max"][2] - gd["MAX"]) < 1e-9,
+    check(rows["power_hp_scaling"][1] == "Outlaw power" and abs(rows["power_hp_scaling"][2] - gd["SCALING"]) < 1e-9 and abs(rows["power_hp_max"][2] - gd["MAX"]) < 1e-9,
           "SCALE83: the power rows in the Hero power card with the game's greys")
     g = res["groups"]
-    check("Hero power" in g and g.index("Hero power") == g.index("Boss HP") + 1, "SCALE83: the Hero power card follows Boss HP: %s" % g)
+    check("Outlaw power" in g and g.index("Outlaw power") == g.index("Boss HP") + 1, "SCALE83: the Hero power card follows Boss HP: %s" % g)
 
     # the page wiring
     idx = _read(HERE, "index.html")

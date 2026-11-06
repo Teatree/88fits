@@ -487,7 +487,7 @@ func ask_buy() -> void:
 		Audio.play("ui_locked")
 		return
 	# pass 123 (lane MAINMENU): under Royale the shared confirm's buy (green; Wanted keeps its card as it was)
-	WConfirm.open(self, "Buy this hero?", "%s from your purse. Yours to play from then on." % Currency.price_words(c.currency_type, maxi(c.price, 0)),
+	WConfirm.open(self, "Buy this outlaw?", "%s from your purse. Yours to play from then on." % Currency.price_words(c.currency_type, maxi(c.price, 0)),
 		"Buy · %s" % W.num(maxi(c.price, 0)), "Not now", func(): _buy_now(c), Callable(), "buy",
 		WButton.price_parts(maxi(c.price, 0), "BUY", R.MODAL_BUTTON_PX, Currency.of(c.currency_type)))
 

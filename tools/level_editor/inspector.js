@@ -54,7 +54,7 @@ const Inspector = (() => {
     // pass 87 (lane STOOLS): a stage's settings (stage_tabs.js)
     else if (sel.kind === 'stage' && typeof StageTabs !== 'undefined') StageTabs.card(container, sel.i);
     else if (sel.kind === 'specials') blockForm(container, 'Specials', 'the specials\' clock: one at a time, a random interval after the last one dies', Forms.specialsBlock(App.tl()), 'specials');
-    else if (sel.kind === 'paths') blockForm(container, 'Mutation offers', 'when each stage\'s mutation offers fall due: each comes at the hero\'s next level-up, in place of the three cards', Forms.pathTimesBlock(App.tl()), 'paths');
+    else if (sel.kind === 'paths') blockForm(container, 'Mutation offers', 'when each stage\'s mutation offers fall due: each comes at the outlaw\'s next level-up, in place of the three cards', Forms.pathTimesBlock(App.tl()), 'paths');
     else if (sel.kind === 'pickups') blockForm(container, 'Power-up drops', 'what kills drop and how often', Forms.pickupsBlock(App.tl()), 'pickups');
     // the same item drawn again (an edit in its form) keeps its place in a long form
     if (sameItem) container.scrollTop = scroll;
@@ -230,10 +230,10 @@ const Inspector = (() => {
     if (kind === 'event') {
       if (obj.type !== 'swarm') return null;
       if (!list.length) return [b('Ring (16 m, the swarm\'s own): '), 'pick a creature to see how many make a thick ring.'];
-      return [b('Ring (16 m, the swarm\'s own): '), ...ringCounts(list, U.SWARM_RING_RADIUS), ' make a thick ring with few gaps 16 m round the hero; this swarm sends ', b(Number(obj.count) || 40), ' (Count), on top of the cap.'];
+      return [b('Ring (16 m, the swarm\'s own): '), ...ringCounts(list, U.SWARM_RING_RADIUS), ' make a thick ring with few gaps 16 m round the outlaw; this swarm sends ', b(Number(obj.count) || 40), ' (Count), on top of the cap.'];
     }
-    if (!list.length) return [b('Ring: '), 'pick a creature to see how many make a thick ring with few gaps, 11.7 m round the hero.'];
-    const head = [b('Ring: '), ...ringCounts(list, U.RING_RADIUS), ' make a thick ring with few gaps, 11.7 m round the hero (the arena\'s ring × 1.3).'];
+    if (!list.length) return [b('Ring: '), 'pick a creature to see how many make a thick ring with few gaps, 11.7 m round the outlaw.'];
+    const head = [b('Ring: '), ...ringCounts(list, U.RING_RADIUS), ' make a thick ring with few gaps, 11.7 m round the outlaw (the arena\'s ring × 1.3).'];
     const thick = U.ringCount(list[0].radius).thick;
     if (kind === 'roster') {
       const x = list[0];
@@ -315,7 +315,7 @@ const Inspector = (() => {
       el('span', { class: 'rn-main' }, 'Row HP ', b(fmtN(rn.hp, 2)), ' · ATK ', b(fmtN(rn.atk, 2)), ', fixed from ', b(fmtT(t0)), `, the ${from || 'row'}'s start`),
       el('span', { class: 'rn-sub' }, `HP: ${hpSrc}${mult('hp_mult')}. ATK: ${atkSrc}${mult('damage_mult')}.`),
       el('span', { class: 'rn-play' }, 'In play at its start: HP ', b(fmtN(at.hp, 1)), ' · ATK ', b(fmtN(at.atk, 1)),
-        ` (${App.stageName(at.stage)} ×${fmtN(at.stageMult, 2)}, creature ×${fmtN(at.chm, 2)} / ×${fmtN(at.cdm, 2)}, hero level ${App.S.level} ×${fmtN(at.lvHp, 2)} / ×${fmtN(at.lvDmg, 2)}); one it sends in a later stage takes that stage's multiplier instead.`),
+        ` (${App.stageName(at.stage)} ×${fmtN(at.stageMult, 2)}, creature ×${fmtN(at.chm, 2)} / ×${fmtN(at.cdm, 2)}, outlaw level ${App.S.level} ×${fmtN(at.lvHp, 2)} / ×${fmtN(at.lvDmg, 2)}); one it sends in a later stage takes that stage's multiplier instead.`),
       ...longBarNote(rn, t0, end),
     ];
   }
@@ -353,7 +353,7 @@ const Inspector = (() => {
       el('span', { class: 'rn-main' }, 'HP ', b(fmtN(en.hp, 2)), ' · ATK ', b(fmtN(en.atk, 2)), ', joining ', b(who), ` (${U.theName(c.name)} from ${fmtT(en.joined.t0)})`),
       el('span', { class: 'rn-sub' }, `At ${fmtT(t)} ${who} brings ${U.theName(c.name)} in the same look, so the creatures this event sends play ${halves}, fixed from ${fmtT(en.hpJoined ? en.hpFrom : en.dmgFrom)}: the same creature with the same numbers as the ones already there. An HP or a Damage typed in Overrides is the event's own instead.`),
       el('span', { class: 'rn-play' }, 'In play: HP ', b(fmtN(at.hp, 1)), ' · ATK ', b(fmtN(at.atk, 1)),
-        ` (${App.stageName(at.stage)} ×${fmtN(at.stageMult, 2)}, creature ×${fmtN(at.chm, 2)} / ×${fmtN(at.cdm, 2)}, hero level ${App.S.level} ×${fmtN(at.lvHp, 2)} / ×${fmtN(at.lvDmg, 2)}).`),
+        ` (${App.stageName(at.stage)} ×${fmtN(at.stageMult, 2)}, creature ×${fmtN(at.chm, 2)} / ×${fmtN(at.cdm, 2)}, outlaw level ${App.S.level} ×${fmtN(at.lvHp, 2)} / ×${fmtN(at.lvDmg, 2)}).`),
     ];
   }
 
@@ -375,7 +375,7 @@ const Inspector = (() => {
     });
     const iv = ev.interval;
     const every = Array.isArray(iv) && iv.length ? `${fmtN(Number(iv[0]), 1)}–${fmtN(Number(iv[iv.length - 1]), 1)} s (about the middle here)` : `${fmtN(iv == null ? 90 : Number(iv), 1)} s`;
-    return [main, el('span', { class: 'rn-sub' }, `Every ${every}${rn0.hpOver ? '; the HP typed in Overrides takes no curve' : ''}.${joins ? ' A firing in brackets joins that row: the same creature in the same look as the ones it brings, with their numbers.' : ''} Hot Sauce brings them sooner and one held back for colour comes later, with the numbers of that second. In play × the stage then × creature × the hero level then.`)];
+    return [main, el('span', { class: 'rn-sub' }, `Every ${every}${rn0.hpOver ? '; the HP typed in Overrides takes no curve' : ''}.${joins ? ' A firing in brackets joins that row: the same creature in the same look as the ones it brings, with their numbers.' : ''} Hot Sauce brings them sooner and one held back for colour comes later, with the numbers of that second. In play × the stage then × creature × the outlaw level then.`)];
   }
 
   /** The row's numbers where they are always in sight (the review of pass 58: under HP / Damage they sat inside the
@@ -786,7 +786,7 @@ const Inspector = (() => {
   const ROW_GROUPS = [
     { id: 'schedule', name: 'Schedule', kind: 'edit', keys: ['t', 'until', 'pace', 'every', 'count', 'offset', 'respect_cap', 'trickle', 'interval', 'chance', 't_jitter'], help: 'when its creatures come: continuous (drawn into the cap), waves every N s, or once' },
     { id: 'creature', name: 'Creature', kind: 'edit', keys: ['name', 'enemy', 'variant', 'role', 'elite', 'special'], help: 'who comes: one creature, a list, or the roster draw; its look, its role, an elite modifier, special' },
-    { id: 'where', name: 'Where and how', kind: 'edit', keys: ['pattern', 'ring_radius', 'channel', 'pack', 'banner'], help: 'where they spawn round the hero, which cap they count against, the banner' },
+    { id: 'where', name: 'Where and how', kind: 'edit', keys: ['pattern', 'ring_radius', 'channel', 'pack', 'banner', 'relocate'], help: 'where they spawn round the outlaw, which cap they count against, the banner, whether they relocate when far' },
     { id: 'presence', name: 'Presence', kind: 'edit', keys: ['weights'], help: 'its weight over the run clock (the filled area on its bar)' },
     { id: 'estimate', name: 'In the estimate', kind: 'view', keys: [], help: 'its numbers at its start and what the estimate says it brings' },
   ];
@@ -879,6 +879,8 @@ const Inspector = (() => {
       if (def.key === 'pace') { host.appendChild(paceRow(def, r, c, env)); continue; }
       if (def.key === 'enemy') { host.appendChild(Forms.row(def, rowEnemyControl(r, env), { cls: 'wide-ctl' })); continue; }
       if (def.key === 'variant' && r.enemy === 'roster') continue;
+      // pass 128 (lane BLOB): the box shows what plays and where that comes from
+      if (def.key === 'relocate') { host.appendChild(relocateRow(def, r)); continue; }
       if (def.type === 'weights') {
         // the Presence boxes follow a dragged bar or point (the review of pass 58: the time stayed put until the drop)
         const pres = Forms.weightsBlock(r, { rosterAt: env.rosterAt });
@@ -915,6 +917,22 @@ const Inspector = (() => {
     liveTimes(container, titleEl, title, r, ['t', 'until']);
     liveFns.push(fill);
     jsonPeek(container, r);
+  }
+
+  /** Pass 128 (lane BLOB): a row's "Relocates when far" box with its effective value and the source of it
+   *  (Model.rowRelocate): ticked or not as the game will play it; disabled where nothing can switch it on (an Elite row, a
+   *  special row, a boss, an Elite by its kind, a special type, a dummy); the row's own value in bold ("this row says
+   *  so"), the default otherwise. A change is stored only when it differs from the row's default (Model.setRowRelocate). */
+  function relocateRow(def, r) {
+    const ids = r.enemy === 'roster' ? [] : (Array.isArray(r.enemy) ? r.enemy : [r.enemy]);
+    const creatures = ids.map((id) => App.creature(id)).filter(Boolean);
+    const st = Model.rowRelocate(App.tl(), r, creatures);
+    const cb = el('input', { type: 'checkbox', 'data-path': 'relocate', title: st.text });
+    cb.checked = st.value;
+    cb.disabled = st.locked;
+    cb.addEventListener('change', () => App.apply(() => { Model.setRowRelocate(App.tl(), r, creatures, cb.checked); }));
+    const src = el('span', { class: 'cb-text relocate-src' + (st.locked || st.mapOff ? ' muted' : ''), 'data-relocate': st.source, style: st.own != null && !st.locked ? 'font-weight:600' : '', text: st.text });
+    return Forms.row(def, el('span', { class: 'cb-wrap' }, cb, src));
   }
 
   /** Who a row brings (pass 84; INTERFACES.md / keys_SPAWN.md): one creature, a list drawn at random by `enemy_weights`,
@@ -1006,7 +1024,7 @@ const Inspector = (() => {
     s.appendChild(U.svg('text', { x: L, y: H - 4, class: 'mc-axis', text: fmtT(t0) }));
     s.appendChild(U.svg('text', { x: W - R - 26, y: H - 4, class: 'mc-axis', text: fmtT(t1) }));
     box.appendChild(s);
-    box.appendChild(el('div', { class: 'mc-note', text: `Yellow bars: what it spawns each second in the estimate (≈${Math.round(total)} over ${fmtT(t1 - t0)}${Number(r.until) > App.viewEnd() || r.until == null ? ', to the view\'s end' : ''}). Line: a creature's HP in play each second (fixed from its start; the stage multiplier steps it up, the hero level box ${App.S.level}).` }));
+    box.appendChild(el('div', { class: 'mc-note', text: `Yellow bars: what it spawns each second in the estimate (≈${Math.round(total)} over ${fmtT(t1 - t0)}${Number(r.until) > App.viewEnd() || r.until == null ? ', to the view\'s end' : ''}). Line: a creature's HP in play each second (fixed from its start; the stage multiplier steps it up, the outlaw level box ${App.S.level}).` }));
     return box;
   }
 
@@ -1112,7 +1130,7 @@ const Inspector = (() => {
     const sp = row.spawned[last], all = cy.spawned[last];
     const waves = row.waves[last];
     box.appendChild(el('p', { class: 'fhelp fnote' }, b('In a cycle: '), `≈${fmtN(sp, 1)} creatures${waves ? ` in ${waves} wave${waves === 1 ? '' : 's'}` : ''}, ${all > 0 ? Math.round((sp / all) * 100) : 0}% of the ≈${fmtN(all, 0)} the window brings in a ${fmtT(cy.length)} cycle once it has settled (cycle ${last + 1}; the first cycle: ≈${fmtN(row.spawned[0], 1)}).`));
-    box.appendChild(el('p', { class: 'muted small', text: `An estimate: the hero kills ${Math.round(cy.turnover * 100)}% of the crowd a second (the page's kill rate), the fight starts with only the boss alive and the boss counts against Max count ${cy.max < 0 ? '(none: the hard cap)' : cy.max}. The stage's leftover crowd and the boss's own summons also take room in a real fight.` }));
+    box.appendChild(el('p', { class: 'muted small', text: `An estimate: the outlaw kills ${Math.round(cy.turnover * 100)}% of the crowd a second (the page's kill rate), the fight starts with only the boss alive and the boss counts against Max count ${cy.max < 0 ? '(none: the hard cap)' : cy.max}. The stage's leftover crowd and the boss's own summons also take room in a real fight.` }));
     return box;
   }
 
@@ -1195,7 +1213,7 @@ const Inspector = (() => {
       }
       t.appendChild(el('tr', { class: 'bf-total' }, el('td', { text: 'all' }), el('td', { text: '' }), el('td', { text: fmtN(cy.spawned[0], 0) }), el('td', { text: fmtN(cy.spawned[cy.cycles - 1], 0) })));
       container.appendChild(t);
-      container.appendChild(el('p', { class: 'muted small', text: `Most alive at once ≈${fmtN(cy.peak, 0)} (the boss in)${cy.max >= 0 ? (cy.full > 0 ? `; at Max count ${cy.max} for ≈${fmtT(cy.full)} of the ${fmtT(cy.length * cy.cycles)}` : `; it never reaches Max count ${cy.max}`) : ''}. The hero kills ${Math.round(cy.turnover * 100)}% of the crowd a second (the page's kill rate), the fight starts with only the boss alive: the stage's leftovers and the boss's summons are not in it, and they take room under Max count in a real fight. The run charts above (On screen, Spawned so far) still model a boss fight without its window.` }));
+      container.appendChild(el('p', { class: 'muted small', text: `Most alive at once ≈${fmtN(cy.peak, 0)} (the boss in)${cy.max >= 0 ? (cy.full > 0 ? `; at Max count ${cy.max} for ≈${fmtT(cy.full)} of the ${fmtT(cy.length * cy.cycles)}` : `; it never reaches Max count ${cy.max}`) : ''}. The outlaw kills ${Math.round(cy.turnover * 100)}% of the crowd a second (the page's kill rate), the fight starts with only the boss alive: the stage's leftovers and the boss's summons are not in it, and they take room under Max count in a real fight. The run charts above (On screen, Spawned so far) still model a boss fight without its window.` }));
     }
   }
 
@@ -1418,7 +1436,7 @@ const Inspector = (() => {
     header(container, isHp ? 'HP ×' : 'ATK ×', isHp ? 'creature health over the run clock' : 'creature damage over the run clock', isHp ? 'hp' : 'dmg', []);
     container.appendChild(el('p', { class: 'insp-help', text: lane ? lane.text : '' }));
     container.appendChild(Forms.curveBlock(App.tl(), key));
-    container.appendChild(section('What it makes', 'the curve with the stage multiplier, the creature multiplier and the assumed hero level'));
+    container.appendChild(section('What it makes', 'the curve with the stage multiplier, the creature multiplier and the assumed outlaw level'));
     const SL = App.stageLength();
     const times = [];
     for (let k = 0; k < App.stages(); k++) { times.push(k * SL); times.push(k * SL + SL / 2); }
@@ -1431,8 +1449,8 @@ const Inspector = (() => {
     }
     container.appendChild(t);
     container.appendChild(el('p', { class: 'muted small', text: isHp
-      ? `For an ordinary creature of a row starting at that second (hero level ${App.S.level}, the box in the top bar). An Elite-archetype mini-boss ignores the curve and the level (elite.hp_mult_per_stage^stage × stage × creature_hp_mult); a boss ignores creature_hp_mult too.`
-      : `Every hostile damage of a row starting at that second (hero level ${App.S.level}): bites, shots, spit, artillery, blasts, boss attacks. creature_damage_mult is in Settings → Scaling.` }));
+      ? `For an ordinary creature of a row starting at that second (outlaw level ${App.S.level}, the box in the top bar). An Elite-archetype mini-boss ignores the curve and the level (elite.hp_mult_per_stage^stage × stage × creature_hp_mult); a boss ignores creature_hp_mult too.`
+      : `Every hostile damage of a row starting at that second (outlaw level ${App.S.level}): bites, shots, spit, artillery, blasts, boss attacks. creature_damage_mult is in Settings → Scaling.` }));
     // pass 58: the intended curve against what the rows really carry (the Actual lane above it)
     container.appendChild(section(`Intended and actual`, 'each row keeps the curve of its own start (or its override): the Actual lane averages what spawns round each second'));
     const act = App.actual();
@@ -1471,7 +1489,7 @@ const Inspector = (() => {
   function portalForm(container) {
     const tl = App.tl();
     header(container, 'Portal', 'what the portal after a boss brings', 'portal', []);
-    container.appendChild(el('p', { class: 'insp-help', text: 'When a boss dies its portal opens; until the hero steps through, either one wave of Portal wave count creatures of the rows open as the stage ended comes round him (then nothing), or the crowd is kept up to Portal cap load units for Portal spawns for seconds. No specials come while it waits.' }));
+    container.appendChild(el('p', { class: 'insp-help', text: 'When a boss dies its portal opens; until the outlaw steps through, either one wave of Portal wave count creatures of the rows open as the stage ended comes round him (then nothing), or the crowd is kept up to Portal cap load units for Portal spawns for seconds. No specials come while it waits.' }));
     const form = el('div', { class: 'form' });
     for (const k of ['portal_wave.count', 'portal_cap', 'portal_spawn_seconds']) {
       const def = FIELDS.SCALARS.find((d) => d.key === k);

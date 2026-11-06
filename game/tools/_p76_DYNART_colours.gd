@@ -2,13 +2,13 @@
 ## A row of sticks (the B stick's mesh) lies by the hero in the debug arena, each painted one candidate colour (flat
 ## albedo, matte), the first in the model's own vertex colours as the Lobber draws it; one frame is saved. Prints the
 ## first vertex colours the import kept (linear or sRGB?). Windowed, bounded, watchdog:
-##   godot --audio-driver Dummy --resolution 1080x1920 --path game --script res://tools/_p76_DYNART_colours.gd -- out=<png> [model=res://art/props/dynamite_b_stick_tan.glb] [cols=C8894A,B8956A,...] [zoom=0.5]
+##   godot --audio-driver Dummy --resolution 1080x1920 --path game --script res://tools/_p76_DYNART_colours.gd -- out=<png> [model=res://art/props/dynamite_b_stick.glb] [cols=C8894A,B8956A,...] [zoom=0.5]
 extends SceneTree
 
 const WATCHDOG_S := 60.0
 
 var _out := "user://p76_dynart_colours.png"
-var _model := "res://art/props/dynamite_b_stick_tan.glb"
+var _model := "res://art/props/dynamite_b_stick.glb"
 var _cols: Array = ["C8894A", "C49A6C", "BFA07A", "B08A60", "D2B48C", "A9825A", "C22A20", "A8302A"]
 var _zoom := 0.5
 var _rough := 0.85

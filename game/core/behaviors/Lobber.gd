@@ -21,6 +21,9 @@
 ## and bundles, tan or red: Dynamite Bundle sets the form, Coffin Nails the colour), falling back to `params.model`; a
 ## mutation taken or a look switched re-models the weapon (refresh_model). The fuse's spark sits at the model's `tip`
 ## (or `params.fuse_tip`; ProjectileManager's fuse, model_choice).
+## Pass 128 (lane DYNA): a look whose stick has one paper (look B, red) names no colour: its form's models are keyed
+## `plain`, `wire`, `tar`, `wire_tar`, picked by `params.model_wire` (the shrapnel mutation: barbed wire round it) and
+## `params.model_tar` (Sticky: amber tar over it), whatever order the mutations came in (model_key).
 ## Pass 79 (lane WORLD): `params.lead` throws ahead of the crowd, where it will be when the bomb blows (lead_spot).
 class_name Lobber
 extends WeaponBehavior
@@ -66,7 +69,7 @@ func _on_setup() -> void:
 func refresh_marks() -> void:
 	super.refresh_marks()
 	_check_visual()
-	# pass 76: a mutation that changes the model's form or colour (Dynamite Bundle, Coffin Nails) re-models the shot
+	# pass 76: a mutation that changes the model's form or what it wears (Dynamite Bundle, Barbed Wire, Sticky) re-models the shot
 	refresh_model()
 	_hook_deaths()
 
@@ -162,17 +165,38 @@ func refresh_model() -> void:
 ## The model a shot of params `p` is drawn with, and its fuse's tip (pass 76): {"path": params.models[model_form]
 ## [model_colour] ("stick" and "tan" when unset) when that file exists, else params.model ("" for none); "tip": that
 ## form's `tip`, else params.fuse_tip, as a Vector3 in the model's own space (Vector3.INF when none is given: the
-## mesh's top, ProjectileManager.fuse_tip)}.
+## mesh's top, ProjectileManager.fuse_tip)}. Pass 128: the key within the form is model_key's.
 static func model_choice(p: Dictionary) -> Dictionary:
 	var fallback_tip := _vec3(p.get("fuse_tip"), Vector3.INF)
 	var ms = p.get("models")
 	if ms is Dictionary:
 		var f = (ms as Dictionary).get(str(p.get("model_form", "stick")))
 		if f is Dictionary:
-			var path := str((f as Dictionary).get(str(p.get("model_colour", "tan")), ""))
+			var path := str((f as Dictionary).get(model_key(p, f as Dictionary), ""))
 			if path != "" and _model_file_exists(path):
 				return {"path": path, "tip": _vec3((f as Dictionary).get("tip"), fallback_tip)}
 	return {"path": str(p.get("model", "")), "tip": fallback_tip}
+
+
+## Which of a form's models params `p` choose (pass 128, lane DYNA). A look that names `params.model_colour` (looks C
+## and D: tan, red) keeps that key. Else the key is built from two flags, so every combination resolves whatever order
+## the mutations were taken in: `model_wire` (barbed wire) and `model_tar` (amber tar) -> "wire_tar", "wire", "tar" or
+## "plain". A form without that key falls back to its "plain", then to "tan" (the key before pass 128).
+static func model_key(p: Dictionary, form: Dictionary) -> String:
+	if p.has("model_colour"):
+		return str(p["model_colour"])
+	var wire := bool(p.get("model_wire", false))
+	var tar := bool(p.get("model_tar", false))
+	var key := "plain"
+	if wire and tar:
+		key = "wire_tar"
+	elif wire:
+		key = "wire"
+	elif tar:
+		key = "tar"
+	if form.has(key):
+		return key
+	return "plain" if form.has("plain") else "tan"
 
 
 static func _model_file_exists(path: String) -> bool:

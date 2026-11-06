@@ -43,5 +43,5 @@
     "eyes": 0,
     "shape": "tall"
   },
-  "doc": "The debug arena's melee attacker (pass 49): a bigger training dummy (the training dummy's painting) that chases the hero while he is within 12 m of its spot and hits on a touch like a creature; one that falls stands up again 5 s later and pays nothing."
+  "doc": "The debug arena's melee attacker (pass 49): a bigger training dummy (the training dummy's painting) that chases the outlaw while he is within 12 m of its spot and hits on a touch like a creature; one that falls stands up again 5 s later and pays nothing."
 }

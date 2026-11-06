@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://cg35gg6tujxiq"
-path="res://.godot/imported/dynamite_b_stick_red.glb-a170638ae7e2ec046513599b78d15b91.scn"
+uid="uid://bf7ctgdy7imwq"
+path="res://.godot/imported/dynamite_b_stick_wire.glb-808e345bf244f6181f7e7446b3adae14.scn"
 
 [deps]
 
-source_file="res://art/props/dynamite_b_stick_red.glb"
-dest_files=["res://.godot/imported/dynamite_b_stick_red.glb-a170638ae7e2ec046513599b78d15b91.scn"]
+source_file="res://art/props/dynamite_b_stick_wire.glb"
+dest_files=["res://.godot/imported/dynamite_b_stick_wire.glb-808e345bf244f6181f7e7446b3adae14.scn"]
 
 [params]
 

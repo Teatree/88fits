@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_gw0i4")
 archetype = "boss"
-doc = "The Dust Bowl's boss. Come Here: a quick wide rectangle, the dust stands up all over it and everyone in it leaps towards him, the further away the harder, never quite to him. A ring of Straw Men in both their looks, a volley of tumbleweeds, a rare black blizzard. His own attack is the whirl: he becomes a tornado for six seconds and hunts the hero, flinging his own crowd round him (it hurts them when they land) and throwing the hero; then he stumbles out dazed for two and a half seconds, taking half as much damage again. Pays two chests and forty-four coins."
+doc = "The Dust Bowl's boss. Come Here: a quick wide rectangle, the dust stands up all over it and everyone in it leaps towards him, the further away the harder, never quite to him. A ring of Straw Men in both their looks, a volley of tumbleweeds, a rare black blizzard. His own attack is the whirl: he becomes a tornado for six seconds and hunts the outlaw, flinging his own crowd round him (it hurts them when they land) and throwing the outlaw; then he stumbles out dazed for two and a half seconds, taking half as much damage again. Pays two chests and forty-four coins."
 brain = "boss"
 hp = 7500.0
 speed = 1.5

@@ -499,9 +499,9 @@ func test_solennes_favourite_is_the_molotov_at_level_two() -> void:
 func test_a_heros_favourite_weapon_is_offered_whatever_its_quest() -> void:
 	Run.end()
 	Run.start(Registry.character("solenne"), Registry.map("red_canyon"))
-	# the Spear waits behind its quest for everyone else (a new save has not done it)
+	# the Spear waits for its outlaw for everyone else (pass 128: a new save does not own Ironwood; its quest retired)
 	var pike: WeaponDef = Registry.weapon("pike")
-	assert_bool(Registry.is_unlocked("weapon", "pike")).is_false()
+	assert_bool(Registry.hero_may_use(pike)).is_false()
 	assert_bool(CardPool.offer_weapons().has(pike)).is_false()
 	# a favourite behind a quest comes anyway (the rule CardPool.offer_weapons keeps for her Molotov)
 	var c: CharacterDef = Run.character

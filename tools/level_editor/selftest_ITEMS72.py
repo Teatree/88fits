@@ -151,7 +151,7 @@ def page_checks(check):
 
 def settings_checks(check):
     f = _read(os.path.join(HERE, "fields.js"))
-    check("{ key: 'hero_knockback_mult', group: 'Scaling', label: 'Hero knockback ×', type: 'number', min: 0" in f and "Red Canyon 0.5" in f,
+    check("{ key: 'hero_knockback_mult', group: 'Scaling', label: 'Outlaw knockback ×', type: 'number', min: 0" in f and "Red Canyon 0.5" in f,
           "ITEMS72 settings: Hero knockback × in Settings > Scaling, with its help")
     rc = json.loads(_read(os.path.join(ROOT, "game", "content", "maps", "red_canyon", "red_canyon.json")))
     # pass 72, lane INTEG: a map that leaves the key out plays the game's 0.5 (WaveTimeline.HERO_KNOCKBACK_DEFAULT), the row's grey default

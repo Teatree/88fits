@@ -72,7 +72,7 @@
   },
   "outline_frac": 0.011,
   "outline_color": "#5A3A24",
-  "doc": "The Elite that fights up close: it charges down a red line, and between charges it sinks into the sand and bursts up under the hero's feet (throwing him and the crowd a little), slamming his spot with its tail and spitting a short fan of three barbs. Everything it does throws him. Pass 95: now and then (7 in 10 turns, never with the hero within 5 m) it freezes and its tail aims the Saiga Sniper's beam at him three times in a row, each aimed afresh: twice the Saiga's damage a beam, the same red lines, lock and laser.",
+  "doc": "The Elite that fights up close: it charges down a red line, and between charges it sinks into the sand and bursts up under the outlaw's feet (throwing him and the crowd a little), slamming his spot with its tail and spitting a short fan of three barbs. Everything it does throws him. Pass 95: now and then (7 in 10 turns, never with the outlaw within 5 m) it freezes and its tail aims the Saiga Sniper's beam at him three times in a row, each aimed afresh: twice the Saiga's damage a beam, the same red lines, lock and laser.",
   "boss": {
     "attacks": [
       {

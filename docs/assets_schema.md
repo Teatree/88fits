@@ -629,7 +629,7 @@ entry (normally it carries only `note`). A member with no entry for the code the
                    "model_form": "stick", "model_colour": "tan"}}
 }
 // new_equipment.json (mutation): "variants": {"B": {"name": "Dynamite Bundle", "text": "...", "icon": "new_equipment_icon_b.png", "params": {"model_form": "bundle"}}}
-// frag.json:            "variants": {"B": {"name": "Coffin Nails", "text": "...", "icon": "frag_icon_b.png", "params": {"model_colour": "red"}}}
+// frag.json:            "variants": {"B": {"name": "Barbed Wire", "text": "...", "icon": "frag_icon_b.png", "params": {"model_wire": true}}}   (pass 128; looks C and D: "Coffin Nails", {"model_colour": "red"})
 // golden_pineapple.json (evolution): "variants": {"B": {"name": "Boomtown", "flavour": "...", "icon": "golden_pineapple_icon_b.png",
 //                       "params": {"model": "res://art/props/dynamite_b_evo.glb", "fuse_tip": [0, 0.2, -0.4], "final": {"tint": null}}}}
 ```
@@ -708,7 +708,9 @@ Drawing keys (a look's `params`, lane DYNART writes them; read by the Lobber and
 |---|---|---|---|
 | `models` | object `{<form>: {<colour>: "res://...glb", "tip": [x, y, z]}}` | none | the shot's model by form and colour; `tip` is the fuse tip in the model's own space (Godot, metres, before model_scale and the shot's size) |
 | `model_form` | string | "stick" | which form (Dynamite Bundle's look sets "bundle") |
-| `model_colour` | string | "tan" | which colour (Coffin Nails' look sets "red") |
+| `model_colour` | string | none | which colour (looks C and D: "tan", Coffin Nails' look sets "red"). A look that names it chooses by it |
+| `model_wire` | bool | false | pass 128, a look that names no colour (look B, the red stick): barbed wire round the model (Barbed Wire's look B sets it) |
+| `model_tar` | bool | false | pass 128: amber tar over the model (Sticky's look B sets it). With no `model_colour` the key within the form is built from the two flags: `plain`, `wire`, `tar`, `wire_tar` (Lobber.model_key), whatever order the mutations came in; a form without that key falls back to `plain`, then `tan` |
 | `model` | string | "" | the fallback model when `models[form][colour]` is missing or its file is not on disk (Boomtown's) |
 | `fuse_tip` | [x, y, z] | the top of the mesh | the spark's place when the chosen model came from `model` (or a form names no tip) |
 

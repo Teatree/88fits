@@ -98,7 +98,7 @@ func test_the_screen_builds_in_the_mocks_order_with_the_heroes_tab_open() -> voi
 	assert_bool(bar.call("is_locked", "heroes")).is_false()
 	assert_bool(load("res://ui/wanted/WTabBar.gd").opens("heroes")).is_true()
 	assert_str(load("res://ui/wanted/WTabBar.gd").scene_of("heroes")).is_equal(SCREEN)
-	assert_str(str(s.get("header").title.text)).is_equal("HEROES")
+	assert_str(str(s.get("header").title.text)).is_equal("OUTLAWS")
 	var amount: WText = s.find_child("Amount", true, false)
 	assert_str(amount.text).is_equal("104,711")
 	# the page top to bottom: the top half, SELECT, LOOKS, HEROES
@@ -213,7 +213,7 @@ func test_the_grid_lists_every_hero_the_drawer_does_with_his_state() -> void:
 			_:
 				assert_str((foot.find_child("Word", true, false) as WText).text).is_equal("LOCKED")
 	var lab: WText = s.find_child("Heroes", true, false).get_node("Label")
-	assert_str(lab.text).is_equal("HEROES · %d OF %d OWNED" % [owned, list.size()])
+	assert_str(lab.text).is_equal("OUTLAWS · %d OF %d OWNED" % [owned, list.size()])
 	# the shown hero's tile is gold-edged; a tap shows another
 	var shown: CharacterDef = s.get("shown")
 	assert_int((grid.get_node("Hero_" + shown.id) as WTap).box.inner).is_equal(5)

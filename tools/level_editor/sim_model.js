@@ -308,7 +308,7 @@ const SimModel = (() => {
         { key: 'hp_max', label: 'max HP', color: SLOTS[2], values: ser(res, 'hp_max') || [], dash: SHORT_DASH, width: 1.25 }],
       bands: band('hp', SLOTS[2]), overlay: ov('hp', 'mean', `${cmpName}: HP`) });
     // pass 83 (lane SCALE): the hero's power level (HeroPower; a run recorded before pass 83 has none: no chart)
-    if (has('power') && (ser(res, 'power') || []).some((v) => v > 0)) push('hero', { id: 'power', title: 'Hero power', fmt: 'num', unit: 'power (fresh Drifter = 1)',
+    if (has('power') && (ser(res, 'power') || []).some((v) => v > 0)) push('hero', { id: 'power', title: 'Outlaw power', fmt: 'num', unit: 'power (fresh Drifter = 1)',
       how: `The hero's power level at each second, ${playingNote}: √((full DPS ÷ 20.4) × (effective HP ÷ 100)). Full DPS = every weapon's damage a second on ONE target that every shot hits (the pause screen's estimate without its crowd guess, burns kept up, average crits); effective HP = (max HP + shield + 30 s of regen and lifesteal) ÷ ((1 − armour) × (1 − evade)). A fresh level-1 Drifter with the Revolver is 1; twice the DPS alone is 1.41, twice both is 2.${bandNote}`,
       lines: [{ key: 'power', label: 'power', color: SLOTS[4], values: ser(res, 'power') || [] }],
       bands: band('power', SLOTS[4]), overlay: ov('power', 'mean', `${cmpName}: power`) });
@@ -321,7 +321,7 @@ const SimModel = (() => {
       lines: [{ key: 'playing', label: 'still playing', color: SLOTS[0], values: pct(res.playing, n) }],
       overlay: cmp ? [{ label: `${cmpName}: still playing`, values: pct(cmp.playing, cmpN) }] : [] });
     push('death', { id: 'deaths', title: 'Deaths so far', fmt: 'num', unit: 'deaths a run',
-      how: one ? 'How many times the hero has gone down by each second (revived or not), for this run: a fall the run ended at counts too.'
+      how: one ? 'How many times the outlaw has gone down by each second (revived or not), for this run: a fall the run ended at counts too.'
         : `How many times a run has gone down by each second (revived or not), averaged over all ${n} runs: a run that ended keeps its count to the right.`,
       lines: [{ key: 'deaths', label: one ? 'deaths' : 'deaths a run (mean)', color: SLOTS[7], values: ser(res, 'deaths') || [] }],
       overlay: ov('deaths', 'mean', `${cmpName}: deaths`) });
@@ -344,13 +344,13 @@ const SimModel = (() => {
         { key: 'healed5', label: 'health back', color: SLOTS[0], values: ser(res, 'healed5') || [], below: true }].filter((b) => b.values.length) },
       lines: [], overlay: ov('hp_low5', 'mean', `${cmpName}: lowest health`) });
     if (has('keep_up')) push('difficulty', { id: 'keep_up', title: 'Keeping up with the crowd', fmt: 'sec', unit: 'seconds of his damage',
-      how: 'How many seconds of his own damage the hero would need to kill every creature alive, the boss left out: rising = falling behind the crowd, flat or falling = keeping up. Dashed: the boss alone, seconds of his damage to kill it.' +
+      how: 'How many seconds of his own damage the outlaw would need to kill every creature alive, the boss left out: rising = falling behind the crowd, flat or falling = keeping up. Dashed: the boss alone, seconds of his damage to kill it.' +
         (one ? ' For this run (blank where his damage is under 1 a second).' : ' The middle run at each second (a crowd over a DPS jumps where the DPS is small), the band the middle 80%.'),
       lines: [{ key: 'keep_up', label: 'to clear the crowd (no boss)', color: SLOTS[1], values: ser(res, 'keep_up', 'median') || [] },
         { key: 'boss_s', label: 'to kill the boss', color: SLOTS[4], values: ser(res, 'boss_s', 'median') || [], dash: SHORT_DASH, width: 1.5 }],
       bands: band('keep_up', SLOTS[1]), overlay: ov('keep_up', 'median', `${cmpName}: to clear the crowd`) });
     if (has('near3')) push('difficulty', { id: 'near', title: 'Close crowd', fmt: 'num', unit: 'creatures',
-      how: `Creatures within 3 m of the hero: the ones that can reach him now${has('near6') ? ' (dashed: within 6 m)' : ''}, ${playingNote}${bandTail}.`,
+      how: `Creatures within 3 m of the outlaw: the ones that can reach him now${has('near6') ? ' (dashed: within 6 m)' : ''}, ${playingNote}${bandTail}.`,
       lines: [{ key: 'near3', label: 'within 3 m', color: SLOTS[1], values: ser(res, 'near3') || [] }]
         .concat(has('near6') ? [{ key: 'near6', label: 'within 6 m', color: SLOTS[1], values: ser(res, 'near6') || [], dash: SHORT_DASH, width: 1.5 }] : []),
       bands: band('near3', SLOTS[1]), overlay: ov('near3', 'mean', `${cmpName}: within 3 m`) });
@@ -358,13 +358,13 @@ const SimModel = (() => {
       how: `How many of each creature are alive at that second (the biggest ${FOLD}, the rest as Other), ${playingNote}. The top edge is the whole crowd.`,
       stack: aliveFold, lines: [], overlay: ov('alive', 'mean', `${cmpName}: crowd`) });
     if (has('trouble')) push('difficulty', { id: 'trouble', title: one ? 'In trouble' : 'Runs in trouble', fmt: 'pct', unit: one ? '%' : '% of runs', yMax: 100,
-      how: one ? 'Whether the hero is under 30% of his max health at that second: 100% while he is, 0% while he is not.' : `The share of the runs still playing whose hero is under 30% of his max health at that second.`,
+      how: one ? 'Whether the outlaw is under 30% of his max health at that second: 100% while he is, 0% while he is not.' : `The share of the runs still playing whose outlaw is under 30% of his max health at that second.`,
       lines: [{ key: 'trouble', label: 'under 30% health', color: SLOTS[7], values: ser(res, 'trouble') || [] }], overlay: ov('trouble', 'mean', `${cmpName}: in trouble`) });
-    if (hurtFold) push('difficulty', { id: 'hurt', title: 'What hurt the hero', fmt: 'num', unit: 'HP lost',
+    if (hurtFold) push('difficulty', { id: 'hurt', title: 'What hurt the outlaw', fmt: 'num', unit: 'HP lost',
       how: `Health lost so far to each creature or attack (after shields and armour; the biggest ${FOLD}, the rest as Other), ${playingNote}. The top edge is all the health lost.`,
       stack: hurtFold, lines: [], overlay: [] });
     if (has('hits_ps')) push('difficulty', { id: 'hits', title: 'Hits taken', fmt: 'num', unit: 'hits a second',
-      how: `Hits that reached the hero each second (shielded and evaded ones too), ${one ? '' : 'each run '}over ${rwin} s, ${playingNote}.`,
+      how: `Hits that reached the outlaw each second (shielded and evaded ones too), ${one ? '' : 'each run '}over ${rwin} s, ${playingNote}.`,
       lines: [{ key: 'hits_ps', label: 'hits a second', color: SLOTS[4], values: ser(res, 'hits_ps') || [] }], overlay: ov('hits_ps', 'mean', `${cmpName}: hits`) });
     const healFold = fold(bds.healed_by, names, FOLD);
     if (healFold) push('difficulty', { id: 'heal', title: 'Healing', fmt: 'num', unit: 'HP healed',
@@ -383,13 +383,13 @@ const SimModel = (() => {
       how: `How much of each second the director had no room for the regular rows (checked every 0.2 s: the load at or over the cap, or the bodies at the hard cap), ${playingNote}. 100% = full all second${one ? '' : ' in every run'}; while it is full no continuous row spawns, so a weak build starves the new rows.`,
       lines: [{ key: 'cap_full', label: 'cap full', color: SLOTS[7], values: (ser(res, 'cap_full') || []).map((v) => (v == null ? null : 100 * v)) }],
       overlay: cmp && cmp.series && cmp.series.cap_full ? [{ label: `${cmpName}: cap full`, values: cmp.series.cap_full.mean.map((v) => (v == null ? null : 100 * v)) }] : [] });
-    if (has('challenge')) push('difficulty', { id: 'challenge', title: 'The crowd against the hero', fmt: 'num', unit: '× (threat ÷ his DPS × effective HP)',
-      how: "The crowd's threat over the hero's strength at each second: threat = the sum over every creature alive (the boss left out) of its max HP × its bite a second (its bite's damage ÷ its bite cadence); his strength = his full DPS on one target × his effective HP (the Hero power chart's two parts). For one creature it is the seconds he needs to kill it × the share of his effective HP it bites off a second. Rising = the crowd outgrows him." +
+    if (has('challenge')) push('difficulty', { id: 'challenge', title: 'The crowd against the outlaw', fmt: 'num', unit: '× (threat ÷ his DPS × effective HP)',
+      how: "The crowd's threat over the hero's strength at each second: threat = the sum over every creature alive (the boss left out) of its max HP × its bite a second (its bite's damage ÷ its bite cadence); his strength = his full DPS on one target × his effective HP (the Outlaw power chart's two parts). For one creature it is the seconds he needs to kill it × the share of his effective HP it bites off a second. Rising = the crowd outgrows him." +
         (one ? ' For this run.' : ' The middle run at each second (a ratio jumps where his numbers are small), the band the middle 80%.'),
       lines: [{ key: 'challenge', label: 'threat ÷ strength', color: SLOTS[1], values: ser(res, 'challenge', 'median') || [] }],
       bands: band('challenge', SLOTS[1]), overlay: ov('challenge', 'median', `${cmpName}: threat ÷ strength`) });
     if (has('kills_ps')) push('difficulty', { id: 'flow', title: 'Spawned and killed', fmt: 'num', unit: 'creatures a second',
-      how: `Creatures killed${has('spawned_ps') ? ' and spawned' : ''} each second, ${one ? '' : 'each run '}over ${rwin} s, ${playingNote}.${has('spawned_ps') ? ' Kills above spawns = the hero is winning the room.' : ''}`,
+      how: `Creatures killed${has('spawned_ps') ? ' and spawned' : ''} each second, ${one ? '' : 'each run '}over ${rwin} s, ${playingNote}.${has('spawned_ps') ? ' Kills above spawns = the outlaw is winning the room.' : ''}`,
       lines: [{ key: 'kills_ps', label: 'killed a second', color: SLOTS[2], values: ser(res, 'kills_ps') || [] }]
         .concat(has('spawned_ps') ? [{ key: 'spawned_ps', label: 'spawned a second', color: SLOTS[1], values: ser(res, 'spawned_ps') || [], dash: SHORT_DASH, width: 1.5 }] : []),
       overlay: ov('kills_ps', 'mean', `${cmpName}: killed`) });
@@ -418,7 +418,7 @@ const SimModel = (() => {
     // pass 95 (lane WORLD): the regular creatures that despawned far from the hero and out of view (a sim from pass 95 on)
     const despFold = fold(bds.despawned_by, names, FOLD, creatureColors);
     if (despFold) push('rewards', { id: 'despawned', title: 'Despawned out of view', fmt: 'int', unit: 'creatures',
-      how: `Regular creatures that vanished so far because the hero left them more than the map's despawn distance behind, off the screen (no kill, no drop; their rows spawn again near him), split by creature (the biggest ${FOLD}, the rest as Other), ${playingNote}. The top edge is the total.`,
+      how: `Regular creatures that vanished so far because the outlaw left them more than the map's despawn distance behind, off the screen (no kill, no drop; their rows spawn again near him), split by creature (the biggest ${FOLD}, the rest as Other), ${playingNote}. The top edge is the total.`,
       stack: despFold, lines: [], overlay: [] });
     // pass 82 (lane STATS): chests, power-ups and totems picked up so far
     const pk = PICKUP_SERIES.filter((p) => has(p.key));
@@ -429,7 +429,7 @@ const SimModel = (() => {
       overlay: [].concat(...pk.map((p) => ov(p.key, 'mean', `${cmpName}: ${p.label}`))) });
 
     // ---- growth
-    push('growth', { id: 'level', title: 'Hero level', fmt: 'level', unit: 'level',
+    push('growth', { id: 'level', title: 'Outlaw level', fmt: 'level', unit: 'level',
       how: `The hero's level at each second, ${playingNote}.${bandNote}`,
       lines: [{ key: 'level', label: 'level', color: SLOTS[6], values: ser(res, 'level') || [] }],
       bands: band('level', SLOTS[6]), overlay: ov('level', 'mean', `${cmpName}: level`) });
@@ -441,7 +441,7 @@ const SimModel = (() => {
     if (held) {
       const kinds = ['weapons', 'evolutions', 'lines', 'passives', 'perks'].filter((k) => held[k]);
       push('growth', { id: 'build', title: 'The build: items held', fmt: 'level', unit: 'items',
-        how: `How many weapons, evolutions, lines (the fortune cards), passive items and perks the hero holds at each second, ${playingNote}.`,
+        how: `How many weapons, evolutions, lines (the fortune cards), passive items and perks the outlaw holds at each second, ${playingNote}.`,
         lines: kinds.map((k, i) => ({ key: 'held_' + k, label: k, color: SLOTS[i], values: held[k] })), overlay: [] });
     }
     // ---- performance (pass 101, lane FPS): the frame times of runs played in a window (run records of schema 3; a sim
@@ -453,7 +453,7 @@ const SimModel = (() => {
         { key: 'frame_max', label: 'slowest', color: SLOTS[7], values: ser(res, 'frame_max') || [], width: 1 }],
       overlay: ov('frame_ms', 'mean', `${cmpName}: mean`) });
     if (has('proj') || has('pickups')) push('perf', { id: 'frame_load', title: 'What the frame drew', fmt: 'num', unit: 'on the field',
-      how: `What each frame had to draw and move besides the hero, ${playingNote}: creatures alive, shots in flight (every round, lob and hostile shot), gems and coins lying. Read it beside Frame time.`,
+      how: `What each frame had to draw and move besides the outlaw, ${playingNote}: creatures alive, shots in flight (every round, lob and hostile shot), gems and coins lying. Read it beside Frame time.`,
       lines: [{ key: 'alive', label: 'creatures alive', color: SLOTS[0], values: ser(res, 'alive') || [] },
         { key: 'proj', label: 'shots in flight', color: SLOTS[1], values: ser(res, 'proj') || [], width: 1.5 },
         { key: 'pickups', label: 'pickups lying', color: SLOTS[3], values: ser(res, 'pickups') || [], dash: SHORT_DASH, width: 1.5 }],
@@ -477,9 +477,9 @@ const SimModel = (() => {
   // the sections the charts sit in, in Garry's order ("Player DPS, Player HP, Death, Difficulty, Coins, Total Damage
   // Dealt, Kills, hero level, total exp gained"), with one line each
   const SECTIONS = [
-    { id: 'hero', title: 'The hero', words: 'How hard he hits and how healthy he stays.' },
-    { id: 'death', title: 'Death', words: 'How many runs are still going, and how often the hero goes down.' },
-    { id: 'difficulty', title: 'How hard is each second?', words: 'What the hero is up against: the health he loses, whether he keeps up with the crowd, what is close and what hurts.' },
+    { id: 'hero', title: 'The outlaw', words: 'How hard he hits and how healthy he stays.' },
+    { id: 'death', title: 'Death', words: 'How many runs are still going, and how often the outlaw goes down.' },
+    { id: 'difficulty', title: 'How hard is each second?', words: 'What the outlaw is up against: the health he loses, whether he keeps up with the crowd, what is close and what hurts.' },
     { id: 'rewards', title: 'Rewards', words: 'Coins, damage and kills so far.' },
     { id: 'growth', title: 'Growth', words: 'His level, his XP and his build.' },
     // pass 101 (lane FPS): only runs played in a window carry it (the dashboard's runs, never a sim)
@@ -494,7 +494,7 @@ const SimModel = (() => {
     if (!s.hp_low5) out.push('Health in 5 s bars (needs the runs\' health and damage taken each second: hp, hp_max, took; a sim from pass 115 on)');
     if (!s.keep_up) out.push('Keeping up (needs the crowd\'s HP and the DPS)');
     if (!s.near3) out.push('Close crowd (needs near3)');
-    if (!b.took_by) out.push('What hurt the hero (needs took_by)');
+    if (!b.took_by) out.push('What hurt the outlaw (needs took_by)');
     if (!s.hits_ps) out.push('Hits taken (needs hits)');
     if (!b.healed_by) out.push('Healing (needs healed_by)');
     if (!s.spawned_ps) out.push('Spawned (needs spawned)');

@@ -1744,13 +1744,13 @@ OVERLAY_RULES = {
                 "whole second, or every run half of it.",
     "threat": "The crowd's HP x bite a second: the sum over every creature alive (not dying, the boss left out) of its "
               "max HP x its bite's damage / its bite cadence (contact_cd, 0.6 s for most). Both are the creature's own as "
-              "spawned: stage, HP and damage curves, hero level, creature multipliers, the row's stats, Elite and special.",
+              "spawned: stage, HP and damage curves, outlaw level, creature multipliers, the row's stats, Elite and special.",
     "power": "The hero's power level (fresh level-1 Drifter = 1): sqrt((full DPS / 20.4) x (effective HP / 100)). hero_dps: "
              "his full DPS on one target every shot hits; hero_ehp: (max HP + shield + 30 s of regen and lifesteal) / "
              "((1 - armour) x (1 - evade)).",
     "challenge": "threat / (hero_dps x hero_ehp) for each run at each second, then the middle run (median) and the 10th "
                  "to 90th percentile: for one creature, (seconds he needs to kill it) x (its damage a second / his "
-                 "effective HP), summed over the crowd. 0 when the hero's product is 0.",
+                 "effective HP), summed over the crowd. 0 when the outlaw's product is 0.",
     "starving": "For each roster row (the director's key: row:<id>#<index>, else row#<index>), the share of the second "
                 "(0..1, mean over runs) it wanted to spawn and could not, checked every 0.2 s of play: a row in the "
                 "continuous draw, open, weighing above 0, its creature under its max_alive, while its channel had no room "

@@ -72,7 +72,7 @@
     "drop": 0.06
   },
   "head": 0.831,
-  "doc": "The second thing the hero meets: a small black scorpion with the skeleton's numbers, in fours. Three looks (LS-A plain, LS-B plates, LS-C detailed) walked on the Dune Scorpion's 3D model at half its size.",
+  "doc": "The second thing the outlaw meets: a small black scorpion with the skeleton's numbers, in fours. Three looks (LS-A plain, LS-B plates, LS-C detailed) walked on the Dune Scorpion's 3D model at half its size.",
   "note": "Pass 53 (Garry): the Dune Scorpion's rig and drivers (scorpion_walk / scorpion_death), half the size, black, no special features; three versions that differ in how much detail is painted on them.",
   "variant_base": "LS-B",
   "variant": "LS-B",

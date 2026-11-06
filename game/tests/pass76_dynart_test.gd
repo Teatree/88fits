@@ -7,16 +7,25 @@ extends GdUnitTestSuite
 ## in sandy brown and in red, Boomtown's own), keeps every number of the rules, and leaves the stick's own paper and its
 ## spark alone under Sticky. The look the family plays is Garry's to switch (the arena's chips, the Level Editor): these
 ## tests wear each look in turn and never pin which one plays.
+## Pass 128 (lane DYNA): look B's stick is red from the start and its shrapnel mutation is Barbed Wire (wire round the
+## stick, model_wire), Sticky amber tar over it (model_tar): look B's names, words and models are pinned as that; C and
+## D keep the sandy stick that Coffin Nails colours red.
 
 const FAMILY := ["lob_grenade", "new_equipment", "frag", "sticky", "fire_in_the_hole", "golden_pineapple"]
 const NAMES := {"lob_grenade": "Dynamite Stick", "new_equipment": "Dynamite Bundle", "frag": "Coffin Nails",
 	"sticky": "Sticky", "fire_in_the_hole": "Fire in the Hole", "golden_pineapple": "Boomtown"}
+## Pass 128: what a look names differently (look B's shrapnel mutation).
+const NAMES_OF := {"B": {"frag": "Barbed Wire"}}
+const FRAG_WORDS := {"B": "six wire barbs", "C": "six coffin nails", "D": "six coffin nails"}
 const LOOKS := ["B", "C", "D"]
+## The models of a look (pass 128: look B's eight, a red stick or bundle plain, in wire, in tar, in both).
+const PARTS := {"B": ["stick", "stick_wire", "stick_tar", "stick_wire_tar", "bundle", "bundle_wire", "bundle_tar", "bundle_wire_tar", "evo"],
+	"C": ["stick_tan", "stick_red", "bundle_tan", "bundle_red", "evo"], "D": ["stick_tan", "stick_red", "bundle_tan", "bundle_red", "evo"]}
 ## Boomtown's thing words in each look (what it throws: a crate, a keg, a gilded bundle).
 const EVO_NOUNS := {"B": ["crate", "crates"], "C": ["keg", "kegs"], "D": ["bundle", "bundles"]}
 ## The keys a look may lay over the params: how the shots are drawn, never how they play.
-const DRAWING := ["models", "model_form", "model_colour", "model", "model_scale", "model_metallic", "model_roughness",
-	"fuse_tip", "tint", "look"]
+const DRAWING := ["models", "model_form", "model_colour", "model_wire", "model_tar", "model", "model_scale", "model_metallic",
+	"model_roughness", "fuse_tip", "tint", "look"]
 
 
 func before_test() -> void:
@@ -100,13 +109,13 @@ func test_every_dynamite_look_names_the_family_and_wears_its_own_icons() -> void
 		_wear(code)
 		for id: String in FAMILY:
 			var d = _def(id)
-			assert_str(d.display_name).override_failure_message("%s in %s" % [id, code]).is_equal(str(NAMES[id]))
+			assert_str(d.display_name).override_failure_message("%s in %s" % [id, code]).is_equal(str((NAMES_OF.get(code, {}) as Dictionary).get(id, NAMES[id])))
 			assert_object(d.icon).override_failure_message("%s in %s" % [id, code]).is_not_null()
 			assert_str(d.icon.resource_path).override_failure_message("%s in %s" % [id, code]).ends_with("%s_icon_%s.png" % [id, code.to_lower()])
 		assert_array(TextGen.weapon_nouns(Registry.weapon("lob_grenade"))).is_equal(["stick", "sticks"])
 		assert_array(TextGen.weapon_nouns(Registry.weapon("golden_pineapple"))).is_equal(EVO_NOUNS[code])
 		# the words keep their numbers
-		assert_str(Registry.mutation("frag").text).contains("six coffin nails")
+		assert_str(Registry.mutation("frag").text).contains(str(FRAG_WORDS[code]))
 		assert_str(Registry.mutation("new_equipment").text).contains("35%")
 		var flav: String = Registry.weapon("golden_pineapple").flavour
 		for part: String in ["1.3 s", "40%", "12", "4 small"]:
@@ -134,6 +143,10 @@ func test_the_shot_is_a_stick_or_a_bundle_in_sandy_brown_or_red() -> void:
 		_wear(code)
 		var cases := {[]: "stick_tan", ["frag"]: "stick_red", ["new_equipment"]: "bundle_tan",
 			["new_equipment", "frag"]: "bundle_red", ["frag", "new_equipment"]: "bundle_red", ["sticky"]: "stick_tan"}
+		if code == "B":
+			# pass 128: red from the start; the wire and the tar are worn (every combination: pass128_dynamite_test)
+			cases = {[]: "stick", ["frag"]: "stick_wire", ["new_equipment"]: "bundle",
+				["new_equipment", "frag"]: "bundle_wire", ["frag", "new_equipment"]: "bundle_wire", ["sticky"]: "stick_tar"}
 		for muts in cases.keys():
 			var pick := Lobber.model_choice(_inst("lob_grenade", muts, 3).params)
 			assert_str(str(pick["path"])).override_failure_message("%s with %s" % [code, str(muts)]).is_equal(_glb(code, str(cases[muts])))
@@ -147,7 +160,7 @@ func test_the_shot_is_a_stick_or_a_bundle_in_sandy_brown_or_red() -> void:
 
 func test_every_dynamite_model_is_a_mesh_with_its_tip_at_the_fuse() -> void:
 	for code: String in LOOKS:
-		for part: String in ["stick_tan", "stick_red", "bundle_tan", "bundle_red", "evo"]:
+		for part: String in PARTS[code]:
 			var path := _glb(code, part)
 			assert_bool(ResourceLoader.exists(path)).override_failure_message(path).is_true()
 			var root: Node = (load(path) as PackedScene).instantiate()
@@ -171,6 +184,7 @@ func test_every_dynamite_model_is_a_mesh_with_its_tip_at_the_fuse() -> void:
 		assert_float(tip.y).override_failure_message(code).is_greater(0.0)
 
 
+## (pass 128: in look B Sticky pours tar over the model instead, model_tar; still no tint and no blinking light)
 func test_sticky_leaves_the_stick_its_own_paper_and_its_spark() -> void:
 	for code: String in LOOKS:
 		_wear(code)

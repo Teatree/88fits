@@ -519,11 +519,12 @@ func test_ironwood_lands_with_the_pike_called_the_spear() -> void:
 	assert_int(Run.first_passive_level(brawn)).is_equal(2)
 	assert_bool(Run.add_or_level_passive("brawn")).is_true()
 	assert_int(Run.passive_level("brawn")).is_equal(2)
-	# the pike behind its quest: he still holds it, and the level-ups still level it
-	assert_bool(Registry.is_unlocked("weapon", "pike")).is_false()
+	# pass 128: the pike has no quest now (owning Ironwood is its key): in his own run it is his, held and levelled
+	assert_bool(Registry.is_unlocked("weapon", "pike")).is_true()
+	assert_object(Registry.weapon_comes_with(pike)).is_not_null()
 	var inst := Run.add_weapon(Registry.start_weapon_for(Run.character), 1)
 	assert_str(inst.def.id).is_equal("pike")
-	assert_bool(Registry.unlocked_weapons().has(pike)).is_false()
+	assert_bool(Registry.unlocked_weapons().has(pike)).is_true()
 	assert_bool(CardPool.offer_weapons().has(pike)).is_true()
 	var levelled := false
 	for k in range(300):
@@ -539,14 +540,14 @@ func test_ironwood_lands_with_the_pike_called_the_spear() -> void:
 
 func test_the_spear_name_reaches_every_word_the_player_reads() -> void:
 	var said: Array = [Registry.weapon("pike").display_name, Registry.weapon("pike").flavour,
-		Registry.weapon("thunder_lance").display_name, Registry.weapon("thunder_lance").flavour, Registry.quests["unlock_pike"].display_name,   # pass 53 (lane W2): the Halberd is hidden, the Thunder Lance evolves the Spear
-		TextGen.quest_text(Registry.quests["unlock_pike"])]
+		Registry.weapon("thunder_lance").display_name, Registry.weapon("thunder_lance").flavour,   # pass 53 (lane W2): the Halberd is hidden, the Thunder Lance evolves the Spear
+		CollectionScreen.comes_with_words(Registry.character("ironwood"))]   # pass 128: its quest retired, the Collection says who it comes with
 	for m: MutationDef in Registry.mutations_of("pike"):
 		said.append_array([m.display_name, m.flavour, m.text, m.vfx])
 	for s: String in said:
 		assert_bool(s.to_lower().contains("pike")).override_failure_message("still says pike: " + s).is_false()
 	assert_str(Registry.mutation("phalanx").text).is_equal("Three spears fanned, −35% damage.")
-	assert_str(Registry.quests["unlock_pike"].display_name).is_equal("Spear")
+	assert_bool(Registry.quests.has("unlock_pike")).is_false()
 
 
 func test_the_throwing_spear_is_out_of_the_game_with_its_path() -> void:

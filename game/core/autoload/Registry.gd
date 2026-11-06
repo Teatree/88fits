@@ -421,7 +421,7 @@ func base_weapons() -> Array:
 
 
 ## The base weapons a run may be offered: not hidden, unlocked (pass 118: another hero's own among them, CardPool weighs
-## its new card at its guest_weight).
+## its new card at its guest_weight; pass 128: only once that outlaw is owned, hero_may_use).
 func unlocked_weapons() -> Array:
 	return base_weapons().filter(func(w): return not w.hidden and is_unlocked("weapon", w.id) and hero_may_use(w))
 
@@ -429,8 +429,37 @@ func unlocked_weapons() -> Array:
 ## Whether the hero of the run may take `w`. Pass 35 kept a hero's own weapon (WeaponDef.hero) to him; pass 118 (lane
 ## ITEMS; Garry: "add them all to the pull as well. Making it possible for other heroes to get those weapons"): anyone
 ## may, at a cut weight (is_guest_weapon). Kept as the one place the rule lives.
-func hero_may_use(w: WeaponDef) -> bool:
-	return w != null
+## Pass 128 (Garry: "whenever a player unlocks heroes that have their starting weapons, that starting weapon becomes
+## available to players in their runs"; owning him is the only key): a base weapon an outlaw starts with is offered only
+## once that outlaw is owned (weapon_comes_with). The run's own outlaw (or `c`, for a caller that asks about another)
+## always keeps the weapon he starts with.
+func hero_may_use(w: WeaponDef, c: CharacterDef = null) -> bool:
+	if w == null:
+		return false
+	if weapon_comes_with(w) == null:
+		return true
+	if c == null:
+		var run := get_node_or_null("/root/Run")
+		c = run.get("character") if run else null
+	return c != null and c.start_weapon == w.id
+
+
+## Pass 128: the outlaw the player must own before base weapon `w` is offered in his runs: an outlaw who is not hidden
+## and whose `start_weapon` it is, while none who starts with it is owned (hero_owned); null when no outlaw starts with it
+## (Mira and Dad start with nothing and gate nothing) or one who does is owned. The Collection and the Results read it
+## for "Comes with <name>".
+func weapon_comes_with(w: WeaponDef) -> CharacterDef:
+	if w == null or w.is_evolution:
+		return null
+	var first: CharacterDef = null
+	for c: CharacterDef in characters.values():
+		if c.hidden or c.start_weapon != w.id:
+			continue
+		if hero_owned(c):
+			return null
+		if first == null or c.id < first.id:
+			first = c
+	return first
 
 
 ## Whether `w` is another hero's own weapon in this run (pass 118): its new card weighs WeaponDef.guest_weight of its
