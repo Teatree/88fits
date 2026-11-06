@@ -20,6 +20,12 @@ absolute; with a picture the words lead with what it shows (icon_words: "The ref
 Editor job's re-run) moves the earlier candidates into <folder>/attempt<N-1>/ and paints new ones on new seeds; pass 70
 (tools/cand_seeds.py): a job's seeds are its own (the job id moves them: two jobs of one key painted the same four before),
 candidate k a prime past a million from k-1. A hero's icon is its round badge (tools/gen_badge_cands.py): a pick for kind "characters" needs a named "file".
+
+Pass 129: the Trail's upgrade icons are jobs of kind "trail" read from tools/trail_icons.json (one style for the whole
+set, a row an icon; keys "trail_<id>", candidates in tools/dl/icons_trail/), finished like UI art and installed into
+game/art/ui/trail/<id>.png:
+  python tools/gen_icon_cands.py --only trail_might,trail_plate --seeds 3     (--attempt 2 = three more on new seeds)
+  python tools/gen_icon_cands.py --pick trail_might=1 trail_plate=0
 """
 import io
 import json
@@ -842,6 +848,34 @@ JOBS = {
                            "both sides of it, three big clear bright blue droplets of water falling beside it"},
 }
 
+TRAIL_FILE = os.path.join(REPO, "tools", "trail_icons.json")
+
+
+def trail_jobs(path=TRAIL_FILE):
+    """pass 129 (lane ICONS): the Trail's upgrade icons as jobs, read from their own data file instead of 35 more rows
+    here. The file: {"set", "style", "icons": [{"id", "subject", "screen"?, "style"?}]}; each row becomes
+    JOBS["trail_<id>"] of kind "trail" (the file's style unless the row has its own), installed by a pick into
+    game/art/ui/trail/<id>.png. No file, or a broken one: no trail jobs."""
+    try:
+        d = json.load(open(path, encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for row in d.get("icons") or []:
+        if not isinstance(row, dict) or not row.get("id"):
+            continue
+        job = {"set": str(d.get("set") or "_trail"), "kind": "trail", "id": str(row["id"]), "subject": str(row.get("subject") or "")}
+        style = row.get("style") or d.get("style")
+        if style:
+            job["style"] = str(style)
+        if row.get("screen") == "blue":
+            job["screen"] = "blue"
+        out["trail_" + job["id"]] = job
+    return out
+
+
+JOBS.update(trail_jobs())
+
 
 REF_CREATURE = "The reference image shows this exact creature: keep its shape, colors and proportions. "
 REF_CHARACTER = "The reference image shows this exact character: keep the same face, outfit, colors and proportions. "
@@ -976,9 +1010,11 @@ def pick(pairs):
             dst = os.path.join(REPO, "game", "art", "ui", "sources", job["id"] + ".png")
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             icon.save(dst)
-        elif job["kind"] == "ui":
+        elif job["kind"] in ("ui", "trail"):
+            # pass 129: kind "trail" (tools/trail_icons.json) is finished like UI art and lands in art/ui/trail/
             icon, _ = ga.finish(img, 256, 0.92, False, None, 0.012, None, (36, 27, 20, 255))
-            dst = os.path.join(REPO, "game", "art", "ui", "wanted", job["id"] + ".png")
+            dst = os.path.join(REPO, "game", "art", "ui", "trail" if job["kind"] == "trail" else "wanted", job["id"] + ".png")
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
             icon.save(dst)
         else:
             folder = os.path.join(CONTENT, job["kind"], job["id"])
