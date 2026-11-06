@@ -252,22 +252,23 @@ func test_the_sources_come_in_the_order_they_joined_the_run_the_starting_weapon_
 func test_the_unlocks_brought_closer_are_the_counted_ones_that_grew_nearest_first() -> void:
 	Save.data["totals"]["kills"] = 380
 	Save.data["totals"]["chests"] = 2
-	Save.mark_quest("unlock_turret_buddy")
-	# pass 83 (lane META, re-pinned): Ironwood's 2,500-kill quest is retired; the Tumbleweed's 150 Skeletons grew in its
-	# place (100 of 150, behind Adrenaline's 380 of 400)
-	Save.data["totals"]["kills_of_enemy"]["skeleton"] = 100
-	var before := {"unlock_adrenaline": 120, "unlock_tumbleweed": 20, "unlock_rocket_pod": 2, "unlock_turret_buddy": 8}
+	Save.mark_quest("unlock_zap_beam")
+	# pass 129 (lane TRAIL-SETUP, re-pinned): the Tumbleweed's and the Turret Buddy's quests are retired (Trail nodes
+	# give both); the Sage's three runs grew in the Tumbleweed's place (2 of 3, behind Adrenaline's 380 of 400) and the
+	# Zap Beam's quest is the one done
+	Save.data["totals"]["runs"] = 2
+	var before := {"unlock_adrenaline": 120, "unlock_field_notes": 1, "unlock_rocket_pod": 2, "unlock_zap_beam": 8}
 	var list: Array = RESULTS.progress_list(before)
 	var ids: Array = list.map(func(c): return (c["q"] as QuestDef).id)
-	# the chests' did not grow, the Turret Buddy's is done (it lands as an unlock): neither is here
-	assert_array(ids).is_equal(["unlock_adrenaline", "unlock_tumbleweed"])
+	# the chests' did not grow, the Zap Beam's is done (it lands as an unlock): neither is here
+	assert_array(ids).is_equal(["unlock_adrenaline", "unlock_field_notes"])
 	assert_int(int(list[0]["before"])).is_equal(120)
 	assert_int(int(list[0]["after"])).is_equal(380)
 	assert_int(int(list[0]["need"])).is_equal(400)
 	# the story's snapshot as a run begins: every counted quest not done, with its progress then
 	var snap := RunTimeline.quest_progress()
 	assert_int(int(snap.get("unlock_adrenaline", -1))).is_equal(380)
-	assert_bool(snap.has("unlock_turret_buddy")).is_false()
+	assert_bool(snap.has("unlock_zap_beam")).is_false()
 	assert_bool(snap.has("unlock_pike")).is_false()
 
 

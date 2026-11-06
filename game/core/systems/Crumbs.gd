@@ -27,8 +27,15 @@ static func _seen_to_write(kind: String) -> Array:
 
 
 ## The next ranks the purse can pay for now.
+## Pass 129 (lane TRAIL-UI): once the Trail has nodes the fourth tab is the Trail's, and the same crumb follows the same
+## rule on its nodes: the ids of the nodes the purse can buy now (Trail.can_buy). Seen ones are kept in the same list.
 static func upgrade_keys() -> Array:
 	var out: Array = []
+	if Trail.has_nodes():
+		for n: Dictionary in Trail.nodes():
+			if Trail.can_buy(str(n["id"])):
+				out.append(str(n["id"]))
+		return out
 	for def: TalentDef in Registry.talents_list():
 		if not Registry.is_unlocked("talent", def.id):
 			continue

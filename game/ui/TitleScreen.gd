@@ -96,6 +96,9 @@ var _wash_rect: TextureRect
 var _gold_plate: PanelContainer
 var _req: PanelContainer
 var _req_text: WText
+## Pass 129 (lane TRAIL-UI): the requirement card's chevron and its tap, shown for an outlaw a Trail node gives.
+var _req_go: WText
+var _req_tap: WTap
 var _buy_col: VBoxContainer
 var _buy: WButton
 ## The title's top block (the name stack).
@@ -219,6 +222,13 @@ func _ready() -> void:
 	if last and _is_locked(last):
 		last = null
 	_index = maxi(_heroes.find(last), 0)
+	# pass 129 (lane TRAIL-UI): back from the Trail (Nav.back): the outlaw that was shown, locked or not, his sheet again
+	var came := Nav.take(scene_file_path)
+	var came_hero: CharacterDef = Registry.character(str(came["hero"])) if came.has("hero") else null
+	if came_hero and _heroes.has(came_hero):
+		_index = _heroes.find(came_hero)
+		if bool(came.get("sheet", false)):
+			open_sheet.call_deferred()
 	# pass 101 (lane LOOKS): no run is going, so the last run's pinned strips are let go (LookArt keeps the most recent
 	# few); the live title keeps the strip of the hero it opens on (the painted title draws his cut-out, no strip)
 	var keep: Array = []
@@ -450,7 +460,13 @@ func _show_unknown(c: CharacterDef) -> void:
 	_buy_col.visible = st == "buyable"
 	if st == "locked":
 		var q := Registry.quest_for("character", c.id)
-		_req_text.text = Registry.hero_requirement_text(c) if q else "Not in the game yet."
+		# pass 129 (lane TRAIL-UI): an outlaw a Trail node gives: its line with a chevron, the card a tap to the Trail
+		var on_trail := Trail.gated("outlaw", c.id)
+		if on_trail:
+			q = null
+		_req_go.visible = on_trail
+		_req_tap.visible = on_trail
+		_req_text.text = Registry.hero_requirement_text(c) if q or on_trail else "Not in the game yet."
 		var line: Control = _req.get_node("Rows/Line")
 		var old := line.get_node_or_null("Bar")
 		if old:
@@ -523,6 +539,11 @@ func _refresh_gold() -> void:
 	# pass 123: the Royale tab bar's Upgrade mark follows the purse too
 	if _tab_bar and is_instance_valid(_tab_bar):
 		_tab_bar.call("refresh")
+
+
+## Pass 129 (lane TRAIL-UI): what the title shows, for Nav (a "Reach Trail Level N" tap and the way back).
+func nav_state() -> Dictionary:
+	return {"hero": (_heroes[_index] as CharacterDef).id if not _heroes.is_empty() else "", "sheet": sheet_open()}
 
 
 ## A tap on the plaque (pass 61): the shown hero's sheet, a locked one's with its quest.
@@ -739,6 +760,19 @@ func _build_unknown_royale() -> void:
 	_req_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_req_text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	line.add_child(_req_text)
+	_req_go = W.text("›" if R.body().has_char(0x203A) else ">", R.body(R.LABEL_WEIGHT), 34, R.GOLD_TEXT, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	_req_go.name = "Chevron"
+	_req_go.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_req_go.visible = false
+	line.add_child(_req_go)
+	_req_tap = WTap.new()
+	_req_tap.name = "TrailLine"
+	_req_tap.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	_req_tap.visible = false
+	_req_tap.pressed.connect(func() -> void:
+		if not _heroes.is_empty():
+			Nav.to_trail("outlaw", (_heroes[_index] as CharacterDef).id))
+	_req.add_child(_req_tap)
 	_req.visible = false
 	add_child(_req)
 	_buy_col = VBoxContainer.new()

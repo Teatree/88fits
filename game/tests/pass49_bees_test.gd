@@ -421,10 +421,9 @@ func test_the_hornet_nest_is_called_killer_bees_everywhere() -> void:
 		_no_hornet(m.display_name + " " + m.flavour + " " + m.text, id)
 	assert_str(Registry.mutation("second_sting").text).contains("bee")
 	assert_str(Registry.mutation("tarantula_hawk").text).contains("4 s")
-	var q: QuestDef = Registry.quests.get("unlock_hornet_nest")
-	assert_object(q).is_not_null()
-	assert_str(q.display_name).is_equal("Killer Bees")
-	_no_hornet(q.display_name + " " + TextGen.quest_text(q), "the unlock quest")
+	# pass 129 (re-pinned): the unlock quest (40 Armadillos, a creature no row brings) is retired; a Trail node gives the bees
+	assert_object(Registry.quests.get("unlock_hornet_nest")).is_null()
+	assert_bool(Trail.gated("weapon", "hornet_nest")).is_true()
 	for id: String in FlowerField.KINDS:
 		var pk: PickupDef = Registry.pickup(id)
 		_no_hornet(pk.display_name + " " + pk.flavour, id)

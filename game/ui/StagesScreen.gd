@@ -338,6 +338,10 @@ func _padlock() -> Control:
 func _on_card(c: WTap) -> void:
 	var i := int(c.get_meta("stage", 0))
 	if not bool(c.get_meta("open", false)):
+		# pass 129 (lane TRAIL-UI): a stage only a Trail node still locks: the tap opens the Trail on its node
+		var tkey := Trail.stage_key(map_id, i)
+		if (i == 0 or Save.stage_beaten(map_id, i - 1)) and not Trail.has("stage", tkey) and Nav.to_trail("stage", tkey):
+			return
 		Audio.play("ui_locked")
 		_shake(c)
 		return
@@ -559,7 +563,11 @@ func _band_royale(m: MapDef, list: Array, i: int, open: bool) -> Control:
 		lw.offset_top = R_LOCKED_Y
 		lw.offset_bottom = R_LOCKED_Y + R_LOCKED_PX
 		host.add_child(lw)
-		var req := W.serif_text(requirement(m, list, i) + R_OPENS, R_LOCK_LINE_PX, R.WHITE, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
+		# pass 129 (lane TRAIL-UI): the Trail's line carries a chevron (the card's tap opens the Trail)
+		var req_words := requirement(m, list, i) + R_OPENS
+		if req_words.begins_with("Reach Trail Level") and R.body().has_char(0x203A):
+			req_words += " ›"
+		var req := W.serif_text(req_words, R_LOCK_LINE_PX, R.WHITE, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
 		req.name = "Requirement"
 		req.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 		req.offset_top = R_LOCK_LINE_Y

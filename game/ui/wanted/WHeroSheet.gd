@@ -353,6 +353,9 @@ func _on_look(code: String) -> void:
 		"buyable":
 			ask_buy_look(code)
 		_:
+			# pass 129 (lane TRAIL-UI): a skin a Trail node gives: the tap opens the Trail on its node
+			if Nav.to_trail("skin", Registry.skin_key(hero.id, code)):
+				return
 			Audio.play("ui_locked")
 
 
@@ -577,6 +580,11 @@ func _locked_box_royale() -> Control:
 		v.add_child(t)
 		return p
 	v.add_child(W.label("To unlock", R_LABEL_PX, W.ROCK))
+	# pass 129 (lane TRAIL-UI): an outlaw a Trail node gives reads "Reach Trail Level N"; a tap opens the Trail on it
+	var trail_line := TrailScreen.requirement_line("outlaw", hero.id, 28)
+	if trail_line:
+		v.add_child(trail_line)
+		return p
 	var words := TextGen.quest_text(q) if q else "Not in the game yet."
 	var wt := W.serif_text(words, 28, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	wt.color = R.WHITE
@@ -1087,6 +1095,9 @@ static func royale_look_tile(c: CharacterDef, code: String, worn: String, tile: 
 				foot.add_child(sh)
 		_:
 			var words := Registry.skin_requirement_text(c, code)
+			# pass 129 (lane TRAIL-UI): a Trail line carries its chevron (the tile's tap opens the Trail)
+			if words != "" and Trail.gated("skin", Registry.skin_key(c.id, code)) and R.body().has_char(0x203A):
+				words += " ›"
 			var g := W.serif_text(words if words != "" else "Not on sale yet.", LOOK_GOAL_PX, W.INK_SOFT, 400, false,
 				HORIZONTAL_ALIGNMENT_CENTER, roundf(LOOK_GOAL_PX * 1.25), true)
 			g.name = "Goal"

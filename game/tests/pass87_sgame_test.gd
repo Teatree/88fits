@@ -300,6 +300,10 @@ func test_a_stage_unlocks_once_the_one_before_is_beaten() -> void:
 	assert_bool(Save.stage_unlocked("red_canyon", 2)).is_false()
 	assert_bool(Save.stages_menu_open("red_canyon")).is_true()
 	Save.mark_stage_beaten("red_canyon", 1)
+	# pass 129 (lane TRAIL-SETUP, re-pinned): the Dust Bowl also waits for its Trail node
+	assert_bool(Save.stage_unlocked("red_canyon", 2)).is_false()
+	(Save.trail_bought() as Array).append(str(Trail.gate("stage", "red_canyon:dust")["id"]))
+	Trail.refresh()
 	assert_bool(Save.stage_unlocked("red_canyon", 2)).is_true()
 	assert_array(Save.stages_beaten("red_canyon")).is_equal([true, true])
 	# another map knows nothing of it
@@ -317,6 +321,10 @@ func test_an_old_save_keeps_the_stages_its_bosses_prove() -> void:
 	assert_bool(Save.stage_beaten("red_canyon", 0)).is_true()
 	assert_bool(Save.stage_beaten("red_canyon", 1)).is_true()
 	assert_bool(Save.stage_beaten("red_canyon", 2)).is_false()
+	# pass 129 (lane TRAIL-SETUP, re-pinned): the Dust Bowl also asks the Trail; an old save's migration keeps the stage
+	# its bosses had opened
+	Save.data["runs_started"] = 1
+	Save._migrate_trail()
 	assert_bool(Save.stage_unlocked("red_canyon", 2)).is_true()
 	assert_bool(Save.once("stages_migrated")).is_true()
 	# once only: what is forgotten afterwards stays forgotten
@@ -440,7 +448,8 @@ func test_the_boss_down_opens_a_countdown_then_endless_waves_grow() -> void:
 	assert_int(d.phase).is_equal(WaveDirector.Phase.PORTAL)
 	assert_bool(Run.stage_beaten).is_true()
 	assert_bool(Save.stage_beaten("red_canyon", 1)).is_true()
-	assert_bool(Save.stage_unlocked("red_canyon", 2)).is_true()
+	# pass 129 (lane TRAIL-SETUP, re-pinned): beaten; the Dust Bowl opens once its Trail node is bought too
+	assert_bool(Save.stage_unlocked("red_canyon", 2)).is_equal(Trail.has("stage", "red_canyon:dust"))
 	assert_float(d.portal_seconds_left()).is_equal_approx(tl.portal_seconds(1), 0.001)
 	assert_float(d.next_boss_in()).is_equal(-1.0)
 	assert_float(d.xp_share()).is_equal(1.0)

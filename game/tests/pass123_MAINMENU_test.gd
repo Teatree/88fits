@@ -355,7 +355,8 @@ func test_a_locked_hero_shows_his_requirement_and_start_refuses_him() -> void:
 	assert_bool(t._req.visible).is_true()
 	assert_bool(t._buy_col.visible).is_false()
 	var q := Registry.quest_for("character", locked.id)
-	assert_str(t._req_text.text).is_equal(Registry.hero_requirement_text(locked) if q else "Not in the game yet.")
+	# pass 129 (re-pinned): an outlaw a Trail node gives reads "Reach Trail Level N" without a quest
+	assert_str(t._req_text.text).is_equal(Registry.hero_requirement_text(locked) if (q != null or Trail.gated("outlaw", locked.id)) else "Not in the game yet.")
 	assert_object(t._figure.get_node_or_null("Padlock")).is_not_null()
 	assert_bool(t._play.locked).is_true()
 	# the card stands over his feet, clear of the name

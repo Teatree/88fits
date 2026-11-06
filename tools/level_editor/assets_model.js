@@ -622,7 +622,8 @@ const AssetsModel = (() => {
    *  Frisbee and five passive items came unlocked): non-hidden base weapons and base passives (no `evolves_from`) over
    *  those with an unlock quest. */
   // pass 119 (lane LEGEND_B): the floor 0.25, the legendary items came unlocked (23 of 88)
-  const BAND = { lo: 0.22, hi: 0.56 };
+  // pass 129 (lane TRAIL-SETUP): the floor 0.12, eight items moved onto Trail nodes and their quests retired (13 of 90)
+  const BAND = { lo: 0.12, hi: 0.56 };
   function bandOf(weapons, passives, quests) {
     const base = [];
     for (const w of weapons || []) if (!w.hidden && !w.is_evolution) base.push({ id: w.id, kind: 'weapon' });

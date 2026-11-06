@@ -155,8 +155,9 @@ def checks(check, run_node, server):
         os.chdir(cwd)
     diff = [(x["id"], a, b) for x, a, b in zip(quests, r["named"], bible) if a != b and (x.get("condition") or {}).get("type") in TYPES]
     check(not diff, "QUESTS100 the page and the bible say every build quest on disk the same: %s" % diff)
-    check(stages.get("unlock_land_mine") == 2 and stages.get("unlock_sabre") == 1 and stages.get("unlock_thirst") == 1,
-          "QUESTS100 the bible's stage hints follow QuestTracker.stage_hint: %s" % {k: stages.get(k) for k in ("unlock_land_mine", "unlock_sabre", "unlock_thirst")})
+    # re-pinned in pass 129 (lane TRAIL-SETUP): the Land Mine's and Death's quests are retired (Trail nodes)
+    check(stages.get("unlock_guillotine") == 2 and stages.get("unlock_sabre") == 1,
+          "QUESTS100 the bible's stage hints follow QuestTracker.stage_hint: %s" % {k: stages.get(k) for k in ("unlock_guillotine", "unlock_sabre")})
     # ---- vocab
     import vocab
     check(all(t in vocab.QUEST_TYPES for t in TYPES) and vocab.QUEST_TYPES["hero_level"] == ["hero", "level"] and vocab.QUEST_TYPES["items_maxed"] == ["kind", "count"],
@@ -167,8 +168,8 @@ def checks(check, run_node, server):
     # ---- server
     try:
         refs_w = server.references_to("weapon", "orbit_saws")["quests"]
-        refs_h = server.references_to("hero", "calavera")["quests"]
-        check("unlock_sabre" in refs_w and "unlock_may" in refs_h and "unlock_calavera" in refs_h,
+        refs_h = server.references_to("hero", "fadeaway")["quests"]   # pass 129: May's and Calavera's quests retired
+        check("unlock_sabre" in refs_w and "skin_fadeaway_fad_b" in refs_h,
               "QUESTS100 references_to names the quests that name an item or a hero: %s / %s" % (refs_w, refs_h))
     except Exception as e:  # the server's content dir may point at a temp copy in another group: report, do not crash
         check(False, "QUESTS100 references_to: %s" % e)
@@ -179,11 +180,11 @@ def checks(check, run_node, server):
               "QUESTS100 %s picks a quest's ids by the row's kind" % f)
     # ---- content
     by_id = {x["id"]: x for x in quests}
-    conv = {"unlock_sabre": "item_level", "unlock_haste": "item_level", "unlock_overkill": "item_level", "unlock_land_mine": "evolve_item",
-            "unlock_thirst": "evolve_item", "unlock_ricochet": "weapon_paths", "unlock_fadeaway": "hero_level", "unlock_may": "hero_level"}
+    # re-pinned in pass 129 (lane TRAIL-SETUP): six of the converted quests are retired (Trail nodes); the skins' goals
+    # carry the build types beside the two that stay
+    conv = {"unlock_sabre": "item_level", "unlock_haste": "item_level", "skin_astro_ast_b": "evolve_item", "skin_fadeaway_fad_b": "hero_level"}
     bad = [k for k, t in conv.items() if (by_id.get(k, {}).get("condition") or {}).get("type") != t]
     check(not bad, "QUESTS100 the converted quests carry their build types: %s" % bad)
     named = dict(zip([x["id"] for x in quests], r["named"]))
-    check(named.get("unlock_may", "").startswith("Reach level ") and named.get("unlock_may", "").endswith(" with Calavera.")
-          and named.get("unlock_ricochet") == "Take all 3 mutations of the Revolver in one run.",
-          "QUESTS100 May's and Ricochet's requirements read: %s / %s" % (named.get("unlock_may"), named.get("unlock_ricochet")))
+    check(named.get("skin_fadeaway_fad_b", "").startswith("Reach level ") and named.get("skin_fadeaway_fad_b", "").endswith(" with Fadeaway."),
+          "QUESTS100 a level requirement reads: %s" % named.get("skin_fadeaway_fad_b"))

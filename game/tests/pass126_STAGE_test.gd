@@ -206,9 +206,9 @@ func test_what_meant_the_blood_moon_keeps_meaning_it() -> void:
 			hell = k
 	for id in ["brimstone_brand", "sinners_greed"]:
 		assert_int(Registry.passive(id).from_stage).is_equal(hell + 1)
-	var q: QuestDef = Registry.quest_for("passive", "evade")
-	assert_object(q).is_not_null()
-	assert_int(int(q.condition.get("stage", 0))).is_equal(hell + 1)
+	# pass 129 (lane TRAIL-SETUP, re-pinned): The Ghost's quest (reach the last stage) is retired; a Trail node gives the card
+	assert_object(Registry.quest_for("passive", "evade")).is_null()
+	assert_bool(Trail.gated("passive", "evade")).is_true()
 
 
 # ---------------------------------------------------------------- saves
@@ -223,6 +223,10 @@ func test_a_save_that_had_beaten_the_blood_moon_has_all_four() -> void:
 	_save_with([true, true, true], ["boss_red_canyon_3", "extract_red_canyon_3"])
 	Save._migrate_dust_bowl()
 	assert_array(Save.stages_beaten("red_canyon")).is_equal([true, true, true, true])
+	# pass 129 (lane TRAIL-SETUP, re-pinned): the Dust Bowl and Blood Moon also ask the Trail; the save's own migration
+	# (it has played) keeps every stage it had open
+	Save.data["runs_started"] = 1
+	Save._migrate_trail()
 	for k in range(4):
 		assert_bool(Save.stage_unlocked("red_canyon", k)).is_true()
 	assert_bool(Save.once("boss_red_canyon_4")).is_true()
@@ -235,6 +239,9 @@ func test_a_save_at_nightfall_opens_the_dust_bowl_with_the_blood_moon_locked() -
 	_save_with([true, true])
 	Save._migrate_dust_bowl()
 	assert_array(Save.stages_beaten("red_canyon")).is_equal([true, true])
+	# pass 129 (lane TRAIL-SETUP, re-pinned): the save's own migration keeps the Dust Bowl it had open (as above)
+	Save.data["runs_started"] = 1
+	Save._migrate_trail()
 	assert_bool(Save.stage_unlocked("red_canyon", 2)).is_true()
 	assert_bool(Save.stage_unlocked("red_canyon", 3)).is_false()
 	Save.end_sandbox()
@@ -251,12 +258,17 @@ func test_the_migration_runs_once_and_never_takes_a_stage_away() -> void:
 	Save._migrate_dust_bowl()
 	assert_array(Save.stages_beaten("red_canyon")).is_equal([true, true, true])
 	assert_bool(Save.stage_beaten("red_canyon", 3)).is_false()
-	assert_bool(Save.stage_unlocked("red_canyon", 3)).is_true()
+	# pass 129 (lane TRAIL-SETUP, re-pinned): beaten; Blood Moon opens once its Trail node is bought too
+	assert_bool(Save.stage_unlocked("red_canyon", 3)).is_equal(Trail.has("stage", "red_canyon:s3"))
 	Save.end_sandbox()
 	# the Brander in an old save's totals put on the new index by _migrate_stages: the stages under it come too
 	_save_with([true, true, false, true])
 	Save._migrate_dust_bowl()
 	assert_array(Save.stages_beaten("red_canyon")).is_equal([true, true, true, true])
+	# pass 129 (lane TRAIL-SETUP, re-pinned): the Dust Bowl and Blood Moon also ask the Trail; the save's own migration
+	# (it has played) keeps every stage it had open
+	Save.data["runs_started"] = 1
+	Save._migrate_trail()
 	Save.end_sandbox()
 
 

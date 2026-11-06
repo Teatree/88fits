@@ -133,7 +133,7 @@ func test_only_astro_and_the_drifter_are_played() -> void:
 	assert_str(Registry.playable_character("drifter").id).is_equal("drifter")
 	# and the quest that unlocked a hidden hero is not shown or tracked
 	assert_bool(Registry.quest_visible(Registry.quests["unlock_dad"])).is_false()
-	assert_bool(Registry.quest_visible(Registry.quests["unlock_hornet_nest"])).is_true()   # pass 128: unlock_big_mouth retired
+	assert_bool(Registry.quest_visible(Registry.quests["unlock_hammer"])).is_true()   # pass 128: unlock_big_mouth retired; pass 129: unlock_hornet_nest too (the Trail gives the bees)
 
 
 # ---------------------------------------------------------------- no Elite cactus

@@ -126,7 +126,8 @@ func test_a_finger_on_a_tab_asks_for_its_scene_and_store_goes_nowhere() -> void:
 		_finger(t, false)
 		await get_tree().process_frame
 	assert_array(pressed).contains_exactly(["store", "battle", "collections", "upgrade", "heroes"])
-	var want: Array = ["res://ui/CollectionScreen.tscn", "res://ui/HomesteadScreen.tscn"]
+	# pass 129 (lane TRAIL-UI): the fourth tab's scene is the Trail's once the Trail has nodes (WTabBar.scene_of)
+	var want: Array = ["res://ui/CollectionScreen.tscn", str(load("res://ui/wanted/WTabBar.gd").scene_of("upgrade"))]
 	if ResourceLoader.exists("res://ui/HeroesScreen.tscn"):
 		want.append("res://ui/HeroesScreen.tscn")
 	assert_array(asked).contains_exactly(want)

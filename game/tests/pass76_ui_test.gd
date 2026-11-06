@@ -26,6 +26,8 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	Registry.quests.erase("t_unlock_calavera")
+	Trail.load_from()
 	Settings.top_inset = int(_keep["inset"])
 	QT.just_completed.clear()
 	Save.data = _keep["save"]
@@ -245,8 +247,22 @@ func test_a_running_bonus_goes_by_the_item_that_gives_it() -> void:
 
 # ---------------------------------------------------------------- the Results unlocks
 
+## Pass 129 (lane TRAIL-SETUP, re-pinned): Calavera's unlock quest is retired (a Trail node gives him). The rules for a
+## quest that puts an outlaw on sale stay in the code: they are tested on a stand-in quest, with the Trail switched off
+## (after_test puts both back).
+func _calavera_quest() -> QuestDef:
+	Trail.load_data({})
+	var q := QuestDef.new()
+	q.id = "t_unlock_calavera"
+	q.display_name = "Calavera"
+	q.condition = {"type": "kill_boss", "map": "red_canyon", "stage": 1}
+	q.unlocks = {"type": "character", "id": "calavera"}
+	Registry.quests[q.id] = q
+	return q
+
+
 func test_an_owned_hero_is_never_announced_nor_for_sale_nor_in_progress() -> void:
-	var q: QuestDef = Registry.quest_for("character", "calavera")
+	var q: QuestDef = _calavera_quest()
 	assert_object(q).is_not_null()
 	# bought (or given by the developer menu) before his quest was done
 	Save.heroes_owned().append("calavera")
@@ -278,7 +294,7 @@ func test_an_owned_hero_is_never_announced_nor_for_sale_nor_in_progress() -> voi
 
 
 func test_a_hero_on_sale_reads_for_sale_and_one_owned_does_not() -> void:
-	var q: QuestDef = Registry.quest_for("character", "calavera")
+	var q: QuestDef = _calavera_quest()
 	Save.mark_quest(q.id)
 	var rs: Control = auto_free(RESULTS.new())
 	var p1: Control = auto_free(rs._unlocked(q))

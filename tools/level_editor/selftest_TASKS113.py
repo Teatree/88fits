@@ -343,7 +343,9 @@ def checks(check, run_node, server):
     check('str(c.get("item", ""))' in srv and "VOCAB.condition_problem" in srv, "TASKS113 server.py names a quest by its healing item and checks the conditions")
     check("VOCAB.condition_problem" in _read(os.path.join(HERE, "skins_io.py")), "TASKS113 skins_io checks a goal's condition")
     try:
-        refs = server.references_to("passive", "mend")["quests"]
-        check("unlock_thirst" in refs, "TASKS113 references_to still names the quests that name an item: %s" % refs)
+        # re-pinned in pass 129 (lane TRAIL-SETUP): unlock_thirst (evolve The Lovers) is retired, a Trail node gives
+        # Death; Calavera's skin goal names Death as its healing item
+        refs = server.references_to("passive", "thirst")["quests"]
+        check("skin_calavera_cal_b" in refs, "TASKS113 references_to still names the quests that name an item: %s" % refs)
     except Exception as e:
         check(False, "TASKS113 references_to: %s" % e)

@@ -313,7 +313,8 @@ func test_buy_asks_in_green_and_buys_him_once() -> void:
 	(s.find_child("Select", true, false) as WButton).pressed.emit()
 	await get_tree().process_frame
 	assert_bool(WConfirm.is_open(s)).is_false()
-	assert_str(Registry.hero_state(astro)).is_equal("buyable")
+	# pass 129 (re-pinned): Astro is a Trail node now: locked, and a locked outlaw asks nothing either
+	assert_str(Registry.hero_state(astro)).is_equal("locked")
 
 
 func test_the_looks_pop_up_follows_the_sheets_rules() -> void:

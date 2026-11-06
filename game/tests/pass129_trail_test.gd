@@ -83,9 +83,9 @@ func test_a_trail_without_nodes_changes_nothing() -> void:
 	for p: PassiveDef in Registry.passives.values():
 		var q := Registry.quest_for("passive", p.id)
 		assert_bool(Registry.is_unlocked("passive", p.id)).is_equal(q == null or Save.quest_done(q.id))
+	# lane TRAIL-SETUP (re-pinned): Calavera's quest retired with his node; without a Trail he is on sale by the old rule
 	var cal: CharacterDef = Registry.character("calavera")
-	assert_str(Registry.hero_state(cal)).is_equal("locked")
-	assert_str(Registry.hero_requirement_text(cal)).is_equal(TextGen.quest_text(Registry.quest_for("character", "calavera")))
+	assert_str(Registry.hero_state(cal)).is_equal("buyable")
 	assert_str(Registry.hero_state(Registry.character("drifter"))).is_equal("owned")
 	assert_bool(Save.stage_unlocked("red_canyon", 0)).is_true()
 	assert_bool(Save.stage_unlocked("red_canyon", 1)).is_false()
@@ -353,7 +353,7 @@ func test_items_maps_and_skins_ask_the_trail_first() -> void:
 	assert_bool(Registry.is_unlocked("weapon", "sabre")).is_false()
 	# a quest whose thing a node gives is neither shown nor tracked
 	assert_bool(Registry.quest_visible(Registry.quests["unlock_hammer"])).is_false()
-	assert_bool(Registry.quest_visible(Registry.quests["unlock_calavera"])).is_false()
+	assert_bool(Registry.quest_visible(Registry.quests["unlock_deadeye"])).is_false()   # lane TRAIL-SETUP: unlock_calavera retired with his node
 	assert_bool(Registry.quest_visible(Registry.quests["unlock_sabre"])).is_true()
 	var dri: CharacterDef = Registry.character("drifter")
 	assert_str(Registry.skin_state(dri, "DRI-B")).is_equal("locked")

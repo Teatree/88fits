@@ -227,14 +227,24 @@ func test_a_build_quest_completes_through_the_runs_check() -> void:
 
 
 func test_the_run_record_carries_the_build_quests_progress() -> void:
+	# pass 129 (lane TRAIL-SETUP, re-pinned): Fadeaway's and May's level quests are retired (Trail nodes give both
+	# outlaws); a level quest of this run's outlaw and one of another's stand in for them
+	var mine := _quest({"type": "hero_level", "hero": "drifter", "level": 12})
+	mine.id = "t_level_mine"
+	var other := _quest({"type": "hero_level", "hero": "calavera", "level": 30})
+	other.id = "t_level_other"
+	Registry.quests[mine.id] = mine
+	Registry.quests[other.id] = other
 	_start("drifter")
 	var at_start := RunTimeline.quest_progress()
-	# the Drifter's level quest (Fadeaway's) and the item quests are counted from the run's start
-	assert_bool(at_start.has("unlock_fadeaway")).is_true()
+	# the Drifter's level quest and the item quests are counted from the run's start
+	assert_bool(at_start.has("t_level_mine")).is_true()
 	assert_bool(at_start.has("unlock_sabre")).is_true()
-	assert_bool(at_start.has("unlock_may")).is_false()   # Calavera's level: not this run's hero
+	assert_bool(at_start.has("t_level_other")).is_false()   # Calavera's level: not this run's hero
 	_levels(2)
-	assert_int(QuestTracker.progress(Registry.quests["unlock_fadeaway"]).x).is_equal(3)
+	assert_int(QuestTracker.progress(mine).x).is_equal(3)
+	Registry.quests.erase(mine.id)
+	Registry.quests.erase(other.id)
 
 
 # ---------------------------------------------------------------- the content
@@ -254,18 +264,23 @@ func test_a_completed_quest_stays_done_when_its_condition_changes() -> void:
 	# an old save's list loads as it is (nothing re-locks)
 	var old := Save._default()
 	old["quests_done"] = ["unlock_sabre", "unlock_fadeaway", "unlock_may", "unlock_thirst"]
+	old["runs_started"] = 1
 	Save.data = old
 	for id in old["quests_done"]:
 		assert_bool(Save.quest_done(str(id))).is_true()
-	assert_str(Registry.hero_state(Registry.character("fadeaway"))).is_equal("buyable")
+	# pass 129 (lane TRAIL-SETUP, re-pinned): the Trail gives Fadeaway and Death now. The save's migration keeps an item
+	# whose retired quest it had done (content/trail/quests_before.json); an outlaw it had not bought waits for his node
+	Save._migrate_trail()
+	assert_str(Registry.hero_state(Registry.character("fadeaway"))).is_equal("locked")
 	assert_bool(Registry.is_unlocked("passive", "thirst")).is_true()
 
 
 func test_the_converted_quests_read_their_new_conditions() -> void:
 	var want := {
-		"unlock_sabre": "item_level", "unlock_haste": "item_level", "unlock_overkill": "item_level",
-		"unlock_land_mine": "evolve_item", "unlock_thirst": "evolve_item", "unlock_ricochet": "weapon_paths",
-		"unlock_fadeaway": "hero_level", "unlock_may": "hero_level",
+		# pass 129 (re-pinned): Overkill's, the Land Mine's, Death's, Ricochet's, Fadeaway's and May's quests are retired
+		# (Trail nodes give them); the skins' goals carry the other build types
+		"unlock_sabre": "item_level", "unlock_haste": "item_level",
+		"skin_astro_ast_b": "evolve_item", "skin_fadeaway_fad_b": "hero_level",
 	}
 	for id: String in want.keys():
 		var q: QuestDef = Registry.quests.get(id)
@@ -282,7 +297,8 @@ func test_the_converted_quests_read_their_new_conditions() -> void:
 		if BUILD_TYPES.has(t):
 			builds[t] = true
 	assert_int(kills).is_between(4, 9)
-	assert_int(builds.size()).is_greater_equal(4)
+	# pass 129 (re-pinned): Ricochet's quest, the one that used weapon_paths, is retired (a Trail node): three build types in use
+	assert_int(builds.size()).is_greater_equal(3)
 
 
 func test_every_condition_names_things_that_exist() -> void:
@@ -390,7 +406,8 @@ func test_the_quest_locked_band_and_stage_spread_still_hold() -> void:
 			locked.append(q)
 	# pass 119: 0.28 -> 0.25 as in pass44_test (the six legendary items, the keys and the Grindstone come unlocked)
 	# pass 128: 0.25 -> 0.22 as in pass44_test (the Spear's and the Big Mouth's quests retired)
-	assert_float(float(locked.size()) / float(items.size())).is_between(0.22, 0.56)
+	# pass 129: 0.22 -> 0.12 as in pass44_test (eight items moved onto Trail nodes, their quests retired: 13 of 90)
+	assert_float(float(locked.size()) / float(items.size())).is_between(0.12, 0.56)
 	# (pass 120: as in pass44_test, a quest whose creature comes in no stage (the armadillo's two) is left out of the spread)
 	var by_stage := {1: 0, 2: 0, 3: 0}
 	var placed := 0
@@ -400,5 +417,7 @@ func test_the_quest_locked_band_and_stage_spread_still_hold() -> void:
 		by_stage[clampi(QuestTracker.stage_hint(q), 1, 3)] += 1
 		placed += 1
 	assert_float(float(by_stage[1]) / float(placed)).is_between(0.48, 0.66)
-	assert_float(float(by_stage[2]) / float(placed)).is_between(0.30, 0.48)
-	assert_int(by_stage[3]).is_between(1, 2)
+	# pass 129 (lane TRAIL-SETUP, re-pinned): eight item quests are retired (Trail nodes give the items), the last-stage
+	# ones among them: the 13 that stay fall half and half on stages 1 and 2
+	assert_float(float(by_stage[2]) / float(placed)).is_between(0.30, 0.52)
+	assert_int(by_stage[3]).is_between(0, 2)

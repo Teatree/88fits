@@ -8,7 +8,8 @@
 extends GdUnitTestSuite
 
 ## The two heroes on sale with no requirement (pass 83's pick: the first two after the Drifter in the title order).
-const MONEY_ONLY := ["astro", "ironwood"]
+## pass 129 (lane TRAIL-SETUP, re-pinned): the Trail gives Astro; Ironwood alone is bought for gold on the Outlaws screen
+const MONEY_ONLY := ["ironwood"]
 
 
 func before_test() -> void:
@@ -42,7 +43,7 @@ func _locked_heroes() -> Array:
 func test_exactly_two_locked_heroes_are_sold_for_gold_alone() -> void:
 	var money_only: Array = []
 	for c: CharacterDef in _locked_heroes():
-		if Registry.quest_for("character", c.id) == null:
+		if Registry.quest_for("character", c.id) == null and not Trail.gated("outlaw", c.id):
 			money_only.append(c.id)
 	money_only.sort()
 	assert_array(money_only).is_equal(MONEY_ONLY)
@@ -63,23 +64,13 @@ func test_every_other_hero_is_free_or_needs_a_requirement_then_a_price() -> void
 			assert_str(c.availability).override_failure_message(c.id).is_equal("purchase")
 			assert_int(c.price).override_failure_message(c.id).is_greater(0)
 	assert_object(Registry.quests.get("unlock_ironwood")).is_null()
-	# the requirements vary in kind (a boss, an extraction, a creature, minutes, a level) and read as TextGen says them
-	var kinds := {}
+	# pass 129 (lane TRAIL-SETUP, re-pinned): the outlaws' unlock quests are retired; every one but Ironwood is a Trail
+	# node, and his requirement reads as the Trail says it
 	for c: CharacterDef in _locked_heroes():
-		var q := Registry.quest_for("character", c.id)
-		if q:
-			kinds[str(q.condition.get("type", ""))] = true
-			assert_str(TextGen.quest_text(q)).override_failure_message(c.id).is_not_equal("Complete a challenge.")
-			assert_bool(Registry.quest_visible(q)).override_failure_message(c.id).is_true()
-	assert_int(kinds.size()).is_greater_equal(4)
-	var fq := Registry.quest_for("character", "fadeaway")
-	assert_object(fq).is_not_null()
-	# re-pinned in pass 100 (lane QUESTS, Garry: more requirements about levels): Fadeaway's requirement is a level
-	# reached with the Drifter (it was 3 Saiga Snipers), read off his quest's own condition; an early hero still (stage 1
-	# or 2 by the Collection's hint)
-	assert_str(str(fq.condition.get("type", ""))).is_equal("hero_level")
-	assert_str(TextGen.quest_text(fq)).is_equal("Reach level %d with Drifter." % int(fq.condition.get("level", 0)))
-	assert_int(QuestTracker.stage_hint(fq)).is_between(1, 2)
+		assert_object(Registry.quest_for("character", c.id)).override_failure_message(c.id).is_null()
+		if not MONEY_ONLY.has(c.id):
+			assert_bool(Trail.gated("outlaw", c.id)).override_failure_message(c.id).is_true()
+			assert_str(Registry.hero_requirement_text(c)).override_failure_message(c.id).is_equal("Reach Trail Level %d" % Trail.level_for("outlaw", c.id))
 
 
 func test_the_prices_climb_with_the_title_order() -> void:
@@ -154,10 +145,9 @@ func test_a_heros_items_are_hidden_until_he_is_owned() -> void:
 	assert_bool(cs._items(3).any(func(d: ContentDef) -> bool: return (d as PerkDef).hero == "astro")).is_true()
 	rain = CollectionScreen.page_mutations(Registry.weapon("skull_rain")).map(func(m: MutationDef) -> String: return m.id)
 	assert_bool(rain.has("danza_macabra")).is_true()
-	# a quest done but not bought is still not his: on sale is not owned
+	# not bought is still not his (pass 129, re-pinned: Calavera's quest is retired, the Trail gives him: locked, never on sale)
 	Save.data["heroes_owned"] = []
-	Save.mark_quest("unlock_calavera")
-	assert_str(Registry.hero_state(_hero("calavera"))).is_equal("buyable")
+	assert_str(Registry.hero_state(_hero("calavera"))).is_equal("locked")
 	assert_bool(CollectionScreen.hero_item_hidden(Registry.mutation("danza_macabra"))).is_true()
 	# the developer's Hidden list is never filtered
 	CollectionScreen.hidden_only = true

@@ -70,7 +70,9 @@ func test_half_the_items_sit_behind_quests_spread_over_the_stages() -> void:
 	# pass 119 (lane LEGEND_B): the legendary items came unlocked (pass 118's keys and Grindstone, pass 119's four of lane
 	# LEGEND_B and two of LEGEND_A; a legendary is rare enough without a quest): 23 of 88 (26%)
 	# pass 128: 21 of 90 (0.233) once the Spear's and the Big Mouth's quests retired (their outlaws are the key now)
-	assert_float(share).is_between(0.22, 0.56)
+	# pass 129 (lane TRAIL-SETUP, re-pinned): eight of those items are Trail nodes now and their quests retired: 13 of 90
+	# (0.144) wait on a quest; with the eight the Trail gives, 21 of 90 are still gated
+	assert_float(share).is_between(0.12, 0.56)
 	# 70 / 25 / 5 by the stage that can do them (within a couple of items)
 	# pass 54: 57 / 39 / 4. The map's timeline (the Level Editor's placement) brings the fire ants at 9:19, the mummies
 	# at 7:10 and the armadillos at 12:11 of a 7:10 stage, so the Land Mine, the Lob Grenade, Thirst, Big Mouth and
@@ -86,8 +88,10 @@ func test_half_the_items_sit_behind_quests_spread_over_the_stages() -> void:
 		by_stage[s] += 1
 		placed += 1
 	assert_float(float(by_stage[1]) / float(placed)).is_between(0.48, 0.66)
-	assert_float(float(by_stage[2]) / float(placed)).is_between(0.30, 0.48)
-	assert_int(by_stage[3]).is_between(1, 2)
+	# pass 129 (lane TRAIL-SETUP, re-pinned): eight item quests are retired (Trail nodes give the items), the last-stage
+	# ones among them: the 13 that stay fall half and half on stages 1 and 2
+	assert_float(float(by_stage[2]) / float(placed)).is_between(0.30, 0.52)
+	assert_int(by_stage[3]).is_between(0, 2)
 	# the quests name real things, and every locked passive is kept out of the offers
 	for q in locked:
 		assert_object(Registry.unlocked_by(q)).is_not_null()

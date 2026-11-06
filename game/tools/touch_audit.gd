@@ -88,6 +88,8 @@
 ## Pass 123 (lane RUN_C): path_spent (with path): the mutation offer with no skips left, a real tap on its SKIP refused and
 ## said (the skips pill under Royale); survey_pick (with survey_card): a real tap on a rating lights it alone and unlocks
 ## NEXT, a real tap on NEXT turns the page.
+## Pass 129 (lane TRAIL-UI): trail (run alone with only=trail): the Trail screen on its fixture: choosing a tile, the
+## dock's BUY (a choice asks first), scrolling, the back square, and the way from a "Reach Trail Level N" line and back.
 ## Pass 111 (lane SKINS): hero_skins (run with title, or alone with only=hero_skins): the hero sheet of a hero who sells a
 ## look, owned, its goal done and the gold for it: every control on it answers a finger (muted; a swipe that starts on a
 ## Looks tile scrolls the sheet and presses nothing), the buy question is audited
@@ -561,6 +563,8 @@ func _run() -> void:
 		await _tab_bar_audit()
 	if _want("heroes_screen") or _want("hero_details"):
 		await _heroes_audit()
+	if _want("trail"):
+		await _trail_audit()
 	await _in_game()
 	_report()
 
@@ -1295,8 +1299,8 @@ func _in_game() -> void:
 		run.died = true
 		# pass 72: an unlock to land, so the show has its second sequence whatever the save has done already
 		var qt = load("res://core/systems/QuestTracker.gd")
-		if not (qt.just_completed as Array).has("unlock_turret_buddy"):
-			qt.just_completed.append("unlock_turret_buddy")
+		if not (qt.just_completed as Array).has("unlock_rocket_pod"):   # pass 129: unlock_turret_buddy retired (a Trail node)
+			qt.just_completed.append("unlock_rocket_pod")
 		g.end_run()
 		# end_run's beat (1.2 s) and the fade to the Results (pass 72: its show starts at once, so no fixed wait)
 		var w := 0.0
@@ -3775,3 +3779,135 @@ func _survey_pick() -> void:
 	if host != current_scene:
 		host.queue_free()
 	await _wait(0.2)
+
+
+## Pass 129 (lane TRAIL-UI): trail (run alone with only=trail): the Trail screen (ui/TrailScreen.tscn) under real fingers,
+## on its fixture (tests/fixtures/trail_screen.json) with the save's Trail, purse and outlaws lent in memory and put back
+## after. A tap on a tile chooses it (the dock shows it); the dock's BUY on a choice asks, NOT NOW keeps the gold, asked
+## again its deed buys it and closes the sibling; BUY on a plain node buys at once; a swipe scrolls the track and a
+## swipe that starts on a tile chooses nothing; a drag on the dock moves nothing; the back square goes to the title.
+## Then the way back: the Outlaws screen on a Trail-locked outlaw, a tap on "Reach Trail Level N" opens the Trail on
+## his node (ringed), and the Trail's back square returns to the Outlaws screen with him shown.
+func _trail_audit() -> void:
+	var save = root.get_node("Save")
+	var trail = load("res://core/systems/Trail.gd")
+	var nav = load("res://core/systems/Nav.gd")
+	var kept := {}
+	for k in ["gold", "trail", "heroes_owned", "skins_owned", "last_character"]:
+		var v = save.data.get(k)
+		kept[k] = v.duplicate(true) if (v is Dictionary or v is Array) else v
+	trail.load_from("res://tests/fixtures/trail_screen.json")
+	save.data["trail"] = {"bought": ["n01", "n02"], "spent": 0, "had": []}
+	save.data["gold"] = 5000
+	save.data["heroes_owned"] = []
+	save.data["skins_owned"] = []
+	trail.refresh()
+	nav.clear()
+	change_scene_to_file("res://ui/TrailScreen.tscn")
+	# frames as well as time: run alone this is the tool's first scene, and a cold first frame eats the whole timer
+	await _wait(0.6)
+	await _frames(30)
+	await _wait(0.6)
+	var s = current_scene
+	var check := func(ok: bool, what: String, why: String) -> void:
+		_count("trail", ok)
+		if not ok:
+			_fail("trail", what, why)
+	var find_ask := func() -> Node:
+		for n in current_scene.get_children():
+			if _is_kit(n, "WConfirm") and not bool(n.get("_done")):
+				return n
+		return null
+	var tap_node := func(c: Control) -> void:
+		var at := Vector2.INF
+		if c:
+			at = await _spot(c)
+		if at != Vector2.INF:
+			await _tap(at)
+			await _wait(0.45)
+	# a tap on a tile chooses it
+	await tap_node.call(s.tile_of("n03b"))
+	check.call(str(s.selected) == "n03b", "tile n03b", "a real tap chose '%s'" % str(s.selected))
+	# the dock's BUY on a choice asks; NOT NOW keeps; its deed buys and closes the sibling
+	for deed in [false, true]:
+		var gold_was := int(save.data["gold"])
+		await tap_node.call(s.get("_dock").get_node_or_null("Buy"))
+		var ask: Node = find_ask.call()
+		check.call(ask != null, "BUY on a choice", "a real tap did not ask")
+		if ask == null:
+			break
+		var btn: Control = ask.find_child("Confirm" if deed else "Cancel", true, false)
+		if btn:
+			await _tap(btn.get_global_rect().get_center())
+			await _wait(0.6)
+		var st := str(trail.state("n03b"))
+		var ok: bool = (st == "bought" and str(trail.state("n03a")) == "closed" and int(save.data["gold"]) == gold_was - int(trail.price("n03b"))) if deed \
+			else (st == "open" and int(save.data["gold"]) == gold_was)
+		check.call(ok, "Confirm" if deed else "Cancel", "after it n03b is %s, gold %d (was %d)" % [st, int(save.data["gold"]), gold_was])
+		if is_instance_valid(ask) and not bool(ask.get("_done")):
+			ask.call("cancel")
+	# the next node is chosen for the player; BUY on a plain node buys at once
+	await _wait(0.4)
+	var next := str(s.selected)
+	var gold_was2 := int(save.data["gold"])
+	await tap_node.call(s.get("_dock").get_node_or_null("Buy"))
+	check.call(next == "n04" and str(trail.state("n04")) == "bought" and int(save.data["gold"]) < gold_was2, "BUY on n04",
+		"chosen '%s', now %s, gold %d (was %d)" % [next, str(trail.state("n04")), int(save.data["gold"]), gold_was2])
+	await _wait(2.4)
+	# a swipe scrolls the track; one that starts on a tile chooses nothing
+	var chosen := str(s.selected)
+	var sv := int(s.scroll.scroll_vertical)
+	var mid: Vector2 = s.scroll.get_global_rect().get_center()
+	await _swipe(mid + Vector2(300, -200), mid + Vector2(300, 250))
+	await _wait(0.5)
+	check.call(int(s.scroll.scroll_vertical) < sv, "the track", "a swipe down did not scroll it (%d -> %d)" % [sv, int(s.scroll.scroll_vertical)])
+	var on_tile: Control = null
+	for id in ["n06b", "n07b", "n08", "n05"]:
+		var t: Control = s.tile_of(id)
+		if t and s.scroll.get_global_rect().encloses(t.get_global_rect()) and str(s.selected) != id:
+			on_tile = t
+			break
+	if on_tile:
+		var from: Vector2 = on_tile.get_global_rect().get_center()
+		sv = int(s.scroll.scroll_vertical)
+		await _swipe(from, from + Vector2(0, 220))
+		await _wait(0.5)
+		check.call(str(s.selected) == chosen and int(s.scroll.scroll_vertical) != sv, "a swipe from a tile",
+			"it chose '%s' (was '%s'), scroll %d -> %d" % [str(s.selected), chosen, sv, int(s.scroll.scroll_vertical)])
+	# a drag on the dock moves nothing
+	sv = int(s.scroll.scroll_vertical)
+	var dock: Control = s.get("_dock")
+	var dc: Vector2 = dock.get_global_rect().get_center()
+	await _swipe(dc + Vector2(-200, 40), dc + Vector2(-200, -60))
+	await _wait(0.3)
+	check.call(int(s.scroll.scroll_vertical) == sv, "the dock", "a drag on it scrolled the track (%d -> %d)" % [sv, int(s.scroll.scroll_vertical)])
+	# the back square: the title (the Trail was opened by its tab)
+	await _tap(s.header.back_button.get_global_rect().get_center())
+	await _wait(1.2)
+	check.call(current_scene != null and str(current_scene.scene_file_path) == "res://ui/TitleScreen.tscn", "back square",
+		"a tap went to %s" % (str(current_scene.scene_file_path) if current_scene else "nothing"))
+	# the way back: Outlaws -> "Reach Trail Level N" -> the Trail on his node -> back -> Outlaws on him
+	load("res://ui/HeroesScreen.gd").set("open_on", "calavera")
+	change_scene_to_file("res://ui/HeroesScreen.tscn")
+	await _wait(1.4)
+	var line: Control = current_scene.content.find_child("TrailLine", true, false)
+	check.call(line != null, "Outlaws", "a Trail-locked outlaw shows no Reach Trail Level line")
+	if line:
+		await tap_node.call(line)
+		await _wait(1.0)
+		var on_trail: bool = current_scene != null and str(current_scene.scene_file_path) == "res://ui/TrailScreen.tscn"
+		check.call(on_trail and str(current_scene.get("ringed")) == "n24", "Reach Trail Level line",
+			"a real tap opened %s, ringed '%s'" % [str(current_scene.scene_file_path) if current_scene else "nothing", str(current_scene.get("ringed")) if current_scene else ""])
+		if on_trail:
+			await _tap(current_scene.header.back_button.get_global_rect().get_center())
+			await _wait(1.4)
+			var shown = current_scene.get("shown") if current_scene else null
+			check.call(current_scene != null and str(current_scene.scene_file_path) == "res://ui/HeroesScreen.tscn" and shown != null and str(shown.id) == "calavera",
+				"the Trail's back square", "it went to %s showing %s" % [str(current_scene.scene_file_path) if current_scene else "nothing", str(shown.id) if shown else "-"])
+	for k in kept.keys():
+		if kept[k] == null:
+			save.data.erase(k)
+		else:
+			save.data[k] = kept[k]
+	nav.clear()
+	trail.load_from()

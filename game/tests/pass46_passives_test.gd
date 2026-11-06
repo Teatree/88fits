@@ -276,7 +276,8 @@ func test_the_maps_pace_scales_the_xp_a_level_needs() -> void:
 # ---------------------------------------------------------------- the quests
 
 func test_the_quests_unlock_passives() -> void:
-	for qid in ["unlock_energy_shield", "unlock_evade", "unlock_stride", "unlock_thirst"]:
+	# pass 129 (re-pinned): The Ghost and Death are Trail nodes now, their quests retired
+	for qid in ["unlock_energy_shield", "unlock_stride"]:
 		var q: QuestDef = Registry.quests.get(qid)
 		assert_object(q).is_not_null()
 		assert_str(str(q.unlocks.get("type", ""))).is_equal("passive")

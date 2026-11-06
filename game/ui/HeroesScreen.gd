@@ -198,6 +198,10 @@ func build() -> void:
 	# pass 128: opened on one outlaw by name (the Collection's "Comes with <name>"), once
 	var want: CharacterDef = Registry.character(open_on) if open_on != "" else null
 	open_on = ""
+	# pass 129 (lane TRAIL-UI): back from the Trail (Nav.back): the outlaw that was shown, his skins open again
+	var came := Nav.take(scene_file_path)
+	if want == null and came.has("hero"):
+		want = Registry.character(str(came["hero"]))
 	if want and heroes.has(want):
 		shown = want
 	# pass 126: each list moves only under a finger that came down on it; the thumb's gutter on the page's right
@@ -208,6 +212,13 @@ func build() -> void:
 	_fill()
 	if want and shown == want:
 		_reveal_tile.call_deferred(want.id)
+		if bool(came.get("looks", false)):
+			open_looks.call_deferred()
+
+
+## Pass 129 (lane TRAIL-UI): what the screen shows, for Nav (a "Reach Trail Level N" tap and the way back).
+func nav_state() -> Dictionary:
+	return {"hero": shown.id if shown else "", "looks": looks_open()}
 
 
 ## Pass 128: the picker's list moved so outlaw `id`'s tile shows (the screen opened on him: open_on).
@@ -471,6 +482,13 @@ func _trait_panel() -> Control:
 				v.add_child(sh)
 		_:
 			v.add_child(W.label("To unlock", LABEL_PX, W.ROCK))
+			# pass 129 (lane TRAIL-UI): an outlaw a Trail node gives reads "Reach Trail Level N"; a tap opens the Trail on it
+			var trail_line := TrailScreen.requirement_line("outlaw", shown.id, 22)
+			if trail_line:
+				# its words keep the name the quest's line has here (tools and tests read "Requirement")
+				trail_line.find_child("Words", true, false).name = "Requirement"
+				v.add_child(trail_line)
+				return p
 			var q2 := Registry.quest_for("character", shown.id)
 			var t3 := W.serif_text(Registry.hero_requirement_text(shown) if q2 else "Not in the game yet.", 22, W.INK, 400, false,
 				HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
@@ -925,6 +943,9 @@ func _on_look(code: String) -> void:
 		"buyable":
 			ask_buy_look(code)
 		_:
+			# pass 129 (lane TRAIL-UI): a skin a Trail node gives: the tap opens the Trail on its node
+			if Nav.to_trail("skin", Registry.skin_key(shown.id, code)):
+				return
 			var t: Control = looks_grid.get_node_or_null("Look_" + (code if code != "" else "base")) if looks_grid else null
 			_refuse(t)
 

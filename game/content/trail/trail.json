@@ -1,540 +1,152 @@
 {
   "version": 1,
   "currency": "gold",
-  "price": {
-    "base": 40,
-    "k": 1.5,
-    "power": 2.0,
-    "round": 10
-  },
+  "price": {"base": 40, "k": 7.2, "power": 1.95, "round": 10},
   "sections": [
-    {
-      "from": 1,
-      "name": "Sundown",
-      "top": "f7b24a",
-      "bottom": "ef7d22",
-      "motif": "cactus"
-    },
-    {
-      "from": 16,
-      "name": "Nightfall",
-      "top": "4a5fc4",
-      "bottom": "27307a",
-      "motif": "star"
-    },
-    {
-      "from": 31,
-      "name": "The Dust Bowl",
-      "top": "c9a063",
-      "bottom": "8c6a3c",
-      "motif": "dust"
-    },
-    {
-      "from": 46,
-      "name": "Blood Moon",
-      "top": "c43a3a",
-      "bottom": "6e1a2a",
-      "motif": "moon"
-    },
-    {
-      "from": 61,
-      "name": "High Noon",
-      "top": "ffe08a",
-      "bottom": "f2a23c",
-      "motif": "horseshoe"
-    }
+    {"from": 1, "name": "Sundown", "top": "f7b24a", "bottom": "ef7d22", "motif": "cactus"},
+    {"from": 16, "name": "Nightfall", "top": "4a5fc4", "bottom": "27307a", "motif": "star"},
+    {"from": 31, "name": "The Dust Bowl", "top": "c9a063", "bottom": "8c6a3c", "motif": "dust"},
+    {"from": 46, "name": "Blood Moon", "top": "c43a3a", "bottom": "6e1a2a", "motif": "moon"},
+    {"from": 61, "name": "High Noon", "top": "ffe08a", "bottom": "f2a23c", "motif": "horseshoe"}
   ],
   "upgrades": {
-    "might": {
-      "name": "Might",
-      "icon": "might",
-      "kind": "percent",
-      "text": "Attack damage",
-      "effects": [
-        {
-          "stat": "might",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "tempo": {
-      "name": "Tempo",
-      "icon": "tempo",
-      "kind": "percent",
-      "text": "Attack speed",
-      "effects": [
-        {
-          "stat": "cooldown",
-          "op": "mul",
-          "per": -1.0
-        }
-      ]
-    },
-    "area": {
-      "name": "Wide Load",
-      "icon": "area",
-      "kind": "percent",
-      "text": "Attack size",
-      "effects": [
-        {
-          "stat": "area",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "shot_speed": {
-      "name": "Hot Lead",
-      "icon": "shot_speed",
-      "kind": "percent",
-      "text": "Projectile speed",
-      "effects": [
-        {
-          "stat": "projectile_speed",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "duration": {
-      "name": "Long Fuse",
-      "icon": "duration",
-      "kind": "percent",
-      "text": "Effects last longer",
-      "effects": [
-        {
-          "stat": "duration",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "amount": {
-      "name": "Extra Barrel",
-      "icon": "amount",
-      "kind": "count",
-      "text": "Projectile",
-      "effects": [
-        {
-          "stat": "amount",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "crit_chance": {
-      "name": "Dead Eye",
-      "icon": "crit_chance",
-      "kind": "percent",
-      "text": "Critical chance",
-      "effects": [
-        {
-          "stat": "crit_chance",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "crit_damage": {
-      "name": "Kill Shot",
-      "icon": "crit_damage",
-      "kind": "percent",
-      "text": "Critical damage",
-      "effects": [
-        {
-          "stat": "crit_damage",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "big_game": {
-      "name": "Big Game",
-      "icon": "big_game",
-      "kind": "percent",
-      "text": "Damage to Elites and bosses",
-      "effects": [
-        {
-          "stat": "elite_damage",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "grip": {
-      "name": "Tight Grip",
-      "icon": "grip",
-      "kind": "percent",
-      "text": "Burns, poison and slows last longer",
-      "effects": [
-        {
-          "stat": "debuff_duration",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "health": {
-      "name": "Grit",
-      "icon": "health",
-      "kind": "percent",
-      "text": "Max health",
-      "effects": [
-        {
-          "stat": "max_hp",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "plate": {
-      "name": "Plate",
-      "icon": "plate",
-      "kind": "percent",
-      "text": "Damage reduction",
-      "effects": [
-        {
-          "stat": "damage_reduction",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "regen": {
-      "name": "Poultice",
-      "icon": "regen",
-      "kind": "flat",
-      "text": "Health a second",
-      "effects": [
-        {
-          "stat": "regen",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "tonic": {
-      "name": "Tonic",
-      "icon": "tonic",
-      "kind": "percent",
-      "text": "Healing",
-      "effects": [
-        {
-          "stat": "heal_mult",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "evade": {
-      "name": "Slippery",
-      "icon": "evade",
-      "kind": "percent",
-      "text": "Chance to evade",
-      "effects": [
-        {
-          "stat": "evade",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "shield": {
-      "name": "Aegis",
-      "icon": "shield",
-      "kind": "flat",
-      "text": "Shield",
-      "effects": [
-        {
-          "stat": "shield_max",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "second_wind": {
-      "name": "Second Wind",
-      "icon": "second_wind",
-      "kind": "percent",
-      "text": "Health after a revive",
-      "effects": [
-        {
-          "stat": "revive_hp",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "extra_life": {
-      "name": "Boot Hill Pass",
-      "icon": "extra_life",
-      "kind": "count",
-      "text": "Revive a run",
-      "effects": [
-        {
-          "stat": "revives",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "boots": {
-      "name": "Boots",
-      "icon": "boots",
-      "kind": "percent",
-      "text": "Move speed",
-      "effects": [
-        {
-          "stat": "move_speed",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "magnet": {
-      "name": "Lodestone",
-      "icon": "magnet",
-      "kind": "percent",
-      "text": "Pickup reach",
-      "effects": [
-        {
-          "stat": "magnet",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "luck": {
-      "name": "Omen",
-      "icon": "luck",
-      "kind": "percent",
-      "text": "Luck",
-      "effects": [
-        {
-          "stat": "luck",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "greed": {
-      "name": "Greed",
-      "icon": "greed",
-      "kind": "percent",
-      "text": "Coins",
-      "effects": [
-        {
-          "stat": "greed",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "study": {
-      "name": "Field Notes",
-      "icon": "study",
-      "kind": "percent",
-      "text": "XP",
-      "effects": [
-        {
-          "stat": "xp_gain",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "loose_coins": {
-      "name": "Loose Coins",
-      "icon": "loose_coins",
-      "kind": "percent",
-      "text": "Coin drops",
-      "effects": [
-        {
-          "stat": "coin_drop",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "care_package": {
-      "name": "Care Package",
-      "icon": "care_package",
-      "kind": "percent",
-      "text": "Healing drops",
-      "effects": [
-        {
-          "stat": "heal_drop",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "long_buff": {
-      "name": "Slow Sip",
-      "icon": "long_buff",
-      "kind": "percent",
-      "text": "Power-ups last longer",
-      "effects": [
-        {
-          "stat": "powerup_duration",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "power_drop": {
-      "name": "Windfall",
-      "icon": "power_drop",
-      "kind": "percent",
-      "text": "Power-up drops",
-      "effects": [
-        {
-          "stat": "powerup_chance",
-          "op": "mul",
-          "per": 1.0
-        }
-      ]
-    },
-    "reroll": {
-      "name": "Reroll",
-      "icon": "reroll",
-      "kind": "count",
-      "text": "Reroll a run",
-      "effects": [
-        {
-          "stat": "rerolls",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "skip": {
-      "name": "Skip",
-      "icon": "skip",
-      "kind": "count",
-      "text": "Skip a stage",
-      "effects": [
-        {
-          "stat": "skips",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "banish": {
-      "name": "Banish",
-      "icon": "banish",
-      "kind": "count",
-      "text": "Banish a stage",
-      "effects": [
-        {
-          "stat": "banishes",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "grubstake": {
-      "name": "Grubstake",
-      "icon": "grubstake",
-      "kind": "flat",
-      "text": "Coins at the start of a run",
-      "effects": [
-        {
-          "stat": "start_gold",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "spirit": {
-      "name": "Spirit Guide",
-      "icon": "spirit",
-      "kind": "percent",
-      "text": "Totem gifts",
-      "effects": [
-        {
-          "stat": "totem_boost",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "bounty": {
-      "name": "Bounty",
-      "icon": "bounty",
-      "kind": "percent",
-      "text": "Boss chest pay",
-      "effects": [
-        {
-          "stat": "boss_purse",
-          "op": "add",
-          "per": 1.0
-        }
-      ]
-    },
-    "stakes": {
-      "name": "Stakes",
-      "icon": "stakes",
-      "kind": "percent",
-      "text": "Creatures tougher, better paid",
-      "effects": [
-        {
-          "stat": "danger_hp",
-          "op": "add",
-          "per": 1.0
-        },
-        {
-          "stat": "danger_attack",
-          "op": "add",
-          "per": 1.0
-        },
-        {
-          "stat": "danger_speed",
-          "op": "add",
-          "per": 0.4
-        },
-        {
-          "stat": "danger_bounty",
-          "op": "add",
-          "per": 0.5
-        }
-      ],
-      "warn": "Every creature gets tougher for good. This cannot be undone."
-    },
-    "boss_stakes": {
-      "name": "Boss Stakes",
-      "icon": "boss_stakes",
-      "kind": "percent",
-      "text": "Bosses tougher, better paid",
-      "effects": [
-        {
-          "stat": "boss_danger_hp",
-          "op": "add",
-          "per": 1.0
-        },
-        {
-          "stat": "boss_danger_attack",
-          "op": "add",
-          "per": 1.0
-        },
-        {
-          "stat": "boss_danger_speed",
-          "op": "add",
-          "per": 0.4
-        },
-        {
-          "stat": "boss_danger_bounty",
-          "op": "add",
-          "per": 0.5
-        }
-      ],
-      "warn": "Every boss gets tougher for good. This cannot be undone."
-    }
+    "might": {"name": "Might", "icon": "might", "kind": "percent", "text": "Attack damage", "effects": [{"stat": "might", "op": "mul", "per": 1.0}]},
+    "tempo": {"name": "Tempo", "icon": "tempo", "kind": "percent", "text": "Attack speed", "effects": [{"stat": "cooldown", "op": "mul", "per": -1.0}]},
+    "area": {"name": "Wide Load", "icon": "area", "kind": "percent", "text": "Attack size", "effects": [{"stat": "area", "op": "mul", "per": 1.0}]},
+    "shot_speed": {"name": "Hot Lead", "icon": "shot_speed", "kind": "percent", "text": "Projectile speed", "effects": [{"stat": "projectile_speed", "op": "mul", "per": 1.0}]},
+    "duration": {"name": "Long Fuse", "icon": "duration", "kind": "percent", "text": "Effects last longer", "effects": [{"stat": "duration", "op": "mul", "per": 1.0}]},
+    "amount": {"name": "Extra Barrel", "icon": "amount", "kind": "count", "text": "Projectile", "effects": [{"stat": "amount", "op": "add", "per": 1.0}]},
+    "crit_chance": {"name": "Dead Eye", "icon": "crit_chance", "kind": "percent", "text": "Critical chance", "effects": [{"stat": "crit_chance", "op": "add", "per": 1.0}]},
+    "crit_damage": {"name": "Kill Shot", "icon": "crit_damage", "kind": "percent", "text": "Critical damage", "effects": [{"stat": "crit_damage", "op": "add", "per": 1.0}]},
+    "big_game": {"name": "Big Game", "icon": "big_game", "kind": "percent", "text": "Damage to Elites and bosses", "effects": [{"stat": "elite_damage", "op": "add", "per": 1.0}]},
+    "grip": {"name": "Tight Grip", "icon": "grip", "kind": "percent", "text": "Burns, poison and slows last longer", "effects": [{"stat": "debuff_duration", "op": "mul", "per": 1.0}]},
+    "health": {"name": "Grit", "icon": "health", "kind": "percent", "text": "Max health", "effects": [{"stat": "max_hp", "op": "mul", "per": 1.0}]},
+    "plate": {"name": "Plate", "icon": "plate", "kind": "percent", "text": "Damage reduction", "effects": [{"stat": "damage_reduction", "op": "add", "per": 1.0}]},
+    "regen": {"name": "Poultice", "icon": "regen", "kind": "flat", "text": "Health a second", "effects": [{"stat": "regen", "op": "add", "per": 1.0}]},
+    "tonic": {"name": "Tonic", "icon": "tonic", "kind": "percent", "text": "Healing", "effects": [{"stat": "heal_mult", "op": "mul", "per": 1.0}]},
+    "evade": {"name": "Slippery", "icon": "evade", "kind": "percent", "text": "Chance to evade", "effects": [{"stat": "evade", "op": "add", "per": 1.0}]},
+    "shield": {"name": "Aegis", "icon": "shield", "kind": "flat", "text": "Shield", "effects": [{"stat": "shield_max", "op": "add", "per": 1.0}]},
+    "second_wind": {"name": "Second Wind", "icon": "second_wind", "kind": "percent", "text": "Health after a revive", "effects": [{"stat": "revive_hp", "op": "add", "per": 1.0}]},
+    "extra_life": {"name": "Boot Hill Pass", "icon": "extra_life", "kind": "count", "text": "Revive a run", "effects": [{"stat": "revives", "op": "add", "per": 1.0}]},
+    "boots": {"name": "Boots", "icon": "boots", "kind": "percent", "text": "Move speed", "effects": [{"stat": "move_speed", "op": "mul", "per": 1.0}]},
+    "magnet": {"name": "Lodestone", "icon": "magnet", "kind": "percent", "text": "Pickup reach", "effects": [{"stat": "magnet", "op": "mul", "per": 1.0}]},
+    "luck": {"name": "Omen", "icon": "luck", "kind": "percent", "text": "Luck", "effects": [{"stat": "luck", "op": "add", "per": 1.0}]},
+    "greed": {"name": "Greed", "icon": "greed", "kind": "percent", "text": "Coins", "effects": [{"stat": "greed", "op": "mul", "per": 1.0}]},
+    "study": {"name": "Field Notes", "icon": "study", "kind": "percent", "text": "XP", "effects": [{"stat": "xp_gain", "op": "mul", "per": 1.0}]},
+    "loose_coins": {"name": "Loose Coins", "icon": "loose_coins", "kind": "percent", "text": "Coin drops", "effects": [{"stat": "coin_drop", "op": "add", "per": 1.0}]},
+    "care_package": {"name": "Care Package", "icon": "care_package", "kind": "percent", "text": "Healing drops", "effects": [{"stat": "heal_drop", "op": "add", "per": 1.0}]},
+    "long_buff": {"name": "Slow Sip", "icon": "long_buff", "kind": "percent", "text": "Power-ups last longer", "effects": [{"stat": "powerup_duration", "op": "mul", "per": 1.0}]},
+    "power_drop": {"name": "Windfall", "icon": "power_drop", "kind": "percent", "text": "Power-up drops", "effects": [{"stat": "powerup_chance", "op": "mul", "per": 1.0}]},
+    "reroll": {"name": "Reroll", "icon": "reroll", "kind": "count", "text": "Reroll a run", "effects": [{"stat": "rerolls", "op": "add", "per": 1.0}]},
+    "skip": {"name": "Skip", "icon": "skip", "kind": "count", "text": "Skip a stage", "effects": [{"stat": "skips", "op": "add", "per": 1.0}]},
+    "banish": {"name": "Banish", "icon": "banish", "kind": "count", "text": "Banish a stage", "effects": [{"stat": "banishes", "op": "add", "per": 1.0}]},
+    "grubstake": {"name": "Grubstake", "icon": "grubstake", "kind": "flat", "text": "Coins at the start of a run", "effects": [{"stat": "start_gold", "op": "add", "per": 1.0}]},
+    "spirit": {"name": "Spirit Guide", "icon": "spirit", "kind": "percent", "text": "Totem gifts", "effects": [{"stat": "totem_boost", "op": "add", "per": 1.0}]},
+    "bounty": {"name": "Bounty", "icon": "bounty", "kind": "percent", "text": "Boss chest pay", "effects": [{"stat": "boss_purse", "op": "add", "per": 1.0}]},
+    "stakes": {"name": "Stakes", "icon": "stakes", "kind": "percent", "text": "Creatures tougher, better paid", "effects": [{"stat": "danger_hp", "op": "add", "per": 1.0}, {"stat": "danger_attack", "op": "add", "per": 1.0}, {"stat": "danger_speed", "op": "add", "per": 0.4}, {"stat": "danger_bounty", "op": "add", "per": 0.5}], "warn": "Every creature gets tougher for good. This cannot be undone."},
+    "boss_stakes": {"name": "Boss Stakes", "icon": "boss_stakes", "kind": "percent", "text": "Bosses tougher, better paid", "effects": [{"stat": "boss_danger_hp", "op": "add", "per": 1.0}, {"stat": "boss_danger_attack", "op": "add", "per": 1.0}, {"stat": "boss_danger_speed", "op": "add", "per": 0.4}, {"stat": "boss_danger_bounty", "op": "add", "per": 0.5}], "warn": "Every boss gets tougher for good. This cannot be undone."}
   },
-  "nodes": [],
-  "end": {
-    "text": "To be continued"
-  }
+  "nodes": [
+    {"id": "n001", "level": 1, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.06}, "price": 10},
+    {"id": "n002", "level": 2, "kind": "node", "gives": {"type": "upgrade", "upgrade": "health", "value": 0.1}},
+    {"id": "n003", "level": 3, "kind": "node", "gives": {"type": "upgrade", "upgrade": "boots", "value": 0.03}},
+    {"id": "n004", "level": 4, "kind": "node", "gives": {"type": "upgrade", "upgrade": "magnet", "value": 0.12}},
+    {"id": "n005", "level": 5, "kind": "node", "gives": {"type": "upgrade", "upgrade": "tempo", "value": 0.04}},
+    {"id": "n006", "level": 6, "kind": "node", "gives": {"type": "upgrade", "upgrade": "study", "value": 0.05}},
+    {"id": "n007", "level": 7, "kind": "node", "gives": {"type": "upgrade", "upgrade": "regen", "value": 0.4}},
+    {"id": "n008", "level": 8, "kind": "node", "gives": {"type": "upgrade", "upgrade": "greed", "value": 0.06}},
+    {"id": "n009", "level": 9, "kind": "node", "gives": {"type": "outlaw", "id": "astro"}, "price": 1500},
+    {"id": "n010", "level": 10, "kind": "choice", "group": "g10", "gives": {"type": "upgrade", "upgrade": "area", "value": 0.08}},
+    {"id": "n011", "level": 10, "kind": "choice", "group": "g10", "gives": {"type": "upgrade", "upgrade": "tempo", "value": 0.04}},
+    {"id": "n012", "level": 11, "kind": "node", "gives": {"type": "weapon", "id": "tumbleweed"}},
+    {"id": "n013", "level": 12, "kind": "node", "gives": {"type": "upgrade", "upgrade": "crit_chance", "value": 0.03}},
+    {"id": "n014", "level": 12, "kind": "optional", "gives": {"type": "upgrade", "upgrade": "grubstake", "value": 25}},
+    {"id": "n015", "level": 13, "kind": "node", "gives": {"type": "upgrade", "upgrade": "plate", "value": 0.04}},
+    {"id": "n016", "level": 14, "kind": "node", "gives": {"type": "upgrade", "upgrade": "luck", "value": 0.06}},
+    {"id": "n017", "level": 14, "kind": "optional", "gives": {"type": "upgrade", "upgrade": "stakes", "value": 0.1}, "price_mult": 0.25},
+    {"id": "n018", "level": 15, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.07}},
+    {"id": "n019", "level": 16, "kind": "node", "gives": {"type": "outlaw", "id": "calavera"}, "price": 2000},
+    {"id": "n020", "level": 17, "kind": "choice", "group": "g17", "gives": {"type": "upgrade", "upgrade": "health", "value": 0.1}},
+    {"id": "n021", "level": 17, "kind": "choice", "group": "g17", "gives": {"type": "upgrade", "upgrade": "evade", "value": 0.05}},
+    {"id": "n022", "level": 18, "kind": "node", "gives": {"type": "upgrade", "upgrade": "shield", "value": 15}},
+    {"id": "n023", "level": 19, "kind": "node", "gives": {"type": "upgrade", "upgrade": "tempo", "value": 0.04}},
+    {"id": "n024", "level": 20, "kind": "node", "gives": {"type": "stage", "map": "red_canyon", "stage": "dust"}},
+    {"id": "n025", "level": 20, "kind": "optional", "gives": {"type": "upgrade", "upgrade": "boss_stakes", "value": 0.1}, "price_mult": 0.25},
+    {"id": "n026", "level": 21, "kind": "node", "gives": {"type": "weapon", "id": "hornet_nest"}},
+    {"id": "n027", "level": 22, "kind": "node", "gives": {"type": "upgrade", "upgrade": "shot_speed", "value": 0.1}},
+    {"id": "n028", "level": 23, "kind": "node", "gives": {"type": "outlaw", "id": "solenne"}, "price": 2500},
+    {"id": "n029", "level": 24, "kind": "node", "gives": {"type": "upgrade", "upgrade": "crit_damage", "value": 0.15}},
+    {"id": "n030", "level": 25, "kind": "choice", "group": "g25", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.08}},
+    {"id": "n031", "level": 25, "kind": "choice", "group": "g25", "gives": {"type": "upgrade", "upgrade": "crit_chance", "value": 0.05}},
+    {"id": "n032", "level": 26, "kind": "node", "gives": {"type": "upgrade", "upgrade": "care_package", "value": 0.002}},
+    {"id": "n033", "level": 26, "kind": "optional", "gives": {"type": "upgrade", "upgrade": "stakes", "value": 0.1}, "price_mult": 0.25},
+    {"id": "n034", "level": 27, "kind": "node", "gives": {"type": "upgrade", "upgrade": "regen", "value": 0.5}},
+    {"id": "n035", "level": 27, "kind": "optional", "gives": {"type": "upgrade", "upgrade": "spirit", "value": 0.1}},
+    {"id": "n036", "level": 28, "kind": "node", "gives": {"type": "passive", "id": "thirst"}},
+    {"id": "n037", "level": 29, "kind": "node", "gives": {"type": "upgrade", "upgrade": "reroll", "value": 1}, "price_mult": 2, "name": "A Second Look"},
+    {"id": "n038", "level": 30, "kind": "node", "gives": {"type": "outlaw", "id": "fadeaway"}, "price": 3000},
+    {"id": "n039", "level": 31, "kind": "choice", "group": "g31", "gives": {"type": "upgrade", "upgrade": "boots", "value": 0.04}},
+    {"id": "n040", "level": 31, "kind": "choice", "group": "g31", "gives": {"type": "upgrade", "upgrade": "magnet", "value": 0.2}},
+    {"id": "n041", "level": 32, "kind": "node", "gives": {"type": "upgrade", "upgrade": "plate", "value": 0.04}},
+    {"id": "n042", "level": 32, "kind": "optional", "gives": {"type": "upgrade", "upgrade": "boss_stakes", "value": 0.1}, "price_mult": 0.25},
+    {"id": "n043", "level": 33, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.08}},
+    {"id": "n044", "level": 34, "kind": "node", "gives": {"type": "weapon", "id": "turret_buddy"}},
+    {"id": "n045", "level": 35, "kind": "node", "gives": {"type": "upgrade", "upgrade": "health", "value": 0.1}},
+    {"id": "n046", "level": 36, "kind": "node", "gives": {"type": "stage", "map": "red_canyon", "stage": "s3"}},
+    {"id": "n047", "level": 37, "kind": "node", "gives": {"type": "upgrade", "upgrade": "tempo", "value": 0.05}},
+    {"id": "n048", "level": 38, "kind": "node", "gives": {"type": "outlaw", "id": "buck"}, "price": 3500},
+    {"id": "n049", "level": 38, "kind": "optional", "gives": {"type": "upgrade", "upgrade": "stakes", "value": 0.1}, "price_mult": 0.25},
+    {"id": "n050", "level": 39, "kind": "choice", "group": "g39", "gives": {"type": "upgrade", "upgrade": "shield", "value": 25}},
+    {"id": "n051", "level": 39, "kind": "choice", "group": "g39", "gives": {"type": "upgrade", "upgrade": "regen", "value": 0.6}},
+    {"id": "n052", "level": 40, "kind": "node", "gives": {"type": "upgrade", "upgrade": "study", "value": 0.06}},
+    {"id": "n053", "level": 41, "kind": "node", "gives": {"type": "passive", "id": "evade"}},
+    {"id": "n054", "level": 42, "kind": "node", "gives": {"type": "upgrade", "upgrade": "big_game", "value": 0.1}},
+    {"id": "n055", "level": 43, "kind": "node", "gives": {"type": "upgrade", "upgrade": "banish", "value": 1}, "price_mult": 2, "name": "Not This One"},
+    {"id": "n056", "level": 44, "kind": "node", "gives": {"type": "upgrade", "upgrade": "grip", "value": 0.1}},
+    {"id": "n057", "level": 44, "kind": "optional", "gives": {"type": "upgrade", "upgrade": "boss_stakes", "value": 0.1}, "price_mult": 0.25},
+    {"id": "n058", "level": 45, "kind": "node", "gives": {"type": "outlaw", "id": "may"}, "price": 4000},
+    {"id": "n059", "level": 46, "kind": "choice", "group": "g46", "gives": {"type": "upgrade", "upgrade": "crit_chance", "value": 0.05}},
+    {"id": "n060", "level": 46, "kind": "choice", "group": "g46", "gives": {"type": "upgrade", "upgrade": "crit_damage", "value": 0.25}},
+    {"id": "n061", "level": 47, "kind": "node", "gives": {"type": "upgrade", "upgrade": "bounty", "value": 0.15}},
+    {"id": "n062", "level": 48, "kind": "node", "gives": {"type": "weapon", "id": "land_mine"}},
+    {"id": "n063", "level": 49, "kind": "choice", "group": "g49", "gives": {"type": "upgrade", "upgrade": "area", "value": 0.1}},
+    {"id": "n064", "level": 49, "kind": "choice", "group": "g49", "gives": {"type": "upgrade", "upgrade": "duration", "value": 0.12}},
+    {"id": "n065", "level": 50, "kind": "node", "gives": {"type": "upgrade", "upgrade": "health", "value": 0.12}},
+    {"id": "n066", "level": 50, "kind": "optional", "gives": {"type": "upgrade", "upgrade": "stakes", "value": 0.1}, "price_mult": 0.25},
+    {"id": "n067", "level": 51, "kind": "node", "gives": {"type": "upgrade", "upgrade": "plate", "value": 0.04}},
+    {"id": "n068", "level": 51, "kind": "node", "gives": {"type": "upgrade", "upgrade": "tempo", "value": 0.05}},
+    {"id": "n069", "level": 52, "kind": "node", "from": ["n067", "n068"], "need": "all", "gives": {"type": "upgrade", "upgrade": "extra_life", "value": 1}, "price_mult": 2.5, "name": "Boot Hill Pass"},
+    {"id": "n070", "level": 53, "kind": "choice", "group": "g53", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.1}},
+    {"id": "n071", "level": 53, "kind": "choice", "group": "g53", "gives": {"type": "upgrade", "upgrade": "crit_chance", "value": 0.05}},
+    {"id": "n072", "level": 53, "kind": "choice", "group": "g53", "gives": {"type": "upgrade", "upgrade": "big_game", "value": 0.15}},
+    {"id": "n073", "level": 54, "kind": "node", "gives": {"type": "passive", "id": "ricochet"}},
+    {"id": "n074", "level": 55, "kind": "node", "gives": {"type": "upgrade", "upgrade": "regen", "value": 0.6}},
+    {"id": "n075", "level": 56, "kind": "node", "gives": {"type": "upgrade", "upgrade": "loose_coins", "value": 0.003}},
+    {"id": "n076", "level": 56, "kind": "optional", "gives": {"type": "upgrade", "upgrade": "boss_stakes", "value": 0.1}, "price_mult": 0.25},
+    {"id": "n077", "level": 57, "kind": "choice", "group": "g57", "gives": {"type": "upgrade", "upgrade": "boots", "value": 0.05}},
+    {"id": "n078", "level": 57, "kind": "choice", "group": "g57", "gives": {"type": "upgrade", "upgrade": "evade", "value": 0.05}},
+    {"id": "n079", "level": 58, "kind": "node", "gives": {"type": "upgrade", "upgrade": "shield", "value": 25}},
+    {"id": "n080", "level": 58, "kind": "node", "gives": {"type": "upgrade", "upgrade": "crit_damage", "value": 0.2}},
+    {"id": "n081", "level": 59, "kind": "node", "from": ["n079", "n080"], "need": "all", "gives": {"type": "upgrade", "upgrade": "skip", "value": 1}, "price_mult": 2, "name": "Pass the Bottle"},
+    {"id": "n082", "level": 60, "kind": "node", "gives": {"type": "passive", "id": "overkill"}},
+    {"id": "n083", "level": 61, "kind": "choice", "group": "g61", "gives": {"type": "upgrade", "upgrade": "health", "value": 0.14}},
+    {"id": "n084", "level": 61, "kind": "choice", "group": "g61", "gives": {"type": "upgrade", "upgrade": "plate", "value": 0.05}},
+    {"id": "n085", "level": 61, "kind": "choice", "group": "g61", "gives": {"type": "upgrade", "upgrade": "regen", "value": 0.8}},
+    {"id": "n086", "level": 62, "kind": "node", "gives": {"type": "upgrade", "upgrade": "tonic", "value": 0.15}},
+    {"id": "n087", "level": 63, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.1}},
+    {"id": "n088", "level": 63, "kind": "node", "gives": {"type": "upgrade", "upgrade": "tempo", "value": 0.06}},
+    {"id": "n089", "level": 63, "kind": "node", "gives": {"type": "upgrade", "upgrade": "area", "value": 0.1}},
+    {"id": "n090", "level": 64, "kind": "node", "from": ["n087", "n088", "n089"], "need": "all", "gives": {"type": "upgrade", "upgrade": "amount", "value": 1}, "price_mult": 3, "name": "Extra Barrel"},
+    {"id": "n091", "level": 65, "kind": "choice", "group": "g65", "gives": {"type": "upgrade", "upgrade": "greed", "value": 0.1}},
+    {"id": "n092", "level": 65, "kind": "choice", "group": "g65", "gives": {"type": "upgrade", "upgrade": "luck", "value": 0.1}},
+    {"id": "n093", "level": 65, "kind": "choice", "group": "g65", "gives": {"type": "upgrade", "upgrade": "power_drop", "value": 0.2}},
+    {"id": "n094", "level": 65, "kind": "choice", "group": "g65", "gives": {"type": "upgrade", "upgrade": "long_buff", "value": 0.2}},
+    {"id": "n095", "level": 66, "kind": "node", "gives": {"type": "upgrade", "upgrade": "evade", "value": 0.05}},
+    {"id": "n096", "level": 67, "kind": "node", "gives": {"type": "upgrade", "upgrade": "health", "value": 0.14}},
+    {"id": "n097", "level": 68, "kind": "node", "gives": {"type": "upgrade", "upgrade": "second_wind", "value": 0.15}},
+    {"id": "n098", "level": 69, "kind": "choice", "group": "g69", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.12}},
+    {"id": "n099", "level": 69, "kind": "choice", "group": "g69", "gives": {"type": "upgrade", "upgrade": "tempo", "value": 0.07}},
+    {"id": "n100", "level": 70, "kind": "node", "gives": {"type": "upgrade", "upgrade": "plate", "value": 0.06}, "price_mult": 2, "name": "Iron Hide"}
+  ],
+  "end": {"text": "To be continued"}
 }

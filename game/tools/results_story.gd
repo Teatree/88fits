@@ -96,6 +96,6 @@ static func fill(run: Node, save: Node, qt, died: bool = false) -> void:
 	if not (totals.get("kills_of_enemy") is Dictionary):
 		totals["kills_of_enemy"] = {}
 	totals["kills_of_enemy"]["skeleton"] = 112
-	save.call("mark_quest", "unlock_turret_buddy")
+	save.call("mark_quest", "unlock_zap_beam")   # pass 129: unlock_turret_buddy retired (a Trail node)
 	save.call("mark_hint", "results")
-	qt.just_completed = ["unlock_turret_buddy"]
+	qt.just_completed = ["unlock_zap_beam"]

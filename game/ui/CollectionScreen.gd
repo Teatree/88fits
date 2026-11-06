@@ -156,8 +156,26 @@ func build() -> void:
 	set_title("Hidden" if hidden_only else "Collection")
 	content.add_theme_constant_override("separation", 0)
 	_build_royale()
+	# pass 129 (lane TRAIL-UI): back from the Trail (Nav.back): the tab that was open, and the item's page
+	var came := Nav.take(scene_file_path)
+	if came.has("tab"):
+		_tab = int(came["tab"])
 	_show_grid()
+	var came_item := str(came.get("item", ""))
+	if came_item != "":
+		for def in _items(_tab):
+			if (def as ContentDef).id == came_item:
+				if _locked(def):
+					_open_locked(def)
+				else:
+					_open_page(def)
+				break
 	return
+
+
+## Pass 129 (lane TRAIL-UI): what the screen shows, for Nav (a "Reach Trail Level N" tap and the way back).
+func nav_state() -> Dictionary:
+	return {"tab": _tab, "item": _page.id if _page else ""}
 
 
 # --- Royale (pass 123, lane COLLECTION) ------------------------------------------------------------------------------
@@ -676,6 +694,14 @@ func _open_locked_royale(def: ContentDef) -> void:
 		content.add_child(p)
 		_section_royale("What it does", _cell_royale("", _full_text(def)))
 		return
+	# pass 129 (lane TRAIL-UI): an item a Trail node gives reads "Reach Trail Level N"; a tap opens the Trail on it
+	var trail_line := TrailScreen.requirement_line(W.content_kind(def), def.id, RY_EFFECT_PX)
+	if trail_line:
+		v.add_child(trail_line)
+		v.add_child(W.serif_text("Once it is yours on the Trail, it joins every run's offers.", RY_FLAVOUR_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+		content.add_child(p)
+		_section_royale("What it does", _cell_royale("", _full_text(def)))
+		return
 	var words := W.serif_text(TextGen.quest_text(q) if q else "Not found yet.", RY_EFFECT_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EFFECT_PX * 1.3, true)
 	words.name = "Quest"
 	words.color = R.WHITE
@@ -1019,6 +1045,10 @@ func _still_to_find(def: ContentDef) -> String:
 	var giver := comes_with(def)
 	if giver:
 		return comes_with_words(giver)
+	# pass 129 (lane TRAIL-UI): an item a Trail node gives
+	var on_trail := Trail.requirement_text(W.content_kind(def), def.id)
+	if on_trail != "":
+		return on_trail
 	var q := Registry.quest_for(W.content_kind(def), def.id)
 	if q == null and def.from_stage > 0:
 		return "Stage %d only" % def.from_stage

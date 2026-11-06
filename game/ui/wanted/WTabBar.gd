@@ -33,6 +33,14 @@ const WORDS := {"store": "STORE", "heroes": "OUTLAWS", "battle": "BATTLE", "upgr
 ## Where each tab goes ("" nowhere: there is no store).
 const SCENES := {"store": "", "heroes": "res://ui/HeroesScreen.tscn", "battle": "res://ui/TitleScreen.tscn",
 	"upgrade": "res://ui/HomesteadScreen.tscn", "collections": "res://ui/CollectionScreen.tscn"}
+## Pass 129 (lane TRAIL-UI): once the Trail has nodes (Trail.has_nodes) the fourth tab reads TRAIL, opens the Trail screen,
+## wears the boots and carries the same red crumb by the same rule (pass 123: red, gone once the player has been shown)
+## on the Trail's nodes: a node the purse can buy now that the player has not been shown (Crumbs.upgrade_due reads the
+## Trail then); the tab's id stays "upgrade" (node Tab_upgrade, UpgradeMark). While the Trail is empty it is the Upgrade
+## board's tab as before.
+const TRAIL_SCENE := "res://ui/TrailScreen.tscn"
+const TRAIL_WORD := "TRAIL"
+const TRAIL_ICON := "boots"
 ## The locked tab's icon: desaturated and darker (the mock's saturate(.15) brightness(.8)).
 const GREY_SHADER := "shader_type canvas_item;\nvoid fragment() {\n\tvec4 c = COLOR;\n\tfloat l = dot(c.rgb, vec3(0.299, 0.587, 0.114));\n\tCOLOR = vec4(mix(vec3(l), c.rgb, 0.15) * 0.8, c.a);\n}\n"
 
@@ -76,7 +84,19 @@ static func reach() -> float:
 
 ## The scene a tab opens ("" for STORE).
 static func scene_of(id: String) -> String:
+	if id == "upgrade" and trail_on():
+		return TRAIL_SCENE
 	return str(SCENES.get(id, ""))
+
+
+## Pass 129: whether the fourth tab is the Trail's (the Trail has nodes and its screen exists).
+static func trail_on() -> bool:
+	return Trail.has_nodes() and ResourceLoader.exists(TRAIL_SCENE)
+
+
+## A tab's word (pass 129: TRAIL on the fourth tab once the Trail has nodes).
+static func word_of(id: String) -> String:
+	return TRAIL_WORD if id == "upgrade" and trail_on() else str(WORDS.get(id, ""))
 
 
 ## Whether a tab goes anywhere: STORE never, HEROES once its screen exists, the rest always.
@@ -130,6 +150,8 @@ static func icon_of(id: String) -> Texture2D:
 		"battle":
 			def = reg.weapon("revolver")
 		"upgrade":
+			if trail_on() and Trail.icon(TRAIL_ICON) != null:
+				return Trail.icon(TRAIL_ICON)
 			var t = reg.talent("spite")
 			return t.form_icon(1) if t != null else null
 		"collections":
@@ -225,7 +247,7 @@ func _make_tab(id: String) -> WTap:
 	t.add_child(v)
 	v.add_child(_icon(id, on, lk))
 	var px := R.DOCK_WORD_ACTIVE_PX if on else R.DOCK_WORD_PX
-	var word := W.text(str(WORDS[id]), R.display(), px, R.NAVY if on else R.CREAM, HORIZONTAL_ALIGNMENT_CENTER, float(px))
+	var word := W.text(word_of(id), R.display(), px, R.NAVY if on else R.CREAM, HORIZONTAL_ALIGNMENT_CENTER, float(px))
 	word.name = "Word"
 	# pass 126: W.text sets a display size under R.ULTRA_MIN in Rubik; the bar keeps its one face in every state
 	word.font = R.display()
