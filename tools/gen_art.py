@@ -1172,13 +1172,14 @@ def fall_pick(frames, n_out):
     return idx, start, end, d0, d1
 
 
-def pose_death(still_rgb, key, clip, seed, cell, stand_cell, n_out=8, outline_frac=0.024, outline_color=(14, 8, 12, 255), hint="", negative_extra=""):
+def pose_death(still_rgb, key, clip, seed, cell, stand_cell, n_out=8, outline_frac=0.024, outline_color=(14, 8, 12, 255), hint="", negative_extra="", motion=""):
     """A death driven by a Mixamo clip (pass 34, a creature's "death": "pose:<driver>", the goblins on Falling Back
     Death): Wan Animate paints the front painting onto the driver's one-shot fall (tools/pose_driver.py loop=0), every
     driver frame a frame, scaled like the walk; n_out of them are kept from where it starts to go to where it lies
-    still, and the last one holds. None on failure."""
+    still, and the last one holds. None on failure. Pass 132b: `motion` (the recipe's "death_motion") replaces the
+    backwards fall's words for a driver that falls another way (fall_forward_fit: onto its face)."""
     frames = pose_cycle(still_rgb, key, clip, "front", seed, cell, stand_cell, hint, outline_frac, outline_color, negative_extra=negative_extra,
-                        loop=False, motion="knocked down: it staggers, falls over backwards and lands on the ground, then lies still, dead")
+                        loop=False, motion=motion or "knocked down: it staggers, falls over backwards and lands on the ground, then lies still, dead")
     if not frames:
         return None
     idx, start, end, _, _ = fall_pick(frames, n_out)
@@ -1762,7 +1763,8 @@ def process(type_, folder, id_):
         if death == "clip":
             fall = death_cycle(img, dead_img, ak + "_fall", seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")))
         elif death.startswith("pose:"):
-            fall = pose_death(img, ak + "_death", death[5:], seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")))
+            fall = pose_death(img, ak + "_death", death[5:], seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")),
+                              str(d.get("death_motion", "")))
         kinds["die"] = ("flf" if death == "clip" else "pose") if fall else "procedural"
         if fall:
             for c in crh_list:   # pass 87: the death clip's smeared hues too
@@ -1773,6 +1775,10 @@ def process(type_, folder, id_):
         elif death == "fall" and fly_f:
             # pass 127: shot out of the air, it tips over, drops and lands on the painted dead still (artkit.fly_fall)
             frames["die"] = artkit.fly_fall(fly_f, dead_cell, cell, fly_hover, int(d.get("death_frames", 8)))
+        elif death == "pitch":
+            # pass 132b (KN-D): falls forward onto its face: the painting pitches toward the camera, then the painted
+            # face-down still (dead_hint says face down; artkit.pitch_fall)
+            frames["die"] = artkit.pitch_fall(base, dead_cell, int(d.get("death_frames", 8)))
         elif death == "squash":
             # a creature that splats instead of falling over (the Blue Slime, pass 44): the standing painting squashes flatter
             # and wider over four frames into the painted puddle (the first-last-frame clip between the two grew it legs)

@@ -1153,6 +1153,39 @@ def death_bits(frames, seed=0, kind="straw", n=20, colours=("#F2C744", "#E3A92B"
     return out
 
 
+def pitch_fall(cell_img, dead_cell, n_out=8, steps=((0.98, 0.0), (0.82, 0.06), (0.6, 0.14), (0.36, 0.22))):
+    """Pass 132b (the Skeleton Knight's KN-D): a death that falls forward onto its face. The standing painting pitches
+    toward the camera over `steps` (the feet stay, the head row comes down to f of the figure's height and widens by k
+    as it nears the camera: a perspective warp), then the painted face-down still holds for the rest of n_out frames.
+    No clip is painted (the mirrored back-fall driver tumbled and showed the face three rolls out of three)."""
+    cell = cell_img.width
+    a = (np.asarray(cell_img)[..., 3] > 8).nonzero()[0]
+    top, bot = int(a.min()), int(a.max()) + 1
+    src = cell_img.crop((0, top, cell, bot))
+    sh = bot - top
+    out = []
+    for f, k in steps:
+        nh = max(2, int(round(sh * f)))
+        if k <= 0:
+            warped = src.resize((cell, nh), Image.LANCZOS)
+        else:
+            # output corners (the top row spans [-k w, (1 + k) w], the bottom row [0, w]) -> the source rectangle
+            pa = [(-k * cell, 0), (cell * (1 + k), 0), (cell, nh), (0, nh)]
+            pb = [(0, 0), (cell, 0), (cell, sh), (0, sh)]
+            rows = []
+            for (x, y), (u, v) in zip(pa, pb):
+                rows.append([x, y, 1, 0, 0, 0, -u * x, -u * y])
+                rows.append([0, 0, 0, x, y, 1, -v * x, -v * y])
+            coef = np.linalg.solve(np.array(rows, dtype=float), np.array([c for p in pb for c in p], dtype=float))
+            warped = src.transform((cell, nh), Image.PERSPECTIVE, tuple(coef), Image.BICUBIC)
+        frame = Image.new("RGBA", (cell, cell), (0, 0, 0, 0))
+        frame.alpha_composite(warped, (0, bot - nh))
+        out.append(frame)
+    while len(out) < n_out:
+        out.append(dead_cell)
+    return out[:n_out]
+
+
 def fall(cell_img, deg=80):
     """Death frame: the sprite tips over and is refitted so nothing leaves the cell."""
     cell = cell_img.width

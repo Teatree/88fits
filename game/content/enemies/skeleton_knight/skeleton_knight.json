@@ -184,19 +184,19 @@
       "head": 1.0
     },
     "KN-D": {
-      "note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline. Pass 131: the back walk painted again on the driver bigguy_shield (tools/pose_hang.py arms=l: seen from behind the shield arm hangs with the shield as the painting holds it, where the walk folded it up in front of the chest and left the shield in the air without it); only the 12 back frames changed, the old strip is in tools/dl/p131/SKEL/before/",
+      "note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline. Pass 131: the back walk painted again on the driver bigguy_shield (tools/pose_hang.py arms=l: seen from behind the shield arm hangs with the shield as the painting holds it, where the walk folded it up in front of the chest and left the shield in the air without it); only the 12 back frames changed, the old strip is in tools/dl/p131/SKEL/before/. Pass 132b: restored to that state after two re-rolls (the stills and clips too: Garry's re-roll in tools/dl/p132/KND/before/garry_reroll2/) and it dies on its face: death `pitch` (artkit.pitch_fall: the painting pitches toward the camera over 4 frames, then a new face-down still, the back of the helmet and the back plate to the viewer, the shield on its arm; 8 frames); the Falling Back Death driver mirrored (fall_forward, fall_forward_fit, fall_forward_knd) tumbled and showed the face on three tries, so no clip is painted; only the die set changed, the walks, stills and icon are pass 131's; the old strip in tools/dl/p132/KND/before/",
       "recipe": {
         "stills": "vd",
         "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a clear ribcage, spine and pelvis, slim arm and leg bones with rounded joints, bony hands and feet, wearing a simple dented steel medieval breastplate strapped over its ribcage with worn leather straps and a simple round steel kettle helmet with a wide brim on its skull, bare bone arms and legs, a small round wooden shield with an iron boss strapped to one forearm, the other arm hanging at its side, no weapon, standing with its shoulders squared and facing the viewer",
         "back_hint": "seen from behind: the back of the steel kettle helmet, the back plate of the armour with its leather straps, the pelvis and bare bone legs, both arms hanging down at its sides, the round shield on the same forearm, no face",
-        "dead_hint": "lying flat on its back on the ground, dead: its body stretched out sideways across the picture with the skull on the left and the feet on the right, arms flopped out limp, the round shield lying beside it; it lies on nothing, with no ground and no shadow under it",
+        "dead_hint": "lying face down flat on the ground, dead: its body stretched out sideways across the picture with the skull on the left and the feet on the right, the back of its steel kettle helmet and the back plate of its armour with its leather straps towards the viewer, the round wooden shield still strapped to its forearm, arms flopped out limp, no face visible; it lies on nothing, with no ground and no shadow under it",
         "pose": "bigguy_shield",
         "pose_front": "bigguy",
         "stand": "still",
         "gait": "swaggering in place on the spot with a heavy rolling walk, the same round wooden shield strapped to the same forearm the whole time",
         "motion": "a skeleton walking with a heavy swagger",
         "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing, arms detached from the shield / misaligned relative to where the shield is supposed to be",
-        "death": "pose:death_back",
+        "death": "pitch",
         "death_frames": 8,
         "outline_frac": 0.024,
         "outline_color": "#0e080c",
@@ -216,17 +216,47 @@
         "run": 12,
         "attack": 2,
         "hit": 1,
-        "die": 5,
+        "die": 8,
         "run_b": 12,
         "idle_b": 4
       },
-      "strip_cols": 40,
+      "strip_cols": 43,
       "fps": {
         "run": 15,
         "die": 8
       },
       "head": 1.0,
       "fresh": true
+    },
+    "KN-L": {
+      "note": "Pass 132b recolour of KN-D (Garry: the same look with a white shield): the round shield's wood lifted to white (lift, hue 335-42, mass-filtered so the thin leather straps, the bone shading and the outline stay), the front walk's dark wine shields in a pass of their own (cells 4-15, down to value 0.07), the pitched and lying death frames (cells 22-26, a finer mass) and the hit frame's washed shield (cell 18); the iron boss, the bone, the steel and the outline as they are; it dies on its face like KN-D (tools/recolour_look.py, recolour_strip.py --mode lift; passes in tools/dl/p132/KND/passes.sh)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "KN-D",
+        "recolour_passes": [
+          "--mode lift --ranges 335-360,0-42 --hue-soft 2 --min-sat 0.28 --min-val 0.15 --src-hi 0.9 --soft 0.04 --mass 2 --grow 4 --to 40 --set-sat 0.06 --v-lo 0.62 --v-hi 1.0 --gamma 0.9",
+          "--cells 4,5,6,7,8,9,10,11,12,13,14,15 --mode lift --ranges 335-360,0-24 --hue-soft 2 --min-sat 0.28 --min-val 0.07 --src-hi 0.5 --soft 0.03 --mass 2 --grow 3 --to 40 --set-sat 0.06 --v-lo 0.5 --v-hi 0.95 --gamma 0.9",
+          "--cells 22,23,24,25,26 --mode lift --ranges 335-360,0-31 --hue-soft 2 --min-sat 0.2 --min-val 0.15 --src-hi 0.9 --soft 0.03 --mass 1 --grow 2 --to 40 --set-sat 0.06 --v-lo 0.62 --v-hi 1.0 --gamma 0.9",
+          "--cells 18 --mode lift --ranges 335-360,0-42 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --mass 3 --grow 5 --to 40 --set-sat 0.03 --v-lo 0.86 --v-hi 0.97"
+        ]
+      },
+      "sprite": "skeleton_knight_sprite_l.png",
+      "icon": "skeleton_knight_icon_l.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "head": 1.0,
+      "fps": {
+        "run": 15,
+        "die": 8
+      }
     },
     "KN-E": {
       "note": "the KN-A knight with dark blue bones and its steel and leather left alone (pass 54; a two-pass tint of the KN-A strip, tools/recolour_strip.py --mode tint)",

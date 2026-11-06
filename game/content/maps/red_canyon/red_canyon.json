@@ -1248,7 +1248,8 @@
         "count": 10,
         "pack": 1,
         "pattern": "scatter",
-        "role": "fodder"
+        "role": "fodder",
+        "variant": "SK-F"
       },
       {
         "id": "r13",
@@ -1267,7 +1268,8 @@
         "pattern": "pack",
         "pack": 5,
         "interval": 10,
-        "role": "fodder"
+        "role": "fodder",
+        "variant": "KN-D"
       },
       {
         "id": "r14",
@@ -1594,7 +1596,7 @@
         "t": 608,
         "until": 617,
         "enemy": "skeleton",
-        "variant": "SK-A",
+        "variant": "SK-F",
         "weights": [
           [
             608,
@@ -1690,7 +1692,7 @@
         "t": 608,
         "until": 667,
         "enemy": "skeleton",
-        "variant": "SK-A",
+        "variant": "SK-G",
         "weights": [
           [
             608,
@@ -1713,7 +1715,7 @@
         "t": 608,
         "until": 667,
         "enemy": "skeleton_knight",
-        "variant": "KN-A",
+        "variant": "KN-D",
         "weights": [
           [
             608,

@@ -3606,3 +3606,15 @@ finished sim's header), `difficulty_probe.gd` (`probe: the Trail gives: ...`), t
 **The save**: `talents`, `talent_spent`, `talent_spent_in` are read once by `Save._migrate_trail` (every coin back) and
 erased; `board_note` holds only the migration's `trail_refund`. `StatSheet.PLAYER_DEFAULTS.revive_hp` is 0.4 (it was the
 Nerve talent's `base_stats`). Quest `unlocks.type` "talent" is gone from the Level Editor's list.
+
+## Pass 132b
+
+- Recipe `death: "pitch"` (creatures; methods.json option "Pitch forward onto its face"): a procedural death, `artkit.pitch_fall`:
+  the standing painting pitches towards the camera over 4 frames (feet held, the head comes down and widens), then the
+  painted lying still (`dead_hint`: face down) holds for the rest of `death_frames`. KN-D, KN-L. The pose driver
+  `fall_forward` (pass 112) leaves the canvas from frame 8; fitted copies tumble face up: do not use it as it is.
+- Recipe `death_motion` (a pose death): the clip's motion words for gen_art's `pose_death`, when the driver's own are wrong.
+- Creature `shadow.die_slide` (pass 132, number -1..1, default 0): the death painting slides towards the camera on the ground
+  by this share of the creature's size, eased in over the strip (EnemyManager.die_slide_of; the compiled draw too). For a
+  body painted low in its cell that `die_drop` would push under the sand. SK-B, SK-F..K: 0.3.
+- Look op `fps` {anim: run|die, value 1..60} (pass 132): the Level Editor's Frame rate row writes `variants[CODE].fps`.

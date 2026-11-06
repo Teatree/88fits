@@ -4666,3 +4666,18 @@ with a die_slide.
 
 Still waiting on Garry: his eye on KN-G..K and the dead skeletons; a restart of his Level Editor (the new look op);
 everything open from passes 128 to 131.
+
+**Pass 132b (the same day): KN-D back as it was, dying on its face; KN-L.** Garry re-rolled KN-D twice in his
+Level Editor (pass 131 had repaired it in place, which he found out too late) and broke its back walk again. Lane KND
+(100k of 150k): KN-D's five files restored from git (the lead) and its RAW stills and clip caches too (the re-rolls had
+replaced them; Garry's last roll kept in tools/dl/p132/KND/before/garry_reroll2/); its back run proven clean on a sheet
+(sheets/00_knd_runb.png). **The face-down death:** the `fall_forward` driver (pass 112) runs off the canvas from frame 8
+and three fitted copies still gave tumbles ending face up, so it is a new procedural death, `death: "pitch"`
+(`artkit.pitch_fall`, gen_art, methods.json "Pitch forward onto its face"; new recipe key `death_motion` for a pose
+death): the standing painting pitches towards the camera over 4 frames, then a painted face-down still holds (8 frames,
+fps.die 8); only the die cells spliced into the restored strip. The read is crude (a front figure shrinking to the ground,
+then the cut to the lying still). **KN-L** = KN-D with a white shield (recolour_look, four passes: the wood, the front
+walk's dark shields, the death's, the hit frame), fresh. Doubts: the shield reads grey-white where the wood was shaded,
+the iron boss the walk painted purple in run 6-9 stays purple (in KN-D too), run 4's shield mottled. Garry's own map edit
+of the evening (rows now playing SK-F, SK-G and KN-D) is committed with it. Drivers fall_forward_fit / fall_forward_knd
+are kept as a warning: both tumble.

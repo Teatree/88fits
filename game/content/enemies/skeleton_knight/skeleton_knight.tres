@@ -123,7 +123,7 @@ variants = {
 "KN-D": {
 "anims": {
 "attack": 2.0,
-"die": 5.0,
+"die": 8.0,
 "hit": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
@@ -140,12 +140,12 @@ variants = {
 "front_faces": "right",
 "head": 1.0,
 "icon": "res://content/enemies/skeleton_knight/skeleton_knight_icon_d.png",
-"note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline. Pass 131: the back walk painted again on the driver bigguy_shield (tools/pose_hang.py arms=l: seen from behind the shield arm hangs with the shield as the painting holds it, where the walk folded it up in front of the chest and left the shield in the air without it); only the 12 back frames changed, the old strip is in tools/dl/p131/SKEL/before/",
+"note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline. Pass 131: the back walk painted again on the driver bigguy_shield (tools/pose_hang.py arms=l: seen from behind the shield arm hangs with the shield as the painting holds it, where the walk folded it up in front of the chest and left the shield in the air without it); only the 12 back frames changed, the old strip is in tools/dl/p131/SKEL/before/. Pass 132b: restored to that state after two re-rolls (the stills and clips too: Garry's re-roll in tools/dl/p132/KND/before/garry_reroll2/) and it dies on its face: death `pitch` (artkit.pitch_fall: the painting pitches toward the camera over 4 frames, then a new face-down still, the back of the helmet and the back plate to the viewer, the shield on its arm; 8 frames); the Falling Back Death driver mirrored (fall_forward, fall_forward_fit, fall_forward_knd) tumbled and showed the face on three tries, so no clip is painted; only the die set changed, the walks, stills and icon are pass 131's; the old strip in tools/dl/p132/KND/before/",
 "shadow": {},
 "shelved": false,
 "sprite": "res://content/enemies/skeleton_knight/skeleton_knight_sprite_d.png",
 "sprite_file": "skeleton_knight_sprite_d.png",
-"strip_cols": 40
+"strip_cols": 43
 },
 "KN-E": {
 "anims": {
@@ -335,6 +335,33 @@ variants = {
 "sprite": "res://content/enemies/skeleton_knight/skeleton_knight_sprite_k.png",
 "sprite_file": "skeleton_knight_sprite_k.png",
 "strip_cols": 40
+},
+"KN-L": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 1.0,
+"icon": "res://content/enemies/skeleton_knight/skeleton_knight_icon_l.png",
+"note": "Pass 132b recolour of KN-D (Garry: the same look with a white shield): the round shield's wood lifted to white (lift, hue 335-42, mass-filtered so the thin leather straps, the bone shading and the outline stay), the front walk's dark wine shields in a pass of their own (cells 4-15, down to value 0.07), the pitched and lying death frames (cells 22-26, a finer mass) and the hit frame's washed shield (cell 18); the iron boss, the bone, the steel and the outline as they are; it dies on its face like KN-D (tools/recolour_look.py, recolour_strip.py --mode lift; passes in tools/dl/p132/KND/passes.sh)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton_knight/skeleton_knight_sprite_l.png",
+"sprite_file": "skeleton_knight_sprite_l.png",
+"strip_cols": 43
 }
 }
 variant = "KN-A"
