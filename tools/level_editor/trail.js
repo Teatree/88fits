@@ -19,6 +19,7 @@ const Trail = (() => {
     order: store('order') === 'low' ? 'low' : 'high', filter: '', onlyIssues: false,
     open: (() => { try { return JSON.parse(store('open') || '') || { price: true, checks: true }; } catch (_) { return { price: true, checks: true }; } })(),
     perRun: Number(store('perrun')) > 0 ? Number(store('perrun')) : 800, d: null, rowH: 34,
+    hints: null, look: null,   // pass 130: the hint box's words (trail_hints.json) and the type the open pick list points at
   };
   const LISTS = { outlaw: 'outlaws', skin: 'skins', weapon: 'weapons', passive: 'passives', map: 'maps', structure: 'structures', powerup: 'powerups', feature: 'features' };
   const MOTIF_SVG = {
@@ -48,6 +49,12 @@ const Trail = (() => {
     }).catch((e) => { S.failed = String(e.message || e); S.loading = false; redraw(); });
   }
   const dirty = () => !!S.doc && JSON.stringify(S.doc) !== S.base;
+  /** Pass 130: the hint box's words, a plain file beside the page (tools only; a type without an entry falls back to its `text`). */
+  function loadHints() {
+    if (S.hints) return;
+    S.hints = {};
+    fetch('trail_hints.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : {})).then((d) => { S.hints = d && typeof d === 'object' ? d : {}; drawHint(); }).catch(() => { /* the box falls back to each type's own text */ });
+  }
 
   function derive() {
     const ix = M.index(S.doc);
@@ -195,8 +202,8 @@ const Trail = (() => {
   }
 
   /** The pick list under a cell: a filter box and the options with their icons; arrows, Enter, Escape. */
-  function closePop() { if (pop) { pop.remove(); pop = null; } }
-  function openPick(anchor, options, current, onPick) {
+  function closePop() { if (pop) { pop.remove(); pop = null; } if (S.look) { S.look = null; drawHint(); } }
+  function openPick(anchor, options, current, onPick, onLook) {
     closePop();
     const box = el('div', { class: 'trl-pop' });
     const q = el('input', { type: 'text', class: 'trl-in', placeholder: 'type to filter…', spellcheck: false });
@@ -211,9 +218,11 @@ const Trail = (() => {
         const taken = o.takenBy ? ` · given by ${o.takenBy}` : '';
         list.appendChild(el('div', { class: 'trl-pop-row' + (i === at ? ' at' : '') + (o.id === current ? ' cur' : ''), onmousedown: (e) => { e.preventDefault(); choose(o); } },
           icon(o.url, 28, o.name), el('span', { class: 'nm', text: o.name }), el('span', { class: 'muted small', text: (o.sub || '') + taken })));
+        if (onLook) list.lastChild.addEventListener('mouseenter', () => onLook(o));
       });
       if (!shown.length) list.appendChild(el('div', { class: 'muted small', text: 'nothing matches' }));
       const cur = list.children[at]; if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' });
+      if (onLook) onLook(shown[at] || null);
     };
     const choose = (o) => { closePop(); anchor.focus(); onPick(o.id); };
     q.addEventListener('input', () => { at = 0; draw(); });
@@ -354,6 +363,7 @@ const Trail = (() => {
   function select(id, from) {
     if (S.sel === id && from !== 'left') return;
     S.sel = id;
+    drawHint();
     for (const t of panelEl.querySelectorAll('.trl-row.sel')) t.classList.remove('sel');
     drawTrack();
     if (from !== 'left') { scrollLeftTo(id); const r = rowEl(id); if (r) r.classList.add('sel'); return; }
@@ -370,6 +380,29 @@ const Trail = (() => {
     }
   }
   const rowEl = (id) => (R.levels ? R.levels.querySelector(`.trl-row[data-id="${id}"]`) : null);
+
+  // ------------------------------------------------------------------ pass 130: the hint box (trail_hint.js builds its lines)
+
+  /** What the selected node gives, in a designer's words: it follows the selection and, while a node's pick list is
+   *  open, the upgrade type the list points at. It sits under the tools bar, which stays in view. */
+  function drawHint() {
+    if (!R.hint || !S.doc) return;
+    clear(R.hint);
+    const H = typeof TrailHint !== 'undefined' ? TrailHint : null;
+    const open = store('hint') !== '0';
+    const sel = S.look || (S.sel ? { id: S.sel } : null);
+    const h = H && sel ? H.build(M, S.doc, sel, S.hints || {}, S.picks) : null;
+    R.hint.classList.toggle('looking', !!S.look);
+    R.hint.appendChild(el('div', { class: 'trl-hint-head' },
+      el('button', { type: 'button', class: 'trl-hint-tog', text: open ? '▾ Hint' : '▸ Hint', title: 'what the selected node gives, in plain words (the words per upgrade type are in tools/level_editor/trail_hints.json)', onclick: () => { store('hint', open ? '0' : '1'); drawHint(); } }),
+      h ? el('b', { text: h.title }) : null, h && h.sub ? el('span', { class: 'muted small', text: h.sub }) : null, h && h.id ? el('span', { class: 'achip', text: h.id }) : null,
+      !h && open ? el('span', { class: 'muted small', text: H ? 'click a node (its row here, or its tile on the left) to read what it gives' : 'trail_hint.js did not load: reload the page' }) : null));
+    if (!open || !h) return;
+    const body = el('div', { class: 'trl-hint-body' });
+    for (const l of h.lines) body.appendChild(el('div', { class: 'trl-hint-line k-' + l.k }, el('span', { class: 'lb', text: l.label }), el('span', { class: 'tx', text: l.text })));
+    if (!h.lines.length) body.appendChild(el('div', { class: 'muted small', text: 'a plain node: nothing more to say' }));
+    R.hint.appendChild(body);
+  }
 
   // ------------------------------------------------------------------ the right pane: the blocks above the levels
 
@@ -593,7 +626,8 @@ const Trail = (() => {
     R.top.appendChild(fold('sections', 'Sections and the end plate', `${S.doc.sections.length} backdrops: ${S.doc.sections.map((s) => `${s.name} from ${s.from}`).join(', ')}`, sectionsBlock));
     R.top.appendChild(fold('upgrades', 'Upgrade types', `${Object.keys(S.doc.upgrades).length} types a node can give`, upgradesBlock));
     R.top.appendChild(fold('checks', 'Checks', issues.length ? `${errors} error${errors === 1 ? '' : 's'} (they block Save), ${issues.length - errors} warning${issues.length - errors === 1 ? '' : 's'}` : 'no issues', checksBlock));
-    clear(R.tools).appendChild(toolsBar());
+    clear(R.tools).append(toolsBar(), R.hint);
+    drawHint();
     const stats = el('datalist', { id: 'trl-stats' }); for (const s of S.picks.stats || []) stats.appendChild(el('option', { value: s }));
     const idl = el('datalist', { id: 'trl-ids' }); for (const n of ix.nodes) idl.appendChild(el('option', { value: n.id }));
     R.top.appendChild(stats); R.top.appendChild(idl);
@@ -671,7 +705,8 @@ const Trail = (() => {
     what.addEventListener('click', () => {
       const opts = optionsFor(g.type);
       for (const o of opts) { const by = g.type !== 'upgrade' && S.d.given.get(g.type + ':' + o.id); if (by && by !== id) o.takenBy = by; }
-      openPick(what, opts, M.giveWhat(g), (v) => edit(() => setWhat(node(id), g.type, v)));
+      openPick(what, opts, M.giveWhat(g), (v) => edit(() => setWhat(node(id), g.type, v)),
+        g.type === 'upgrade' ? (o) => { if (!pop) return; S.look = o ? { id, upgrade: o.id } : null; drawHint(); } : null);
     });
     const valueCell = g.type === 'upgrade'
       ? inp(cellKey(id, 'value'), u ? M.fmtValue(u.kind, g.value) : (g.value == null ? '' : g.value), (v, e) => {
@@ -771,6 +806,7 @@ const Trail = (() => {
     R.sizer = el('div', { class: 'trl-sizer' }, R.track);
     R.view = el('div', { class: 'trl-view' }, R.sizer);
     R.top = el('div', { class: 'trl-blocks' }); R.tools = el('div', { class: 'trl-tools-host' }); R.levels = el('div', { class: 'trl-levels' });
+    R.hint = el('div', { class: 'trl-hint' });
     R.right = el('div', { class: 'trl-right' }, R.top, R.tools, R.levels);
     R.file = file;
     panel.append(R.bar, el('div', { class: 'trl-split' }, el('div', { class: 'trl-left' }, R.lbar, R.view), R.right), file);
@@ -809,7 +845,7 @@ const Trail = (() => {
   function render(panel) {
     panelEl = panel;
     if (!M) { clear(panel); panel.appendChild(el('p', { class: 'warn-text', text: 'trail_model.js did not load' })); return; }
-    load(false);
+    load(false); loadHints();
     if (S.failed) { built = false; clear(panel); panel.append(el('h2', { text: 'The Trail' }), el('p', { class: 'warn-text', text: S.failed }), btn('Try again', '', () => { S.failed = null; load(true); redraw(); })); return; }
     if (!S.doc) { built = false; clear(panel); panel.appendChild(el('p', { class: 'muted', text: 'reading the Trail…' })); return; }
     if (!built || !R.bar || !R.bar.isConnected) build(panel);

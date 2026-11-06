@@ -78,6 +78,7 @@
   },
   "doc": "The Dust Bowl's main walker: a burlap scarecrow half again as tough as a skeleton and a touch slower, half a slot against the cap. It slumps and spills its straw when it dies.",
   "head": 0.956,
+  "back_faces": "left",
   "retired": false,
   "stills": "a1",
   "death_bits": {

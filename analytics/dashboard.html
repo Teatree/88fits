@@ -206,6 +206,7 @@
   .brow .tamt { font-weight: 600; min-width: 64px; font-variant-numeric: tabular-nums; }
   .brow.empty0 { opacity: 0.55; }
   .oldnote { color: var(--muted); font-size: 0.8rem; font-style: italic; }
+  .trail-gave { font-size: 0.86rem; line-height: 1.45; margin: 2px 0 10px; }
   .seg.small button { padding: 2px 8px; font-size: 0.76rem; }
   @media (max-width: 560px) {
     .wrow { grid-template-columns: 1fr; }
@@ -219,6 +220,8 @@
 <script src="../tools/level_editor/sim_model.js"></script>
 <script src="../tools/level_editor/sim_avg.js"></script>
 <script src="../tools/level_editor/sim_plot.js"></script>
+<!-- pass 130: the Trail's bundle (what a Trail gives, on one line), the twin of Trail.bundle_text in the game -->
+<script src="../tools/level_editor/trail_bundle.js"></script>
 <script src="runs/index.js"></script>
 <script src="runs/latest.js"></script>
 </head>
@@ -311,7 +314,7 @@
   const HISTORY_FIRST = ['file', 'stamp', 'started', 'version', 'schema', 'tool', 'headless', 'hero', 'hero_name', 'hero_look',
     'map', 'map_rev', 'seed', 'result', 'length', 'clock', 'stage', 'endless_wave', 'level', 'kills', 'gold', 'strongbox',
     'revives', 'gold_before', 'damage', 'top_source', 'dps_end', 'hp_lost', 'hits_taken', 'bosses', 'specials_killed',
-    'elites_killed', 'killer', 'totems', 'trail_level', 'trail_bought', 'trail_spent', 'talents', 'build'];
+    'elites_killed', 'killer', 'totems', 'trail_level', 'trail_bought', 'trail_spent', 'trail_bundle', 'talents', 'build'];
 
   const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
@@ -929,7 +932,8 @@
     add('Played on', (r.tool ? 'a tool (' + (r.headless ? 'headless' : 'windowed') + ')' : (r.headless ? 'a headless tool' : 'played')) + ' · ' + (r.platform || '?') + (r.device ? ' · ' + r.device : ''));
     if (r.launch) add('Launch file', Object.entries(r.launch).map(([k, v]) => k.replace(/_/g, ' ') + ' ' + v).join(' · ') + ' (a tool\'s or the editor\'s test launch)');
     // pass 129 (schema 6): the Trail the run began with; an older record's Upgrade board stays readable below
-    { const tr = trailOf(r); if (tr) add('The Trail', trailWords(tr)); }
+    // pass 130: and what that Trail gave, on one line (the bundle): two builds at one Trail Level may give different things
+    { const tr = trailOf(r); if (tr) { add('The Trail', trailWords(tr)); const tb = trailBundle(r); if (tb) add('The Trail gave', tb); } }
     if (r.talents) {
       const ids = Object.keys(r.talents);
       add('Upgrade board (before the Trail)', ids.length ? ids.map((id) => { const p = r.talents[id] || []; const f = (r.talent_forms || {})[id] || ['first form', 'second form']; const n0 = p.filter((x) => +x === 0).length, n1 = p.length - n0; return S.name(id) + ': ' + [n0 ? f[0] + ' ×' + n0 : '', n1 ? f[1] + ' ×' + n1 : ''].filter(Boolean).join(', '); }).join(' · ') : 'no ranks bought');
@@ -1670,6 +1674,39 @@
     return { level: +t.level || 0, levels: +t.levels || 0, bought: Array.isArray(t.bought) ? t.bought.length : 0, nodes: +t.nodes || 0,
       paid: t.paid != null ? +t.paid : null, spent: t.spent != null ? +t.spent : null, rows, full: isMap(t.types) };
   }
+  /** Pass 130 (Garry: "It's important to know what trail level the player was on but also what kinds of stat increases
+   *  he got from it"): what a run's Trail gave, on one line (the bundle), from a record or an index row: the line the
+   *  record carries (`trail.bundle`, written by the build that played; an index row's `trail_bundle`), else worked out
+   *  from the record's `upgrades` and `types` (trail_bundle.js, the twin of Trail.bundle_text); '' when the run has no
+   *  Trail or the row does not say. */
+  function trailBundle(r) {
+    if (!r) return '';
+    const t = r.trail;
+    if (t && typeof t === 'object' && !Array.isArray(t)) {
+      if (typeof TrailBundle !== 'undefined') return TrailBundle.of(t);
+      return typeof t.bundle === 'string' ? t.bundle : '';
+    }
+    return typeof r.trail_bundle === 'string' ? r.trail_bundle : '';
+  }
+  /** Runs at one Trail Level whose Trail gave different things: [{level: "level 12", kinds: [[bundle, runs], ...]}] for
+   *  every level with two or more bundles among `runs` (records or index rows); [] when every level reads one way. A
+   *  run that does not say what its Trail gave is left out. */
+  function trailMixes(runs) {
+    const by = {}; const order = [];
+    for (const r of runs || []) {
+      const b = trailBundle(r); if (!b) continue;
+      const k = trailShort(r);
+      if (!by[k]) { by[k] = {}; order.push(k); }
+      by[k][b] = (by[k][b] || 0) + 1;
+    }
+    return order.filter((k) => Object.keys(by[k]).length > 1).map((k) => ({ level: k, kinds: Object.entries(by[k]).sort((a, b) => b[1] - a[1]) }));
+  }
+  /** A table cell's hover hint: what the run's Trail gave (nothing set when the run does not say). */
+  function trailHint(td, r) {
+    const b = trailBundle(r);
+    if (b) td.title = 'the Trail gave: ' + b;
+    return td;
+  }
   /** "Trail Level 12 of 60 · 14 of 100 nodes bought (11 paid for) · 3,450 gold spent". */
   function trailWords(t) {
     return 'Trail Level ' + t.level + (t.levels ? ' of ' + t.levels : '') + ' · ' + t.bought + (t.nodes ? ' of ' + t.nodes : '') + ' nodes bought'
@@ -1702,6 +1739,14 @@
     tileIn(tiles, 'Nodes bought', t.bought + (t.nodes ? ' of ' + t.nodes : ''), (t.paid != null ? t.paid + ' paid for' + (free > 0 ? ' · ' + free + ' at no cost (the save already had what they give)' : '') : 'how many were paid for is not in this record')
       + (t.nodes ? '' : ' · how many nodes the Trail has is ' + TRAIL_OLD_WORDS));
     tileIn(tiles, 'Gold spent', t.spent != null ? fmtI(t.spent) : '–', 'what the paid nodes cost');
+    // pass 130: the card's first line is the bundle, what this run's Trail gave (the build that played wrote it)
+    const tb = trailBundle(r);
+    if (tb) {
+      const own = typeof r.trail.bundle === 'string' && r.trail.bundle !== '';
+      const p = el('p', 'trail-gave'); p.appendChild(el('b', null, 'Gave: ')); p.appendChild(document.createTextNode(tb));
+      p.title = own ? 'written into the record by the build that played the run (its own Trail file)' : 'worked out here from the record\'s upgrade sums and their types (a record from before 1.01 carries no line of its own, and no unlocks)';
+      c.appendChild(p);
+    }
     c.appendChild(tiles);
     const box = el('div', 'board');
     for (const u of t.rows) {
@@ -2207,6 +2252,12 @@
     // the most), each with how many runs had it
     const boards = {}; for (const e of entries) { const k = trailShort(e.run); boards[k] = (boards[k] || 0) + 1; }
     facts.push(['The Trail', Object.entries(boards).sort((a, b) => b[1] - a[1]).map(([k, v]) => k + (k.startsWith('board ') ? ' ranks' : '') + (entries.length > 1 ? ' (' + v + ' run' + (v > 1 ? 's' : '') + ')' : '')).join(' · ')]);
+    // pass 130: what each of those Trails gave, on one line; runs at one Trail Level that carry different bundles get a
+    // plain warning under the facts (they come from builds whose Trail gave different things)
+    const gave = {}; const gaveOrder = [];
+    for (const e of entries) { const b = trailBundle(e.run); if (!b) continue; const k = trailShort(e.run) + ': ' + b; if (!gave[k]) { gave[k] = 0; gaveOrder.push(k); } gave[k] += 1; }
+    if (gaveOrder.length) facts.push(['The Trail gave', gaveOrder.map((k) => k + (gaveOrder.length > 1 ? ' (' + gave[k] + ' run' + (gave[k] > 1 ? 's' : '') + ')' : '')).join(' | ')]);
+    const mixes = trailMixes(entries.map((e) => e.run));
     if (starts.length) facts.push(['Played', starts[0].replace('T', ' ') + (starts.length > 1 ? ' to ' + starts[starts.length - 1].replace('T', ' ') : '')]);
     facts.push(['Game versions', versions.map((v) => 'v' + v).join(', ') || '?']);
     facts.push(['How they ended', Object.entries(results).map(([k, v]) => v + ' ' + k.toLowerCase()).join(' · ')]);
@@ -2214,6 +2265,10 @@
     const dl = el('dl', 'facts');
     for (const [k, v] of facts) { dl.appendChild(el('dt', null, k)); dl.appendChild(el('dd', null, v)); }
     head.appendChild(dl);
+    for (const m of mixes) {
+      head.appendChild(el('p', 'warnline', 'These runs come from builds whose Trail gave different things: at ' + m.level + ', '
+        + m.kinds.map(([b, n]) => n + ' run' + (n > 1 ? 's' : '') + ' had “' + b + '”').join(' and ') + '. Their average mixes the two.'));
+    }
     const tw = el('div', 'sim-tiles-wrap sim');
     tw.appendChild(simTiles(res, { label: 'Runs averaged', value: String(res.summary.ok), note: players.length > 1 ? players.length + ' players' : 'one player: ' + players[0] }));
     head.appendChild(tw);
@@ -2230,7 +2285,7 @@
       const e = entries[i]; const r = e.run; const row = document.createElement('tr');
       const cells = [whose(r), (r.started || '').replace('T', ' '), r.hero_name || r.hero, RESULT_WORDS[p.end_reason] || p.end_reason, fmtT(p.end_t), p.deaths == null ? '–' : String(p.deaths), p.level == null ? '–' : String(p.level), trailShort(r), fmtN(p.kills), fmtN(p.gold),
         p.chests == null ? '–' : p.chests + ' · ' + p.powerups + ' · ' + p.totems, r.build_text || ''];
-      cells.forEach((v, j) => row.appendChild(el('td', j === 11 ? 'wrap' : (j >= 5 && j <= 10 ? 'num' : null), v)));
+      cells.forEach((v, j) => { const td0 = el('td', j === 11 ? 'wrap' : (j >= 5 && j <= 10 ? 'num' : null), v); if (j === 7) trailHint(td0, r); row.appendChild(td0); });
       const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button'; b.disabled = !Array.isArray(r.samples); b.onclick = () => openRun(r); td.appendChild(b); row.appendChild(td);
       body.appendChild(row);
     });
@@ -2399,7 +2454,7 @@
     const list = el('div', 'plist'); const t = document.createElement('table');
     const th = document.createElement('thead'); const htr = document.createElement('tr');
     // pass 129: the Trail Level the run began at (a record from before the Trail: pass 115's board, ranks bought of its most)
-    for (const h of ['', 'player', 'started', 'hero', 'ended', 'play', 'stage', 'level', 'trail', 'kills', 'version', '']) { const th0 = el('th', null, h); if (h === 'trail') th0.title = 'the Trail Level the run began at; a record from before the Trail: the old Upgrade board as "board ranks bought / the most" (48 for a record from before 0.98)'; htr.appendChild(th0); }
+    for (const h of ['', 'player', 'started', 'hero', 'ended', 'play', 'stage', 'level', 'trail', 'kills', 'version', '']) { const th0 = el('th', null, h); if (h === 'trail') th0.title = 'the Trail Level the run began at (hover a row\'s cell for what that Trail gave); a record from before the Trail: the old Upgrade board as "board ranks bought / the most" (48 for a record from before 0.98)'; htr.appendChild(th0); }
     th.appendChild(htr); t.appendChild(th);
     const tb = document.createElement('tbody');
     for (const r of rows) {
@@ -2408,7 +2463,7 @@
       cb.onchange = () => { if (cb.checked) PICK.add('r:' + r.file); else PICK.delete('r:' + r.file); render(); };
       const td0 = el('td'); td0.appendChild(cb); tr.appendChild(td0);
       const cells = [r.player_label || r.player_name || r.player, (r.started || '').replace('T', ' '), (r.hero_name || r.hero || '') + (r.hero_look ? ' (' + r.hero_look + ')' : ''), (RESULT_WORDS[r.result] || r.result || '') + (r.outcome ? ' · ' + (OUTCOME_WORDS[r.outcome] || r.outcome) : '') + (isDevRow(r) ? ' · dev' : ''), fmtT(r.length || 0), stageWords(r), String(Math.round(r.level || 1)), trailShort(r), fmtN(r.kills || 0), 'v' + (r.version || '?')];
-      cells.forEach((v, j) => tr.appendChild(el('td', j >= 4 && j <= 8 ? 'num' : null, v)));
+      cells.forEach((v, j) => { const tdc = el('td', j >= 4 && j <= 8 ? 'num' : null, v); if (j === 7) trailHint(tdc, r); tr.appendChild(tdc); });
       const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button';
       b.onclick = async () => { b.disabled = true; const rec = await remoteRecord(r); b.disabled = false; if (rec && rec.samples) openRun(rec); else alert('Could not load ' + r.file + ' (download again with tools/posthog_runs.py).'); };
       td.appendChild(b); tr.appendChild(td);
@@ -2462,7 +2517,7 @@
     runs.slice().reverse().forEach((r) => { const o = document.createElement('option'); o.value = r.file; o.textContent = (r.started || r.stamp || '').replace('T', ' ') + ' · ' + (r.hero_name || r.hero) + ' · ' + stageWords(r) + ' · ' + (r.result || '') + ' · ' + fmtT(r.length || 0) + ' · Lv ' + Math.round(r.level || 0) + ' · ' + Math.round(r.kills || 0) + ' kills' + (r.headless ? ' · headless' : ''); sel.appendChild(o); });
     ctl.appendChild(sel); c.appendChild(ctl);
     const pick = el('div', 'hist-pick'); c.appendChild(pick);
-    const showPick = (file) => { const r = runs.find((x) => x.file === file); if (!r) { pick.style.display = 'none'; return; } pick.textContent = ''; pick.appendChild(el('b', null, (r.hero_name || r.hero) + ' · ' + (RESULT_WORDS[r.result] || r.result || ''))); pick.appendChild(document.createTextNode(' · ' + (r.started || '').replace('T', ' ') + ' · play ' + fmtT(r.length || 0) + ', clock ' + fmtT(r.clock || 0) + ' · stage ' + Math.round(r.stage || 1) + ' · level ' + Math.round(r.level || 1) + ' · ' + Math.round(r.kills || 0) + ' kills · ' + Math.round(r.gold || 0) + ' gold' + (r.build ? ' · ' + r.build : '') + ' · v' + (r.version || '') + ' · ')); pick.appendChild(el('code', null, (SOURCE === 'tools' ? 'runs/tools/' : SOURCE === 'remote' ? 'remote/' : 'runs/') + r.file)); pick.appendChild(document.createTextNode(SOURCE === 'remote' ? ' — open it from the list above' : ' — open it with the file input above (a page opened from a file cannot read it by itself)')); pick.style.display = 'block'; };
+    const showPick = (file) => { const r = runs.find((x) => x.file === file); if (!r) { pick.style.display = 'none'; return; } pick.textContent = ''; pick.appendChild(el('b', null, (r.hero_name || r.hero) + ' · ' + (RESULT_WORDS[r.result] || r.result || ''))); pick.appendChild(document.createTextNode(' · ' + (r.started || '').replace('T', ' ') + ' · play ' + fmtT(r.length || 0) + ', clock ' + fmtT(r.clock || 0) + ' · stage ' + Math.round(r.stage || 1) + ' · level ' + Math.round(r.level || 1) + ' · ' + Math.round(r.kills || 0) + ' kills · ' + Math.round(r.gold || 0) + ' gold' + (r.build ? ' · ' + r.build : '') + (typeof r.trail_level === 'number' ? ' · Trail level ' + r.trail_level + (trailBundle(r) ? ' (gave: ' + trailBundle(r) + ')' : '') : '') + ' · v' + (r.version || '') + ' · ')); pick.appendChild(el('code', null, (SOURCE === 'tools' ? 'runs/tools/' : SOURCE === 'remote' ? 'remote/' : 'runs/') + r.file)); pick.appendChild(document.createTextNode(SOURCE === 'remote' ? ' — open it from the list above' : ' — open it with the file input above (a page opened from a file cannot read it by itself)')); pick.style.display = 'block'; };
     sel.onchange = () => showPick(sel.value);
     if (chartReady() && runs.length) {
       const m = el('div', 'multi');

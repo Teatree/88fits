@@ -45,6 +45,12 @@ const PRICE := {"base": 40.0, "k": 1.5, "power": 2.0, "round": 10.0}
 const SOURCE := "The Trail: %s"
 ## The reason the saved gold moves under when a node is bought (gold_meta).
 const SINK := "trail"
+## pass 130: the bundle's words for a Trail that gives nothing, and how its unlocks are counted: [one, many, the gift
+## types counted together], in the order they are written (bundle_text)
+const BUNDLE_EMPTY := "nothing yet"
+const UNLOCK_WORDS := [["outlaw", "outlaws", ["outlaw"]], ["skin", "skins", ["skin"]], ["item", "items", ["weapon", "passive"]],
+	["stage", "stages", ["stage"]], ["map", "maps", ["map"]], ["structure", "structures", ["structure"]],
+	["power-up", "power-ups", ["powerup"]], ["feature", "features", ["feature"]]]
 ## The most nodes a level holds (the layout has four places), the sizes of a choice group.
 const LEVEL_MAX := 4
 const GROUP_MIN := 2
@@ -824,7 +830,8 @@ static func _grouped(n: int) -> String:
 
 ## The run record's block (RunAnalytics, header `trail`): the Trail as the run began, {level, bought (node ids, file
 ## order, the ones a gift already had among them), paid (how many of them were paid for), spent, upgrades {type: summed
-## value}}.
+## value} (pass 130: in the file's order of upgrade types), unlocks {gift type: how many bought nodes gave one} (pass
+## 130)}.
 static func record() -> Dictionary:
 	_ensure_states()
 	var ids: Array = []
@@ -832,11 +839,109 @@ static func record() -> Dictionary:
 		if _bought.has(str(n["id"])):
 			ids.append(str(n["id"]))
 	var sv := _save()
-	var ups := {}
-	for k: Variant in _totals.keys():
-		ups[str(k)] = snappedf(float(_totals[k]), 0.0001)
+	var t := tally(ids)
 	return {"level": _level, "bought": ids, "paid": (sv.call("trail_bought") as Array).size() if sv else 0,
-		"spent": int(sv.call("trail_spent")) if sv else 0, "upgrades": ups}
+		"spent": int(sv.call("trail_spent")) if sv else 0, "upgrades": t["upgrades"], "unlocks": t["unlocks"]}
+
+
+# ---------------------------------------------------------------- the bundle (pass 130)
+
+## Pass 130 (lane HOUSE; Garry: "whenever we do show the level of trail, we also show the stats increases as just a
+## bundle (a list of comma-separated increases) ... in one build, the trail is giving one set of stat increases and in
+## the other build it's giving a different set"). What the nodes `ids` give, added up without a save: {upgrades {type:
+## summed value}, in the file's order of upgrade types (a type the file lacks after them), unlocks {gift type: how
+## many}, in GIFTS' order}. Ids the Trail has no node for are skipped.
+static func tally(ids: Array) -> Dictionary:
+	_ensure()
+	var sums := {}
+	var gifts := {}
+	for id: Variant in ids:
+		var n: Variant = _by_id.get(str(id))
+		if not (n is Dictionary):
+			continue
+		var g: Dictionary = (n as Dictionary)["gives"]
+		var type := str(g.get("type", ""))
+		if type == "upgrade":
+			var ut := str(g.get("upgrade", ""))
+			sums[ut] = float(sums.get(ut, 0.0)) + _num(g.get("value"), 0.0)
+		elif type != "":
+			gifts[type] = int(gifts.get(type, 0)) + 1
+	var ups := {}
+	for ut: Variant in upgrade_types():
+		if sums.has(str(ut)):
+			ups[str(ut)] = snappedf(float(sums[str(ut)]), 0.0001)
+	for ut: Variant in sums.keys():
+		if not ups.has(str(ut)):
+			ups[str(ut)] = snappedf(float(sums[ut]), 0.0001)
+	var unlocks := {}
+	for type: String in GIFTS:
+		if gifts.has(type):
+			unlocks[type] = int(gifts[type])
+	return {"upgrades": ups, "unlocks": unlocks}
+
+
+## The bundle: what a Trail gives, on one line, wherever a tool shows a Trail Level: "Attack damage +12%, Max health
+## +30%, Reroll a run +2 · unlocks: 2 outlaws, 3 items, 1 stage"; BUNDLE_EMPTY ("nothing yet") for a Trail that gives
+## nothing. `block` is a trail block (record(), RunAnalytics.trail_block, tally()): its `upgrades` {type: summed value}
+## are written in the block's own order with the words of its `types` ({type: {name, kind, text}}) when it carries
+## them, so a record from another build reads as THAT build's Trail; a block without `types` reads by this build's
+## upgrade types, in the file's order. A type reads "<text> <amount>" (amount_text by its kind; without a text its
+## name, without either its id), a word-kind type by its name alone, a sum of 0 not at all. Then the block's `unlocks`
+## {gift type: count} in short (UNLOCK_WORDS; weapons, cards and items all count as "items"); a block without
+## `unlocks` (a record from before pass 130) names none.
+## tools/level_editor/trail_bundle.js and tools/trail_bundle.py are this function's twins: change all three (the
+## fixture game/tests/fixtures/trail_bundle.json pins them together).
+static func bundle_text(block: Dictionary) -> String:
+	var raw: Variant = block.get("upgrades")
+	var ups: Dictionary = raw if raw is Dictionary else {}
+	var own: Variant = block.get("types")
+	var order: Array = []
+	if own is Dictionary:
+		order = ups.keys()
+	else:
+		for ut: Variant in upgrade_types():
+			if ups.has(ut):
+				order.append(ut)
+		for ut: Variant in ups.keys():
+			if not order.has(ut):
+				order.append(ut)
+	var parts := PackedStringArray()
+	for ut: Variant in order:
+		var uv: Variant = (own as Dictionary).get(ut) if own is Dictionary else upgrade(str(ut))
+		var u: Dictionary = uv if uv is Dictionary else {}
+		var kind := str(u.get("kind", "flat"))
+		var name := str(u.get("name", ""))
+		var text := str(u.get("text", ""))
+		if kind == "word":
+			parts.append(name if name != "" else (text if text != "" else str(ut)))
+			continue
+		var value := _num(ups[ut], 0.0)
+		if absf(value) < 0.0000001:
+			continue
+		parts.append("%s %s" % [text if text != "" else (name if name != "" else str(ut)), amount_text(kind, value)])
+	var got := PackedStringArray()
+	var un: Variant = block.get("unlocks")
+	if un is Dictionary:
+		for w: Array in UNLOCK_WORDS:
+			var n := 0
+			for type: Variant in (w[2] as Array):
+				n += _int((un as Dictionary).get(type), 0)
+			if n > 0:
+				got.append("%d %s" % [n, str(w[0]) if n == 1 else str(w[1])])
+	var out := ", ".join(parts)
+	if not got.is_empty():
+		out += (" · " if out != "" else "") + "unlocks: " + ", ".join(got)
+	return out if out != "" else BUNDLE_EMPTY
+
+
+## The bundle of the nodes `ids` (tally): what a tool's Trail gives before any run has a record.
+static func bundle_of(ids: Array) -> String:
+	return bundle_text(tally(ids))
+
+
+## The bundle of the Trail the save holds now (record()).
+static func bundle() -> String:
+	return bundle_text(record())
 
 
 # ---------------------------------------------------------------- the migration's look at the save

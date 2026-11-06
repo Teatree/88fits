@@ -77,7 +77,30 @@ roster = [{
 "hp_mult": 2.0
 },
 "t": 123.0,
-"until": 245.0,
+"until": 219.0,
+"variant": "RG-B",
+"weights": [[123.0, 9.0], [182.0, 5.1], [186.0, 8.8], [241.0, 8.4]]
+}, {
+"count": 20.0,
+"enemy": "red_goblin",
+"every": 4.0,
+"id": "r10",
+"pace": "waves",
+"pack": 2.0,
+"pattern": "scatter",
+"role": "fodder",
+"special": false,
+"stats": {
+"drops": {
+"medium": 0.0
+},
+"elite": {
+"hp_mult_per_stage": 0.0
+},
+"hp_mult": 2.0
+},
+"t": 123.0,
+"until": 219.0,
 "variant": "RG-B",
 "weights": [[123.0, 9.0], [182.0, 5.1], [186.0, 8.8], [241.0, 8.4]]
 }, {
@@ -274,17 +297,20 @@ roster = [{
 "pattern": "in_front",
 "role": "tank",
 "stats": {
+"charge": {
+"knockback": 10.0
+},
 "damage_mult": 1.5,
 "drops": {
 "large": 0.1
 },
-"hp_mult": 3.0,
+"hp_mult": 5.0,
 "max_alive": 4.0,
-"size": 3.0
+"size": 4.0
 },
-"t": 150.0,
-"until": 155.0,
-"weights": [[150.0, 1.0]]
+"t": 160.0,
+"until": 165.0,
+"weights": [[160.0, 1.0]]
 }, {
 "enemy": "spit_cactus",
 "id": "r54",

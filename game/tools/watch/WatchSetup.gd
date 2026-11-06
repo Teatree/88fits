@@ -82,6 +82,7 @@ var _bot_preset_ids: Array = []
 var _bot_fields: Dictionary = {}
 var _trail_level: SpinBox
 var _trail_opt: CheckBox
+var _bundle: Label
 var _board_sum: Label
 var _preset_btns: Dictionary = {}
 var _cancel_btn: Button
@@ -603,6 +604,11 @@ func _build_board(parent: Control) -> void:
 	help.add_theme_color_override("font_color", PANEL.DIM)
 	help.add_theme_font_size_override("font_size", 12)
 	parent.add_child(help)
+	# pass 130: what the Trail chosen gives (the bundle), changing as the choice changes
+	_bundle = Label.new()
+	_bundle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_bundle.add_theme_font_size_override("font_size", 12)
+	parent.add_child(_bundle)
 
 
 func _use_preset(name: String) -> void:
@@ -620,6 +626,16 @@ func _level_typed(lv: int) -> void:
 	_show_board()
 
 
+## Pass 130: what the Trail being set gives, on one line (Trail.bundle_text): the PC save's own nodes for "my save",
+## else every required node up to the level (tools/trail_arg.gd).
+func bundle_words() -> String:
+	if trail == "save":
+		var sv = _trail_doc().get("save")
+		var ids: Array = (sv as Dictionary).get("ids", []) if sv is Dictionary and (sv as Dictionary).get("ids") is Array else []
+		return Trail.bundle_of(ids)
+	return TRAIL_ARG.bundle_of(trail, trail_optional)
+
+
 func _show_board() -> void:
 	var levels := _trail_levels()
 	var sv = _trail_doc().get("save")
@@ -630,6 +646,7 @@ func _show_board() -> void:
 	_trail_opt.set_pressed_no_signal(trail_optional)
 	_trail_opt.disabled = trail == "save" or trail == "none"
 	_board_sum.text = trail_words(trail, trail_optional, levels, save_level)
+	_bundle.text = "Gives: " + bundle_words()
 	for name in _preset_btns:
 		var b: Button = _preset_btns[name]
 		b.set_pressed_no_signal(name == trail)

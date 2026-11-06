@@ -290,6 +290,9 @@ const LookGrid = (() => {
       dl.appendChild(el('dd', {}, thumbs, where));
     }
     info.appendChild(dl);
+    // pass 130 (lane LE): which way the front and back paintings turn, one click to flip (creatures and bosses; an
+    // outlaw's front and back sets never mirror)
+    if (kind !== 'hero' && !isStub(look)) info.appendChild(facingRow(kind, id, record, look, s));
     // pass 70: choose the look's badge / icon / cut-out from everything the finished jobs painted
     if (!isStub(look)) info.appendChild(pickers(kind, id, look));
     // pass 76 (lane ICON): the look's icon now, Revert icon, its changes and every icon on disk ("Use for this look")
@@ -303,6 +306,51 @@ const LookGrid = (() => {
       Eyes.lookLine(eh, kind === 'boss' ? 'boss' : kind, id, look.code);
     }
     wrap.appendChild(info);
+    return wrap;
+  }
+
+  // ------------------------------------------------------------------ pass 130 (lane LE): the Facing row
+  // Garry: "The new strawmen are looking in the opposite direction ... with their backend running upwards ... This
+  // should be very very simple to do, make it an option in the Level Editor." The rule is EnemyDef.front_faces /
+  // back_faces (right | left | straight) on the creature and on a look's own entry; the row shows what applies, where
+  // it comes from, the set walking screen-left and screen-right, and saves a change at once (look op `facing`).
+  const FACE_WORDS = { right: 'painted turned right (mirrored when heading left)', left: 'painted turned left (mirrored when heading right)', straight: 'never mirrored (a painting that looks straight at you or straight away)' };
+  function facingRow(kind, id, record, look, s) {
+    for (const p of s.facePlayers || []) { try { p.destroy(); } catch (_) { /* gone already */ } }
+    s.facePlayers = [];
+    const wrap = el('div', { class: 'lg-facing' });
+    wrap.appendChild(el('div', { class: 'lg-facing-head' }, el('b', { text: 'Facing' }),
+      el('span', { class: 'muted small', text: 'which way the painting turns, so the game knows when to mirror it. Looks the wrong way in a preview? Flip that view.' })));
+    const anims = look.anims || record.anims || {};
+    if (anims.idle_l > 0 || anims.run_l > 0) {   // StripPlayer.hasLeftSets' rule (EnemyManager: idle_l or run_l)
+      wrap.appendChild(el('div', { class: 'muted small', text: `${look.code} has its own left-heading sets (idle_l / run_l, pass 111): the game never mirrors its front and back sets, so the rule is ignored. A frame that looks the wrong way is fixed in Frames…` }));
+      return wrap;
+    }
+    for (const view of ['front', 'back']) {
+      const key = view + '_faces';
+      const cur = ['right', 'left', 'straight'].includes(look[key]) ? look[key] : 'right';
+      const src = (look.faces_src || {})[view];
+      const others = looksOf(record).filter((l) => !l.base && (l.faces_src || {})[view] !== 'look').length;
+      const from = look.base ? `the creature’s own rule${others ? `: ${others} other look${others === 1 ? '' : 's'} without their own follow${others === 1 ? 's' : ''} it` : ''}`
+        : src === 'look' ? `${look.code}’s own` : src === 'creature' ? 'from the creature' : src === 'default' ? 'the default (nothing set)' : 'restart the Level Editor to see where it comes from';
+      const line = el('div', { class: 'lg-facing-line' });
+      line.appendChild(el('span', { class: 'lb', text: view === 'front' ? 'Front view' : 'Back view', title: view === 'front' ? 'the set played while the creature walks down the screen, toward the camera' : 'the set played while the creature walks up the screen, away from the camera' }));
+      const hasRun = anims[view === 'back' ? 'run_b' : 'run'] > 0;
+      for (const facing of ['left', 'right']) {
+        const p = StripPlayer.create(playerOpts(kind, record, look, { mode: 'hover', always: true, zoom: 0.4, anim: hasRun ? 'run' : 'idle', dir: view, facing, label: `${look.code} ${view}, heading screen-${facing}` }));
+        s.facePlayers.push(p);
+        line.appendChild(el('span', { class: 'lg-facing-pv', title: `the ${view} set while the creature heads screen-${facing}: it should look ${facing}` }, p.el, el('span', { class: 'muted small', text: facing === 'left' ? '← heading left' : 'heading right →' })));
+      }
+      const set = (value) => op(kind, id, record, s, look.code, { op: 'facing', view, value }).then((r) => { if (r && r.ok) redraw(); });
+      const b = (text, title, value, cls) => el('button', { type: 'button', class: 'btn small ' + (cls || 'ghost'), text, title, disabled: s.busy, onclick: (e) => { e.stopPropagation(); set(value); } });
+      const now = el('span', { class: 'lg-facing-now' }, el('b', { text: cur }), el('span', { class: 'muted small', text: ` ${FACE_WORDS[cur]} · ${from}` }));
+      const btns = el('span', { class: 'lg-facing-btns' },
+        b('Flip', `${view} view: ${cur === 'left' ? 'left → right' : cur === 'right' ? 'right → left' : 'straight → left'}. Saved at once into ${look.base ? id + '.json’s top-level ' + key : `variants.${look.code}.${key}`} (a backup first), then imported; no art job`, cur === 'left' ? 'right' : 'left', 'flip'),
+        cur === 'straight' ? null : b('Never mirror', `${view} view: "straight", the same picture heading left and right (for a painting that looks straight at the camera or straight away)`, 'straight'),
+        !look.base && src === 'look' ? b('Use the creature’s', `drop ${look.code}’s own ${key}: it follows the creature’s rule (${record[key] || 'right'}) again`, 'inherit') : null);
+      line.appendChild(el('span', { class: 'lg-facing-set' }, now, btns));
+      wrap.appendChild(line);
+    }
     return wrap;
   }
 

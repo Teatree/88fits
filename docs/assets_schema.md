@@ -1516,6 +1516,9 @@ Code constants (not data):
 | key | type | default | meaning |
 |---|---|---|---|
 | `variant_of` | string (a painting id) | absent | this painting is another look of that kind: wherever the map places the kind, PropField.add draws the kind's own painting or one of its variants, chosen by a hash of the spot (PropField.pick_look), never by the map's roll, so a seed's layout, colliders and obstacle circles are unchanged; the `placed` row keeps the kind's id, `look` names the painting. A variant keeps its own `height`, `cell` and `shadow`; its `radius` is unused while the map asks for the kind (the kind's radius makes the collider). |
+| `stages` | array of stage ids ("s1", "s2", "dust", "s3"; "hell" = any hell stage) | absent = every stage | pass 130: the painting is laid only in these stages (PropField.in_stage; the run's stage, which RedCanyon hands to PropField.setup). On a kind's own entry it takes the kind's own painting out of the other stages; where no painting of a kind is left for a stage, the kind's own is laid after all. A variant out of the run's stage is not loaded. A field not told its stage (tests, the title) lays only the kinds' own paintings. |
+| `per_run` | int | absent | pass 130: a variant that the spot never rolls: once the map is laid, this many of its kind's placed props are redrawn as it (PropField.settle_rare, on dice of the map seed and the variant's id). Yellow Catkins: 1. |
+| `stage_chance` | {stage id: 0..1} | absent = 1 | pass 130, with `per_run`: the chance the variant comes at all in that stage ("hell" names any hell stage). Yellow Catkins: {"s3": 0.5}. |
 | `weight` | float >= 0 | 1 | the painting's share in its kind's pick (the kind's own entry counts too). 0 keeps a variant out of the scatter while it can still be placed by name (the title's vignette). |
 | `shadow` | {w, d, x, z, a} | PropField.SHADOW_DEFAULT {0.5, 0.24, 0, 0, 0.35} | the painting's ground shadow, in shares of its drawn quad's height (props: `height` x the placed scale; structures: StructureDef.height x 1.15): `w` across, `d` deep (an ellipse), `x` the foot's offset right of the quad's middle (mirrors with a flipped painting), `z` the painted foot's offset (negative = back, up the screen: the foot stands a little up its leaning quad), `a` its darkness 0..1 (0 = no shadow). Measured from the painting by `python tools/prop_shadows.py` (kept unless `--force`); tune by hand. |
 
@@ -3588,6 +3591,17 @@ trail_optional, trail_label, ref, look, run}`.
 **The run record** is schema 6 (`analytics/SCHEMA.md`): no `talents`, `talent_forms`, `board`; `trail` = {level, bought,
 paid, spent, upgrades, levels, nodes, types}; `icons["trail:<type>"]`; index row `trail_level`, `trail_bought`,
 `trail_spent`. PostHog `run_start`: `trail_level`, `trail_nodes`, `trail_spent`.
+
+**Pass 130: the bundle beside every Trail Level.** `Trail.bundle_text(block)` / `Trail.bundle_of(ids)` / `Trail.bundle()`
+write what a Trail gives on one line (twins: `tools/level_editor/trail_bundle.js`, `tools/trail_bundle.py`; fixture
+`game/tests/fixtures/trail_bundle.json`); `tools/trail_arg.gd` `apply()` returns it as `bundle` and `bundle_of(arg,
+optional, ids)` names it without touching a save. No argument of any tool changed. Where it shows: the Watch (a line
+under the header's Trail, "Gives:" in the Outlaw Settings pop-up beside the Trail choice, the console line `watch: the
+Trail gives: ...`, the record's `watch.trail_bundle`), `watch.py` and `sim_batch.py` (a printed line; a sim's result
+`meta.trail_bundle`, and `meta.trail_bundles` when its runs differ), the Sim tab (beside the Trail control and in a
+finished sim's header), `difficulty_probe.gd` (`probe: the Trail gives: ...`), the dashboard, the replay viewer (the
+"The Trail" button's pop-up; `trail=1` on its command line opens it from the start) and `replay.py`. The record's
+`trail` gains `unlocks` and `bundle`, the index row `trail_bundle`, `run_start` `trail_bundle` and `build_id`.
 
 **The save**: `talents`, `talent_spent`, `talent_spent_in` are read once by `Save._migrate_trail` (every coin back) and
 erased; `board_note` holds only the migration's `trail_refund`. `StatSheet.PLAYER_DEFAULTS.revive_hp` is 0.4 (it was the

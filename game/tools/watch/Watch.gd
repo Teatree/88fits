@@ -574,6 +574,8 @@ func _begin_run(s: Dictionary, spawn: bool) -> void:
 	print("watch: %s seed %d map %s trail %s limit %s speed %s bot %s ref %s%s" % [hero, run_seed, map_id, trail_words(),
 		DATA.mmss(limit) if limit > 0.0 else "none", CLOCK.label(clock.speed), str(args.get("bot", "auto")), ref_label if ref_label != "" else "none",
 		" (run %d of this window, the spawn beam)" % runs if spawn else ""])
+	# pass 130: what that Trail gives, on one line (two builds at one Trail Level may give different things)
+	print("watch: the Trail gives: %s" % trail_bundle())
 
 
 ## The Watch's fields from settings `s`: the hero, his look, the map, the seed (a new one when random), the limit, Down!,
@@ -814,7 +816,7 @@ func _attach() -> void:
 		ra.set("mirror_root", repo.path_join("analytics"))
 	var hdr = ra.get("header")
 	if hdr is Dictionary:
-		hdr["watch"] = {"bot": "", "trail": trail_text, "trail_optional": trail_optional, "trail_label": trail_words(), "ref": ref_label, "look": look, "run": runs}
+		hdr["watch"] = {"bot": "", "trail": trail_text, "trail_optional": trail_optional, "trail_label": trail_words(), "trail_bundle": trail_bundle(), "ref": ref_label, "look": look, "run": runs}
 	if game.get("damage_numbers") != null and game.damage_numbers and not numbers_on:
 		game.damage_numbers.suppressed = true
 	_make_bot()
@@ -1730,6 +1732,15 @@ func trail_words() -> String:
 	if trail_label != "":
 		return trail_label
 	return str(trail_info.get("label", trail_text))
+
+
+## Pass 130 (Garry: "whenever we do show the level of trail, we also show the stats increases as just a bundle"): what
+## the run's Trail gives, on one line (Trail.bundle_text): what the save came to (TRAIL_ARG.apply), else, before the
+## first run has set its save, what the setting names.
+func trail_bundle() -> String:
+	if trail_info.has("bundle"):
+		return str(trail_info["bundle"])
+	return TRAIL_ARG.bundle_of("none" if trail_text == "save" else trail_text, trail_optional, trail_ids if trail_text == "save" else [])
 
 
 func header_words() -> String:

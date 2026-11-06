@@ -689,6 +689,17 @@ const Instructions = (() => {
       'Click the picture you want (any job\'s, any look\'s), then <b>Install … as &lt;CODE&gt;\'s badge</b>. An install job runs on the local lane: the round badge is made from the portrait (the old file backed up), the look\'s entry names it, then an import. The base look\'s choice goes to the outlaw\'s own files.',
       'More to choose from: <b>Badge candidates…</b> / <b>Cut-out candidates…</b> on the look\'s card (with other words: a different action or pose gives different pictures).'));
 
+    how('A creature looks the wrong way', 'Pass 130. A creature that looks away from where it walks (the Straw Man ran up the screen looking the other way) has a painting that turns the other way than the game assumes. No art job is needed.', ol(
+      'Enemies tab → the creature → <b>Looks &amp; previews</b> → click the look\'s card. Beside the big player the <b>Facing</b> row shows the <b>Front view</b> (walking down the screen) and the <b>Back view</b> (walking up), each heading left and heading right.',
+      'The view that looks the wrong way → <b>Flip</b>. It is saved at once (a backup first) and imported; the previews show the result.',
+      '<b>right</b> = the painting turns to the viewer\'s right, so the game mirrors it when the creature heads left (the default); <b>left</b> = it turns left, mirrored when heading right; <b>straight</b> (<b>Never mirror</b>) = a painting that looks straight at you or straight away, the same picture both ways.',
+      'A look writes its own rule; the <b>base</b> look writes the creature\'s, which every look without its own follows (the row says where each rule comes from; <b>Use the creature\'s</b> drops a look\'s own). A look with its own left-heading sets is never mirrored: the row says so, and a wrong frame is fixed in <b>Frames…</b>'));
+
+    how('Read what a Trail upgrade does (the Hint box)', null, ol(
+      'Trail tab → click a node (its row on the right, or its tile on the left). The <b>Hint</b> box under the tools bar says what its upgrade does in play, how the amount is written and the stat behind it, how many nodes give that type and their sum (whole, and up to this node\'s level), what an unlock node opens and what that thing was locked behind, and what a choice / optional / needs-others node means.',
+      'While a node\'s pick list is open the box follows the type the list points at (arrow keys or the mouse), so you can read a type before choosing it. <b>▾ Hint</b> folds the box away.',
+      'The words per upgrade type are in <code>tools/level_editor/trail_hints.json</code> (tools only, the game never reads it): a new type falls back to its own text until it gets an entry there.'));
+
     how('Remove a base look (MAY-A)', 'The base look is the JSON\'s top-level strip (<code>variant_base</code>). Removing it makes another look the base.', ol(
       'The outlaw → Looks &amp; previews → the card with the <b>base</b> chip → <b>Remove…</b> (the look in play cannot be removed: make another the default first).',
       'Choose <b>which look becomes the base</b> (the one in play is first) → <b>Yes, remove …</b>.',

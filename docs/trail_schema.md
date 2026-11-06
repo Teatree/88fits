@@ -210,6 +210,19 @@ group ("" unless a choice), from ([] = the default; ids the file does not have, 
 name, note, index (its place in the file)}`, plus `price` and `x` only when the file gives them. A node without an id,
 and the second node of an id used twice, are left out.
 
+### The bundle (pass 130)
+
+`Trail.bundle_text(block) -> String` writes what a Trail gives on one line, for every tool that shows a Trail Level:
+`Attack damage +12%, Max health +10%, Reroll a run +1 · unlocks: 2 outlaws, 3 items, 1 stage`; `Trail.BUNDLE_EMPTY`
+("nothing yet") when it gives nothing. `block` is `Trail.record()`, the run record's `trail`, or `Trail.tally(ids)`
+({upgrades, unlocks} of any node ids, without a save). Each upgrade type reads "<its `text`> <its sum as its `kind`
+writes it>" (no text: its name; a `word` kind: its name alone; a sum of 0: nothing), in the block's own order with the
+block's own `types` when it carries them (a record from another build reads as THAT build's Trail), else by this
+file's upgrade types in the file's order. The unlocks are counted by gift type (`Trail.UNLOCK_WORDS`: weapons, cards
+and items all read "items"). `Trail.bundle_of(ids)` and `Trail.bundle()` (the save's Trail now) are shorthands. The
+JavaScript and Python twins (`tools/level_editor/trail_bundle.js`, `tools/trail_bundle.py`) must change with it; the
+fixture `game/tests/fixtures/trail_bundle.json` holds the three to one wording.
+
 ### How the rules were read where this page left room
 
 - A `from` left out is never what locks or closes a node: rule 4's level gate already asks for every required node

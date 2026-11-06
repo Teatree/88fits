@@ -32,6 +32,20 @@ var placed: Array = []        # {"id", "look", "pos", "scale", "flip", "i", "s"}
 var _shader: Shader = preload("res://core/shaders/prop_billboard.gdshader")
 ## kind -> [[painting id, weight], ...] (the kind's own painting first), for the kinds that have variants
 var _variants: Dictionary = {}
+## Pass 130 (Garry's picks from the environment variations, each with its own rule): the stage this field stands in (the
+## map's stage id: "s1", "s2", "dust", "s3"; "" = not told: a test, a capture, the title) and whether it is a hell stage.
+## A manifest entry may say
+##   "stages": [ids]      the painting is laid only in these stages ("hell" = any hell stage). On a kind's own entry it
+##                        takes the kind's own painting out of the other stages (a variant stands in for it there; with no
+##                        variant in that stage the kind's own painting is laid after all). A painting with `stages` is in
+##                        no stage while the stage is not told.
+##   "per_run": N         a variant that is never rolled by the spot: once the map is laid, N of the kind's placed props
+##                        take it (settle_rare, on the map seed's own dice), so a run has exactly N (or the kind's count).
+##   "stage_chance": {id: p}   with per_run: the chance it comes at all in that stage (1 where the stage is not named).
+var stage_id := ""
+var stage_hell := false
+## kind -> [variant ids with per_run] that may come in this stage
+var _rare: Dictionary = {}
 ## The ground under a point (the map's height_at): the shadows lie on slopes (EnemyManager.drape). Unset: flat at the foot.
 var height_fn: Callable
 var _shadow_mm: MultiMesh
@@ -49,7 +63,9 @@ const WIND_SPEED := 1.3
 var wind_now := Vector3(1.0, WIND_SPEED, 0.0)
 
 
-func setup(manifest_path: String = "res://art/sprites/props/props.json") -> void:
+func setup(manifest_path: String = "res://art/sprites/props/props.json", p_stage: String = "", p_hell: bool = false) -> void:
+	stage_id = p_stage
+	stage_hell = p_hell
 	if not FileAccess.file_exists(manifest_path):
 		return
 	var f := FileAccess.open(manifest_path, FileAccess.READ)
@@ -62,6 +78,10 @@ func setup(manifest_path: String = "res://art/sprites/props/props.json") -> void
 		var row: Dictionary = manifest[id]
 		var path: String = dir.path_join(str(row.get("file", id + ".png")))
 		if not ResourceLoader.exists(path):
+			continue
+		# pass 130: a variant that cannot come in this stage is not loaded at all (no texture, no MultiMesh); a kind's own
+		# painting always is (the scatter asks for the kind, and it is the fallback)
+		if stage_id != "" and str(row.get("variant_of", "")) != "" and not in_stage(str(id)):
 			continue
 		var tex: Texture2D = load(path)
 		var mm := MultiMesh.new()
@@ -107,6 +127,7 @@ func set_wind(mult: float = 1.0, speed: float = WIND_SPEED, gust: float = 0.0) -
 ## The kinds' variant tables: every drawable, unhidden entry with `variant_of` naming a drawable kind.
 func _build_variants() -> void:
 	_variants.clear()
+	_rare.clear()
 	for id in manifest.keys():
 		var row = manifest[id]
 		if not row is Dictionary or not _types.has(id) or is_hidden(id):
@@ -114,9 +135,85 @@ func _build_variants() -> void:
 		var base := str((row as Dictionary).get("variant_of", ""))
 		if base == "" or not _types.has(base):
 			continue
+		# pass 130: out of this stage: not in the table; one a run: never rolled by the spot (settle_rare lays it)
+		if not in_stage(str(id)):
+			continue
+		if int((row as Dictionary).get("per_run", 0)) > 0:
+			if not _rare.has(base):
+				_rare[base] = []
+			(_rare[base] as Array).append(str(id))
+			continue
 		if not _variants.has(base):
-			_variants[base] = [[base, _weight(base)]]
+			_variants[base] = [[base, _weight(base)]] if in_stage(base) else []
 		(_variants[base] as Array).append([str(id), _weight(str(id))])
+
+
+## Pass 130: may painting `id` be laid in this field's stage? No `stages` = everywhere; else its stage is listed ("hell"
+## lists every hell stage). Not told a stage, a painting with `stages` is out (a kind's own is still its fallback).
+func in_stage(id: String) -> bool:
+	var row = manifest.get(id)
+	if not row is Dictionary or not (row as Dictionary).get("stages") is Array:
+		return true
+	var list: Array = (row as Dictionary)["stages"]
+	return (stage_id != "" and list.has(stage_id)) or (stage_hell and list.has("hell"))
+
+
+## Pass 130: the one-a-run paintings take their props (call once, after everything is laid): for each variant with
+## `per_run` that may come in this stage, a roll of its `stage_chance`, then that many of its kind's placed props (chosen
+## on dice of the map seed and the variant's name, so a seed's map is the same every time) are drawn as it instead. The
+## collider is the kind's, so nothing in play moves. Returns the paintings laid, {variant id: count}.
+func settle_rare(map_seed: int) -> Dictionary:
+	var out := {}
+	for kind: String in _rare.keys():
+		for look: String in _rare[kind]:
+			var row: Dictionary = manifest[look]
+			var rng := RandomNumberGenerator.new()
+			rng.seed = hash([map_seed, look, "rare"])
+			var chances = row.get("stage_chance")
+			var chance := 1.0
+			if chances is Dictionary:
+				if (chances as Dictionary).has(stage_id):
+					chance = float(chances[stage_id])
+				elif stage_hell and (chances as Dictionary).has("hell"):
+					chance = float(chances["hell"])
+			if rng.randf() >= chance:
+				continue
+			var spots: Array = []
+			for k in placed.size():
+				var pr: Dictionary = placed[k]
+				if str(pr["id"]) == kind and not _is_rare(str(pr["look"])):
+					spots.append(k)
+			var n := mini(int(row.get("per_run", 0)), spots.size())
+			var took: Array = []
+			for j in n:
+				var pick: int = rng.randi_range(0, spots.size() - 1)
+				took.append(placed[spots[pick]])
+				spots.remove_at(pick)
+			for pr: Dictionary in took:
+				_redraw_as(pr, look)
+			if n > 0:
+				out[look] = n
+	return out
+
+
+func _is_rare(look: String) -> bool:
+	var row = manifest.get(look)
+	return row is Dictionary and int((row as Dictionary).get("per_run", 0)) > 0
+
+
+## Placed prop `pr` drawn as painting `look` from now on: its old instance shrinks to nothing (a MultiMesh's buffer is not
+## read back, so nothing is moved), its shadow goes, and the same spot, size, mirror and sway is laid again as `look`.
+func _redraw_as(pr: Dictionary, look: String) -> void:
+	var t: Dictionary = _types.get(str(pr["look"]), {})
+	var at: Vector3 = pr["pos"]
+	var k := placed.find(pr)
+	if k < 0 or not add(look, at, float(pr["scale"]), bool(pr["flip"]), float(pr.get("sway", 0.0)), true):
+		return
+	if not t.is_empty() and int(pr["i"]) >= 0:
+		(t["mm"] as MultiMesh).set_instance_transform(int(pr["i"]), Transform3D(Basis().scaled(Vector3.ZERO), at))
+	hide_shadow(int(pr["s"]))
+	# the new row takes the old one's place, so `placed` keeps the order the map laid its props in
+	placed[k] = placed.pop_back()
 
 
 func _weight(id: String) -> float:
@@ -184,8 +281,11 @@ func looks_of(kind: String) -> Array:
 ## The painting drawn for `kind` at `at`: the kind itself or one of its variants, by a hash of the spot (weighted).
 func pick_look(kind: String, at: Vector3) -> String:
 	var rows: Array = _variants.get(kind, [])
-	if rows.size() < 2:
+	if rows.is_empty():
 		return kind
+	if rows.size() == 1:
+		# pass 130: one painting left in this stage (the kind's own is out of it: a variant stands in)
+		return str(rows[0][0])
 	var total := 0.0
 	for r in rows:
 		total += float(r[1])
@@ -224,7 +324,7 @@ func add(id: String, at: Vector3, scale: float = 1.0, flip: bool = false, sway: 
 	if float(sh["a"]) > 0.0:
 		var x := float(sh["x"]) * h * (-1.0 if flip else 1.0)
 		s = add_shadow(at + Vector3(x, 0.0, float(sh["z"]) * h), float(sh["w"]) * h, float(sh["d"]) * h, float(sh["a"]), h)
-	placed.append({"id": kind, "look": look, "pos": at, "scale": scale, "flip": flip, "i": n, "s": s})
+	placed.append({"id": kind, "look": look, "pos": at, "scale": scale, "flip": flip, "i": n, "s": s, "sway": sway})
 	return true
 
 

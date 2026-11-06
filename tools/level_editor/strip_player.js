@@ -301,7 +301,7 @@ const StripPlayer = (() => {
       this.sizeCanvas();
       if (this.mode === 'hover') {
         fig.addEventListener('mouseenter', () => { this.hovered = true; this.t = 0; wake(); });
-        fig.addEventListener('mouseleave', () => { this.hovered = false; this.showFrame(0); });
+        fig.addEventListener('mouseleave', () => { this.hovered = false; if (!this.opts.always) this.showFrame(0); });   // pass 130: `always` = a small player that plays without the pointer (the look card's Facing row)
         fig.addEventListener('dblclick', () => this.openModal());
         fig.title = this.label ? `${this.label}: hover to play, double-click for the close look` : 'hover to play, double-click for the close look';
       }
@@ -391,7 +391,7 @@ const StripPlayer = (() => {
     }
 
     wants() {
-      return !this.destroyed && this.playing && this.visible && this.mode !== 'still' && !!(this.entry && this.entry.ready) && (this.mode !== 'hover' || this.hovered) && !!(this.resolved && this.resolved.ok && this.resolved.count > 1);
+      return !this.destroyed && this.playing && this.visible && this.mode !== 'still' && !!(this.entry && this.entry.ready) && (this.mode !== 'hover' || this.hovered || !!this.opts.always) && !!(this.resolved && this.resolved.ok && this.resolved.count > 1);
     }
 
     tick(dt) {

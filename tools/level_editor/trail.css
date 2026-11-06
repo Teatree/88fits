@@ -139,3 +139,17 @@ select.trl-in { padding: 2px 2px; }
 .trl-modal h3 { margin: 0 0 8px; } .trl-modal p { margin: 5px 0; }
 .trl-modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
 .trl-import-list { max-height: 220px; overflow: auto; margin: 4px 0; padding-left: 18px; font-size: 0.86rem; }
+
+/* pass 130 (lane LE): the hint box under the tools bar (trail.js drawHint, trail_hint.js): what the selected node gives */
+.trl-hint { border: 1px solid var(--border); border-left: 3px solid var(--s1); border-radius: 6px; background: var(--surface); margin: 4px 0 4px; padding: 4px 10px 6px; font-size: 0.82rem; max-height: 42vh; overflow: auto; }
+.trl-hint.looking { border-left-color: var(--sel); }
+.trl-hint-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.trl-hint-tog { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0; font: inherit; }
+.trl-hint-tog:hover { color: var(--ink); }
+.trl-hint-body { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin-top: 3px; }
+.trl-hint-line { display: contents; }
+.trl-hint-line .lb { color: var(--muted); white-space: nowrap; }
+.trl-hint-line .tx { color: var(--ink-2); max-width: 110ch; }
+.trl-hint-line.k-what .tx { color: var(--ink); }
+.trl-hint-line.k-note .tx { color: var(--mark-edit, #d9b36a); }
+.trl-hint-line.k-warn .tx { color: var(--serious); }

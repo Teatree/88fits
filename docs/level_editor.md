@@ -2466,3 +2466,42 @@ save of a file laid out differently rewrites its layout once). If the file chang
 save is refused: Reload (export the CSV first to keep your edits). The server needs a restart once for this pass (new
 routes `/api/trail`, `/api/trail/save`, `/api/trail/icon/<name>`). A reload of the page now comes back to the Trail,
 the Wanted and the Mirror tab (their names were missing from the hash routes).
+
+## Pass 130 (lane LE): the Trail's Hint box, and a creature that looks the wrong way
+
+### The Hint box (Trail tab)
+
+Click a node (its row, or its tile on the left): the **Hint** box under the tools bar, which stays in view, says in
+plain words what the node gives. For an upgrade: what the type does in play and what is easy to get wrong (Tempo reads
+"Attack speed" and is a cooldown cut; the Stakes make creatures tougher, and their extra pay is a designer's note the
+player never reads), how the amount is written ("0.03 in the file is +3%") and the stat behind it, and where the file
+stands: how many nodes give the type, their sum at most (sure, the best member of each choice group, optional), and
+the sum up to and including this node's level. For an unlock: what it opens and what that thing was locked behind when
+the Trail arrived (its quest, standing or retired; an outlaw's own price; a stage keeps its boss rule). For a choice, an
+optional node and a node that names the nodes it needs: one line on what that means. While a node's pick list is open
+the box follows the type the list points at. `▾ Hint` folds it away (remembered).
+
+The words are in `tools/level_editor/trail_hints.json`, one `{what, note}` per upgrade type, tools only (the game never
+reads it). A type without an entry falls back to its own `text`; `selftest_P130LE.py` fails when a type of trail.json
+has none, so a new type gets its words. `trail_hint.js` builds the lines (page-free, run under Node by the selftest);
+"what it was locked behind" comes from `trail_io.locks` (`content/trail/quests_before.json` + `content/quests`) in
+`GET /api/trail`'s picks, so it shows after the server's next restart; the rest works on a page reload.
+
+### A creature looks the wrong way
+
+A creature that looks away from where it walks (pass 130: the Straw Man running up the screen) has a painting that
+turns the other way than the game assumes. The rule is `front_faces` / `back_faces` on the creature and on a look's
+own entry (`variants[CODE]`): **right** (the default) = the painting turns to the viewer's right, so the game mirrors
+it when the creature heads screen-left; **left** = it turns left, mirrored when heading right; **straight** = never
+mirrored (a painting that looks straight at the camera, or straight away).
+
+Enemies tab -> the creature -> Looks & previews -> click the look's card. Beside the big player the **Facing** row
+shows the **Front view** (the set played walking down the screen) and the **Back view** (walking up), each as two small
+players heading left and heading right, what applies now and where it comes from (the look's own, the creature's, or
+the default). **Flip** on the view that looks the wrong way swaps right and left; **Never mirror** writes straight;
+**Use the creature's** drops a look's own rule. Each click is saved at once (a backup first; look op `facing`
+{view, value}) and imported like any save; no art job runs. A look writes `variants[CODE].<view>_faces`; the base look
+writes the creature's top-level key, which every look without its own follows. A look with its own left-heading sets
+(`idle_l` / `run_l`, pass 111) is never mirrored front or back: the row says so instead of offering the buttons (fix
+its frames in Frames...). Outlaws never mirror their front and back sets: no row. The two selects in the creature's
+fields (Front faces / Back faces) are the same keys.

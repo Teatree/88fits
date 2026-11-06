@@ -278,6 +278,8 @@ func _tick() -> void:
 		_bot = BOT.new(_game, o)
 		_say("game up: hero %s seed %d trail %s death %s limit %.0f map %s view %s (boot %.1f s) | bot %s" % [_hero, _seed, str(_trail_info.get("label", _trail)), _death,
 			_limit, _map, str(root.get_visible_rect().size), _boot_s, str(_bot.opts["preset"])])
+		# pass 130: what that Trail gives, on one line (Trail.bundle_text; two builds at one level may give different things)
+		_say("the Trail gives: %s" % str(_trail_info.get("bundle", "")))
 		# pass 84 (lane SIMVIEW): the Timeline overlay's own sampler
 		_sv_start()
 		return
@@ -453,6 +455,7 @@ func _meta(ra: Node, reason: String) -> Dictionary:
 	return {"schema": SCHEMA, "hero": _hero, "hero_name": str(header.get("hero_name", "")), "start_weapon": _start_weapon,
 		"seed": _seed, "trail": str(_trail_info.get("arg", _trail)), "trail_level": int(_trail_info.get("level", 0)),
 		"trail_nodes": int(_trail_info.get("bought", 0)), "trail_optional": _trail_optional,
+		"trail_bundle": str(_trail_info.get("bundle", "")),
 		"fast": _fast, "death": _death, "limit": _limit, "map": _map,
 		"unlocks": _unlocks, "map_rev": header.get("map_rev", ""), "version": str(ProjectSettings.get_setting("application/config/version", "")),
 		"fps": fps, "res": [_res.x, _res.y], "view": [int(root.get_visible_rect().size.x), int(root.get_visible_rect().size.y)],

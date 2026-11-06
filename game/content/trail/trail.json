@@ -47,7 +47,7 @@
     "boss_stakes": {"name": "Boss Stakes", "icon": "boss_stakes", "kind": "percent", "text": "Bosses and Elites tougher", "effects": [{"stat": "boss_danger_hp", "op": "add", "per": 1.0}, {"stat": "boss_danger_attack", "op": "add", "per": 1.0}, {"stat": "boss_danger_speed", "op": "add", "per": 0.4}, {"stat": "boss_danger_bounty", "op": "add", "per": 0.5}], "warn": "Every boss gets tougher for good. This cannot be undone."}
   },
   "nodes": [
-    {"id": "n001", "level": 1, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.06}, "price": 10},
+    {"id": "n001", "level": 1, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.05}, "price": 10},
     {"id": "n002", "level": 2, "kind": "node", "gives": {"type": "upgrade", "upgrade": "health", "value": 0.1}},
     {"id": "n003", "level": 3, "kind": "node", "gives": {"type": "upgrade", "upgrade": "boots", "value": 0.03}},
     {"id": "n004", "level": 4, "kind": "node", "gives": {"type": "upgrade", "upgrade": "magnet", "value": 0.12}},

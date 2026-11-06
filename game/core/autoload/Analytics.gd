@@ -489,6 +489,9 @@ func run_begin(rid: String = "") -> bool:
 	var sw: WeaponDef = Registry.start_weapon_for(hero) if hero else null
 	track("run_start", {"start_weapon": sw.id if sw else "", "trail_level": int(trl.get("level", 0)),
 		"trail_nodes": (trl.get("bought", []) as Array).size(), "trail_spent": int(trl.get("spent", 0)),
+		# pass 130: what that Trail gives, on one line (Trail.bundle_text): two builds whose Trail gives different
+		# things at one level read apart on the "88fits · Trail" board
+		"trail_bundle": Trail.bundle_text(trl), "build_id": str(RunReplay.build_info().get("id", "")),
 		"gold_before": Save.gold(), "runs_before": maxi(int(Save.data.get("runs_started", 1)) - 1, 0), "seed": Run.map_seed})
 	return true
 

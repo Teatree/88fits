@@ -226,7 +226,7 @@ def _page_checks(check):
         check(fn in html, "page: the dashboard defines %s" % fn)
     check("'trail', 'kills', 'version'" in html and html.count("trailShort(r)") >= 2 and "boardShort(r), fmt" not in html, "page: the Remote runs list has a trail column")
     check("'level', 'trail', 'kills', 'coins'" in html, "page: the average's runs carry a trail column")
-    check("trail: 'The Trail', talent: 'Upgrade board'" in html and "'trail_level', 'trail_bought', 'trail_spent', 'talents', 'build'];" in html,
+    check("trail: 'The Trail', talent: 'Upgrade board'" in html and "'trail_level', 'trail_bought', 'trail_spent', 'trail_bundle', 'talents', 'build'];" in html,
           "page: a source of kind trail reads The Trail (an older record's talent still Upgrade board); the history CSV's first columns name the Trail's")
     check("o.hl ||" in html and "chart.$iconPlace" in html, "page: the markers plugin draws the highlight; the icon strip follows the plot (a function kept on the chart)")
     check("record (recorded before 0.98)" in html and "const OLD_WORDS" in html, "page: an older record's missing data said in plain words")
@@ -307,7 +307,7 @@ process.stdin.on('end', () => {
 
 def _trail_checks(check, run_node):
     html = open(os.path.join(ROOT, "analytics", "dashboard.html"), encoding="utf-8").read()
-    names = ("trailAmount", "trailOf", "trailWords", "trailShort", "renderTrail", "boardOf", "boardShort", "renderBoard")
+    names = ("trailAmount", "trailOf", "trailWords", "trailBundle", "trailShort", "renderTrail", "boardOf", "boardShort", "renderBoard")   # pass 130: trailBundle (renderTrail names it)
     parts = [re.search(r"\n  function %s\(.*?\n  \}\n" % n, html, re.S) for n in names]
     check(all(parts), "trail: the dashboard's Trail and board functions are found: %s" % [n for n, m in zip(names, parts) if not m])
     if not all(parts):

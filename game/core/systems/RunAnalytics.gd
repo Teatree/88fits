@@ -1780,7 +1780,9 @@ func _crowd() -> Dictionary:
 ## played"; the Trail is that now): the header's `trail`: Trail.record() ({level, bought: [node ids], paid, spent,
 ## upgrades: {type: summed value}}) plus what a reader needs to show it without the content folder: `levels` (the
 ## Trail's top level), `nodes` (how many nodes it has) and `types` ({type: {name, kind, text}} for every upgrade type
-## with a bought node; kind says how the sum is written: percent, flat, count, seconds, word).
+## with a bought node; kind says how the sum is written: percent, flat, count, seconds, word). Pass 130: Trail.record()
+## also counts the `unlocks` ({gift type: how many}) and the block carries `bundle`, all of it on one line
+## (Trail.bundle_text: "Attack damage +12%, Max health +30% · unlocks: 2 outlaws, 3 items"); still schema 6.
 ## `save_data` reads another save's whole data (the replay's recorded save, ReplayViewer) instead of this one: the
 ## save's data is swapped for the length of the call and put back, nothing is written.
 static func trail_block(save_data: Variant = null) -> Dictionary:
@@ -1799,6 +1801,9 @@ static func trail_block(save_data: Variant = null) -> Dictionary:
 			var u: Dictionary = Trail.upgrade(str(t))
 			types[str(t)] = {"name": str(u.get("name", t)), "kind": str(u.get("kind", "flat")), "text": str(u.get("text", ""))}
 	out["types"] = types
+	# pass 130: the bundle, what THIS build's Trail gave in one line (Trail.bundle_text), so two records at one Trail
+	# Level from builds whose Trail gives different things read apart
+	out["bundle"] = Trail.bundle_text(out)
 	if keep != null:
 		Save.data = keep
 		Trail.refresh()
@@ -2205,7 +2210,7 @@ func _update_index(dir: String) -> void:
 ## One run in the index (index.json / index.js: the dashboard's history and its CSV; pass 74, schema 2): the file, every
 ## header field but the big blocks (INDEX_SKIP) with the small blocks flattened as "block.key" (gold_end.gold_banked,
 ## fps.avg, settings.dev, map_settings.boss_hp_scaling.exponent, trait.stats.might, launch.weapon, ...), the Trail
-## (trail_level, trail_bought, trail_spent), the totems taken, and the sums the history draws: the
+## (trail_level, trail_bought, trail_spent, and since pass 130 trail_bundle: what it gave, on one line), the totems taken, and the sums the history draws: the
 ## damage dealt and the source that dealt the most, the build's estimate at the end, the build in one line, the HP lost
 ## and the hits taken, the bosses, specials and Elites killed, and what put the hero down last. tools/analytics_csv.py
 ## makes the same row from a run file.
@@ -2221,6 +2226,8 @@ func index_row() -> Dictionary:
 		row["trail_level"] = int((trl as Dictionary).get("level", 0))
 		row["trail_bought"] = ((trl as Dictionary)["bought"] as Array).size() if (trl as Dictionary).get("bought") is Array else 0
 		row["trail_spent"] = int((trl as Dictionary).get("spent", 0))
+		# pass 130: what that Trail gave, on one line (the block's own `bundle`; Trail.bundle_text for a block without)
+		row["trail_bundle"] = str((trl as Dictionary)["bundle"]) if (trl as Dictionary).get("bundle") is String else Trail.bundle_text(trl as Dictionary)
 	row["totems"] = (header["totems"] as Array).size() if header.get("totems") is Array else 0
 	var dmg := 0.0
 	var top := ""

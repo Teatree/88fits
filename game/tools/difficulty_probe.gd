@@ -278,6 +278,8 @@ func _setup() -> void:
 		est += w.dps_estimate()
 	var sh = _run.player_sheet
 	print("probe: hero %s build %s trail %s (%d nodes) level %d stage %d t0 %.0f seed %d hpx %.2f dmgx %.2f" % [_hero, _build, str(_trail_info.get("label", _trail)), int(_trail_info.get("bought", 0)), _level, _stage, _t0, _seed, _hpx, _dmgx])
+	# pass 130: what that Trail gives, on one line (two builds at one Trail Level may give different things)
+	print("probe: the Trail gives: %s" % str(_trail_info.get("bundle", "")))
 	print("probe: weapons %s" % str(ws))
 	print("probe: passives %s" % str(_run.passives))
 	print("probe: est_total %.0f | max_hp %.0f dr %.2f regen %.2f lifesteal %.3f move %.2f might %.2f cooldown %.2f area %.2f amount %.1f crit %.2f" % [est,

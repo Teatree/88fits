@@ -1,0 +1,871 @@
+{
+ "_doc": "Pass 130 (lane HOUSE): the bundle fixture, never the game file. One made-up Trail (`trail`) and what its bundle must read: `cases` are trail blocks (Trail.bundle_text; `build` true = the block has no `types` and reads by the upgrade types of `trail`), `tallies` are node ids added up (Trail.tally and its bundle), `args` are a tool trail= argument (tools/trail_arg.gd ids_upto and bundle_of; level -1 = the argument names nothing). game/tests/pass130_HOUSE_test.gd (Trail.gd) and tools/level_editor/selftest_HOUSE130.py (trail_bundle.js, tools/trail_bundle.py) read this one file, so the three writers of the line stay the same.",
+ "trail": {
+  "version": 1,
+  "currency": "gold",
+  "price": {
+   "base": 40,
+   "k": 1.5,
+   "power": 2.0,
+   "round": 10
+  },
+  "sections": [
+   {
+    "from": 1,
+    "name": "First",
+    "top": "f7b24a",
+    "bottom": "ef7d22",
+    "motif": "cactus"
+   }
+  ],
+  "upgrades": {
+   "might": {
+    "name": "Might",
+    "kind": "percent",
+    "text": "Attack damage",
+    "icon": "might",
+    "effects": [
+     {
+      "stat": "might",
+      "op": "mul",
+      "per": 1.0
+     }
+    ]
+   },
+   "hp": {
+    "name": "Grit",
+    "kind": "flat",
+    "text": "Max HP",
+    "icon": "hp",
+    "effects": [
+     {
+      "stat": "max_hp",
+      "op": "add",
+      "per": 1.0
+     }
+    ]
+   },
+   "reroll": {
+    "name": "Reroll",
+    "kind": "count",
+    "text": "Rerolls",
+    "icon": "reroll",
+    "effects": [
+     {
+      "stat": "rerolls",
+      "op": "add",
+      "per": 1.0
+     }
+    ]
+   },
+   "fuse": {
+    "name": "Long Fuse",
+    "kind": "seconds",
+    "text": "Fuse",
+    "icon": "fuse",
+    "effects": [
+     {
+      "stat": "duration",
+      "op": "add",
+      "per": 1.0
+     }
+    ]
+   },
+   "spirit": {
+    "name": "Spirit Guide",
+    "kind": "word",
+    "text": "Totem gifts stronger",
+    "icon": "spirit",
+    "effects": [
+     {
+      "stat": "totem_boost",
+      "op": "add",
+      "per": 1.0
+     }
+    ]
+   },
+   "regen": {
+    "name": "Poultice",
+    "kind": "flat",
+    "text": "Health a second",
+    "icon": "regen",
+    "effects": [
+     {
+      "stat": "regen",
+      "op": "add",
+      "per": 1.0
+     }
+    ]
+   },
+   "bare": {
+    "name": "Bare",
+    "kind": "percent",
+    "icon": "bare",
+    "effects": [
+     {
+      "stat": "luck",
+      "op": "add",
+      "per": 1.0
+     }
+    ]
+   }
+  },
+  "nodes": [
+   {
+    "id": "a1",
+    "level": 1,
+    "kind": "node",
+    "gives": {
+     "type": "upgrade",
+     "upgrade": "might",
+     "value": 0.05
+    }
+   },
+   {
+    "id": "a2",
+    "level": 1,
+    "kind": "node",
+    "gives": {
+     "type": "upgrade",
+     "upgrade": "hp",
+     "value": 30
+    }
+   },
+   {
+    "id": "b1",
+    "level": 2,
+    "kind": "choice",
+    "group": "g",
+    "gives": {
+     "type": "upgrade",
+     "upgrade": "might",
+     "value": 0.07
+    }
+   },
+   {
+    "id": "b2",
+    "level": 2,
+    "kind": "choice",
+    "group": "g",
+    "gives": {
+     "type": "upgrade",
+     "upgrade": "reroll",
+     "value": 2
+    }
+   },
+   {
+    "id": "c1",
+    "level": 3,
+    "kind": "node",
+    "gives": {
+     "type": "outlaw",
+     "id": "astro"
+    }
+   },
+   {
+    "id": "c2",
+    "level": 3,
+    "kind": "optional",
+    "gives": {
+     "type": "upgrade",
+     "upgrade": "spirit",
+     "value": 1
+    }
+   },
+   {
+    "id": "d1",
+    "level": 4,
+    "kind": "choice",
+    "group": "h",
+    "gives": {
+     "type": "weapon",
+     "id": "hammer"
+    }
+   },
+   {
+    "id": "d2",
+    "level": 4,
+    "kind": "choice",
+    "group": "h",
+    "gives": {
+     "type": "passive",
+     "id": "deadeye"
+    }
+   },
+   {
+    "id": "e1",
+    "level": 5,
+    "kind": "node",
+    "gives": {
+     "type": "stage",
+     "map": "red_canyon",
+     "stage": "dust"
+    }
+   },
+   {
+    "id": "e2",
+    "level": 5,
+    "kind": "node",
+    "gives": {
+     "type": "upgrade",
+     "upgrade": "fuse",
+     "value": 1.5
+    }
+   },
+   {
+    "id": "e3",
+    "level": 5,
+    "kind": "optional",
+    "gives": {
+     "type": "upgrade",
+     "upgrade": "regen",
+     "value": 0.25
+    }
+   },
+   {
+    "id": "f1",
+    "level": 6,
+    "kind": "node",
+    "gives": {
+     "type": "outlaw",
+     "id": "calavera"
+    }
+   },
+   {
+    "id": "f2",
+    "level": 6,
+    "kind": "node",
+    "gives": {
+     "type": "skin",
+     "id": "drifter:DRI-B"
+    }
+   },
+   {
+    "id": "f3",
+    "level": 6,
+    "kind": "node",
+    "gives": {
+     "type": "feature",
+     "id": "wanted"
+    }
+   },
+   {
+    "id": "f4",
+    "level": 6,
+    "kind": "node",
+    "gives": {
+     "type": "powerup",
+     "id": "rage"
+    }
+   },
+   {
+    "id": "g1",
+    "level": 7,
+    "kind": "node",
+    "gives": {
+     "type": "map",
+     "id": "red_canyon"
+    }
+   },
+   {
+    "id": "g2",
+    "level": 7,
+    "kind": "node",
+    "gives": {
+     "type": "structure",
+     "id": "totem_pole"
+    }
+   },
+   {
+    "id": "g3",
+    "level": 7,
+    "kind": "node",
+    "gives": {
+     "type": "upgrade",
+     "upgrade": "might",
+     "value": 0.0333
+    }
+   },
+   {
+    "id": "h1",
+    "level": 8,
+    "kind": "node",
+    "gives": {
+     "type": "upgrade",
+     "upgrade": "reroll",
+     "value": 1
+    }
+   }
+  ],
+  "end": "To be continued"
+ },
+ "cases": [
+  {
+   "name": "empty: no block at all",
+   "block": {},
+   "want": "nothing yet"
+  },
+  {
+   "name": "empty: every part there and empty",
+   "block": {
+    "level": 0,
+    "bought": [],
+    "upgrades": {},
+    "types": {},
+    "unlocks": {}
+   },
+   "want": "nothing yet"
+  },
+  {
+   "name": "percent",
+   "block": {
+    "upgrades": {
+     "might": 0.12
+    },
+    "types": {
+     "might": {
+      "name": "Might",
+      "kind": "percent",
+      "text": "Attack damage"
+     }
+    }
+   },
+   "want": "Attack damage +12%"
+  },
+  {
+   "name": "percent with one decimal",
+   "block": {
+    "upgrades": {
+     "might": 0.125
+    },
+    "types": {
+     "might": {
+      "name": "Might",
+      "kind": "percent",
+      "text": "Attack damage"
+     }
+    }
+   },
+   "want": "Attack damage +12.5%"
+  },
+  {
+   "name": "percent with two decimals",
+   "block": {
+    "upgrades": {
+     "might": 0.0333
+    },
+    "types": {
+     "might": {
+      "name": "Might",
+      "kind": "percent",
+      "text": "Attack damage"
+     }
+    }
+   },
+   "want": "Attack damage +3.33%"
+  },
+  {
+   "name": "percent whose product is not exact (0.07 x 100)",
+   "block": {
+    "upgrades": {
+     "might": 0.07
+    },
+    "types": {
+     "might": {
+      "name": "Might",
+      "kind": "percent",
+      "text": "Attack damage"
+     }
+    }
+   },
+   "want": "Attack damage +7%"
+  },
+  {
+   "name": "count",
+   "block": {
+    "upgrades": {
+     "reroll": 2
+    },
+    "types": {
+     "reroll": {
+      "name": "Reroll",
+      "kind": "count",
+      "text": "Rerolls"
+     }
+    }
+   },
+   "want": "Rerolls +2"
+  },
+  {
+   "name": "seconds",
+   "block": {
+    "upgrades": {
+     "fuse": 1.5
+    },
+    "types": {
+     "fuse": {
+      "name": "Long Fuse",
+      "kind": "seconds",
+      "text": "Fuse"
+     }
+    }
+   },
+   "want": "Fuse +1.5 s"
+  },
+  {
+   "name": "flat, whole and with decimals",
+   "block": {
+    "upgrades": {
+     "hp": 30,
+     "regen": 0.25
+    },
+    "types": {
+     "hp": {
+      "name": "Grit",
+      "kind": "flat",
+      "text": "Max HP"
+     },
+     "regen": {
+      "name": "Poultice",
+      "kind": "flat",
+      "text": "Health a second"
+     }
+    }
+   },
+   "want": "Max HP +30, Health a second +0.25"
+  },
+  {
+   "name": "a word-kind type reads by its name",
+   "block": {
+    "upgrades": {
+     "spirit": 1
+    },
+    "types": {
+     "spirit": {
+      "name": "Spirit Guide",
+      "kind": "word",
+      "text": "Totem gifts stronger"
+     }
+    }
+   },
+   "want": "Spirit Guide"
+  },
+  {
+   "name": "a loss carries the minus sign",
+   "block": {
+    "upgrades": {
+     "might": -0.05
+    },
+    "types": {
+     "might": {
+      "name": "Might",
+      "kind": "percent",
+      "text": "Attack damage"
+     }
+    }
+   },
+   "want": "Attack damage −5%"
+  },
+  {
+   "name": "a sum of 0 is not written",
+   "block": {
+    "upgrades": {
+     "might": 0,
+     "reroll": 2
+    },
+    "types": {
+     "might": {
+      "name": "Might",
+      "kind": "percent",
+      "text": "Attack damage"
+     },
+     "reroll": {
+      "name": "Reroll",
+      "kind": "count",
+      "text": "Rerolls"
+     }
+    }
+   },
+   "want": "Rerolls +2"
+  },
+  {
+   "name": "only sums of 0",
+   "block": {
+    "upgrades": {
+     "might": 0
+    },
+    "types": {
+     "might": {
+      "name": "Might",
+      "kind": "percent",
+      "text": "Attack damage"
+     }
+    }
+   },
+   "want": "nothing yet"
+  },
+  {
+   "name": "no text: the name; no words at all: the id as a plain amount",
+   "block": {
+    "upgrades": {
+     "bare": 0.1,
+     "ghost": 3
+    },
+    "types": {
+     "bare": {
+      "name": "Bare",
+      "kind": "percent"
+     }
+    }
+   },
+   "want": "Bare +10%, ghost +3"
+  },
+  {
+   "name": "the brief line, in the block order",
+   "block": {
+    "upgrades": {
+     "might": 0.12,
+     "hp": 30,
+     "reroll": 2
+    },
+    "types": {
+     "might": {
+      "name": "Might",
+      "kind": "percent",
+      "text": "Attack damage"
+     },
+     "hp": {
+      "name": "Grit",
+      "kind": "flat",
+      "text": "Max HP"
+     },
+     "reroll": {
+      "name": "Reroll",
+      "kind": "count",
+      "text": "Rerolls"
+     }
+    }
+   },
+   "want": "Attack damage +12%, Max HP +30, Rerolls +2"
+  },
+  {
+   "name": "a block with types keeps its own order",
+   "block": {
+    "upgrades": {
+     "reroll": 2,
+     "might": 0.12
+    },
+    "types": {
+     "might": {
+      "name": "Might",
+      "kind": "percent",
+      "text": "Attack damage"
+     },
+     "reroll": {
+      "name": "Reroll",
+      "kind": "count",
+      "text": "Rerolls"
+     }
+    }
+   },
+   "want": "Rerolls +2, Attack damage +12%"
+  },
+  {
+   "name": "a block with types reads by its own words, not this build",
+   "block": {
+    "upgrades": {
+     "might": 0.12,
+     "hp": 30
+    },
+    "types": {
+     "might": {
+      "name": "Might",
+      "kind": "percent",
+      "text": "Damage"
+     },
+     "hp": {
+      "name": "Grit",
+      "kind": "percent",
+      "text": "Max health"
+     }
+    }
+   },
+   "want": "Damage +12%, Max health +3000%"
+  },
+  {
+   "name": "unlocks alone",
+   "block": {
+    "upgrades": {},
+    "types": {},
+    "unlocks": {
+     "outlaw": 2,
+     "weapon": 1,
+     "passive": 2,
+     "stage": 1
+    }
+   },
+   "want": "unlocks: 2 outlaws, 3 items, 1 stage"
+  },
+  {
+   "name": "upgrades and unlocks",
+   "block": {
+    "upgrades": {
+     "might": 0.12,
+     "reroll": 2
+    },
+    "types": {
+     "might": {
+      "name": "Might",
+      "kind": "percent",
+      "text": "Attack damage"
+     },
+     "reroll": {
+      "name": "Reroll",
+      "kind": "count",
+      "text": "Rerolls"
+     }
+    },
+    "unlocks": {
+     "outlaw": 1,
+     "passive": 1
+    }
+   },
+   "want": "Attack damage +12%, Rerolls +2 · unlocks: 1 outlaw, 1 item"
+  },
+  {
+   "name": "every gift type, in its order whatever the block order",
+   "block": {
+    "upgrades": {},
+    "types": {},
+    "unlocks": {
+     "feature": 1,
+     "powerup": 2,
+     "structure": 1,
+     "map": 1,
+     "stage": 2,
+     "passive": 1,
+     "weapon": 0,
+     "skin": 1,
+     "outlaw": 3
+    }
+   },
+   "want": "unlocks: 3 outlaws, 1 skin, 1 item, 2 stages, 1 map, 1 structure, 2 power-ups, 1 feature"
+  },
+  {
+   "name": "an older block without types reads by the build types, in the file order",
+   "block": {
+    "level": 3,
+    "bought": [
+     "a1",
+     "b2"
+    ],
+    "upgrades": {
+     "reroll": 2,
+     "ghost": 3,
+     "might": 0.12,
+     "spirit": 1
+    }
+   },
+   "want": "Attack damage +12%, Rerolls +2, Spirit Guide, ghost +3",
+   "build": true
+  },
+  {
+   "name": "an older block without unlocks names none",
+   "block": {
+    "bought": [
+     "c1",
+     "e1"
+    ],
+    "upgrades": {
+     "hp": 30
+    }
+   },
+   "want": "Max HP +30",
+   "build": true
+  }
+ ],
+ "tallies": [
+  {
+   "name": "no node",
+   "ids": [],
+   "upgrades": {},
+   "unlocks": {},
+   "want": "nothing yet"
+  },
+  {
+   "name": "sums by type in the file order, an id the Trail lacks skipped",
+   "ids": [
+    "h1",
+    "b2",
+    "zzz",
+    "a2",
+    "a1",
+    "b1"
+   ],
+   "upgrades": {
+    "might": 0.12,
+    "hp": 30,
+    "reroll": 3
+   },
+   "unlocks": {},
+   "want": "Attack damage +12%, Max HP +30, Rerolls +3"
+  },
+  {
+   "name": "unlocks counted by gift type",
+   "ids": [
+    "a1",
+    "c1",
+    "d1",
+    "d2",
+    "e1",
+    "f1",
+    "f2",
+    "f3",
+    "f4",
+    "g1",
+    "g2"
+   ],
+   "upgrades": {
+    "might": 0.05
+   },
+   "unlocks": {
+    "outlaw": 2,
+    "skin": 1,
+    "weapon": 1,
+    "passive": 1,
+    "stage": 1,
+    "map": 1,
+    "structure": 1,
+    "powerup": 1,
+    "feature": 1
+   },
+   "want": "Attack damage +5% · unlocks: 2 outlaws, 1 skin, 2 items, 1 stage, 1 map, 1 structure, 1 power-up, 1 feature"
+  },
+  {
+   "name": "a sum snapped to four decimals",
+   "ids": [
+    "a1",
+    "b1",
+    "g3"
+   ],
+   "upgrades": {
+    "might": 0.1533
+   },
+   "unlocks": {},
+   "want": "Attack damage +15.33%"
+  }
+ ],
+ "args": [
+  {
+   "arg": "none",
+   "optional": false,
+   "level": 0,
+   "ids": [],
+   "want": "nothing yet"
+  },
+  {
+   "arg": "2",
+   "optional": false,
+   "level": 2,
+   "ids": [
+    "a1",
+    "a2",
+    "b1"
+   ],
+   "want": "Attack damage +12%, Max HP +30"
+  },
+  {
+   "arg": "half",
+   "optional": false,
+   "level": 4,
+   "ids": [
+    "a1",
+    "a2",
+    "b1",
+    "c1",
+    "d2"
+   ],
+   "want": "Attack damage +12%, Max HP +30 · unlocks: 1 outlaw, 1 item"
+  },
+  {
+   "arg": "half",
+   "optional": true,
+   "level": 4,
+   "ids": [
+    "a1",
+    "a2",
+    "b1",
+    "c1",
+    "c2",
+    "d2"
+   ],
+   "want": "Attack damage +12%, Max HP +30, Spirit Guide · unlocks: 1 outlaw, 1 item"
+  },
+  {
+   "arg": "quarter",
+   "optional": false,
+   "level": 2,
+   "ids": [
+    "a1",
+    "a2",
+    "b1"
+   ],
+   "want": "Attack damage +12%, Max HP +30"
+  },
+  {
+   "arg": "full",
+   "optional": true,
+   "level": 8,
+   "ids": [
+    "a1",
+    "a2",
+    "b1",
+    "c1",
+    "c2",
+    "d2",
+    "e1",
+    "e2",
+    "e3",
+    "f1",
+    "f2",
+    "f3",
+    "f4",
+    "g1",
+    "g2",
+    "g3",
+    "h1"
+   ],
+   "want": "Attack damage +15.33%, Max HP +30, Rerolls +1, Fuse +1.5 s, Spirit Guide, Health a second +0.25 · unlocks: 2 outlaws, 1 skin, 1 item, 1 stage, 1 map, 1 structure, 1 power-up, 1 feature"
+  },
+  {
+   "arg": "99",
+   "optional": false,
+   "level": 8,
+   "ids": [
+    "a1",
+    "a2",
+    "b1",
+    "c1",
+    "d2",
+    "e1",
+    "e2",
+    "f1",
+    "f2",
+    "f3",
+    "f4",
+    "g1",
+    "g2",
+    "g3",
+    "h1"
+   ],
+   "want": "Attack damage +15.33%, Max HP +30, Rerolls +1, Fuse +1.5 s · unlocks: 2 outlaws, 1 skin, 1 item, 1 stage, 1 map, 1 structure, 1 power-up, 1 feature"
+  },
+  {
+   "arg": "plenty",
+   "optional": false,
+   "level": -1,
+   "ids": [],
+   "want": ""
+  }
+ ]
+}

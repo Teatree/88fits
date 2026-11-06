@@ -45,6 +45,20 @@ says so in one line. A record written between the Trail's arrival and schema 6 i
 `trail` that lacks `levels`, `nodes` and `types`: both cards show, the Trail's naming each upgrade type by its id
 with its plain sum. `tools/analytics_csv.py` writes the board's columns only for a record from before schema 6.
 
+**Pass 130 (still schema 6): the bundle.** Wherever a tool shows a Trail Level it also says what that Trail gave, on
+one line: `Attack damage +12%, Max health +10%, Reroll a run +1 · unlocks: 2 outlaws, 3 items, 1 stage` (`nothing yet`
+for a Trail that gives nothing). The header's `trail` gains `unlocks` (`{gift type: how many bought nodes gave one}`) and
+`bundle` (that line, written by the build that played the run from ITS Trail file, so two records at one Trail Level
+from builds whose Trail gives different things read apart); its `upgrades` are in the Trail file's order of upgrade
+types. The index has `trail_bundle`; a Watch run's `watch` block has `trail_bundle`; `run_start` sends `trail_bundle`
+and `build_id`; a replay's header has `trail` (the whole block). One wording, three writers pinned together by
+`game/tests/fixtures/trail_bundle.json`: `Trail.bundle_text` (the game and its tools), `tools/level_editor/trail_bundle.js`
+(this dashboard, the Level Editor's Sim tab) and `tools/trail_bundle.py` (watch.py, sim_batch.py, replay.py,
+analytics_csv.py; `python tools/trail_bundle.py [level]` prints a level's bundle). A reader works the line out from
+`upgrades` + `types` for a record without the key (no unlocks then: an older record does not count them). The
+dashboard: the run's facts ("The Trail gave"), the Trail card's first line, a hover hint on the Trail column of the
+Remote runs and the average's runs, and in the average a warning when runs at one Trail Level carry different bundles.
+
 ## Where the files go
 
 - Always `user://analytics/runs/<stamp>.json`: on the PC that is `%APPDATA%\Godot\app_userdata\88fits\analytics\runs\`
@@ -92,7 +106,7 @@ with its plain sum. `tools/analytics_csv.py` writes the board's columns only for
 | `talents` *(2, until 5)* | the Upgrade board (removed in pass 129) as the run began: `{talent id: [the form of each rank, in order]}` (0 its first form, 1 its second; only talents with a rank) |
 | `talent_forms` *(2, until 5)* | `{talent id: [first form's name, second form's name]}` for those talents |
 | `board` *(5 only)* | the whole Upgrade board (removed in pass 129) as the run began (`RunAnalytics.board`), in the board's order (`Registry.talents_list`): `talents: [{id, name, max (the most ranks it takes), picks ([0, 1, ...]: each rank's form, 0 its first), forms ([first form's name, second's]), texts (their lines), gold (what its ranks cost at this build's prices: TalentDef.cost_of_rank)}]` (every talent, a rank or not), `ranks` (bought), `max` (the board's most), `gold` (summed), `spent` (`Save.talent_spent`: what the save says was paid; a price changed since, a board set by a tool or the developer menu (0) make it differ) |
-| `trail` *(pass 129; 6)* | the Trail as the run began (`RunAnalytics.trail_block`: `Trail.record` plus `levels`, `nodes`, `types`): `level` (the Trail Level), `bought` (the ids of the nodes that count as bought, in the file's order: the ones paid for and the ones whose gift the save already had), `paid` (how many of them were paid for), `spent` (`Save.trail_spent`: what they cost), `upgrades` (`{upgrade type: the summed value of its bought nodes}`: `might: 0.09` = +9%); *(6)* `levels` (the Trail's top level), `nodes` (how many nodes the Trail has) and `types` (`{upgrade type: {name, kind, text}}` for every type in `upgrades`: its name, what it adds to, and `kind`, how its sum is written: `percent` (0.03 = "+3%"), `flat` ("+2"), `count` ("+1"), `seconds` ("+2 s"), `word` (no amount; `Trail.amount_text`)), so a reader needs no content folder. A schema 5 record with a `trail` has none of the three (show the type's id). Absent in a record from before pass 129; `bought` is empty while the Trail has no nodes |
+| `trail` *(pass 129; 6)* | the Trail as the run began (`RunAnalytics.trail_block`: `Trail.record` plus `levels`, `nodes`, `types`): `level` (the Trail Level), `bought` (the ids of the nodes that count as bought, in the file's order: the ones paid for and the ones whose gift the save already had), `paid` (how many of them were paid for), `spent` (`Save.trail_spent`: what they cost), `upgrades` (`{upgrade type: the summed value of its bought nodes}`: `might: 0.09` = +9%); *(6)* `levels` (the Trail's top level), `nodes` (how many nodes the Trail has) and `types` (`{upgrade type: {name, kind, text}}` for every type in `upgrades`: its name, what it adds to, and `kind`, how its sum is written: `percent` (0.03 = "+3%"), `flat` ("+2"), `count` ("+1"), `seconds` ("+2 s"), `word` (no amount; `Trail.amount_text`)), so a reader needs no content folder. A schema 5 record with a `trail` has none of the three (show the type's id). *(pass 130)* `unlocks` (`{gift type: count}` over the bought nodes: `outlaw`, `skin`, `weapon`, `passive`, `stage`, `map`, `structure`, `powerup`, `feature`) and `bundle` (what this Trail gave, on one line: `Trail.bundle_text`; every type as "<text> <amount>", a word-kind type by its name, then "· unlocks: 2 outlaws, 3 items, 1 stage" with weapons, cards and items counted as items; "nothing yet" when it gives nothing); `upgrades` in the Trail file's order of types. Absent in a record from before pass 129; `bought` is empty while the Trail has no nodes |
 | `settings` *(2)* | `{pierce_falloff, debug_mode, dev}`: pierce drop-off, the player's debug mode, and whether the run counts as a developer's (`Analytics.is_dev`) |
 | `map_settings` *(2)* | the map's numbers as the run played them, the game's defaults filled in where the map leaves a key out: `hero_knockback_mult`, `special_defaults` (size, hp, damage, xp, tint_strength, glow, chest_chance, `max_alive`: -1 = no limit), `boss_hp_scaling` (enabled, exponent, window, min, max, `ref_dps` {boss: DPS}), `target_priority` (enabled, reach), `spawn_rise` (seconds, big_seconds, targetable, dust), `creature_hp_mult`, `creature_damage_mult`, `creature_speed_mult`, `move_pace`, `xp_need_mult`, `water_slow` and `oases` (min, max, extra_chance, gap; pass 80), `xp_curve` (the growth type played and its numbers, defaults filled in; pass 82), and since pass 83 `boss_hp_scaling.mode` ("seconds" or "dps") and `boss_hp_scaling.seconds` {boss: seconds of full DPS}, `power_hp_scaling` (1 = off) and `power_hp_max`; since pass 89 `hero_special_knock` (the share of a special attack's push that reaches the hero) |
 | `stat_names` *(2)* | `{stat: the pause screen's words}` (TextGen) for every stat a snapshot carries |
@@ -337,7 +351,13 @@ The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row
   `trail` carrying the same keys. The migration's refund of the Upgrade board is a `gold_meta` with reason
   `talent_refund` and `why: trail_v129`.
 - `run_start` (pass 129) carries `trail_level`, `trail_nodes` (how many nodes count as bought) and `trail_spent` in
-  place of `talents` / `talent_forms`.
+  place of `talents` / `talent_forms`. Pass 130: also `trail_bundle` (what that Trail gives, on one line:
+  `Trail.bundle_text`) and `build_id` (the build's stamp, `RunReplay.build_info().id`: "1.00-20261104-1621-ea2b9d3", or
+  "editor-1.00" / "dev-1.00" for an unstamped run). The board **88fits · Trail** (`tools/posthog_boards.py`, pass 130)
+  reads them: where players stand now (each player's latest run), the median and the quartiles day by day, the share of
+  players at or past levels 5, 10, 20, 30, 45, 60 and 70, the runs played to reach a level, the coins spent, every
+  player in a table, and what the Trail gives at each level by build (two builds that give different things are two
+  rows; so are players who took different choices or optional nodes).
 - The boards: **88fits · Coins** (`tools/posthog_boards.py`) and a "Gold today" tile on Pulse. Pass 129: their
   Upgrade tiles read the Trail ("Gold today ... on the Trail", "The bank a day: in from runs, out to the Trail, the
   old board paid back", "The Trail: gold by what was bought", "The Trail: the old Upgrade board paid back") and
@@ -429,9 +449,14 @@ binary also mirrors it to the repo's `analytics/runs/replays/`). `tools/replay.p
 | `marks` | the run's events for the reel: `[frame, play clock, kind, id, level]` (RunAnalytics.event's) |
 | `result`, `end_reason`, `play_s`, `wall_s`, `level`, `kills`, `gold` | how and when it ended |
 
-**The Trail in the viewer** (pass 129; pass 115's Upgrade board until then): the viewer reads the Trail from
-`save.trail` with this build's Trail (`RunAnalytics.trail_block`) and shows it under its numbers (B folds it): the
-Trail Level, the nodes, the gold, the upgrades summed by type; the header names the look (`look`). `python
+**The Trail in the viewer** (pass 129; pass 115's Upgrade board until then; pass 130: a pop-up, no longer a panel): the
+button "The Trail" (key B) opens a pop-up over the view; B, Esc or a click on the view closes it. It shows the block the
+recording carries (the header's `trail`, pass 130: `RunAnalytics.trail_block` as the recording build wrote it), else
+`save.trail` read with this build's Trail: the Trail Level, the nodes, the gold, the bundle ("Gave: ..."), one row per
+upgrade type (name, sum, what it adds to); when the recording has its own line and this build's Trail file would give
+those nodes something else, it says so in amber. `trail=1` on the viewer's command line opens it from the start. The
+header names the look (`look`). `python tools/replay.py` also prints "the Trail gave ..." (the recording's own line,
+and today's file's when it differs: `trail_gave_lines`). `python
 tools/replay.py` prints the Trail in the terminal for any recording, from `save.trail` and
 `game/content/trail/trail.json` as the repo has it now: how many nodes were paid for and their gold, the upgrades
 summed by type (each written by its kind), the unlocks bought by type (`--trail <file>` prints only that; `--board`

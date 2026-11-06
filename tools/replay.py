@@ -36,6 +36,7 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import builds as B  # noqa: E402
 import locks  # noqa: E402
+import trail_bundle  # noqa: E402  (pass 130: what a Trail gives on one line, Trail.bundle_text as Python)
 
 LOG_DIR = os.path.join(ROOT, "tools", "dl", "replay", "logs")
 
@@ -218,6 +219,44 @@ def trail_lines(path, trail_file=None):
     if gone:
         out.append("    %d paid node%s not in today's Trail file: %s" % (len(gone), " is" if len(gone) == 1 else "s are", ", ".join(gone)))
     return out + tail
+
+
+def trail_gave_lines(path, trail_file=None):
+    """Pass 130 (lane HOUSE): what the Trail the recorded run began with gave, on one line (the bundle; Trail.bundle_text
+    through tools/trail_bundle.py): the line the recording carries (its header's `trail.bundle`, written by the build
+    that recorded it), else worked out from its save's nodes and the Trail's file as the repo has it now. When the
+    recording has its own line and today's file would give those nodes something else, both are printed: two builds at
+    one Trail Level are told apart. [] when the recording has no Trail."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            rec = json.load(f)
+    except (OSError, ValueError):
+        return []
+    sv = rec.get("save") if isinstance(rec, dict) else None
+    tr = sv.get("trail") if isinstance(sv, dict) else None
+    if not isinstance(tr, dict):
+        return []
+    data = trail_bundle.read_trail(trail_file or TRAIL_FILE)
+    today = ""
+    if data:
+        paid = set(str(x) for x in tr["bought"]) if isinstance(tr.get("bought"), list) else set()
+        had = set(str(x) for x in tr["had"]) if isinstance(tr.get("had"), list) else set()
+        for key, pre in (("heroes_owned", "outlaw:"), ("skins_owned", "skin:")):
+            if isinstance(sv.get(key), list):
+                had.update(pre + str(x) for x in sv[key])
+        ids = [n["id"] for n in trail_bundle.nodes_of(data) if n["id"] in paid or (gift_key(n["gives"]) and gift_key(n["gives"]) in had)]
+        today = trail_bundle.for_ids(ids, data)
+    blk = rec.get("trail") if isinstance(rec.get("trail"), dict) else None
+    own = trail_bundle.of(blk) if blk is not None else ""
+    lv = (" (Trail Level %s of %s)" % (blk.get("level", "?"), blk.get("levels", "?"))) if blk is not None else ""
+    if own:
+        out = ["the Trail gave%s, as the build that recorded it wrote: %s" % (lv, own)]
+        if today and today != own:
+            out.append("    today's Trail file would give those nodes something else: %s" % today)
+        return out
+    if today:
+        return ["the Trail gave (worked out from today's Trail file; the recording carries no line of its own): %s" % today]
+    return []
 
 
 def pick_latest(player=""):
@@ -408,7 +447,7 @@ def main(argv=None):
             say("no recordings found")
             return 1
         say("the file: " + path)
-        for ln in trail_lines(path):
+        for ln in trail_lines(path) + trail_gave_lines(path):
             say(ln)
         return 0
     if a.file:
@@ -430,7 +469,8 @@ def play(a, path, h):
     say("the run: " + describe(h))
     say("the file: " + path)
     # pass 115 (lane DASH), pass 129: the Trail it began with (the viewer shows it too: B folds it)
-    for ln in trail_lines(path):
+    # pass 130: and what that Trail gave, on one line (the viewer: the button "The Trail" or B opens the pop-up)
+    for ln in trail_lines(path) + trail_gave_lines(path):
         say(ln)
     bid = str((h.get("build") or {}).get("id", ""))
     if bid.startswith("editor-") or bid.startswith("dev-"):

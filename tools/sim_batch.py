@@ -61,6 +61,7 @@ ROOT = os.path.dirname(HERE)
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import locks  # noqa: E402  (pid_alive, the Godot binary's path)
+import trail_bundle  # noqa: E402  (pass 130: what a Trail gives on one line, Trail.bundle_text as Python)
 
 GAME = os.path.join(ROOT, "game")
 GODOT = locks.GODOT
@@ -501,6 +502,17 @@ def settings_trail_words(s):
     if s.get("board_was"):
         return "the old Upgrade board: %s" % s["board_was"]
     return trail_text(s.get("trail", "none"), bool(s.get("trail_optional")))
+
+
+def settings_trail_bundle(s, game_dir=None):
+    """What a sim's Trail gives, on one line (pass 130; tools/trail_bundle.py, Trail.bundle_text's twin), read off the
+    Trail file of `game_dir` (the repo's game/ when None): the line before any run has played. A finished run says its
+    own (meta.trail_bundle); "" for a sim from the Upgrade board's days."""
+    s = s if isinstance(s, dict) else {}
+    if s.get("board_was"):
+        return ""
+    data = trail_bundle.read_trail(os.path.join(game_dir or GAME, "content", "trail", "trail.json"))
+    return trail_bundle.for_arg(s.get("trail", "none"), bool(s.get("trail_optional")), data)
 
 
 def save_trail(save_dir=None):
@@ -2140,6 +2152,19 @@ def aggregate(players, settings, meta=None, game_dir=None):
     bc = trail_check(s, ok)
     if bc:
         res["meta"]["trail_differs"] = bc[:10]
+    # pass 130 (lane HOUSE): what the Trail the runs played gave, on one line (the runner's meta.trail_bundle, written by
+    # the build that played: Trail.bundle_text). Runs that say different things are all listed (`trail_bundles`: [[the
+    # line, how many runs]], most runs first): the Trail file changed between them
+    tb = {}
+    for _, d, _ in ok:
+        b = (d.get("meta") or {}).get("trail_bundle")
+        if isinstance(b, str) and b:
+            tb[b] = tb.get(b, 0) + 1
+    if tb:
+        rows = sorted(tb.items(), key=lambda kv: -kv[1])
+        res["meta"]["trail_bundle"] = rows[0][0]
+        if len(rows) > 1:
+            res["meta"]["trail_bundles"] = [[b, n] for b, n in rows]
     # what the runs played with (lane SIMRUN's meta): every item unlocked ("all") or the save's, the bot's assists
     ms = [d.get("meta") or {} for _, d, _ in ok]
     unl = sorted({str(m.get("unlocks")) for m in ms if m.get("unlocks")})
@@ -2324,6 +2349,7 @@ def synthetic_player(k, seed, settings, creatures=None):
     out["events"] = events
     out["meta"] = {"schema": 1, "hero": s["hero"], "seed": seed, "trail": s.get("trail", "none"),
                    "trail_level": trail_level_of(s.get("trail", "none"), trail_levels()) or 0, "trail_optional": bool(s.get("trail_optional")),
+                   "trail_bundle": settings_trail_bundle(s),
                    "death": s["death"], "limit": limit, "map": s["map"],
                    "map_rev": "", "version": "synthetic", "fps": s["fps"], "wall_s": round(12.0 + end_t / 4.0, 1), "boot_s": 12.0,
                    "end_reason": end_reason, "end_t": end_t, "end_stage": stage, "end_level": level, "deaths": deaths, "revives": revives,
@@ -2418,7 +2444,11 @@ class Batch:
 
     # -- reporting
     def say(self, msg):
-        print(msg, flush=True)
+        try:
+            print(msg, flush=True)
+        except UnicodeEncodeError:   # a console that cannot show a letter (pass 130: the bundle's minus sign): shown as "?"
+            enc = sys.stdout.encoding or "ascii"
+            print(str(msg).encode(enc, "replace").decode(enc), flush=True)
 
     def progress(self, force=False):
         now = time.time()
@@ -2598,6 +2628,10 @@ class Batch:
         write_overlay(self.out, ps)   # pass 84 (lane SIMVIEW): the Timeline's overlay
         self.result_players = len(ps)
         self.say("sim: result.json written (%s%d of %d runs)" % ("partial: " if partial else "", len(ps), len(self.players)))
+        if (res.get("meta") or {}).get("trail_bundles"):
+            self.say("sim: the runs played Trails that gave different things: %s" % " | ".join("%d run%s: %s" % (n, "" if n == 1 else "s", b) for b, n in res["meta"]["trail_bundles"]))
+        elif (res.get("meta") or {}).get("trail_bundle"):
+            self.say("sim: the Trail the runs played gave: %s" % res["meta"]["trail_bundle"])
         return res
 
     def meta(self, partial):
@@ -2614,6 +2648,8 @@ class Batch:
         self.say("sim: %d run%s of %s to %s, %d at once, the Trail %s, on death: %s, seed %d, map %s stage %d, %d fps -> %s" % (
             s["players"], "" if s["players"] == 1 else "s", s["hero"], fmt_t(s["limit"]), s["workers"], settings_trail_words(s),
             death_label(s["death"]), s["seed"], s["map"], int(s.get("stage", 1) or 1), s["fps"], self.out))
+        # pass 130: what that Trail gives, on one line (this repo's Trail file now; the result carries the runs' own)
+        self.say("sim: the Trail gives: %s" % settings_trail_bundle(s))
         if not self.args.synthetic:
             why = caps_problem(s, self.caps)
             if why:

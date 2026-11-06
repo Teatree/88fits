@@ -3,7 +3,8 @@
     python tools/posthog_boards.py            # (re)build every board
     python tools/posthog_boards.py --check    # run every board's queries, build nothing
 
-Ten dashboards, each one column so they read on a phone: Pulse, Players, Level Editor versions, Run curves, Run health
+Eleven dashboards (pass 130: "88fits · Trail", how far in the Trail players are and what the Trail gives by build),
+each one column so they read on a phone: Pulse, Players, Level Editor versions, Run curves, Run health
 & weapons (pass 60: the rest of analytics/dashboard.html's charts), Deaths, Builds & items, Surveys, Stages (pass 87,
 Garry: "Analytics should make it easy to indicate which Stage Player was playing on and which Stage the data is about":
 every run is one stage since pass 87, every event of a run carries stage, stage_id, in_endless and endless_wave; filter
@@ -152,6 +153,23 @@ def by_key_table(prop, name, drop=("debug",)):
         "SELECT %s, round(g) AS gold, round(100 * g / greatest(sum(g) OVER (), 1), 1) AS share_pct, runs, round(g / runs) AS per_run FROM ("
         "SELECT kv.1 AS %s, sum(kv.2) AS g, count() AS runs FROM (SELECT arrayJoin(JSONExtractKeysAndValues(ifNull(properties.%s, '{}'), 'Float64')) AS kv "
         "FROM events WHERE %s) WHERE %s GROUP BY %s) ORDER BY gold DESC" % (name, name, prop, SUMMARIES, skip, name))
+
+
+# ---------------------------------------------------------------- the Trail (pass 130)
+
+# run_start of a run that says its Trail (pass 129 on)
+TRAIL_STARTS = "event = 'run_start' AND " + RECENT + " AND isNotNull(properties.trail_level)"
+# one row per player: the Trail as their latest run began (level, nodes, coins spent), the runs they have started in
+# all (runs_before of the latest run + 1) and when they last played
+TRAIL_NOW = ("SELECT " + PLAYER + " AS player, argMax(toInt(properties.trail_level), timestamp) AS trail_level, "
+             "argMax(toInt(properties.trail_nodes), timestamp) AS nodes, argMax(toInt(properties.trail_spent), timestamp) AS coins_spent, "
+             "coalesce(max(toInt(properties.runs_before)), 0) + 1 AS runs_played, max(timestamp) AS last_seen "
+             "FROM events WHERE " + TRAIL_STARTS + " GROUP BY player")
+# the levels the "at or past" tiles count
+TRAIL_MILESTONES = [5, 10, 20, 30, 45, 60, 70]
+# the build an event came from: its stamp (run_start's build_id, pass 130) or, before that, the version and flavour
+TRAIL_BUILD = ("coalesce(nullIf(toString(properties.build_id), ''), concat('v', toString(properties.app_version), ' ', "
+               "coalesce(toString(properties.build), '')))")
 
 
 BOARDS = [
@@ -408,6 +426,56 @@ BOARDS = [
         ("Each player's bank now", table(
             "SELECT player, round(argMax(v, ts)) AS gold_now, max(ts) AS as_of FROM (SELECT timestamp AS ts, " + PLAYER + " AS player, "
             + BALANCE + " AS v FROM events WHERE " + BALANCE_EVENTS + ") WHERE isNotNull(v) GROUP BY player ORDER BY as_of DESC")),
+    ]),
+    # pass 130 (lane HOUSE; Garry: "Add a Dashboard showing how far in the Trail Players are normally"). run_start carries
+    # the Trail as the run begins: trail_level, trail_nodes, trail_spent (pass 129), runs_before, and since pass 130
+    # trail_bundle (what that Trail gives, on one line: Trail.bundle_text) and build_id (the build's stamp)
+    ("88fits · Trail", "How far in the Trail players are (pass 130): each player's Trail Level now (their latest run of the last %d days), "
+     "the median and the quartiles day by day, the share of players at or past levels 5, 10, 20, 30, 45, 60 and 70, how many runs each "
+     "level took, the coins spent, every player in a table, and what the Trail gives at each level BY BUILD: two builds whose Trail "
+     "gives different things at one level show as two rows (players who took different choices or optional nodes do too)." % DAYS, [
+        ("Where players stand now: players at each Trail Level", line(
+            "SELECT trail_level, count() AS players FROM (" + TRAIL_NOW + ") GROUP BY trail_level ORDER BY trail_level",
+            "trail_level", ["players"], display="ActionsBar")),
+        ("The typical player now: the median and the quartiles", table(
+            "SELECT count() AS players, round(quantile(0.25)(trail_level)) AS level_p25, round(median(trail_level)) AS level_median, "
+            "round(quantile(0.75)(trail_level)) AS level_p75, max(trail_level) AS furthest, round(avg(trail_level), 1) AS level_average, "
+            "round(median(coins_spent)) AS coins_spent_median, round(median(runs_played)) AS runs_played_median FROM (" + TRAIL_NOW + ")")),
+        ("Trail Level day by day: the median and the quartiles of the players who played that day", line(
+            "SELECT day, round(quantile(0.25)(lvl)) AS p25, round(median(lvl)) AS median, round(quantile(0.75)(lvl)) AS p75, count() AS players FROM ("
+            "SELECT toDate(timestamp) AS day, " + PLAYER + " AS player, max(toInt(properties.trail_level)) AS lvl FROM events WHERE " + TRAIL_STARTS +
+            " GROUP BY day, player) GROUP BY day ORDER BY day", "day", ["p25", "median", "p75"])),
+        ("Share of players at or past a Trail Level (%)", line(
+            "SELECT milestone, round(100 * countIf(trail_level >= milestone) / count(), 1) AS share_pct, countIf(trail_level >= milestone) AS players FROM ("
+            "SELECT arrayJoin([" + ", ".join(str(m) for m in TRAIL_MILESTONES) + "]) AS milestone, trail_level FROM (" + TRAIL_NOW + ")) "
+            "GROUP BY milestone ORDER BY milestone", "milestone", ["share_pct"], display="ActionsBar")),
+        ("Share of players at or past a Trail Level: the numbers", table(
+            "SELECT count() AS players, " + ", ".join("round(100 * countIf(trail_level >= %d) / count(), 1) AS at_%d_pct" % (m, m) for m in TRAIL_MILESTONES) +
+            " FROM (" + TRAIL_NOW + ")")),
+        # how many runs it took: the first run a player began at that level (runs_before: the runs started before it)
+        ("Runs played to reach a Trail Level (the median player; the quartiles)", line(
+            "SELECT trail_level, round(median(runs_to_reach)) AS runs_median, round(quantile(0.25)(runs_to_reach)) AS runs_p25, "
+            "round(quantile(0.75)(runs_to_reach)) AS runs_p75, count() AS players FROM ("
+            "SELECT " + PLAYER + " AS player, toInt(properties.trail_level) AS trail_level, min(toInt(properties.runs_before)) AS runs_to_reach "
+            "FROM events WHERE " + TRAIL_STARTS + " AND isNotNull(properties.runs_before) GROUP BY player, trail_level) "
+            "WHERE trail_level > 0 GROUP BY trail_level ORDER BY trail_level", "trail_level", ["runs_median", "runs_p25", "runs_p75"])),
+        ("Trail Level against runs played: each player now", table(
+            "SELECT player, runs_played, trail_level, round(trail_level / greatest(runs_played, 1), 2) AS levels_a_run FROM (" + TRAIL_NOW + ") "
+            "ORDER BY runs_played DESC")),
+        ("Coins spent on the Trail, by player", line(
+            "SELECT player, coins_spent FROM (" + TRAIL_NOW + ") ORDER BY coins_spent DESC", "player", ["coins_spent"], display="ActionsBar")),
+        ("Players on the Trail", table(
+            "SELECT player, trail_level, nodes, coins_spent, runs_played, last_seen FROM (" + TRAIL_NOW + ") ORDER BY trail_level DESC, last_seen DESC")),
+        ("What the Trail gives, by build (two builds that give different things at one level are two rows)", table(
+            "SELECT " + TRAIL_BUILD + " AS build, toInt(properties.trail_level) AS trail_level, properties.trail_bundle AS the_trail_gives, "
+            "count() AS runs, count(DISTINCT " + PLAYER + ") AS players, min(timestamp) AS first_seen, max(timestamp) AS last_seen "
+            "FROM events WHERE " + TRAIL_STARTS + " AND isNotNull(properties.trail_bundle) "
+            "GROUP BY build, trail_level, the_trail_gives ORDER BY trail_level, build")),
+        ("Trail Levels where builds disagree on what the Trail gives", table(
+            "SELECT trail_level, count(DISTINCT build) AS builds, count(DISTINCT gives) AS different_bundles, sum(runs) AS runs FROM ("
+            "SELECT " + TRAIL_BUILD + " AS build, toInt(properties.trail_level) AS trail_level, properties.trail_bundle AS gives, count() AS runs "
+            "FROM events WHERE " + TRAIL_STARTS + " AND isNotNull(properties.trail_bundle) GROUP BY build, trail_level, gives) "
+            "GROUP BY trail_level HAVING builds > 1 AND different_bundles > 1 ORDER BY trail_level")),
     ]),
 ]
 

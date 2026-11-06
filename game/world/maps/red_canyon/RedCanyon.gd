@@ -974,7 +974,11 @@ func _scatter_sprites() -> void:
 	add_child(props)
 	# pass 83: the ground shadows lie on the slopes
 	props.height_fn = height_at
-	props.setup()
+	# pass 130: the stage this run plays (its own run since pass 87; Game starts the stage before it builds the map; the
+	# arena stands in the first stage), so a painting's `stages` and `stage_chance` are read (PropField.in_stage)
+	var tl_s: WaveTimeline = Run.map.timeline if Run.map else null
+	var st_k: int = 0 if Run.arena else Run.stage
+	props.setup("res://art/sprites/props/props.json", tl_s.stage_id(st_k) if tl_s else "", tl_s.stage_hell(st_k) if tl_s else false)
 	if not props.has("saguaro_big"):
 		return
 	var rng := RandomNumberGenerator.new()
@@ -1205,6 +1209,8 @@ func _scatter_sprites() -> void:
 	dressing.name = "Dressing"
 	add_child(dressing)
 	dressing.lay(self, taken, free, run_seed, tl_d.get("dressing") if tl_d else null)
+	# pass 130: the one-a-run paintings (props.json `per_run`: the Yellow Catkins mesquite), once everything stands
+	props.settle_rare(run_seed)
 
 
 ## Pass 126 (lane DRESS): is `p` clear by `r` metres of the things that have no obstacle circle (poles, wheels, crosses)?

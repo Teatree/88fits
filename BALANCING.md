@@ -9930,3 +9930,96 @@ rounded half up (18, 35, 70 of 70). Outlaws, items and stages come with their no
 plays without the Trail's four weapons and four cards**, which no sim before this pass did. `board=` / `mirror=` /
 `--board` still read as the same shares and say they are the old name. The run record is schema 6 (`trail` in place
 of `talents`, `talent_forms`, `board`).
+
+
+## 72. Pass 130: Garry's scenery picks and their rules, the Trail's bundle, the Straw Man's back
+
+Garry's requests of 2026-11-06 (after pass 129): eleven of pass 128's environment variations go into the game, each with
+the rule he gave it; every tool that shows a Trail Level says what that level gives; the Straw Man looks the right way
+from behind; a Trail screenshot for the store. No number of the fight moved.
+
+### 72.ENV The eleven new paintings (art/sprites/props/props.json, core/systems/PropField.gd)
+
+| Painting (his name) | id | Rule |
+|---|---|---|
+| Red Fishhook | `barrel_cactus_d` | a plain variant of the barrel cactus (the spot rolls it, weight 1) |
+| Triple Clump | `barrel_cactus_e` | a plain variant of the barrel cactus |
+| Wind Bent | `mesquite_tree_d` | a plain variant of the mesquite tree |
+| Yellow Catkins | `mesquite_tree_f` | **one a run**: `per_run` 1; in the Blood Moon it comes in half the runs (`stage_chance` {"s3": 0.5}) |
+| White Flowers | `desert_bush_e` | a plain variant of the desert bush |
+| White Fluff | `creosote_bush_b` | the creosote bush **at Nightfall only**, in place of the original (`stages` ["s2"]) |
+| Drought Twigs | `creosote_bush_f` | the creosote bush **in the Dust Bowl and the Blood Moon**, in place of the original (`stages` ["dust", "s3"]) |
+| (the original creosote) | `creosote_bush` | Sundown only (`stages` ["s1"]) |
+| Dry Seedheads | `brittlebush_d` | the brittlebush in the Dust Bowl and the Blood Moon (`stages` ["dust", "s3"]); the original in Sundown and Nightfall |
+| One Wheel, Open Box | `cart_toppled_d`, `cart_toppled_b` | the cart is the original, One Wheel or Open Box at **equal chances** in Sundown, Nightfall and the Dust Bowl (`stages` on all three) |
+| Burnt Wreck | `cart_toppled_e` | the cart **in the Blood Moon, always** (`stages` ["s3"]: the only cart painting there) |
+
+The three keys a props.json entry may carry (all optional, read by `PropField`):
+
+- `stages`: [stage ids] ("s1", "s2", "dust", "s3"; "hell" = any hell stage). The painting is laid only there. On a
+  kind's own entry it takes the kind's own painting out of the other stages; where no painting of a kind is left, the
+  kind's own is laid after all (a fifth stage one day shows the originals until it is listed).
+- `per_run`: N. The variant is never rolled by the spot; once the map is laid, N of its kind's props are redrawn as it
+  (`settle_rare`, on dice of the map seed and the variant's name: a seed's map is the same every time).
+- `stage_chance`: {stage id: p}. With `per_run`: the chance it comes at all in that stage (1 where not named).
+
+Rules that follow, named here because Garry did not spell them:
+
+- **Colliders never change.** A variant plays its kind's collider, height and shadow rule; every cart state has the
+  cart's own radius (0.784 x the cart's scale) and the cart's hand-set shadow. So a seed's map plays the same in every
+  stage, and a replay is not touched.
+- **The arena stands in Sundown** (its WAVES tab moves the clock, not the scenery).
+- A field that is not told its stage (a test, a capture, the title) lays the kind's own painting.
+- Yellow Catkins takes the place of one mesquite that was already there (the count of trees does not change); a run
+  with no mesquite has none.
+- White Flowers has the same weight as the plain desert bush (about 12 of each a run; the purple-flowered
+  `desert_bush_b` stays at half).
+- The stage is the run's own (pass 87): the scenery never changes inside a run.
+
+### 72.PERF What the new paintings cost (game/tools/_p130_ENV_probe.gd, 30 map seeds a stage; perf_late.gd)
+
+| | before | after |
+|---|---|---|
+| scenery paintings a run really draws (one draw call each, every frame) | 26.7 | 30.7 (Blood Moon 30.2) |
+| the whole frame's draw calls late in a run (perf_late on the PC, measured after) | | 232 to 248: the four more are under 2% of it |
+| scenery textures loaded for a run | 33 | 40 to 42 |
+| their memory on the GPU | 10.7 MB | 13.0 to 13.6 MB |
+| prop instances | 226 | 227 |
+| a map build (once, under the loading screen) | about 330 ms | about 350 ms |
+| the APK | | +0.8 MB (eleven PNGs) |
+
+Why it is small: a painting costs one draw call when a run has at least one of it, wherever the camera looks (the
+field's bounding box is the whole map), and nothing per instance beyond the instance. The swaps (creosote, brittlebush,
+the cart) add no draw call: one painting stands in for another. A variant that cannot come in the run's stage is not
+loaded at all. The rule of thumb for more: **each added painting that a run uses is +1 draw call and 0.15 to 0.6 MB**;
+a re-drawn painting that replaces one (72.RESEED) costs nothing.
+
+### 72.RESEED Five re-draws of every painting (candidates only, nothing in the game)
+
+`tools/gen_env_reseed.py`: every scenery painting on its own (each kind's painting and each of its variants: the four
+Joshua trees are four rows), five seeds each, Klein shown the painting itself and asked for the same thing again; the
+colours are matched to the painting. A painting with a known fault is not shown to the painter: it gets its own first
+recipe again with the repair's words (`FIXES`: `dead_shrub_b`, a shrub on one stem with a closed outline).
+`--install <id>=<k>` replaces a painting with candidate k (the old one kept in tools/dl/p130/ENV/replaced/).
+
+### 72.FACE The Straw Man's back view
+
+`back_faces: "left"` on the Straw Man (both looks follow the creature's rule). Garry: "looking in the opposite direction
+relative to the player when they're with their backend running upwards". The rule is pass 45's (`front_faces` /
+`back_faces`: right, left, straight); the Level Editor's open look now has a Facing row (Flip, Never mirror) with the set
+walking both ways beside it.
+
+### 72.BUNDLE What a Trail Level gives, in one line (no rule of the game)
+
+`Trail.bundle_text(block)`: the bought upgrade types in the Trail file's order, each its words and its sum, then the
+unlocks counted (`Attack damage +12%, Max health +10%, Reroll a run +1 · unlocks: 2 outlaws, 3 items, 1 stage`;
+`nothing yet` for an empty Trail; a type whose sum is 0 is left out; weapons, cards and passive items count as "items").
+The run record carries it (`trail.bundle`, schema still 6), so a record says what ITS build's Trail gave; `run_start`
+sends `trail_bundle` and `build_id`; a replay's header carries the whole `trail` block. JavaScript and Python twins
+(`tools/level_editor/trail_bundle.js`, `tools/trail_bundle.py`) are pinned to one fixture with the game's.
+
+### 72.STORE The sixth store screenshot
+
+`docs/store/06_trail.png`: the Trail at level 9 on the game's own file, "500+ UPGRADES / Blaze your own trail" on a sage
+band (`docs/store/plan.json`; capture `game/tools/_p130_STORE_trail.gd`). The Trail holds 100 nodes today; the claim
+counts the game's upgrades together (weapon levels, mutations, cards, items, the Trail).

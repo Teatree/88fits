@@ -24,6 +24,10 @@ import os
 import re
 import sys
 
+if os.path.dirname(os.path.abspath(__file__)) not in sys.path:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import trail_bundle  # noqa: E402  (pass 130: the Trail on one line, Trail.bundle_text as Python)
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 BOM = "﻿"
 # the row's plain keys, in this order; a key the record left out is 0 (it means 0), boss_hp and boss_now empty (no boss
@@ -51,6 +55,7 @@ HISTORY_FIRST = ["file", "stamp", "started", "version", "schema", "tool", "headl
                  "map", "map_rev", "seed", "result", "length", "clock", "stage", "endless_wave", "level", "kills", "gold",
                  "strongbox", "revives", "gold_before", "damage", "top_source", "dps_end", "hp_lost", "hits_taken", "bosses",
                  "specials_killed", "elites_killed", "killer", "totems", "trail_level", "trail_bought", "trail_spent",
+                 "trail_bundle",
                  "talents", "build"]
 # RunAnalytics.INDEX_SKIP: the header blocks the index leaves out (`talents`, `talent_forms` and `board` are an older
 # record's: the Upgrade board left the game in pass 129, schema 6)
@@ -419,6 +424,9 @@ def index_row(d, fname):
         row["trail_level"] = int(trl.get("level", 0) or 0)
         row["trail_bought"] = len(trl["bought"]) if isinstance(trl.get("bought"), list) else 0
         row["trail_spent"] = int(trl.get("spent", 0) or 0)
+        # pass 130 (lane HOUSE): what that Trail gave, on one line (the record's own `bundle`; worked out from its
+        # upgrades and types for a record from before pass 130: tools/trail_bundle.py, Trail.bundle_text's twin)
+        row["trail_bundle"] = trail_bundle.of(trl)
     row["totems"] = len(d["totems"]) if isinstance(d.get("totems"), list) else 0
     dbw = (d.get("totals") or {}).get("damage_by_weapon") or {}
     dmg, top, top_v = 0.0, "", -1.0

@@ -52,7 +52,11 @@ progression, gold, quest progress and the history. Every card has a table view.
 
 Pass 115 (record schema 5, version 0.98; Garry: "Hero Level ... Individual Weapon Real DPS ... Show Current HP with bars
 ... what level of Mirror Upgrade Player was"): four cards more.
-- **The Trail** (after the run's facts; pass 129, record schema 6: the Upgrade board left the game): the Trail the run
+- **The Trail** (after the run's facts; pass 129, record schema 6: the Upgrade board left the game; pass 130: its first
+  line is **what that Trail gave**, one comma-separated line such as "Attack damage +12%, Max health +10% · unlocks:
+  2 outlaws, 1 item", written by the build that played the run, so two builds whose Trail gives different things at
+  one level are told apart; the same line is on the run's facts, as a hover hint on the Trail column of the run lists,
+  and the average warns when runs at one Trail Level carry different lines): the Trail the run
   began with: its Trail Level of the Trail's top level, the nodes bought of all its nodes and how many were paid for,
   the gold they cost, then every upgrade type bought with its icon and its sum ("+12%", "+2", "+1"). The Remote runs
   list and the averages' runs list say it in short in their `trail` column (`level 12`).

@@ -1,0 +1,143 @@
+{
+  "_doc": "Pass 130 (lane LE): the Trail tab's hint box (trail_hint.js). One entry per upgrade type of game/content/trail/trail.json: `what` = what the type does in play, in a designer's words; `note` = optional, what is easy to get wrong (never shown to the player). Tools only: the game never reads this file. A type without an entry falls back to its `text`; selftest_P130LE.py fails when a type in trail.json has none. Written from the code as of pass 130 (StatSheet.PLAYER_DEFAULTS, WeaponInstance.rebuild, Player.gd, PickupManager.drop_from, CardPool, MirrorDanger.gd): when a stat's rule changes, change its words here.",
+  "might": {
+    "what": "Every weapon hits harder. All the Trail's Might adds up into one multiplier on each weapon's damage (+5% and +8% make x1.13), which then multiplies with what Cards and items give.",
+    "note": "The plainest power on the Trail: every build gains from it the same."
+  },
+  "tempo": {
+    "what": "Every weapon fires sooner. It cuts each weapon's cooldown by this share: 0.04 = cooldown x0.96, about 4.2% more shots.",
+    "note": "The player reads \"Attack speed +4%\" but it is a cooldown cut (stat `cooldown`, per -1): the gain in shots grows faster than the number (a 50% sum doubles the shots). A weapon's cooldown never goes under 0.05 s."
+  },
+  "area": {
+    "what": "Every weapon reaches wider: blasts, cones, beams, patches and orbits are this much bigger.",
+    "note": "Worth little to a weapon that fires single rounds."
+  },
+  "shot_speed": {
+    "what": "Rounds fly faster. Only speed: no more damage, no more range.",
+    "note": "Nothing for weapons without a flying round (beams, breath, orbiters)."
+  },
+  "duration": {
+    "what": "What a weapon leaves or holds lasts longer: pools, patches, turrets, beams, a spin's time.",
+    "note": "Not burns, poison and slows on creatures (that is Tight Grip), and not power-ups (that is Slow Sip)."
+  },
+  "amount": {
+    "what": "Every weapon fires one more projectile each time it attacks (for a weapon that counts bounces, one more bounce).",
+    "note": "A whole number. By far the strongest type per node: every weapon in the build gains a whole extra shot."
+  },
+  "crit_chance": {
+    "what": "The chance a hit is critical, added to the outlaw's 1%: 0.05 = five more hits in a hundred.",
+    "note": "Added, not multiplied: +5% is five points."
+  },
+  "crit_damage": {
+    "what": "How hard a critical hit lands, added to the base x2: 0.25 = a crit deals x2.25.",
+    "note": "Worth nothing without crit chance."
+  },
+  "big_game": {
+    "what": "More damage to bosses, Elites and the big creature kinds: 0.15 = x1.15 against them. The regular crowd takes the same as before.",
+    "note": "It shortens boss fights only; a boss's HP also grows with the outlaw's recent DPS."
+  },
+  "grip": {
+    "what": "Burns, poison, slows, marks and pins that the outlaw's side puts on creatures last this much longer.",
+    "note": "Only what sits on creatures. Buffs on the outlaw and weapon effects (Long Fuse) are not changed."
+  },
+  "health": {
+    "what": "More max health: 0.10 = 10% on top (an outlaw starts from 100 before Cards and items).",
+    "note": "All the Trail's Grit adds into one multiplier, which multiplies with other sources."
+  },
+  "plate": {
+    "what": "Every hit the outlaw takes is cut by this share: 0.06 = 6% less damage from everything.",
+    "note": "Added to other reduction; the game caps the total at 80%."
+  },
+  "regen": {
+    "what": "Health points restored every second, a flat number (0.6 = 0.6 HP a second). It pauses for about 3 seconds after a hit.",
+    "note": "Flat, not a percent: weak beside big max health. Tonic makes it bigger."
+  },
+  "tonic": {
+    "what": "Every heal on the outlaw is this much bigger: regen, life steal, cake, structures.",
+    "note": "Nothing by itself: it needs a source of healing."
+  },
+  "evade": {
+    "what": "The chance a hit misses outright: no damage and no shove.",
+    "note": "Added, in points (0.05 = five hits in a hundred). The code caps it at 90%."
+  },
+  "shield": {
+    "what": "A shield of this many points on top of health. It takes the hits first and comes back after 3 seconds without a hit, half of it a second.",
+    "note": "Flat points (25 = a quarter of a fresh outlaw's health)."
+  },
+  "second_wind": {
+    "what": "The share of max health the outlaw stands up with after a revive, added to the base 40%: 0.15 = up at 55%.",
+    "note": "Only matters when a revive is used. Past 100% in all, the rest buys untouchable seconds instead (10 s for each 100%)."
+  },
+  "extra_life": {
+    "what": "One more revive in every run on the Down! screen (every outlaw has one already).",
+    "note": "A whole number."
+  },
+  "boots": {
+    "what": "The outlaw walks faster: 0.03 = 3% on his 3.6 m/s.",
+    "note": "Speed is safety and gem collection; creatures' far speed is set by the map, not by this."
+  },
+  "magnet": {
+    "what": "The reach in which gems and coins fly to the outlaw (1.5 m at the start) is this much wider.",
+    "note": "Not the Magnet power-up."
+  },
+  "luck": {
+    "what": "Luck lifts the rarer cards at a level-up (uncommon by half the number, rare by it, epic x1.5, legendary x2), makes creatures drop coins more often (x 1 + luck) and adds a little to medium gems and to an Elite's vacuum.",
+    "note": "Added, starting from 0: 0.10 = 10% more coin drops and legendary cards 20% more likely by weight."
+  },
+  "greed": {
+    "what": "Coins gained in a run are worth this much more.",
+    "note": "It speeds the whole Trail up: every node bought after it comes sooner."
+  },
+  "study": {
+    "what": "XP gained is multiplied: level-ups come sooner in every run.",
+    "note": "More levels a run means more cards: it is power, not only pace."
+  },
+  "loose_coins": {
+    "what": "A chance on every kill to drop a coin bag: 0.01 = one kill in a hundred.",
+    "note": "A chance per kill, so it grows with the crowd: keep the numbers small. No bag drops while the Coin Bag power-up is a Trail node not yet bought."
+  },
+  "care_package": {
+    "what": "A chance on every kill to drop a cake slice that heals: 0.01 = one kill in a hundred.",
+    "note": "A chance per kill: keep the numbers small. No cake drops while the Cake power-up is a Trail node not yet bought."
+  },
+  "long_buff": {
+    "what": "A power-up picked up off the ground lasts this much longer (Berserk, Sprint, the Shield).",
+    "note": "Not a structure's buff, Pollen or Barrel Rush."
+  },
+  "power_drop": {
+    "what": "Multiplies the chance that a killed creature drops a power-up.",
+    "note": "Only the per-kill drop of the map's timeline; a barrel's throw has its own chance."
+  },
+  "reroll": {
+    "what": "One more reroll of the offered cards in every run (an outlaw starts a run with 1).",
+    "note": "A whole number. A stage is its own run, so each stage starts with all of them."
+  },
+  "skip": {
+    "what": "One more skip of a card offer in every stage (2 at the start).",
+    "note": "A whole number. With the Assayer's Scale a skip also pays."
+  },
+  "banish": {
+    "what": "One more banish in every stage (1 at the start): the banished card is not offered again in that run.",
+    "note": "A whole number."
+  },
+  "grubstake": {
+    "what": "The purse holds this many coins when a run starts (25 = 25 coins).",
+    "note": "Flat coins, as they are (Greed does not grow them). They are banked with the purse at the run's end, so the node pays itself back over runs; they also count for anything in the run that reads the purse."
+  },
+  "spirit": {
+    "what": "Every Totem Pole gift is this much bigger: 0.10 = each offered boost x1.1.",
+    "note": "Only the totems' gifts, not how many poles a map has."
+  },
+  "bounty": {
+    "what": "A boss chest pays this much more coins and XP: 0.10 = x1.1 on what the chest holds.",
+    "note": "Only the boss's chest. Not the Bounty Board's posters, and not the coins creatures drop."
+  },
+  "stakes": {
+    "what": "Regular creatures get tougher for good: this much more HP and attack, and 0.4 of it in walking speed (0.10 = +10% HP and attack, +4% speed). An optional node; once bought it cannot be undone.",
+    "note": "Designer's note, never told to the player: the same creatures also pay half the number more XP and coins (0.10 = +5%). Bosses and Elites are not touched (that is Boss Stakes)."
+  },
+  "boss_stakes": {
+    "what": "Bosses and Elites get tougher for good: this much more HP and attack, and 0.4 of it in speed (0.10 = +10% HP and attack, +4% speed). An optional node; once bought it cannot be undone.",
+    "note": "Designer's note, never told to the player: bosses and Elites also pay half the number more XP and coins (0.10 = +5%). The regular crowd is not touched (that is Stakes)."
+  }
+}

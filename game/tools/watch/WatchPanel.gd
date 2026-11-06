@@ -57,6 +57,7 @@ var show_goals := true
 
 var _title: Label
 var _sub: Label
+var _trail: Label
 var _speed_btns: Dictionary = {}
 var _pause_btn: Button
 ## pass 106: who plays, beside Pause ("Bot plays" / "You play", T)
@@ -322,6 +323,16 @@ func _header() -> Control:
 	_sub.add_theme_font_size_override("font_size", 13)
 	_sub.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	v.add_child(_sub)
+	# pass 130: what the run's Trail gives (the bundle), under the line that names its level: two lines at most, the
+	# whole of it in the hover hint
+	_trail = Label.new()
+	_trail.add_theme_color_override("font_color", DIM)
+	_trail.add_theme_font_size_override("font_size", 12)
+	_trail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_trail.max_lines_visible = 2
+	_trail.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_trail.mouse_filter = Control.MOUSE_FILTER_PASS
+	v.add_child(_trail)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	v.add_child(row)
@@ -845,6 +856,13 @@ func refresh() -> void:
 		stage_txt = "stage %d%s%s · clock %s · played %s" % [int(run.stage) + 1, st_name, ph, DATA.mmss(st_clock), DATA.mmss(w.play_t())]
 	_title.text = "%s  ·  %s" % [w.hero_name(), stage_txt if stage_txt != "" else ("Outlaw Settings: choose the run, then Start Run" if w.setup_open() and game == null else "starting…")]
 	_sub.text = w.header_words()
+	var gives := "the Trail gives: %s" % str(w.trail_bundle())
+	if _trail.text != gives:
+		_trail.text = gives
+		_trail.tooltip_text = "What the Trail this run plays gives, added up (this build's Trail file):
+" + str(w.trail_bundle()).replace(" · ", "
+").replace(", ", "
+")
 	_pause_btn.text = "Go on" if clk.paused else "Pause"
 	_show_hand(w)
 	for s in _speed_btns:

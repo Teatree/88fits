@@ -973,13 +973,54 @@
           },
           "hp_mult": 2.0
         },
-        "until": 245,
+        "until": 219,
         "variant": "RG-B",
         "pace": "waves",
         "every": 5,
         "count": 30,
         "special": false,
         "role": "fodder"
+      },
+      {
+        "id": "r10",
+        "t": 123,
+        "enemy": "red_goblin",
+        "weights": [
+          [
+            123,
+            9
+          ],
+          [
+            182,
+            5.1
+          ],
+          [
+            186,
+            8.8
+          ],
+          [
+            241,
+            8.4
+          ]
+        ],
+        "stats": {
+          "elite": {
+            "hp_mult_per_stage": 0
+          },
+          "drops": {
+            "medium": 0
+          },
+          "hp_mult": 2
+        },
+        "until": 219,
+        "variant": "RG-B",
+        "pace": "waves",
+        "every": 4,
+        "count": 20,
+        "special": false,
+        "role": "fodder",
+        "pattern": "scatter",
+        "pack": 2
       },
       {
         "id": "r2",
@@ -1290,15 +1331,15 @@
       },
       {
         "id": "r63",
-        "t": 150,
+        "t": 160,
         "enemy": "bull_beetle",
         "weights": [
           [
-            150,
+            160,
             1.0
           ]
         ],
-        "until": 155,
+        "until": 165,
         "pattern": "in_front",
         "stats": {
           "drops": {
@@ -1306,8 +1347,11 @@
           },
           "max_alive": 4,
           "damage_mult": 1.5,
-          "hp_mult": 3.0,
-          "size": 3
+          "hp_mult": 5.0,
+          "size": 4,
+          "charge": {
+            "knockback": 10
+          }
         },
         "role": "tank",
         "pace": "once",

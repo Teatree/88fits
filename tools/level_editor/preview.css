@@ -285,3 +285,12 @@ input.inherited, textarea.inherited, textarea.txt.area.inherited, .jform textare
 .inh-back { font-size: 0.72rem; padding: 0 6px; }
 .jform .fieldline .jstills-err { grid-column: 2; }
 .jform .fieldline .jstills-err:empty { display: none; }
+
+/* pass 130 (lane LE): the look card's Facing row (looks.js facingRow): each view walking screen-left and screen-right */
+.lg-facing { border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
+.lg-facing-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.lg-facing-line { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.lg-facing-line .lb { flex: 0 0 74px; color: var(--ink); }
+.lg-facing-pv { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; }
+.lg-facing-set { display: flex; flex-direction: column; gap: 3px; flex: 1 1 220px; min-width: 200px; }
+.lg-facing-btns { display: flex; gap: 6px; flex-wrap: wrap; }

@@ -88,6 +88,53 @@ def icon_names(srv):
     return sorted(f[:-4] for f in os.listdir(base) if f.endswith(".png") and _ICON_RE.match(f[:-4]))
 
 
+# pass 130 (lane LE): quests_before.json's quest types -> the `gives` type a Trail node names the same thing by
+_LOCK_TYPES = {"character": "outlaw", "skin": "skin", "weapon": "weapon", "passive": "passive", "map": "map",
+               "structure": "structure", "pickup": "powerup", "powerup": "powerup"}
+
+
+def _condition_words(cond):
+    """A quest's condition in a few words: "evolve_item (kind weapon, id gravity_gun)"."""
+    if not isinstance(cond, dict):
+        return ""
+    rest = ", ".join("%s %s" % (k, json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v)
+                     for k, v in cond.items() if k != "type")
+    return "%s%s" % (cond.get("type", "?"), " (%s)" % rest if rest else "")
+
+
+def locks(srv):
+    """Pass 130 (lane LE), for the Trail tab's hint box: what each thing a node can unlock was locked behind when the
+    Trail arrived, {"<gives type>:<id>": words}. From content/trail/quests_before.json (the unlock quests as they stood)
+    and content/quests (a quest that still stands is named with its condition; one whose file is gone was retired when
+    the Trail took its thing over). A thing not listed was free."""
+    out = {}
+    before = {}
+    try:
+        d = json.loads(cio.read_text(os.path.join(srv.CONTENT, "trail", "quests_before.json")))
+        if isinstance(d, dict):
+            before = {k: v for k, v in d.items() if not k.startswith("_") and isinstance(v, str)}
+    except (OSError, ValueError):
+        pass
+    quests = dict(_folders(srv, "quests"))
+    for q in quests.values():   # a quest added since the Trail arrived that names a thing
+        un = q.get("unlocks") if isinstance(q.get("unlocks"), dict) else {}
+        if un.get("type") and un.get("id") is not None and q.get("id"):
+            before.setdefault("%s:%s" % (un["type"], un["id"]), str(q["id"]))
+    for key, qid in before.items():
+        qtype, _, thing = key.partition(":")
+        gtype = _LOCK_TYPES.get(qtype)
+        if not gtype or not thing:
+            continue
+        q = quests.get(qid)
+        if q:
+            words = 'the quest "%s" (%s: %s); a quest is hidden and not tracked while a node gives its thing' % (
+                q.get("name") or qid, qid, _condition_words(q.get("condition")) or "no condition")
+        else:
+            words = "the unlock quest %s (retired when the Trail took it over; saves that had done it keep the thing)" % qid
+        out["%s:%s" % (gtype, thing)] = words
+    return out
+
+
 def picks(srv):
     """The lists a node's gift is picked from, each entry {id, name, icon, ...}."""
     out = {"outlaws": [], "skins": [], "weapons": [], "passives": [], "maps": [], "structures": [], "powerups": [],
@@ -128,6 +175,7 @@ def picks(srv):
     for cid, d in _folders(srv, "pickups"):
         out["powerups"].append({"id": cid, "name": str(d.get("name", cid)), "icon": "/icon/pickup/%s" % cid, "hidden": bool(d.get("hidden", False))})
     out["currencies"] = [cid for cid, _ in _folders(srv, "currencies")] or ["gold"]
+    out["locks"] = locks(srv)   # pass 130 (lane LE): the hint box's "what it was locked behind"
     return out
 
 

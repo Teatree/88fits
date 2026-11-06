@@ -73,7 +73,7 @@ static func ids_upto(level: int, optional: bool = false) -> Array:
 
 ## Writes the Trail a `trail=` argument names into `save` (its `trail` block: the ids as bought, nothing spent, and
 ## nothing "had before the Trail": a tool's Trail is what its argument says, whatever save it started from) and returns {arg, asked (the level named), level (the Trail Level that came of
-## it), bought (how many nodes), optional, label}; {error} for an argument that names nothing. `ids` (trail_ids=) wins
+## it), bought (how many nodes), optional, label, bundle (pass 130: what that Trail gives, Trail.bundle_text)}; {error} for an argument that names nothing. `ids` (trail_ids=) wins
 ## over `arg`: exactly those nodes (the ones the Trail has).
 static func apply(save: Node, arg: String, optional: bool = false, ids: Array = []) -> Dictionary:
 	var levels := Trail.levels()
@@ -93,7 +93,23 @@ static func apply(save: Node, arg: String, optional: bool = false, ids: Array = 
 	Trail.refresh()
 	var lv := Trail.level()
 	return {"arg": arg.strip_edges().to_lower() if ids.is_empty() else "ids", "asked": asked, "level": lv,
-		"bought": bought.size(), "optional": optional, "label": label_of(arg if ids.is_empty() else "ids", lv, levels)}
+		"bought": bought.size(), "optional": optional, "label": label_of(arg if ids.is_empty() else "ids", lv, levels),
+		"bundle": Trail.bundle()}
+
+
+## Pass 130: the bundle (Trail.bundle_text: what the Trail gives, on one line) of the Trail a `trail=` argument names,
+## without touching a save: the pop-ups and headers show it beside the level before any run starts. "" for an argument
+## that names nothing. `ids` (trail_ids=) wins over `arg`.
+static func bundle_of(arg: String, optional: bool = false, ids: Array = []) -> String:
+	if not ids.is_empty():
+		return Trail.bundle_of(ids)
+	var lv := level_of(arg, Trail.levels())
+	return Trail.bundle_of(ids_upto(lv, optional)) if lv >= 0 else ""
+
+
+## A tool's Trail on one line, the level and what it gives: "a quarter (Trail Level 18 of 70): Attack damage +12%, ...".
+static func line_of(info: Dictionary) -> String:
+	return "%s: %s" % [str(info.get("label", "none")), str(info.get("bundle", Trail.BUNDLE_EMPTY))]
 
 
 ## The Trail in words for a tool's header: "a quarter (Trail Level 18 of 70)", "Trail Level 36 of 70", "none".

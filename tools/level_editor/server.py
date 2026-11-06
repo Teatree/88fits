@@ -588,6 +588,10 @@ def look_records(kind, cid, folder, d, json_path=None):
                "head": top_head if is_base else _num(entry.get("head"), top_head),
                "front_faces": str(entry.get("front_faces", d.get("front_faces", "right"))),
                "back_faces": str(entry.get("back_faces", d.get("back_faces", "right"))),
+               # pass 130 (lane LE): where each rule comes from, for the look card's Facing row: the look's own entry,
+               # the creature's top-level key, or the default ("right")
+               "faces_src": {v: ("look" if v + "_faces" in entry else "creature" if v + "_faces" in d else "default")
+                             for v in ("front", "back")},
                "shadow": entry.get("shadow") if isinstance(entry.get("shadow"), dict) else (d.get("shadow") if isinstance(d.get("shadow"), dict) else {}),
                "shelved": bool(entry.get("shelved", False)), "fresh": bool(entry.get("fresh", False)),
                "imported": imported, "sprite_mtime": sprite_mtime,
@@ -2534,7 +2538,10 @@ def look_op(kind, cid, codes, op, body=None):
     shelve (`shelved: true`; refused for the code in play), unshelve, remove (refused for the code in play, the base
     strip's code, or a code a map pins; the entry's own PNGs + .import files and its _ai marker move to
     backups/deleted/<id>/<stamp>/), note {note}, recipe {recipe}, default (the look in play). One backup, one write; an
-    import for what the game reads (shelve, unshelve, remove, default)."""
+    import for what the game reads (shelve, unshelve, remove, default, facing).
+    Pass 130 (lane LE): facing {view: front|back, value: right|left|straight|inherit}: the mirror rule of a creature
+    look's front or back set (EnemyDef.front_faces / back_faces), written into that look's own entry; the base look
+    writes the creature's top-level key (every look without its own follows it); "inherit" drops a look's own."""
     body = body if isinstance(body, dict) else {}
     if op in ("revert_icon", "use_icon"):
         # pass 76 (lane ICON): "Revert icon" and the gallery's "Use for this look", on any asset with an icon (icon_op)
@@ -2545,7 +2552,7 @@ def look_op(kind, cid, codes, op, body=None):
     tfolder, path = content_path(kind, cid)
     if path is None:
         return {"ok": False, "error": "no %s %s" % (kind, cid), "status": 404}
-    if op not in ("approve", "shelve", "unshelve", "remove", "note", "recipe", "default"):
+    if op not in ("approve", "shelve", "unshelve", "remove", "note", "recipe", "default", "facing"):
         return {"ok": False, "error": "unknown look op %s" % op, "status": 400}
     codes = [c for c in (codes if isinstance(codes, list) else [codes]) if isinstance(c, str) and CODE_RE.match(c)]
     if not codes:
@@ -2580,7 +2587,7 @@ def look_op(kind, cid, codes, op, body=None):
         base = str(d.get("variant_base", ""))
         text = src
         for code in codes:
-            if code not in vs:
+            if code not in vs and not (op == "facing" and code == base):   # the base look may have no entry of its own
                 return {"ok": False, "error": "%s has no look %s" % (cid, code), "status": 404}
             if op == "approve":
                 text = cio.set_variant_entry(text, code, {"fresh": cio.REMOVE})
@@ -2592,6 +2599,24 @@ def look_op(kind, cid, codes, op, body=None):
                 text = cio.set_variant_entry(text, code, {"shelved": cio.REMOVE})
             elif op == "note":
                 text = cio.set_variant_entry(text, code, {"note": str(body.get("note", ""))})
+            elif op == "facing":
+                view, value = body.get("view"), body.get("value")
+                if kind == "hero":
+                    return {"ok": False, "error": "an outlaw's front and back sets never mirror: there is no facing rule to set", "status": 400}
+                if view not in ("front", "back") or value not in ("right", "left", "straight", "inherit"):
+                    return {"ok": False, "error": "facing needs view front|back and value right|left|straight|inherit", "status": 400}
+                key = view + "_faces"
+                if code == base:
+                    # the base look's rule is the creature's own top-level key (an own key in its entry would hide it)
+                    if value == "inherit":
+                        return {"ok": False, "error": "%s is the base look: its rule is the creature's own (right, left or straight)" % code, "status": 400}
+                    if key in (vs.get(code) or {}):
+                        text = cio.set_variant_entry(text, code, {key: cio.REMOVE})
+                    if text is not None:
+                        places = ((("before", "back_faces"),) if view == "front" else (("after", "front_faces"),)) + (("before", "variants"), ("end", None))
+                        text = cio.set_top_key(text, key, value, places)
+                else:
+                    text = cio.set_variant_entry(text, code, {key: cio.REMOVE if value == "inherit" else value})
             elif op == "recipe":
                 r = body.get("recipe")
                 if r is not None and not isinstance(r, dict):
@@ -2625,7 +2650,7 @@ def look_op(kind, cid, codes, op, body=None):
     import_ok, output, job = (None, "no import needed", None)
     EV.look_events(kind, cid, codes, op, backup=backup_rel, moved=moved or None,   # pass 97 (lane PROGRESS, WF-02)
                    note=str(body.get("note", "")) if op == "note" else None, recipe=body.get("recipe") if op == "recipe" else None)
-    if op in ("shelve", "unshelve", "remove"):
+    if op in ("shelve", "unshelve", "remove", "facing"):
         import_ok, output = run_import("%s/%s" % (tfolder, cid))
     else:
         # approve / note / recipe change nothing the game reads, but they make the JSON newer than the .tres, which the

@@ -48,9 +48,13 @@ and `tools\replay.cmd` finds it without any download. A run from the editor bina
   as a ghost under the thumb (the base and the knob).
 - **The screens** (cards, chests, the shop, the Stranger, totems, the portal, Down!) appear as they did, and the choice
   is made by name, never by screen position: the log on the right says what was picked (`2:41  Picked Mule Kick`).
-- **The Trail** (pass 129, under the numbers; it was the Upgrade board from pass 115 until the board left the game):
-  the Trail the player had when the run began: the Trail Level, the nodes bought, the gold they cost and every upgrade
-  type's sum. `B` (or a click on its title) folds it to one line. The header names the outlaw's look.
+- **The Trail** (a button under the numbers since pass 130; it was a panel that was always there, and the Upgrade board
+  from pass 115 until the board left the game): press **The Trail** (or `B`) and a pop-up opens over the game view with
+  the Trail the player had when the run began: the Trail Level, the nodes bought, the gold they cost, **what it gave on
+  one line** ("Gave: Attack damage +12%, Max health +10% · unlocks: 2 outlaws, 1 item") and one row per upgrade type.
+  `B`, `Esc` or a click on the view closes it; hovering the button shows the level and the line without opening it.
+  The line is the one the recording's own build wrote; if today's Trail file would give those nodes something else,
+  the pop-up says so in amber. The header names the outlaw's look.
   For **any** recording, `python tools/replay.py` prints the Trail in the terminal before the window opens (the nodes
   paid for and their gold, the upgrades summed by type, the outlaws, weapons, cards and stages unlocked), and `python
   tools/replay.py --trail <file>` (or `--trail --latest`) prints only that (`--board` is the old name and still

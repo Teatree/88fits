@@ -4,7 +4,7 @@
 ## drawn as rings, the stick as a ghost, the drift light, and a small chart (analytics/howto/04_replays.md).
 ## Started by tools/replay.py, which picks the build the run was recorded on (builds/<id>/88fits.exe) and runs:
 ##   88fits.exe --fixed-fps 64 --resolution 1600x900 -- replay=<file> [speed=1] [paused=0] [seek=mm:ss] [sound=0]
-##       [shots=<dir> demo=1] [quit_after=<wall s>]
+##       [shots=<dir> demo=1] [quit_after=<wall s>] [trail=1 (pass 130: the Trail's pop-up open from the start)]
 ## (Boot opens this instead of the title; never in a prod build). --fixed-fps 64 is required: each engine frame is one
 ## recorded frame (RunReplay's driver sets the engine's time scale so every delta is the recorded one).
 ## Speeds pace the frames on the wall clock (never stretch a step); a seek forward runs the frames undrawn, a seek back
@@ -46,9 +46,15 @@ var light: Label
 var light_dot: ColorRect
 var log_box: RichTextLabel
 ## pass 115 (lane DASH; Garry: "I need to know Player Mirror Upgrades while watching the replay"; the Trail since pass 129): the Trail the
-## run began with (the recording's save), under the numbers; B or a click on its title folds it
+## run began with (the recording's save). Pass 130 (Garry: "It shouldn't be displayed all the time. Maybe it's like a
+## button that I can press to see the pop-up"): no longer a panel under the numbers: the button "The Trail" (key B)
+## opens a pop-up over the view (board_shade covers the view, board_box is the pop-up, board_label its words); B, Esc or
+## a click on the view closes it
+var board_btn: Button
+var board_shade: ColorRect
+var board_box: PanelContainer
 var board_label: RichTextLabel
-var _board_open := true
+var _board_open := false
 var chart: Control
 var reel: Control
 var seek_box: PanelContainer
@@ -124,6 +130,8 @@ func _ready() -> void:
 	_quit_after = float(args.get("quit_after", "0"))
 	_shots_dir = str(args.get("shots", ""))
 	_demo = str(args.get("demo", "0")) == "1"
+	# pass 130: trail=1 opens the Trail's pop-up from the start (a capture's hand; B or the button otherwise)
+	_board_open = str(args.get("trail", "0")) == "1"
 	for v in str(args.get("shot_at", "")).split(",", false):
 		_shot_at.append(float(v))
 	_sound = str(args.get("sound", "0")) == "1"
@@ -556,7 +564,11 @@ func _input(e: InputEvent) -> void:
 			_sound = not _sound
 			AudioServer.set_bus_mute(0, not _sound)
 		KEY_ESCAPE:
-			get_tree().quit(0)
+			# pass 130: Esc closes the Trail's pop-up first
+			if _board_open:
+				toggle_board()
+			else:
+				get_tree().quit(0)
 
 
 static func _faster(s: float) -> float:
@@ -819,17 +831,13 @@ func _build_ui() -> void:
 	numbers.add_theme_font_size_override("font_size", 16)
 	numbers.add_theme_color_override("font_color", INK)
 	panel.add_child(numbers)
-	board_label = RichTextLabel.new()
-	board_label.bbcode_enabled = true
-	board_label.fit_content = true
-	board_label.scroll_active = false
-	board_label.custom_minimum_size = Vector2(PANEL_W - 20, 0)
-	board_label.add_theme_font_size_override("normal_font_size", 14)
-	board_label.add_theme_font_size_override("bold_font_size", 15)
-	board_label.add_theme_color_override("default_color", INK)
-	board_label.meta_clicked.connect(func(_m): toggle_board())
-	panel.add_child(board_label)
-	_refresh_board()
+	# pass 130: the Trail is a button here and a pop-up over the view (built below, after the reel)
+	board_btn = Button.new()
+	board_btn.text = "The Trail"
+	board_btn.toggle_mode = true
+	board_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	board_btn.pressed.connect(toggle_board)
+	panel.add_child(board_btn)
 	chart = Control.new()
 	chart.custom_minimum_size = Vector2(PANEL_W - 20, 150)
 	chart.draw.connect(_draw_chart)
@@ -842,8 +850,8 @@ func _build_ui() -> void:
 	log_box = RichTextLabel.new()
 	log_box.bbcode_enabled = true
 	log_box.scroll_following = true
-	# pass 115 (lane DASH): 110 (was 220): the Trail's panel above it takes its room, the log still fills what is left
-	log_box.custom_minimum_size = Vector2(PANEL_W - 20, 110)
+	# pass 130: 220 again (pass 115 had halved it for the Trail's panel, which is a pop-up now)
+	log_box.custom_minimum_size = Vector2(PANEL_W - 20, 220)
 	log_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	log_box.add_theme_font_size_override("normal_font_size", 14)
 	log_box.add_theme_color_override("default_color", INK)
@@ -875,6 +883,43 @@ func _build_ui() -> void:
 	seek_box.add_child(seek_label)
 	seek_box.visible = false
 	add_child(seek_box)
+	# pass 130: the Trail's pop-up: a shade over the view that a click closes, the box centred on it
+	board_shade = ColorRect.new()
+	board_shade.color = Color(0, 0, 0, 0.5)
+	board_shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	board_shade.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and _board_open:
+			toggle_board())
+	board_shade.visible = false
+	add_child(board_shade)
+	var centre := CenterContainer.new()
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	board_shade.add_child(centre)
+	board_box = PanelContainer.new()
+	board_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bbs := StyleBoxFlat.new()
+	bbs.bg_color = Color(0.1, 0.1, 0.13, 0.97)
+	bbs.border_color = Color(0.98, 0.75, 0.25, 0.8)
+	bbs.set_border_width_all(2)
+	bbs.set_corner_radius_all(10)
+	bbs.content_margin_left = 18
+	bbs.content_margin_right = 18
+	bbs.content_margin_top = 14
+	bbs.content_margin_bottom = 14
+	board_box.add_theme_stylebox_override("panel", bbs)
+	centre.add_child(board_box)
+	board_label = RichTextLabel.new()
+	board_label.bbcode_enabled = true
+	board_label.fit_content = true
+	board_label.scroll_active = false
+	board_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	board_label.custom_minimum_size = Vector2(420, 0)
+	board_label.add_theme_font_size_override("normal_font_size", 15)
+	board_label.add_theme_font_size_override("bold_font_size", 16)
+	board_label.add_theme_color_override("default_color", INK)
+	board_box.add_child(board_label)
+	_refresh_board()
 	_refresh_buttons()
 
 
@@ -897,6 +942,10 @@ func _layout() -> void:
 	reel.position = Vector2(12, win.y - REEL_H + 4)
 	reel.size = Vector2(win.x - 24, REEL_H - 12)
 	seek_box.position = view.position + Vector2(20, view.size.y * 0.45)
+	if board_shade:
+		board_shade.position = view.position
+		board_shade.size = view.size
+		board_label.custom_minimum_size = Vector2(clampf(view.size.x - 80.0, 300.0, 640.0), 0)
 
 
 func _refresh_buttons() -> void:
@@ -963,40 +1012,63 @@ func _refresh_ui(f: int) -> void:
 	_refresh_buttons()
 
 
-## Pass 115 (lane DASH), pass 129: the Trail as the recorded run began (its save's `trail` block read by this build's
-## Trail, RunAnalytics.trail_block; the Upgrade board's panel until the board went): its level, how many nodes count as
-## bought and what they cost on the title line, then every upgrade type's sum, three a row; folded to the title line
-## by B or a click on it. A recording from before the Trail (its save has no `trail`) says so.
+## Pass 115 (lane DASH), pass 129, pass 130: the Trail as the recorded run began, in the pop-up and in the button's hover
+## hint. The block is the one the recording carries (its header's `trail`, written by the build that recorded it: pass
+## 130), else its save's `trail` read by this build's Trail (RunAnalytics.trail_block); when both are there and this
+## build's Trail would give those nodes something else, the pop-up says so. A recording from before the Trail (its save
+## has no `trail`) says so.
 func _refresh_board() -> void:
 	if board_label == null:
 		return
+	board_shade.visible = _board_open
+	board_btn.set_pressed_no_signal(_board_open)
 	var sv = plan.get("save", {})
 	if not (sv is Dictionary) or not ((sv as Dictionary).get("trail") is Dictionary):
-		board_label.text = "[color=#9a9a9e]The Trail: not in this recording.[/color]" if not plan.is_empty() else ""
+		board_btn.disabled = plan.is_empty()
+		board_btn.tooltip_text = "The Trail: not in this recording (B)"
+		board_label.text = "[b]The Trail[/b]\n[color=#9a9a9e]not in this recording (it was made before the Trail).[/color]\n\n[color=#9a9a9e]B, Esc or a click closes this.[/color]"
 		return
-	board_label.text = trail_text(RunAnalytics.trail_block(sv), _board_open)
+	var mine := RunAnalytics.trail_block(sv)
+	var rec = plan.get("trail")
+	var blk: Dictionary = rec if rec is Dictionary and (rec as Dictionary).get("upgrades") is Dictionary else mine
+	var note := ""
+	if not is_same(blk, mine) and str(blk.get("bundle", "")) != "" and str(blk.get("bundle", "")) != str(mine.get("bundle", "")):
+		note = "This build's Trail file would give those nodes something else: %s" % str(mine.get("bundle", ""))
+	board_btn.disabled = false
+	board_btn.tooltip_text = trail_text(blk, false) + "\n(B or a click opens it)"
+	board_label.text = trail_text(blk, true, note)
 
 
-## The Trail panel's words from a record's `trail` block (RunAnalytics.trail_block).
-static func trail_text(b: Dictionary, open: bool) -> String:
+## The Trail's words from a record's `trail` block (RunAnalytics.trail_block). `open` (the pop-up): the level, the
+## nodes and the gold on one line, the bundle (what that Trail gave, on one line: the block's own `bundle`, else
+## Trail.bundle_text), one row per upgrade type (its name, its sum as its kind writes it, what it adds to), `note` in
+## amber when there is one, and how to close it. Not `open` (the button's hover hint): the first two of those, plain.
+static func trail_text(b: Dictionary, open: bool, note: String = "") -> String:
 	var bought: Array = b.get("bought", []) if b.get("bought") is Array else []
-	var head := "[url=board][b]The Trail[/b][/url]  level %d of %d · %d of %d nodes · %s gold  [url=board][color=#9a9a9e](%s)[/color][/url]" % [
-		int(b.get("level", 0)), int(b.get("levels", 0)), bought.size(), int(b.get("nodes", 0)),
-		TextGen.grouped(int(b.get("spent", 0))), "B: fold" if open else "B: open"]
+	var line := "level %d of %d · %d of %d nodes · %s gold spent" % [int(b.get("level", 0)), int(b.get("levels", 0)), bought.size(),
+		int(b.get("nodes", 0)), TextGen.grouped(int(b.get("spent", 0)))]
+	var gave := str(b["bundle"]) if b.get("bundle") is String and str(b["bundle"]) != "" else Trail.bundle_text(b)
 	if not open:
-		return head
+		return "The Trail the run began with: %s\nIt gave: %s" % [line, gave]
+	var out := "[b]The Trail[/b] the run began with\n%s\n\n[b]Gave:[/b] %s" % [line, gave]
 	var ups: Dictionary = b.get("upgrades", {}) if b.get("upgrades") is Dictionary else {}
 	var types: Dictionary = b.get("types", {}) if b.get("types") is Dictionary else {}
 	if ups.is_empty():
-		return head + "\n[color=#9a9a9e]no upgrade bought[/color]"
-	var cells := PackedStringArray()
-	for t: Variant in ups.keys():
-		var info: Dictionary = types.get(t, {}) if types.get(t) is Dictionary else {}
-		var amount := Trail.amount_text(str(info.get("kind", "flat")), float(ups[t]))
-		cells.append("[cell][b]%s[/b] %s     [/cell]" % [str(info.get("name", t)), amount])
-	return head + "\n[table=3]" + "".join(cells) + "[/table]"
+		out += "\n\n[color=#9a9a9e]no upgrade bought[/color]"
+	else:
+		var cells := PackedStringArray()
+		for t: Variant in ups.keys():
+			var info: Dictionary = types.get(t, {}) if types.get(t) is Dictionary else {}
+			var amount := Trail.amount_text(str(info.get("kind", "flat")), float(ups[t]))
+			cells.append("[cell][b]%s[/b]    [/cell][cell]%s    [/cell][cell][color=#9a9a9e]%s[/color][/cell]" % [str(info.get("name", t)),
+				amount if amount != "" else "bought", str(info.get("text", ""))])
+		out += "\n\n[table=3]" + "".join(cells) + "[/table]"
+	if note != "":
+		out += "\n\n[color=#fabf40]%s[/color]" % note
+	return out + "\n\n[color=#9a9a9e]B, Esc or a click closes this.[/color]"
 
 
+## Opens or closes the Trail's pop-up (the button, B; Esc and a click on the view close it).
 func toggle_board() -> void:
 	_board_open = not _board_open
 	_refresh_board()

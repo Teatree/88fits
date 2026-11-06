@@ -43,6 +43,7 @@ shadow = {
 "up": 0.22
 }
 blood = Color(0.78431374, 0.6039216, 0.22745098, 1)
+back_faces = "left"
 variants = {
 "SM-A": {
 "anims": {
@@ -56,7 +57,7 @@ variants = {
 },
 "attack_throw": false,
 "attack_views": "",
-"back_faces": "right",
+"back_faces": "left",
 "fps": {
 "die": 12.0,
 "run": 15.0
@@ -87,7 +88,7 @@ variants = {
 },
 "attack_throw": false,
 "attack_views": "",
-"back_faces": "right",
+"back_faces": "left",
 "fps": {
 "die": 12.0,
 "run": 15.0

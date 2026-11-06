@@ -533,6 +533,26 @@ const Sim = (() => {
 
   /** The Trail the players' saves hold (pass 129; the Upgrade board talent by talent until then): the presets, a
    *  Trail Level, and whether the optional nodes ride along. */
+  /** Pass 130: the bundle of the Trail the form names (TrailBundle.forArg on the Trail file /api/trail hands out; ''
+   *  until the file is here, and when the server has no Trail route). */
+  function trailGives(f) {
+    if (typeof TrailBundle === 'undefined') return '';
+    // read again when the line is drawn 5 s or more after the last read (the Trail tab may have saved since); the
+    // form is drawn again only when the file's Trail changed
+    if (!S.trailAt || Date.now() - S.trailAt > 5000) {
+      S.trailAt = Date.now();
+      fetch('/api/trail', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => {
+        if (!d || !d.json || typeof d.json !== 'object') return;
+        const sig = JSON.stringify([d.json.upgrades, d.json.nodes]);
+        if (sig === S.trailSig) return;
+        S.trailSig = sig; S.trailDoc = d.json; draw();
+      }).catch(() => { /* no line: the level still shows */ });
+    }
+    if (!S.trailDoc) return '';
+    const b = TrailBundle.forArg(S.trailDoc, f.trail, !!f.trail_optional);
+    return b ? b.bundle : '';
+  }
+
   function boardEditor(f, meta, caps) {
     const box = el('div', { class: 'sim-board' });
     const tm = meta.trail || {};
@@ -563,6 +583,11 @@ const Sim = (() => {
       opt, el('span', { class: 'small', text: ' optional nodes too' })));
     head.appendChild(el('span', { class: 'sim-board-total', text: M.trailWords(f, levels) }));
     box.appendChild(head);
+    // pass 130 (lane HOUSE): what that Trail gives, on one line (the bundle: trail_bundle.js on the Trail file as it is on
+    // disk now), so two builds at one Trail Level are told apart
+    const gives = trailGives(f);
+    if (gives) box.appendChild(el('p', { class: 'small sim-trail-gives', title: 'what the nodes a player at this Trail Level holds add up to, from game/content/trail/trail.json as it is now; a finished sim shows what its own runs played' },
+      el('b', { text: 'Gives: ' }), el('span', { text: gives })));
     box.appendChild(el('p', { class: 'muted small', text: 'The outlaws, items and stages a node gives come with it, so the card pool is what a player at that Trail Level has. ' +
       (tm.save ? `Your own save on this PC stands at Trail Level ${tm.save.level}.` : '') }));
     if (!caps.trail && lv > 0) {
@@ -713,6 +738,13 @@ const Sim = (() => {
     if (st.note) bits.push('“' + st.note + '”');
     card.appendChild(el('div', { class: 'muted small', text: bits.join(' · ') }));
     card.appendChild(el('div', { class: 'muted small', text: 'The Trail: ' + M.trailWords(st, ((S.meta || {}).trail || {}).levels) }));
+    // pass 130: what the Trail these runs played gave (the runner's own line, from the build that played them); runs that
+    // disagree are listed
+    if (Array.isArray(meta.trail_bundles) && meta.trail_bundles.length > 1) {
+      card.appendChild(el('div', { class: 'sim-warn small', text: 'These runs come from builds whose Trail gave different things: ' + meta.trail_bundles.map((b) => `${b[1]} run${b[1] === 1 ? '' : 's'}: ${b[0]}`).join(' | ') }));
+    } else if (meta.trail_bundle) {
+      card.appendChild(el('div', { class: 'muted small', text: 'The Trail gave: ' + meta.trail_bundle }));
+    }
     const differs = meta.trail_differs || meta.board_differs || [];
     if (differs.length) card.appendChild(el('div', { class: 'sim-warn small', text: `Some runs played another Trail than asked (an older runner?): ${differs.join('; ')}` }));
     // pass 80 (lane BOT): the bot and what it did with the map, the means over the runs

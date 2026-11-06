@@ -408,6 +408,9 @@ func _begin_record(launch: Dictionary, snap: Dictionary) -> void:
 		"platform": OS.get_name(), "device": OS.get_model_name(), "mobile": OS.has_feature("mobile"),
 		"hero": eff["character"], "look": look, "stage": eff["stage"], "map": eff["map"], "map_seed": Run.map_seed,
 		"run_seed": Run.run_seed, "launch": eff, "save": snap.get("save", {}), "settings": snap.get("settings", {}),
+		# pass 130: the Trail as this build reads it (RunAnalytics.trail_block: the level, the sums, their words and the
+		# bundle, what it gave on one line), so the viewer and tools/replay.py show what the RECORDING build's Trail gave
+		"trail": RunAnalytics.trail_block(),
 		"canvas": [canvas.x, canvas.y], "vp_px": _vp_px(vp), "safe_top": W.safe_top() if canvas.y > 0.0 else 0.0,
 		"d_ready": float(snap.get("d_ready", 0.0)), "hz": Engine.physics_ticks_per_second,
 		"check_every": CHECK_EVERY, "track_every": TRACK_EVERY,

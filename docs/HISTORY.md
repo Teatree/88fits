@@ -4491,3 +4491,71 @@ Tempo's words ("Attack speed +3%" for a cooldown cut); the tab's crumb (red unti
 the section plates and some optional nodes in the right quarter; the dock's height (252 px) and the dark band (82%);
 `posthog_boards.py`; a restart of his Level Editor (routes removed, the Sim's settings changed); everything still open
 from pass 128.
+
+
+## Pass 130 (2026-11-06): Garry's scenery picks, the Trail's bundle in every tool, the Straw Man's back, a Trail store shot
+
+Garry's requests after pass 129, in one list: a hint for the selected upgrade in the Level Editor's Trail tab; the Straw
+Men looking the wrong way from behind ("make it an option in the Level Editor"); a Trail screenshot for Google Play; every
+tool that shows a Trail Level also saying what that level gives; eleven of pass 128's environment variations into the
+game, each with a rule; an assessment of what that cost; and five re-draws of every scenery painting, "the same thing but
+under a different seed". Two lanes (HOUSE, LE) and the lead. BALANCING 72.
+
+**The scenery (lead).** `tools/gen_env_variations.py --install` ran for real for the first time: Red Fishhook, Triple
+Clump, Wind Bent, Yellow Catkins, White Flowers, White Fluff, Drought Twigs, Dry Seedheads, One Wheel, Open Box and Burnt
+Wreck are in `game/art/sprites/props/` with their rows. Three new keys in props.json carry Garry's rules (`stages`,
+`per_run`, `stage_chance`; `PropField.in_stage`, `pick_look`, `settle_rare`; table in BALANCING 72.ENV): the creosote
+bush is the original at Sundown, White Fluff at Nightfall and Drought Twigs in the Dust Bowl and the Blood Moon; the
+brittlebush dries to Dry Seedheads in the last two; the cart is the original, One Wheel or Open Box at equal chances and
+the Burnt Wreck alone in the Blood Moon; Yellow Catkins stands exactly once a run and in half the Blood Moon runs.
+`RedCanyon._scatter_sprites` hands the run's stage to `PropField.setup` (a stage is its own run since pass 87, and Game
+starts the stage before it builds the map) and calls `settle_rare` after the dressing. A variant plays its kind's
+collider, so a seed's map plays the same in every stage. A variant that cannot come in the run's stage is not loaded.
+`prop_shadows.py` gave the new rows the default strength 0.48 (its table names the old ids): each took its kind's by
+hand, and the three cart states took the cart's hand-set shadow. Tests `pass130_ENV_test.gd` (11); `pass83_scene_test`'s
+cart exception now covers the cart's states.
+
+**What it cost** (`game/tools/_p130_ENV_probe.gd`, 30 seeds a stage, before and after; `perf_late.gd`): a run draws 30.7
+scenery paintings where it drew 26.7 (four more draw calls in a frame of 232 to 248 late in a run on the PC), holds 40 to
+42 scenery textures where it held 33 (13.0 to 13.6 MB on the GPU, was 10.7), builds its map in about 350 ms where it took
+about 330, and the APK grows by 0.8 MB. The swaps cost no draw call. Not measured on the phone.
+
+**Five re-draws of every painting (lead).** `tools/gen_env_reseed.py`: each of the 43 scenery paintings on its own, five
+seeds, Klein shown the painting itself; the colours matched to the painting (a mean and spread match in an opponent
+space: the first try, a mean of chroma and brightness, left the rock three different reds). First lesson: "thick clean
+dark outlines" in the words gave a black border twice as heavy as the game's; the words now ask for the reference's own
+thin brown line. Second: a painting shown to the painter is copied with its fault, however the fault is described
+(`dead_shrub_b` came back the same heap three times), so a painting in `FIXES` is painted from its own first recipe (the
+kind's raw render as the reference) with the repair's words. Candidates and sheets in `tools/dl/p130/ENV/`, the page in
+`docs/env_variants/`; nothing in the game.
+
+**The Straw Man (lead).** `back_faces: "left"` on the creature (both looks follow it). The Level Editor's open look has a
+Facing row for next time (lane LE).
+
+**The store shot (lead).** `docs/store/06_trail.png` from `game/tools/_p130_STORE_trail.gd` (the Trail on the game's own
+file at four levels, the Sundown one picked), "500+ UPGRADES / Blaze your own trail" on a sage band, in
+`docs/store/plan.json`. The Trail itself holds 100 nodes: the claim counts every upgrade in the game.
+
+**Lane HOUSE: the bundle.** `Trail.bundle_text` and its JavaScript and Python twins, pinned to one fixture; the record's
+`trail.bundle` (schema 6 kept), `run_start`'s `trail_bundle` and `build_id`, the replay header's `trail`; the line beside
+every Trail Level in the Watch (header, the Outlaw Settings pop-up, console, record), `watch.py`, the Sim tab and a sim's
+result, the difficulty probe, the dashboard (facts, the Trail card, a hover on the runs lists, a warning when averaged
+runs carry different bundles), the replay viewer (the always-on panel is a button and a pop-up, key B) and `replay.py`;
+a new PostHog board "88fits · Trail" (11 tiles) in `tools/posthog_boards.py`. Tests `pass130_HOUSE_test.gd` (10),
+`selftest_HOUSE130.py` (30). Budget 300k, used 356k.
+
+**Lane LE: the Level Editor.** The Trail tab's Hint box (`trail_hint.js`, words per upgrade type in the tools-only
+`trail_hints.json`, `trail_io.locks` for what an unlock was locked behind); the open look's Facing row (look op `facing`,
+`faces_src`, two small strip players a view). `selftest_P130LE.py` (49). Budget 200k, used 273k, and it ran out before
+the browser look; the lead looked at both in a browser on a view-only copy.
+
+Not done: `tools/posthog_boards.py` was checked (80 tiles, 0 fail) and **not run**: the session's permissions refused a
+write to Garry's live boards, so the Trail board does not exist in PostHog until he runs it. The Facing row is narrow
+and wraps. The dashboard and the Sim tab's bundle line were read in a browser, not captured. A Trail tool at "level 8"
+reads "Trail Level 9" when the tool's save already owns the outlaw level 9 gives (the save's own outlaws count as had).
+Nothing was measured on the phone.
+
+Still waiting on Garry: his picks from the re-draws; whether "500+ UPGRADES" is the claim he wants on a Trail picture;
+whether the Straw Man now looks right (one click on the Facing row turns it back); White Flowers' weight; running
+`python tools/posthog_boards.py`; a restart of his Level Editor (a new look op and a new route); everything still open
+from passes 128 and 129.

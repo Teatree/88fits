@@ -43,6 +43,7 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import locks  # noqa: E402
 import sim_batch as SB  # noqa: E402  (the snapshot code, the Trail's presets, the sims' history)
+import trail_bundle as TB  # noqa: E402  (pass 130: what a Trail gives on one line, Trail.bundle_text as Python)
 
 GAME = os.path.join(ROOT, "game")
 WATCH_DIR = os.path.join(ROOT, "tools", "dl", "watch")
@@ -57,7 +58,12 @@ def snap_game():
 
 
 def say(msg):
-    print("watch: " + msg, flush=True)
+    line = "watch: " + msg
+    try:
+        print(line, flush=True)
+    except UnicodeEncodeError:   # a console that cannot show a letter (pass 130: the bundle's minus sign): shown as "?"
+        enc = sys.stdout.encoding or "ascii"
+        print(line.encode(enc, "replace").decode(enc), flush=True)
 
 
 # ---------------------------------------------------------------- the lock (one Watch at a time)
@@ -140,6 +146,16 @@ def trail_of(args):
     if tp:
         return "quarter", optional, [], SB.trail_text("quarter", optional, levels), probs + ["--trail %r is none, quarter, half, full, save or a Trail Level 0 to %d: a quarter plays" % (raw, levels)]
     return c, optional and c != "none", [], SB.trail_text(c, optional, levels), probs
+
+
+def trail_gives(t_arg, t_opt, t_ids, game_dir=None):
+    """Pass 130: what the Watch's Trail gives, on one line (the bundle; tools/trail_bundle.py, Trail.bundle_text's twin),
+    read off the Trail file of `game_dir` (the Watch's snapshot; the repo's game/ when None): the PC save's own nodes
+    for "save", else every required node up to the level."""
+    data = TB.read_trail(os.path.join(game_dir or GAME, "content", "trail", "trail.json"))
+    if str(t_arg) == "save":
+        return TB.for_ids(t_ids, data)
+    return TB.for_arg(t_arg, bool(t_opt), data) or TB.EMPTY
 
 
 def sim_trail_key(settings):
@@ -389,6 +405,8 @@ def main(argv=None):
         lock_owner(proc.pid, "%s seed %d" % (a.hero, a.seed))
         say("started: %s, the Trail %s, seed %d, pid %d; log %s" % (a.hero, t_label, a.seed, proc.pid,
                                                                      os.path.relpath(log, ROOT)))
+        # pass 130: what that Trail gives, on one line (the snapshot's own Trail file: the build the Watch plays)
+        say("the Trail gives: %s" % trail_gives(t_arg, t_opt, t_ids, snap))
         if not a.wait:
             return 0
         try:
