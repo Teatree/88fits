@@ -4520,14 +4520,21 @@ scenery paintings where it drew 26.7 (four more draw calls in a frame of 232 to 
 42 scenery textures where it held 33 (13.0 to 13.6 MB on the GPU, was 10.7), builds its map in about 350 ms where it took
 about 330, and the APK grows by 0.8 MB. The swaps cost no draw call. Not measured on the phone.
 
-**Five re-draws of every painting (lead).** `tools/gen_env_reseed.py`: each of the 43 scenery paintings on its own, five
+**Five re-draws of every painting (lead).** `tools/gen_env_reseed.py`: each of the 42 scenery paintings on its own, five
 seeds, Klein shown the painting itself; the colours matched to the painting (a mean and spread match in an opponent
 space: the first try, a mean of chroma and brightness, left the rock three different reds). First lesson: "thick clean
 dark outlines" in the words gave a black border twice as heavy as the game's; the words now ask for the reference's own
 thin brown line. Second: a painting shown to the painter is copied with its fault, however the fault is described
 (`dead_shrub_b` came back the same heap three times), so a painting in `FIXES` is painted from its own first recipe (the
-kind's raw render as the reference) with the repair's words. Candidates and sheets in `tools/dl/p130/ENV/`, the page in
-`docs/env_variants/`; nothing in the game.
+kind's raw render as the reference) with the repair's words. Third: five rows wandered when the painter was only shown
+the painting (the small skull and the bones lost their sand patch, two Joshua trees came back as other trees, the cart
+as other carts): `INIT` starts those re-draws from the painting itself (img2img at 0.8, the leaning Joshua tree 0.62)
+and the cart family is painted over its Blender render as the cart was. Fourth: the finish fits every picture to 0.9
+of its cell, so a painting that fills less of its cell came back a third bigger; `match_box` brings each re-draw to its
+painting's own height on its own foot line. 210 re-draws, about 250 renders at 28 s. Candidates and sheets in
+`tools/dl/p130/ENV/`, the page `docs/env_variants/redraws.html` (`tools/make_env_reseed_page.py`, published
+https://claude.ai/artifact/WpgGKzv6j7ogMmqpsTRQdJ); nothing in the game. `--install` replaces a painting; adding a
+re-draw as one more variant beside it is not built.
 
 **The Straw Man (lead).** `back_faces: "left"` on the creature (both looks follow it). The Level Editor's open look has a
 Facing row for next time (lane LE).

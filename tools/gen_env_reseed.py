@@ -49,7 +49,7 @@ FIXES = {
 
 # a painting whose re-draws wandered when the painter was only shown it (a lost sand patch, another tree): the painting is
 # also the start of the re-draw (img2img at this denoise), which holds the composition
-INIT = {"skull_small": 0.8, "bones": 0.8, "joshua_tree_b": 0.8, "joshua_tree_d": 0.8}
+INIT = {"skull_small": 0.8, "bones": 0.8, "joshua_tree_b": 0.8, "joshua_tree_d": 0.62}
 
 _mods = None
 
@@ -126,6 +126,26 @@ def match_tone(cand, like):
     return Image.fromarray((c * 255.0 + 0.5).astype("uint8"), "RGBA")
 
 
+def match_box(cand, like):
+    """The candidate at the painting's own size in its cell: scaled so its painted height is the painting's, standing on
+    the painting's foot line, centred where the painting is. The finish fits every picture to 0.9 of its cell, and a
+    painting that fills less of its cell (the leaning Joshua tree) came back a third bigger than the tree in the game."""
+    cb, lb = cand.getbbox(), like.getbbox()
+    if not cb or not lb:
+        return cand
+    k = min(max((lb[3] - lb[1]) / float(max(cb[3] - cb[1], 1)), 0.4), 1.25)
+    if abs(k - 1.0) < 0.02 and abs(cb[3] - lb[3]) <= 2:
+        return cand
+    part = cand.crop(cb)
+    part = part.resize((max(1, round(part.width * k)), max(1, round(part.height * k))), Image.LANCZOS)
+    out = Image.new("RGBA", cand.size, (0, 0, 0, 0))
+    x = round((lb[0] + lb[2]) / 2.0 - part.width / 2.0)
+    x = min(max(x, 0), max(cand.width - part.width, 0))
+    y = min(max(lb[3] - part.height, 0), max(cand.height - part.height, 0))
+    out.alpha_composite(part.crop((0, 0, min(part.width, cand.width), min(part.height, cand.height))), (x, y))
+    return out
+
+
 def paint(id_, subject, cell, screen, seeds, force):
     gpv, gp, ga, comfy = painter()
     for d in (RAWS, CANDS):
@@ -180,7 +200,7 @@ def paint(id_, subject, cell, screen, seeds, force):
                 f.write("%s %s s%d seed %d %.0fs\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), id_, k, seed, time.time() - t0))
         grade = gpv.FROM_RENDER.get("cart_toppled", {}).get("grade") if id_.startswith("cart_toppled") else None
         cand = gpv.finish(Image.open(raw).convert("RGB"), cell, grade)
-        match_tone(cand, like).save(out)
+        match_box(match_tone(cand, like), like).save(out)
     return n
 
 
@@ -208,7 +228,7 @@ def paint_cart(id_, subject, cell, screen, seeds, force, like):
         with open(os.path.join(ENV, "renders.log"), "a", encoding="utf-8", newline="\n") as f:
             f.write("%s %s s%d seed %d %.0fs (cart recipe)\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), id_, k, seed0 + k * 977, time.time() - t0))
         img.save(os.path.join(RAWS, "%s_s%d.png" % (id_, k)))
-        match_tone(gpv.finish(img, cell, fr.get("grade")), like).save(out)
+        match_box(match_tone(gpv.finish(img, cell, fr.get("grade")), like), like).save(out)
     return n
 
 
