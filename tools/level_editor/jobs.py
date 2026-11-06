@@ -49,6 +49,7 @@ if TOOLS not in sys.path:
 import locks  # noqa: E402
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
+import recolour_io as RCIO  # noqa: E402  (pass 131, lane RECUI: the recolour method: passes, flags, record, preview)
 import vocab as _VOCAB  # noqa: E402  (pass 70: the stills slug rule, STILLS_RE / stills_problem)
 
 _LIST = list   # the API below is named list(); the builtin stays reachable as _LIST
@@ -143,7 +144,9 @@ _LOOK_FIELDS = {
     "view_cands": _f("str", "", False, "creature_ctl: views to paint again as candidates (fd,back)"),
     "use_view": _f("str", "", False, "creature_ctl: the view candidates picked (fd:c1,back:c0); set by Pick"),
     "pick": _f("str", "", False, "front_from_picture: the candidate picked (0..); set by Pick"),
-    "recolour": _f("json", {}, False, "recolour: {from: CODE, ranges: [[60,130]], to: 355, sat: 1.0, mode: hue|tint, set_sat, value, min_sat, max_sat, min_val}"),
+    "recolour": _f("json", {}, False, "recolour: {from: CODE, mode: hue|tint|lift, ranges: [[60,130]], to: 355, sat, set_sat, value, min_sat, max_sat, min_val, "
+                                      "lift: to_dark, v_lo, v_hi, gamma, max_val, src_hi, soft, hue_soft, mass, grow, keep_edge (the icon); "
+                                      "passes: [{the same fields, cells: [18]}] run in order on the result} (recolour_io.py)"),
     "note": _f("str", "", False, "the look's note (shown on its card)"),
     # pass 71 (lane PLE): the Puppet method's own settings (puppet_spec: source, stills, refs, painter, steps, turbo, seeds,
     # seed, words, screen, tries, faces, reuse, fbx, clip, idle, frame, depth_views, run_fit, fringe; picks and the one-shot
@@ -895,11 +898,13 @@ def validate_spec(kind, spec):
         if out["method"] in ("front_from_picture",) and not out.get("pick") and not (out.get("ref") and out.get("prompt") and out.get("stills")):
             raise ValueError("front_from_picture needs ref, prompt and stills (the slug the pick is cached under)")
         rrc = (out.get("recipe") or {}).get("recolour") if isinstance(out.get("recipe"), dict) else None
-        if out["method"] == "recolour" and not (out.get("recolour") or {}).get("from") and isinstance(rrc, dict) and rrc.get("from"):
+        if out["method"] == "recolour" and isinstance(rrc, dict) and rrc.get("from"):
+            # pass 131: the form's boxes win over a spec.recolour copied on an earlier check (a queued job edited in the form)
             # the job form writes the recolour block as recipe fields (methods.json recolour.*): the plan reads spec.recolour
             out["recolour"] = dict(rrc)
-        if out["method"] == "recolour" and not (out.get("recolour") or {}).get("from"):
-            raise ValueError("recolour needs recolour.from: the look to recolour")
+        if out["method"] == "recolour":
+            # pass 131 (lane RECUI): the block checked in plain words (modes, ranges, numbers, the extra passes)
+            out["recolour"] = RCIO.clean(out.get("recolour") or {})
     if kind == "sim":
         out = sim_check(out)   # pass 77 (lane SIMUI): the settings' ranges (tools/sim_batch.clean_settings)
     return out
@@ -1098,31 +1103,17 @@ def _plan(job):
                     argv.append("--skip-qa")
             p.update(tool="gen_edit_stills", call="main", argv=argv, equiv=_equiv_py("gen_edit_stills", argv))
         elif method == "recolour":
+            # pass 131 (lane RECUI): recolour_io builds the command lines: one per pass for the strip, then for the icon
+            # (the first reads the source look, each later one the result so far); mode lift and extra passes
             rc = spec.get("recolour") or {}
             src_code = str(rc.get("from", ""))
-            steps = []
             picked = bool(_look_state(t)["entry"].get("icon_picked"))
-            for suffix in ("sprite", "icon"):
-                src = os.path.join(folder, "%s_%s_%s.png" % (cid, suffix, _letter(src_code)))
-                dst = os.path.join(folder, "%s_%s_%s.png" % (cid, suffix, _letter(code)))
-                if suffix == "icon" and picked and os.path.isfile(dst):
-                    # pass 68 (review): the look's icon was picked from candidates (icon_picked): kept, as gen_art and
-                    # gen_ctl keep it
-                    continue
-                a = [PY, os.path.join(TOOLS, "recolour_strip.py"), "--src", _rel(src), "--dst", _rel(dst)]
-                if rc.get("ranges"):
-                    a += ["--ranges"] + ["%s-%s" % (r[0], r[1]) for r in rc["ranges"] if isinstance(r, (_LIST, tuple)) and len(r) == 2]
-                if rc.get("to") is not None:
-                    a += ["--to", str(rc["to"])]
-                if rc.get("mode"):
-                    a += ["--mode", str(rc["mode"])]
-                for k, flag in (("sat", "--sat"), ("set_sat", "--set-sat"), ("value", "--value"), ("min_sat", "--min-sat"),
-                                ("max_sat", "--max-sat"), ("min_val", "--min-val")):
-                    if rc.get(k) is not None:
-                        a += [flag, str(rc[k])]
-                if suffix == "sprite":
-                    a += ["--preview", _rel(os.path.join(REVIEW, "%s_%s_recolour.png" % (cid, _letter(code))))]
-                steps.append(a)
+            srcf = recolour_files(t, src_code)
+            dstf = {x: os.path.join(folder, "%s_%s_%s.png" % (cid, x, _letter(code))) for x in ("sprite", "icon")}
+            # pass 68 (review): the look's icon was picked from candidates (icon_picked): kept, as gen_art and gen_ctl keep it
+            steps = RCIO.steps(rc, PY, {k: _rel(v) for k, v in srcf.items()}, {k: _rel(v) for k, v in dstf.items()},
+                               preview=_rel(os.path.join(REVIEW, "%s_%s_recolour.png" % (cid, _letter(code)))),
+                               skip_icon=picked and os.path.isfile(dstf["icon"]))
             p.update(mode="steps", lock=None, steps=steps, equiv=" && ".join("python " + " ".join(_q(x) for x in s[1:]) for s in steps))
     elif kind == "item_icon":
         argv = ["--no-import", "--only", cid]
@@ -1980,6 +1971,52 @@ def _look_state(target, doc=None):
             "is_new": bool(code) and not is_base and not entry.get("sprite")}
 
 
+def recolour_files(target, src_code):
+    """Pass 131 (lane RECUI): the strip and the icon a recolour reads for `src_code`: the files its entry names, else
+    the base look's unlettered files (<id>_sprite.png) when the lettered ones are not there, else <id>_<what>_<letter>.png."""
+    cid = target.get("id", "")
+    folder = _content_folder(target.get("kind", ""), cid) or ""
+    st = _look_state(dict(target, code=src_code))
+    out = {}
+    for what in ("sprite", "icon"):
+        lettered = os.path.join(folder, "%s_%s_%s.png" % (cid, what, _letter(src_code)))
+        named = os.path.join(folder, str(st["entry"].get(what))) if st["entry"].get(what) else ""
+        plain = os.path.join(folder, "%s_%s.png" % (cid, what))
+        if named and os.path.isfile(named):
+            out[what] = named
+        elif st["is_base"] and not os.path.isfile(lettered) and os.path.isfile(plain):
+            out[what] = plain
+        else:
+            out[what] = lettered
+    return out
+
+
+def recolour_preview(data):
+    """Pass 131 (lane RECUI), POST /api/recolour/preview {kind, id, recolour}: the passes run in memory on the source
+    look's first run frame, on each frame an extra pass names and on its icon; before / after as pictures. No job,
+    nothing written."""
+    data = data if isinstance(data, dict) else {}
+    t = {"kind": str(data.get("kind") or "enemy"), "id": str(data.get("id") or "")}
+    if not t["id"] or not _content_folder(t["kind"], t["id"]):
+        raise ValueError("no such %s: %r" % (t["kind"], t["id"]))
+    rc = RCIO.clean(data.get("recolour") or {})
+    st = _look_state(dict(t, code=rc["from"]))
+    if rc["from"] not in (st["doc"].get("variants") or {}) and not st["is_base"]:
+        raise ValueError("%s has no look %s: give the code alone, as on its card (its looks: %s)"
+                         % (t["id"], rc["from"], ", ".join((st["doc"].get("variants") or {}).keys()) or "none"))
+    files = recolour_files(t, rc["from"])
+    anims = st["entry"].get("anims") or st["doc"].get("anims") or {}
+    names, k = {}, 0
+    for name, n in anims.items() if isinstance(anims, dict) else []:
+        for j in range(int(n or 0)):
+            names[k] = "%s %d (frame %d)" % (name, j + 1, k)
+            k += 1
+    first_run = int(anims.get("idle") or 0) if isinstance(anims, dict) and anims.get("run") else 0
+    out = RCIO.preview(rc, files["sprite"], files["icon"], frame=first_run, names=names)
+    out["source"] = {k2: _rel(v) for k2, v in files.items()}
+    return out
+
+
 def _painter_of(spec):
     """The painter a look job runs with (MODEL_FIELDS -> the ART_* env), as its recipe records it under `painter`: the
     model, the passes (0 = that model's own default) and, for Flux.2 dev, the guidance and whether Turbo is on. The
@@ -2019,6 +2056,11 @@ def _seed_recipe(target, spec):
         # the method that runs is the one recorded (the recipe's own named another when the form changed it)
         recipe["method"] = method
     if method == "recolour":
+        # pass 131 (lane RECUI): what ran, in the shape the shell-made recolours have (recolour_of, recolour_passes)
+        rc = spec.get("recolour") if isinstance(spec.get("recolour"), dict) and spec["recolour"].get("from") else recipe.get("recolour")
+        if isinstance(rc, dict) and rc.get("from"):
+            recipe.pop("recolour_icon_extra", None)
+            recipe.update(RCIO.record(rc))
         return
     recipe["painter"] = _painter_of(spec)
     if method == "hero_puppet":

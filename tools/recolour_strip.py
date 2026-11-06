@@ -29,6 +29,9 @@ body with no hue to tell them apart by). Ranges wrap by listing two (340-360,0-4
 pixel copied as it is: a creature's `hit` frame (idle + run + attack frames in) is a white-washed flash of the material whose
 saturation falls under the strip pass's `--min-sat`, so it takes a second pass of its own with a lower one. A cell outside the
 grid (the icon, one frame) is skipped with a note, so a look's passes apply to its strip and its icon alike, in turn.
+Pass 131: `--preview-src <png>` names the picture the preview shows as "before" (a second pass reads the first pass's
+result), `--preview-cells 18` adds frames to the preview; `apply_image(im, argv)` runs one pass on a picture in memory
+(the Level Editor's preview before a job is queued: tools/level_editor/recolour_io.py).
 """
 import os
 import sys
@@ -39,44 +42,67 @@ import artkit  # noqa: E402
 from PIL import Image  # noqa: E402
 
 
+_ARGV = None   # pass 131: apply_image() reads a pass's flags from a list of its own instead of the command line
+
+
 def opt(name, default=None):
-    for a in sys.argv[1:]:
+    argv = sys.argv[1:] if _ARGV is None else _ARGV
+    for i, a in enumerate(argv):
         if a.startswith("--" + name + "="):
             return a.split("=", 1)[1]
         if a == "--" + name:
-            i = sys.argv.index(a)
-            if i + 1 < len(sys.argv):
-                return sys.argv[i + 1]
+            if i + 1 < len(argv):
+                return argv[i + 1]
     return default
+
+
+def apply_image(im, argv):
+    """Pass 131 (the Level Editor's recolour preview): one pass's flags (a list as on the command line, without --src /
+    --dst / --cells) applied to one RGBA picture in memory, by the same code a strip goes through."""
+    global _ARGV
+    saved = _ARGV
+    _ARGV = [str(a) for a in argv]
+    try:
+        return _apply(im.convert("RGBA"))
+    finally:
+        _ARGV = saved
+
+
+def _ranges():
+    return [[float(v) for v in r.split("-")] for r in opt("ranges", "60-130").split(",") if "-" in r]
+
+
+def _apply(im):
+    ranges = _ranges()
+    to = float(opt("to", "355"))
+    sat = float(opt("sat", "1.0"))
+    min_sat = float(opt("min-sat", "0.2"))
+    max_sat = float(opt("max-sat", "1.01"))
+    if opt("mode", "hue") == "lift":
+        # pass 107: a material made lighter (white shells, bright ants, a bone scorpion); value remapped onto [v-lo, v-hi]
+        ss = opt("set-sat")
+        return artkit.lift_range(im, ranges, to, None if ss is None else float(ss), sat, float(opt("v-lo", "0.5")),
+                                 float(opt("v-hi", "1.0")), float(opt("gamma", "1.0")), min_sat, max_sat,
+                                 float(opt("min-val", "0.0")), float(opt("src-hi", "1.0")), float(opt("soft", "0.04")),
+                                 float(opt("hue-soft", "0")), None if opt("to-dark") is None else float(opt("to-dark")),
+                                 int(opt("mass", "0")), None if opt("grow") is None else int(opt("grow")),
+                                 None if opt("mass-sat") is None else float(opt("mass-sat")), int(opt("keep-edge", "0")),
+                                 float(opt("max-val", "1.01")))
+    if opt("mode", "hue") == "tint":
+        # pass 54: a pale material to a dark saturated one (the dark-blue skeletons); value is scaled, saturation set
+        return artkit.tint_range(im, ranges, to, float(opt("set-sat", "0.55")), float(opt("value", "0.6")), min_sat, max_sat,
+                                 float(opt("min-val", "0.3")))
+    return artkit.remap_hues(im, ranges, to, sat, min_sat, max_sat)
 
 
 def main():
     src, dst = opt("src"), opt("dst")
     if not src or not dst:
         raise SystemExit(__doc__)
-    ranges = [[float(v) for v in r.split("-")] for r in opt("ranges", "60-130").split(",") if "-" in r]
+    ranges = _ranges()
     to = float(opt("to", "355"))
     sat = float(opt("sat", "1.0"))
-    min_sat = float(opt("min-sat", "0.2"))
-    max_sat = float(opt("max-sat", "1.01"))
     img = Image.open(src).convert("RGBA")
-
-    def _apply(im):
-        if opt("mode", "hue") == "lift":
-            # pass 107: a material made lighter (white shells, bright ants, a bone scorpion); value remapped onto [v-lo, v-hi]
-            ss = opt("set-sat")
-            return artkit.lift_range(im, ranges, to, None if ss is None else float(ss), sat, float(opt("v-lo", "0.5")),
-                                     float(opt("v-hi", "1.0")), float(opt("gamma", "1.0")), min_sat, max_sat,
-                                     float(opt("min-val", "0.0")), float(opt("src-hi", "1.0")), float(opt("soft", "0.04")),
-                                     float(opt("hue-soft", "0")), None if opt("to-dark") is None else float(opt("to-dark")),
-                                     int(opt("mass", "0")), None if opt("grow") is None else int(opt("grow")),
-                                     None if opt("mass-sat") is None else float(opt("mass-sat")), int(opt("keep-edge", "0")),
-                                     float(opt("max-val", "1.01")))
-        if opt("mode", "hue") == "tint":
-            # pass 54: a pale material to a dark saturated one (the dark-blue skeletons); value is scaled, saturation set
-            return artkit.tint_range(im, ranges, to, float(opt("set-sat", "0.55")), float(opt("value", "0.6")), min_sat, max_sat,
-                                     float(opt("min-val", "0.3")))
-        return artkit.remap_hues(im, ranges, to, sat, min_sat, max_sat)
 
     cells = [int(v) for v in opt("cells", "").split(",") if v.strip() != ""]
     if cells:
@@ -98,9 +124,15 @@ def main():
                                                                          (", cells %s" % cells) if cells else ""))
     prev = opt("preview")
     if prev:
+        # pass 131: --preview-src <png> is the picture shown as "before" (a later pass reads the pass before it, the sheet
+        # shows the look it all started from); --preview-cells 18,25 adds those frames to the sheet (a hit frame's pass)
+        if opt("preview-src") and os.path.isfile(opt("preview-src")):
+            before = Image.open(opt("preview-src")).convert("RGBA")
+            if before.size == img.size:
+                img = before
         cell = img.height
         n = max(img.width // cell, 1)
-        picks = sorted(set([0, n // 2, n - 1]))
+        picks = sorted(set([0, n // 2, n - 1] + [int(v) for v in opt("preview-cells", "").split(",") if v.strip().isdigit() and int(v) < n]))
         sheet = Image.new("RGBA", (cell * len(picks) * 2, cell), (40, 40, 48, 255))
         for k, f in enumerate(picks):
             sheet.paste(img.crop((f * cell, 0, (f + 1) * cell, cell)), (k * 2 * cell, 0), img.crop((f * cell, 0, (f + 1) * cell, cell)))

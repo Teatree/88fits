@@ -4593,6 +4593,11 @@ class Handler(BaseHTTPRequestHandler):
                 # pass 95 (lane VACE): stage / unstage / pin / copy / repair / ask / export / register (frames_io.py)
                 data, err = self._body()
                 return FRIO.api_post(self, sys.modules[__name__], parts[2:], data if isinstance(data, dict) else {})
+            if parts == ["api", "recolour", "preview"]:
+                # pass 131 (lane RECUI): a recolour's before / after on one frame and the icon (no job, nothing written)
+                data, err = self._body()
+                st, body = jobs_call("recolour_preview", data if isinstance(data, dict) else {})
+                return self._send(st, body)
             if parts[:2] == ["api", "eyes"]:
                 # pass 98 (lane GEMINI): Check with Gemini (an evaluate job over the whole look; eyes_io.py)
                 data, err = self._body()

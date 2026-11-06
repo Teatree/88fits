@@ -140,7 +140,7 @@ variants = {
 "front_faces": "right",
 "head": 1.0,
 "icon": "res://content/enemies/skeleton_knight/skeleton_knight_icon_d.png",
-"note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline",
+"note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline. Pass 131: the back walk painted again on the driver bigguy_shield (tools/pose_hang.py arms=l: seen from behind the shield arm hangs with the shield as the painting holds it, where the walk folded it up in front of the chest and left the shield in the air without it); only the 12 back frames changed, the old strip is in tools/dl/p131/SKEL/before/",
 "shadow": {},
 "shelved": false,
 "sprite": "res://content/enemies/skeleton_knight/skeleton_knight_sprite_d.png",

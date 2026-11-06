@@ -2505,3 +2505,76 @@ writes the creature's top-level key, which every look without its own follows. A
 (`idle_l` / `run_l`, pass 111) is never mirrored front or back: the row says so instead of offering the buttons (fix
 its frames in Frames...). Outlaws never mirror their front and back sets: no row. The two selects in the creature's
 fields (Front faces / Back faces) are the same keys.
+
+## Pass 131 (lane RECUI): Recolour an existing look: a guide
+
+**What it is.** A new look made from a finished one by changing colours only: the same animation and the same lines on
+every frame of the strip and on the icon. No model runs; the job takes seconds. Open it from a creature's Looks:
+**+ New look...**, method **Recolour an existing look**.
+
+**The three steps.**
+
+1. **Pick the look to recolour** ("Look to recolour"): its code alone, exactly as on its card, e.g. `CC-B`. Not the
+   name, not "Carrion Crow CC-B". The box is a pick list of the creature's own finished looks; a code that is not there
+   is answered with the codes that are. If a preset is close, pick it under "Start from a preset": it fills every box
+   from a look that exists (your source look stays) and you change from there.
+2. **Say which pixels change.** "Which colours change" are hue ranges on the colour wheel, shown on the strip under the
+   box: red 0, orange 30, yellow 60, green 120, cyan 180, blue 240, purple 280, pink 320, red again 360. `55-135` is
+   the Goblin's green skin. Several ranges are separated by commas; to go through red give two: `340-360, 0-20`. A
+   black, grey or white material has no colour to pick by: give `0-360` and use the limits instead: "Only pixels at
+   least / at most this colourful" (saturation, 0 to 1) and "Leave anything darker / brighter than" (brightness, 0 to 1).
+3. **Say what they become.** "The new colour" is a hue on the same wheel (357 blood red, 222 dark blue, 50 gold, 145
+   mint green). What else there is depends on the kind of change:
+
+| Kind | Pick it for | Its boxes | Example |
+|---|---|---|---|
+| **hue** | one colour to another colour, the brightness kept | colour strength (times the pixel's own) | green skin to red: the Red Goblin RG-A from the Goblin GOB-D, ranges 55-135, new colour 357 |
+| **tint** | a pale material made dark and coloured | colour strength (set), darker by, leave anything darker than | ivory bone to dark blue: the Skeleton SK-E, ranges 10-75, new colour 222, strength 0.55, darker by 0.6 |
+| **lift** | to black, grey, white, gold or any pale colour | the brightness of the darkest and of the brightest picked pixel, the shading curve, colour of the shadows, the brightest shade of the material today, soft edges, only thick areas, the icon's rim | black feathers to white: the crow CC-D, ranges 0-360, at most 0.32 colourful, brighter than 0.3 left alone, brightness 0.7 to 1.0; red skin to bone white: the goblin RG-D |
+
+Only the boxes of the chosen kind are shown. Every box has its plain name, one sentence, an **Example** (a value and
+what it does) and its **Sensible values** under it.
+
+**Before / after.** "Show before / after" runs the passes on the source look's first run frame, on every frame an extra
+pass names, and on the icon, and shows each pair beside the boxes in well under a second. No job is queued and nothing
+is written; press it as often as you like. (`POST /api/recolour/preview {kind, id, recolour}`; it needs a Level Editor
+server started after pass 131.)
+
+**Extra passes.** A further pass runs on the result of the boxes above, with its own boxes; "Only these frames" makes it
+run on chosen frames of the strip alone (frames count from 0 in the order idle, run, attack, hit, die ...; the buttons
+under the box put a look's own frame numbers in, e.g. `hit 18`). The usual use: a creature's **hit frame** is a white
+flash of the material, too pale for the first pass's "at least this colourful", so it takes a pass of its own with a
+lower one: **+ Add a pass for the hit frame** copies the boxes above onto that frame and lowers that limit to 0.05.
+
+**Reading the preview sheet.** The job's sheet (`tools/dl/review/<id>_<letter>_recolour.png`, on the job's card) is
+pairs: the source frame on the left, the recoloured one on the right, for the first, a middle and the last frame and
+every frame an extra pass names. In each pair the outline, the eyes, the teeth and the weapon should be the same left
+and right; only the material should differ.
+
+**The usual faults and their box.**
+
+| What you see | What to change | For example |
+|---|---|---|
+| The outline changed colour | raise "Leave anything darker than" | 0.16 to 0.25 |
+| The eyes, the teeth or the weapon changed | narrow the hue ranges, or raise "Only pixels at least this colourful" | 0-40 to 0-20, or 0.2 to 0.35 |
+| A bright part changed on a black or grey material | lower "Leave anything brighter than" or "Only pixels at most this colourful" | 1 to 0.3 |
+| The white flash frame (hit) did not change | an extra pass on that frame with a lower "at least this colourful" | frame 18, 0.3 to 0.05 |
+| The result is flat, with no shading | raise the shading curve, or lower "Brightness of the darkest picked pixel" | gamma 0.6 to 1.0, or 0.7 to 0.5 |
+| The result is too dark | lower "Brightest shade of the material today", or raise the two brightness boxes | 1 to 0.3 |
+| Thin parts of the same colour changed too | set "Only thick areas" | 3 |
+
+**What is written.** The job form keeps the boxes in the look's recipe as `recolour` (`from`, `mode`, `ranges`, `to`, the
+mode's numbers, `keep_edge`, `passes: [{the same fields, cells: [18]}]`). When the job is queued the recipe also gets
+`recolour_of` and `recolour_passes` (one line of `tools/recolour_strip.py` flags per pass) and, with an icon rim,
+`recolour_icon_extra`: the same shape the looks recoloured from a shell have (RG-C, IMP-A, BB-E, LS-D, CC-C, CC-D), so
+both kinds read alike. The job runs one `recolour_strip.py` command per pass for the strip, then per pass for the icon
+(the first reads the source look, each later one the result so far); the source look is never written; a base look's
+unlettered strip (`<id>_sprite.png`) is found. A box of another kind is never passed to the tool. Rules in
+`tools/level_editor/recolour_io.py`; checks in `selftest_RECUI131.py`.
+
+**For any method (the field schema).** A `recipe_fields` entry in `methods.json` may now carry `label` (the plain name),
+`example`, `guide` (the sensible values), `show_if {key, in}` (shown only while another field holds one of those
+values), `options_guide` (a line per option of a select), `widget` (a named control in `recolour_ui.js`:
+`look_code`, `hue_ranges`, `hue`, `presets`, `passes`, `recolour_preview`) and `form_only` (a control that writes no
+recipe key); a method may carry `guide {title, steps, sheet, faults}`, drawn as a foldable box at the top of "What to
+paint". A field without these keys is drawn as before.

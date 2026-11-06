@@ -25,7 +25,8 @@ func test_specials_slots_and_the_harpooner() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
 	var iv: Array = tl.specials.get("interval", [])
 	assert_float(float(iv[0])).is_equal(64.0)  # pass 46: 45-60 s stretched by 430/300
-	assert_float(float(iv[iv.size() - 1])).is_equal(86.0)
+	# (pass 131: the longest wait is Garry's to tune in the Level Editor, 120 s now: only its order is checked)
+	assert_float(float(iv[iv.size() - 1])).is_greater_equal(float(iv[0]))
 	# pass 47: six weapon slots on every stage (Garry: the caps never change); were four, six, six
 	assert_int(tl.weapon_cap_at(0)).is_equal(5)
 	assert_int(tl.weapon_cap_at(1)).is_equal(5)

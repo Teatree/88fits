@@ -1189,8 +1189,13 @@ const Assets = (() => {
     const m = lookMethods().find((x) => x.id === method) || null;
     if (!m) return F.RECIPES[method] || F.RECIPES.creature_free2;
     const out = [];
+    const seenKeys = new Set();
     for (const f of m.recipe_fields) {
-      const base = { key: f.key, label: f.label || f.key.replace(/^recolour\./, '').replace(/[._]/g, ' '), help: f.help || '', def: f.default != null && typeof f.default !== 'object' ? f.default : undefined };
+      // pass 131 (lane RECUI): a form-only control (a preset list, a preview) is no recipe key; a key with one field per
+      // mode (show_if) is one row here; the example rides in the help
+      if (f.form_only || seenKeys.has(f.key)) continue;
+      seenKeys.add(f.key);
+      const base = { key: f.key, label: f.label || f.key.replace(/^recolour\./, '').replace(/[._]/g, ' '), help: (f.help || '') + (f.example ? ' Example: ' + f.example : ''), def: f.default != null && typeof f.default !== 'object' ? f.default : undefined };
       const t = String(f.type || 'text');
       if (t === 'view_words') {
         for (const view of Array.isArray(f.views) ? f.views : Object.keys(M.isObj(f.default) ? f.default : {})) out.push(Object.assign({}, base, { key: `${f.key}.${view}`, label: `${base.label}: ${view}`, type: 'textarea', def: undefined }));

@@ -185,7 +185,7 @@
         "death_frames": 8,
         "die_fps": 12,
         "dead_fill": 0.5,
-        "run_fps": 16,
+        "run_fps": 12,
         "cell_fill": 0.8,
         "outline_frac": 0.012,
         "death_bits": {
@@ -230,6 +230,76 @@
         "die": 12
       },
       "head": 0.943
+    },
+    "CC-C": {
+      "note": "Pass 131 recolour of CC-B (Garry: a gray one): the black feathers lifted to a slate grey (every hue, saturation under 0.32, brightness 0.035 to 0.3 mapped onto 0.36..0.74); the beak, the eyes, the outline and the white hit flash as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "CC-B",
+        "recolour_passes": [
+          "--mode lift --ranges 0-360 --to 220 --set-sat 0.06 --v-lo 0.36 --v-hi 0.74 --gamma 0.9 --min-sat 0 --max-sat 0.32 --min-val 0.035 --max-val 0.3 --src-hi 0.2 --soft 0.02"
+        ]
+      },
+      "sprite": "carrion_crow_sprite_c.png",
+      "icon": "carrion_crow_icon_c.png",
+      "shadow": {
+        "scale": [
+          0.5,
+          0.5
+        ],
+        "up": 0.0,
+        "drop": 0.05
+      },
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "head": 0.943,
+      "fps": {
+        "run": 16,
+        "die": 12
+      }
+    },
+    "CC-D": {
+      "note": "Pass 131 recolour of CC-B (Garry: a white one): the black feathers lifted to a warm white with pale grey shading (brightness mapped onto 0.7..1.0); the beak, the eyes, the outline and the white hit flash as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "CC-B",
+        "recolour_passes": [
+          "--mode lift --ranges 0-360 --to 40 --set-sat 0.05 --v-lo 0.7 --v-hi 1.0 --gamma 0.6 --min-sat 0 --max-sat 0.32 --min-val 0.035 --max-val 0.3 --src-hi 0.2 --soft 0.02"
+        ]
+      },
+      "sprite": "carrion_crow_sprite_d.png",
+      "icon": "carrion_crow_icon_d.png",
+      "shadow": {
+        "scale": [
+          0.5,
+          0.5
+        ],
+        "up": 0.0,
+        "drop": 0.05
+      },
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "head": 0.943,
+      "fps": {
+        "run": 16,
+        "die": 12
+      }
     }
   },
   "outline_frac": 0.018,

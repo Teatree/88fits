@@ -1,6 +1,11 @@
 {
  "pipeline": "gen_art v2",
  "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
  "anchor": "72ae817babd1",
  "subject": "a chunky cartoon skeleton in a clean readable game-art style: thick heavy rounded ivory bones with soft warm beige shading, a big round skull with a wide square jaw and big dark eye sockets, a broad solid barrel ribcage with the ribs fused into one shape and no gaps between them, short thick arms and legs, big rounded bony fists, no clothes, no weapon, standing in a slight crouch with its fists held low at its sides, facing the viewer",
  "renders": {
@@ -13,7 +18,8 @@
    "qa": {
     "problems": []
    },
-   "attempt": 0
+   "attempt": 0,
+   "cached": true
   },
   "back": {
    "seed": 9237,
@@ -40,7 +46,8 @@
      "width": 542
     }
    },
-   "attempt": 0
+   "attempt": 0,
+   "cached": true
   },
   "dead": {
    "seed": 9245,
@@ -69,12 +76,36 @@
      "width": 755
     }
    },
-   "attempt": 0
+   "attempt": 0,
+   "cached": true
   }
+ },
+ "recipe_ran": {
+  "stills": "vc",
+  "art_prompt": "a chunky cartoon skeleton in a clean readable game-art style: thick heavy rounded ivory bones with soft warm beige shading, a big round skull with a wide square jaw and big dark eye sockets, a broad solid barrel ribcage with the ribs fused into one shape and no gaps between them, short thick arms and legs, big rounded bony fists, no clothes, no weapon, standing in a slight crouch with its fists held low at its sides, facing the viewer",
+  "back_hint": "seen from behind: the back of the big round skull, the thick spine and the broad solid back of the ribcage, the thick arms hanging at its sides, no face",
+  "dead_hint": "collapsed into a low heap of thick cartoon bones, dead: the big skull resting on top of a short pile of thick rounded bones, nothing sticking out below it; the pile sits on nothing, with no ground, no sand and no shadow under it",
+  "stand": "still",
+  "motion": "a chunky heavy skeleton with thick rounded bones walking with a heavy swagger, keeping the same broad solid ribcage, thick limbs and big round skull the whole time",
+  "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing, arms folded, arms crossed over the chest, thin bones, slender limbs, a narrow ribcage, the figure shrinking",
+  "death": "clip",
+  "death_frames": 8,
+  "outline_frac": 0.024,
+  "outline_color": "#5a4a40",
+  "anim_seed": 7,
+  "pose": "bigguy_chunky3_spread",
+  "pose_front": "bigguy_chunky2",
+  "gait": "swaggering in place on the spot with a heavy rolling walk, its thick arms swinging its big bony fists low beside its hips"
+ },
+ "clip_kind": {
+  "front": "pose",
+  "back": "pose",
+  "die": "flf"
  },
  "clips": {
   "walk_f": true,
   "walk_b": true,
-  "pose": ""
- }
+  "pose": "bigguy_chunky3_spread"
+ },
+ "qa_online": null
 }

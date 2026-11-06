@@ -184,13 +184,13 @@
       "head": 1.0
     },
     "KN-D": {
-      "note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline",
+      "note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline. Pass 131: the back walk painted again on the driver bigguy_shield (tools/pose_hang.py arms=l: seen from behind the shield arm hangs with the shield as the painting holds it, where the walk folded it up in front of the chest and left the shield in the air without it); only the 12 back frames changed, the old strip is in tools/dl/p131/SKEL/before/",
       "recipe": {
         "stills": "vd",
         "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a clear ribcage, spine and pelvis, slim arm and leg bones with rounded joints, bony hands and feet, wearing a simple dented steel medieval breastplate strapped over its ribcage with worn leather straps and a simple round steel kettle helmet with a wide brim on its skull, bare bone arms and legs, a small round wooden shield with an iron boss strapped to one forearm, the other arm hanging at its side, no weapon, standing with its shoulders squared and facing the viewer",
         "back_hint": "seen from behind: the back of the steel kettle helmet, the back plate of the armour with its leather straps, the pelvis and bare bone legs, both arms hanging down at its sides, the round shield on the same forearm, no face",
         "dead_hint": "lying flat on its back on the ground, dead: its body stretched out sideways across the picture with the skull on the left and the feet on the right, arms flopped out limp, the round shield lying beside it; it lies on nothing, with no ground and no shadow under it",
-        "pose": "bigguy",
+        "pose": "bigguy_shield",
         "pose_front": "bigguy",
         "stand": "still",
         "gait": "swaggering in place on the spot with a heavy rolling walk, the same round wooden shield strapped to the same forearm the whole time",

@@ -112,7 +112,7 @@ variants = {
 "front_faces": "right",
 "head": 1.0,
 "icon": "res://content/enemies/skeleton/skeleton_icon_c.png",
-"note": "a chunky cartoon skeleton with thick rounded bones and no gaps on a free Wan clip (the recipe clears the base's pose driver); a lighter warm-grey outline",
+"note": "a chunky cartoon skeleton with thick rounded bones and no gaps; a lighter warm-grey outline. Pass 131: both walks painted again on the big-guy swagger the D looks walk on (Mixamo bigguy_walking), retargeted in Blender to this painting's short, wide frame (tools/pose_driver.py body=...: front bigguy_chunky2, back bigguy_chunky3_spread with broader shoulders, a shorter neck and the wrists pushed clear of the body); it stands on its painting (stand: still); the paintings, the icon and the death are as they were, the old strip is in tools/dl/p131/SKEL/before/",
 "shadow": {},
 "shelved": false,
 "sprite": "res://content/enemies/skeleton/skeleton_sprite_c.png",
@@ -171,6 +171,168 @@ variants = {
 "shelved": false,
 "sprite": "res://content/enemies/skeleton/skeleton_sprite_e.png",
 "sprite_file": "skeleton_sprite_e.png",
+"strip_cols": 43
+},
+"SK-F": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.963,
+"icon": "res://content/enemies/skeleton/skeleton_icon_f.png",
+"note": "SK-B with a clean back run (pass 131): the same paintings, front walk and death; only the back walk painted again, on the driver run12_hang (tools/pose_hang.py: seen from behind both arms hang at the sides as the painting holds them, where run12's bent arms put a second right arm and the left hand on the back of the poncho); the second of two rolls (anim_seed 3), picked by eye",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton/skeleton_sprite_f.png",
+"sprite_file": "skeleton_sprite_f.png",
+"strip_cols": 43
+},
+"SK-G": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.963,
+"icon": "res://content/enemies/skeleton/skeleton_icon_g.png",
+"note": "Pass 131 recolour of SK-F (Garry: the poncho only, crimson red): the poncho's browns lifted to crimson (hue 350), the bone, the hat, the knife and the outline as they are; the hit frame's washed poncho and the lying poncho of the death in passes of their own; the cloth's darkest shadows stay brown (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton/skeleton_sprite_g.png",
+"sprite_file": "skeleton_sprite_g.png",
+"strip_cols": 43
+},
+"SK-H": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.963,
+"icon": "res://content/enemies/skeleton/skeleton_icon_h.png",
+"note": "Pass 131 recolour of SK-F (Garry: the poncho only, white-pink): the poncho's browns lifted to a pale pink-white (hue 342, saturation 0.16), the bone, the hat, the knife and the outline as they are; the hit frame's washed poncho and the lying poncho of the death in passes of their own; the cloth's darkest shadows stay brown (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton/skeleton_sprite_h.png",
+"sprite_file": "skeleton_sprite_h.png",
+"strip_cols": 43
+},
+"SK-I": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.969,
+"icon": "res://content/enemies/skeleton/skeleton_icon_i.png",
+"note": "SK-F without the hat (pass 131), otherwise the same: SK-B's front and back paintings with the hat taken off by Klein edits of the paintings themselves (tools/dl/p131/SKEL/edit_hat.py, stills vbn), walked on the same drivers (front run12, back run12_hang) and the same Falling Back Death",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton/skeleton_sprite_i.png",
+"sprite_file": "skeleton_sprite_i.png",
+"strip_cols": 43
+},
+"SK-J": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.969,
+"icon": "res://content/enemies/skeleton/skeleton_icon_j.png",
+"note": "Pass 131 recolour of SK-I (the hatless poncho skeleton), the poncho only, crimson red: SK-G's own passes; the bone, the knife and the outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton/skeleton_sprite_j.png",
+"sprite_file": "skeleton_sprite_j.png",
+"strip_cols": 43
+},
+"SK-K": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.969,
+"icon": "res://content/enemies/skeleton/skeleton_icon_k.png",
+"note": "Pass 131 recolour of SK-I (the hatless poncho skeleton), the poncho only, white-pink: SK-H's own passes; the bone, the knife and the outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton/skeleton_sprite_k.png",
+"sprite_file": "skeleton_sprite_k.png",
 "strip_cols": 43
 }
 }

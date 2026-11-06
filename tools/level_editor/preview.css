@@ -294,3 +294,40 @@ input.inherited, textarea.inherited, textarea.txt.area.inherited, .jform textare
 .lg-facing-pv { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; }
 .lg-facing-set { display: flex; flex-direction: column; gap: 3px; flex: 1 1 220px; min-width: 200px; }
 .lg-facing-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* pass 131 (lane RECUI): fields that explain themselves (recolour_ui.js: FieldUI) */
+.jform .fieldline .fex, .jform .fieldline .fgd, .jform .fieldline .fopts, .jform .fieldline .fmsg { grid-column: 2; font-size: 0.76rem; color: var(--ink-2); }
+.jform .fieldline .fgd { color: var(--muted); }
+.jform .fieldline .fex b, .jform .fieldline .fgd b { color: var(--muted); font-weight: 600; }
+.jform .fieldline .fmsg:empty { display: none; }
+.jform .fieldline .fmsg.bad { color: var(--serious); }
+.fopts .fopt { padding: 1px 0 1px 8px; border-left: 2px solid transparent; color: var(--muted); }
+.fopts .fopt.on { border-left-color: var(--sel); color: var(--ink); }
+.fwid { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fwid .btn { padding: 2px 8px; font-size: 0.78rem; }
+.fwrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.huebar { position: relative; padding-bottom: 15px; max-width: 620px; }
+.huestrip { height: 14px; border-radius: 3px; background: linear-gradient(to right, hsl(0,90%,50%), hsl(30,90%,50%), hsl(60,90%,50%), hsl(90,90%,50%), hsl(120,90%,45%), hsl(150,90%,45%), hsl(180,90%,45%), hsl(210,90%,50%), hsl(240,90%,55%), hsl(270,90%,55%), hsl(300,90%,50%), hsl(330,90%,50%), hsl(360,90%,50%)); }
+.huemarks { position: absolute; left: 0; right: 0; top: 0; height: 14px; }
+.huemark { position: absolute; top: -3px; height: 20px; box-sizing: border-box; border: 2px solid #fff; border-radius: 3px; box-shadow: 0 0 0 1px #000; }
+.huepoint { position: absolute; top: -4px; width: 0; height: 22px; border-left: 3px solid #fff; margin-left: -1px; box-shadow: 0 0 0 1px #000; }
+.huenames { position: absolute; left: 0; right: 0; top: 17px; height: 12px; font-size: 0.66rem; color: var(--muted); }
+.huenames span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.huenames span:first-child { transform: none; }
+.huenames span:last-child { transform: translateX(-100%); }
+.hueswatch { display: inline-block; width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border-2); }
+.fpass { border: 1px solid var(--border-2); border-radius: 6px; padding: 6px 10px; background: var(--surface-2); }
+.fpasshead { display: flex; gap: 10px; align-items: center; }
+.fpasshead .btn { margin-left: auto; }
+.fprevshots { display: flex; flex-wrap: wrap; gap: 12px; }
+.fshot { text-align: center; }
+.fshotpair { display: flex; align-items: center; gap: 4px; background: #3a3a44; border-radius: 6px; padding: 4px; }
+.fshotpair img { width: 150px; height: 150px; object-fit: contain; }
+.fguide { border: 1px solid var(--border-2); border-radius: 6px; padding: 6px 12px; margin: 4px 0 10px; background: var(--surface-2); font-size: 0.82rem; }
+.fguide summary { cursor: pointer; font-weight: 600; }
+.fguide p { margin: 5px 0; color: var(--ink-2); }
+.fgfaults { border-collapse: collapse; margin: 6px 0; font-size: 0.78rem; }
+.fgfaults th, .fgfaults td { text-align: left; padding: 2px 12px 2px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+.fgfaults th { color: var(--muted); font-weight: 600; }
+/* pass 131 (lead): the pass list takes the whole row, clear of the help line above it */
+.fpasses { grid-column: 1 / -1; margin-top: 10px; }

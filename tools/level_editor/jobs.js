@@ -1912,8 +1912,19 @@ const Jobs = (() => {
       body.appendChild(el('h2', {}, 'What to paint', el('small', { text: 'the recipe the tool reads (written into variants[CODE].recipe for a look job)' })));
       if (!fields.length) body.appendChild(el('p', { class: 'help', text: 'no typed fields for this method in methods.json: the raw recipe below is what the tool gets' }));
       if (fromCode) body.appendChild(sourceBox(c, spec));
+      // pass 131 (lane RECUI): a method's guide, fields that show only for another field's value (show_if), named widgets,
+      // an example and the sensible values under each box (recolour_ui.js: FieldUI; a field with none of these is as before)
+      const FUI = typeof FieldUI !== 'undefined' ? FieldUI : null;
+      const fuiGuide = FUI && method ? FUI.guideBox(method) : null;
+      if (fuiGuide) body.appendChild(fuiGuide);
+      if (FUI && method && method.id === 'recolour' && fromCode && !U.getPath(spec.recipe, 'recolour.from') && existingCodes.includes(fromCode)) U.setPath(spec.recipe, 'recolour.from', fromCode);
+      if (!c.state.fui) c.state.fui = {};
+      const fuiCtx = { root: spec.recipe, fields, draw, fieldLine, recipeControl, looks: FUI ? FUI.looksOf(record, contentJson) : [], kind, id, code: fixedCode || spec.code || '', memo: c.state.fui };
       for (const f of fields) {
         if (f.key === 'death' && Array.isArray(m.deaths) && m.deaths.length) { body.appendChild(deathControl(f, m, spec, drivers, draw)); continue; }
+        if (FUI && !FUI.shown(f, (k) => U.getPath(spec.recipe, k), fields)) continue;
+        if (FUI && f.widget && FUI.widgets[f.widget]) { body.appendChild(FUI.line(f, fuiCtx)); continue; }
+        const setOwn = (v) => { U.setPath(spec.recipe, f.key, v); if (FUI && FUI.drives(f, fields)) draw(); };
         // a recipe keeps only what differs from the creature's own words: an empty field inherits the creature's (shown
         // greyed as the placeholder and marked); `stills` never inherits (an absent key is seeded with the look's letter)
         const own = U.getPath(spec.recipe, f.key);
@@ -1926,11 +1937,12 @@ const Jobs = (() => {
         const whoseJ = kind === 'hero' ? 'the outlaw\'s' : 'the creature\'s';
         const f2 = inherited && !inBox ? Object.assign({}, f, { default: inh }) : f;
         const ctl = PICTURE_KEYS.includes(f.key) ? pictureControl(own, (v) => U.setPath(spec.recipe, f.key, v), { refs, dflt: inherited ? String(inh) : '' })
-          : recipeControl(f2, own, (v) => U.setPath(spec.recipe, f.key, v), { drivers, refs, inherit: inBox ? { value: inh, from: `${whoseJ} own ${f.key}` } : null, inheritObj: inh && typeof inh === 'object' ? inh : null,
+          : recipeControl(f2, own, setOwn, { drivers, refs, inherit: inBox ? { value: inh, from: `${whoseJ} own ${f.key}` } : null, inheritObj: inh && typeof inh === 'object' ? inh : null,
             // pass 93 (lane PREVIEW): death_keep's picker reads the death driver as the form holds it, and the look's painted death
             recipeValue: (k) => { const ov = U.getPath(spec.recipe, k); return ov != null && ov !== '' ? ov : (contentJson ? U.getPath(contentJson, k) : ''); },
             painted: fixedCode && (kind === 'enemy' || kind === 'boss') ? { enemy: id, code: fixedCode } : null });
         const line = fieldLine(f.label || f.key, ctl, f.help);
+        if (FUI) FUI.notes(line, f, own);
         if (inBox) {
           const own0 = !(own == null || own === '');
           const mk = el('span', { class: 'jinh', text: own0 ? `this look's own (${whoseJ} own ${f.key} differs)` : `inherited from ${whoseJ} own ${f.key}: it is in the box; edit it to make it this look's own, empty it to inherit again`, title: String(inh) });
@@ -1968,7 +1980,8 @@ const Jobs = (() => {
     // fields only another method's tool reads (D11: front_from_picture's ref / prompt / keep, gen_ctl's picks, recolour)
     const recipeKeys = new Set(fields.map((f) => f.key));
     const candKeys = new Set(candKind ? (CAND_FIELDS[jk] || []).map((f) => f.key) : []);
-    const hidden = (k) => (jk === 'look' && METHOD_ONLY[k] && !METHOD_ONLY[k].includes(spec.method)) || candKeys.has(k) || k === 'variant' || k === 'reroll' || k === 'puppet' || k === 'first_seed';
+    // pass 131 (lane RECUI): the recolour block is the recipe's typed boxes above (recipe.recolour), never a second raw box here
+    const hidden = (k) => (jk === 'look' && METHOD_ONLY[k] && !METHOD_ONLY[k].includes(spec.method)) || (k === 'recolour' && recipeKeys.has('recolour.from')) || candKeys.has(k) || k === 'variant' || k === 'reroll' || k === 'puppet' || k === 'first_seed';
     const specFields = kindFields
       ? Object.entries(kindFields).filter(([k]) => !OWN_KEYS.includes(k) && !recipeKeys.has(k) && !hidden(k)).map(([k, f]) => Object.assign({ key: k }, f || {}, { type: specType(f && f.type) }))
       : null;

@@ -168,9 +168,13 @@ func test_the_specials_come_one_at_a_time_on_their_own_clock() -> void:
 	# rocketeer and (pass 73) the Saiga Sniper, drawn evenly (the harpooner waits for stage 2)
 	Run.elapsed = 215.0
 	assert_array(d.specials_pool()).contains_exactly(["rocketeer", "saiga_sniper"])
-	_tick(d, 63.0)
+	# (pass 131: the interval is Garry's to tune in the Level Editor, [64, 120] now: read from the map, never pinned)
+	var gap: Array = tl.specials.get("interval", [64, 86])
+	var lo := float(gap[0])
+	var hi := float(gap[1])
+	_tick(d, lo - 1.0)
 	assert_int(d.specials_alive()).is_equal(0)
-	_tick(d, 24.0)
+	_tick(d, hi - lo + 2.0)
 	assert_int(d.specials_alive()).is_equal(1)
 	# never a second while one lives, however long
 	_tick(d, 120.0)
@@ -181,9 +185,9 @@ func test_the_specials_come_one_at_a_time_on_their_own_clock() -> void:
 		if em.alive[i] == 1:
 			em._die(i, "")
 	assert_int(d.specials_alive()).is_equal(0)
-	_tick(d, 63.0)
+	_tick(d, lo - 1.0)
 	assert_int(d.specials_alive()).is_equal(0)
-	_tick(d, 24.0)
+	_tick(d, hi - lo + 2.0)
 	assert_int(d.specials_alive()).is_equal(1)
 	# stage 2 adds the harpooner to the pool
 	Run.stage = 1

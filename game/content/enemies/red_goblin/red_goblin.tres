@@ -126,6 +126,64 @@ variants = {
 "sprite": "res://content/enemies/red_goblin/red_goblin_sprite_c.png",
 "sprite_file": "red_goblin_sprite_c.png",
 "strip_cols": 43
+},
+"RG-D": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 1.0,
+"icon": "res://content/enemies/red_goblin/red_goblin_icon_d.png",
+"note": "Pass 131 recolour of RG-A (Garry: white like RR-C): a pale peach-white goblin with rosy shadows, the Red Goblin Runt RR-C's own pass (hue 26, saturation 0.30, the blood red lifted to 0.68..1.0); the loincloth, club, eyes, teeth and outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {
+"die_drop": 0.2
+},
+"shelved": false,
+"sprite": "res://content/enemies/red_goblin/red_goblin_sprite_d.png",
+"sprite_file": "red_goblin_sprite_d.png",
+"strip_cols": 43
+},
+"RG-E": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 1.0,
+"icon": "res://content/enemies/red_goblin/red_goblin_icon_e.png",
+"note": "Pass 131 recolour of RG-A (Garry: the same colour as IMP-A): a mint green goblin with blue-green shadows, the imp IMP-A's own pass (hue 145, shadows at 162, saturation 0.78 x its own, value onto 0.44..0.98) on the skin's reds alone (340-360, 0-12: IMP-A's wider range reached the brown club and loincloth); the loincloth, club, eyes, teeth and outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {
+"die_drop": 0.2
+},
+"shelved": false,
+"sprite": "res://content/enemies/red_goblin/red_goblin_sprite_e.png",
+"sprite_file": "red_goblin_sprite_e.png",
+"strip_cols": 43
 }
 }
 variant = "RG-A"

@@ -142,7 +142,10 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 			"elite_every":
 				assert_float(float(ev.get("interval", 0.0))).is_equal(129.0)
 	assert_array(boss_ks).contains_exactly([1, 2, 3, 4])
-	assert_array(elite_ks).contains_exactly([0.5, 1.5, 2.0 + 180.0 / 780.0, 2.0 + 555.0 / 780.0, 3.5])
+	# (pass 131: Garry moved and added Elite events in the Level Editor; the map's own are checked for their shape: at
+	# least one a stage, each inside its stage)
+	for st in 4:
+		assert_bool(elite_ks.any(func(k: float) -> bool: return k >= float(st) and k < float(st + 1))).override_failure_message("no Elite event in stage %d: %s" % [st + 1, str(elite_ks)]).is_true()
 	# each old second is 430/300 of a new one, rounded to the second (pass 62, lane PC, re-pinned: stages 2 and 3 have
 	# their own events now; stage 1's keep the stretched seconds, and the bosses and Elites are checked above)
 	var old_events := [150, 210, 300]
@@ -173,7 +176,7 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 	assert_float(float(tl.specials.get("from", 0.0))).is_equal(tl.stage_length * 0.5)
 	var iv: Array = tl.specials.get("interval", [])
 	assert_float(float(iv[0])).is_equal(64.0)
-	assert_float(float(iv[iv.size() - 1])).is_equal(86.0)
+	assert_float(float(iv[iv.size() - 1])).is_greater_equal(64.0)   # pass 131: Garry's to tune (120 now)
 	# (pass 87, lane SGAME, re-pinned: Endless after every stage, a wave every `endless.every` seconds; the path slots
 	# inside each stage's own length)
 	assert_float(tl.endless_value("every")).is_greater(0.0)

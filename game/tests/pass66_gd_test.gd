@@ -626,7 +626,8 @@ func test_fifty_creature_looks_fold_per_creature_and_open_into_a_flow() -> void:
 	for l in panel._content.find_children("*", "Label", true, false):
 		if (l as Label).text.begins_with("SK-"):
 			shown += 1
-	assert_int(shown).is_equal(sk_notes)
+	# (pass 131: the skeleton has eleven looks now, past the eight whose notes all show: only the lit look's note)
+	assert_int(shown).is_equal(sk_notes if skd.variant_codes().size() <= 8 else 1)
 	# a second tap closes it again
 	(panel._content.find_child("LooksHead_p66_fifty", true, false) as Button).pressed.emit()
 	assert_object(panel._content.find_child("Variants_p66_fifty", true, false)).is_null()

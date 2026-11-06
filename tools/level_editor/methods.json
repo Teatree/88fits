@@ -739,32 +739,600 @@
    "id": "recolour",
    "name": "Recolour an existing look",
    "kind": "enemy",
-   "summary": "recolour_strip.py moves the hues inside the ranges you give on every frame of a finished strip and on its icon: the same animation with a new skin (the Red Goblin from GOB-D: hues 55-135 to 357). mode tint makes a pale material dark and saturated instead (the dark-blue SK-E). No model runs. The server copies the source look's anims, strip_cols, fps and head into the new entry; a preview sheet shows the result first.",
+   "summary": "Makes a new look from a finished one by changing colours only: the same animation, the same lines, on every frame of the strip and on the icon. Three kinds of change: hue (one colour to another: the Red Goblin from the green Goblin), tint (a pale material made dark: the dark-blue Skeleton SK-E), lift (to black, grey, white, gold or a pale colour: the white crow CC-D). No model runs; it takes seconds. The new look's entry copies the source's frames, speeds and head, and records the passes that ran; a preview sheet shows the result first.",
    "needs": ["a finished look's strip and icon (the source code)"],
    "produces": "<id>_sprite_<letter>.png and <id>_icon_<letter>.png under the new code, the entry copied from the source; a preview in tools/dl/review",
    "counts": {"stills": 0, "clips": 0},
    "time": {"median_s": 5, "worst_s": 20},
    "weaknesses": [
-    "Only hue and value move; the lines and the shading stay where they are.",
-    "A hue range that touches the outline, the eyes or the weapon recolours them too: look at the preview."
+    "Only colour and brightness move; the lines and the shading stay where they are.",
+    "A hue range that touches the outline, the eyes or the weapon recolours them too: press Show before / after, and see the guide's faults.",
+    "A creature's hit frame is a white flash: a strict \"at least this colourful\" skips it; give it an extra pass."
    ],
    "example": {"image": "examples/recolour_red_goblin.png", "strip": {"kind": "enemy", "id": "red_goblin", "code": "RG-A"}},
    "recipe_fields": [
-    {"key": "recolour.from", "type": "text", "default": "", "help": "The source look's code (its strip and icon are read)."},
-    {"key": "recolour.ranges", "type": "json", "default": [[55, 135]], "help": "Hue ranges (0-360) to move; several allowed."},
-    {"key": "recolour.to", "type": "int", "default": 357, "help": "The hue the ranges' middle moves to."},
-    {"key": "recolour.sat", "type": "number", "default": 1.0, "help": "Saturation multiplier on the moved pixels."},
-    {"key": "recolour.mode", "type": "select", "default": "hue", "options": ["hue", "tint"], "help": "hue: move the hues; tint: a pale material made dark and saturated (set_sat, value, min_val)."},
-    {"key": "recolour.set_sat", "type": "number", "default": 0.55, "help": "tint: the saturation set on the range."},
-    {"key": "recolour.value", "type": "number", "default": 0.6, "help": "tint: the value multiplier."},
-    {"key": "recolour.min_val", "type": "number", "default": 0.3, "help": "tint: the lowest value touched (keeps the lines)."},
-    {"key": "recolour.min_sat", "type": "number", "default": 0.0, "help": "hue: only pixels at least this saturated move."},
-    {"key": "recolour.max_sat", "type": "number", "default": 1.0, "help": "hue: cap on the moved pixels' saturation."}
+    {
+     "key": "recolour._preset",
+     "type": "text",
+     "default": "",
+     "label": "Start from a preset",
+     "help": "Fills every box below with the settings of a look that exists; change them afterwards. Your source look stays.",
+     "widget": "presets",
+     "form_only": true,
+     "presets": [
+      {
+       "name": "Skin to another colour (hue)",
+       "line": "the Red Goblin RG-A, made from the green Goblin GOB-D: green skin (hues 55-135) turned blood red (357)",
+       "values": {
+        "mode": "hue",
+        "ranges": [
+         [
+          55,
+          135
+         ]
+        ],
+        "to": 357,
+        "sat": 1.0
+       }
+      },
+      {
+       "name": "Pale bone to dark blue (tint)",
+       "line": "the Skeleton SK-E, made from SK-A: ivory bone (hues 10-75) made a dark saturated blue (222); the black lines stay",
+       "values": {
+        "mode": "tint",
+        "ranges": [
+         [
+          10,
+          75
+         ]
+        ],
+        "to": 222,
+        "set_sat": 0.55,
+        "value": 0.6,
+        "min_val": 0.3,
+        "min_sat": 0.06,
+        "max_sat": 0.55
+       }
+      },
+      {
+       "name": "Black to white (lift)",
+       "line": "the Carrion Crow CC-D, made from CC-B: black feathers (any hue, nearly no colour, dark) lifted to a warm white; beak, eyes and outline stay",
+       "values": {
+        "mode": "lift",
+        "ranges": [
+         [
+          0,
+          360
+         ]
+        ],
+        "to": 40,
+        "set_sat": 0.05,
+        "v_lo": 0.7,
+        "v_hi": 1.0,
+        "gamma": 0.6,
+        "min_sat": 0,
+        "max_sat": 0.32,
+        "min_val": 0.035,
+        "max_val": 0.3,
+        "src_hi": 0.2,
+        "soft": 0.02
+       }
+      },
+      {
+       "name": "Red skin to bone white (lift)",
+       "line": "the Red Goblin RG-D, made from RG-A: blood-red skin (340-360 and 0-12) lifted to a pale peach white with rosy shadows; loincloth, club and eyes stay",
+       "values": {
+        "mode": "lift",
+        "ranges": [
+         [
+          340,
+          360
+         ],
+         [
+          0,
+          12
+         ]
+        ],
+        "to": 26,
+        "to_dark": 10,
+        "set_sat": 0.3,
+        "v_lo": 0.68,
+        "v_hi": 1.0,
+        "gamma": 0.85,
+        "min_sat": 0.3,
+        "min_val": 0.16,
+        "src_hi": 0.9,
+        "soft": 0.05
+       }
+      },
+      {
+       "name": "To grey (lift)",
+       "line": "the Carrion Crow CC-C, made from CC-B: black feathers lifted to a slate grey (brightness 0.36 to 0.74, a trace of blue)",
+       "values": {
+        "mode": "lift",
+        "ranges": [
+         [
+          0,
+          360
+         ]
+        ],
+        "to": 220,
+        "set_sat": 0.06,
+        "v_lo": 0.36,
+        "v_hi": 0.74,
+        "gamma": 0.9,
+        "min_sat": 0,
+        "max_sat": 0.32,
+        "min_val": 0.035,
+        "max_val": 0.3,
+        "src_hi": 0.2,
+        "soft": 0.02
+       }
+      },
+      {
+       "name": "To gold (lift)",
+       "line": "the Red Goblin RG-C, made from RG-B: brick-red skin (350-360 and 0-22) turned gold (50) with amber shadows (34)",
+       "values": {
+        "mode": "lift",
+        "ranges": [
+         [
+          350,
+          360
+         ],
+         [
+          0,
+          22
+         ]
+        ],
+        "hue_soft": 3,
+        "to": 50,
+        "to_dark": 34,
+        "sat": 1.0,
+        "v_lo": 0.3,
+        "v_hi": 1.0,
+        "gamma": 0.75,
+        "min_sat": 0.3,
+        "min_val": 0.16,
+        "src_hi": 0.9,
+        "soft": 0.05
+       }
+      },
+      {
+       "name": "To green (lift)",
+       "line": "the Red Goblin RG-E, made from RG-A: blood-red skin (340-360 and 0-12) turned mint green (145) with blue-green shadows (162)",
+       "values": {
+        "mode": "lift",
+        "ranges": [
+         [
+          340,
+          360
+         ],
+         [
+          0,
+          12
+         ]
+        ],
+        "to": 145,
+        "to_dark": 162,
+        "sat": 0.78,
+        "v_lo": 0.44,
+        "v_hi": 0.98,
+        "gamma": 0.8,
+        "min_sat": 0.3,
+        "min_val": 0.16,
+        "src_hi": 0.92,
+        "soft": 0.05
+       }
+      }
+     ]
+    },
+    {
+     "key": "recolour.from",
+     "type": "text",
+     "default": "",
+     "label": "Look to recolour",
+     "help": "The code of the look to recolour, exactly as on its card. The code alone, no name.",
+     "example": "CC-B (the Carrion Crow's played look). Not \"Carrion Crow CC-B\", not \"crow\".",
+     "guide": "Pick from the list or type it. It must be a finished look of this same creature: its strip and its icon are read, never changed.",
+     "widget": "look_code"
+    },
+    {
+     "key": "recolour.mode",
+     "type": "select",
+     "default": "hue",
+     "label": "What kind of change",
+     "help": "Three ways to recolour. Only the boxes of the one you choose are shown.",
+     "options": [
+      "hue",
+      "tint",
+      "lift"
+     ],
+     "options_guide": {
+      "hue": "hue: one colour to another colour, the brightness kept. Green skin to red (the Red Goblin from the Goblin).",
+      "tint": "tint: a pale material made dark and coloured. Ivory bone to dark blue (the Skeleton SK-E).",
+      "lift": "lift: to black, grey, white, gold or any pale colour. Black feathers to white (the crow CC-D); red skin to bone white (the goblin RG-D)."
+     }
+    },
+    {
+     "key": "recolour.ranges",
+     "type": "json",
+     "default": [
+      [
+       55,
+       135
+      ]
+     ],
+     "label": "Which colours change (hue ranges)",
+     "help": "Which pixels are picked, by their colour on the colour wheel: each range is from-to in degrees.",
+     "example": "55-135 picks the greens and yellow-greens (the Goblin's skin). 0-360 picks every colour (use it with the limits below for black, grey or white materials).",
+     "guide": "Numbers from 0 to 360: red 0, orange 30, yellow 60, green 120, cyan 180, blue 240, purple 280, pink 320, red again 360. Several ranges are separated by commas. To go through red, give two ranges: 340-360, 0-20.",
+     "widget": "hue_ranges"
+    },
+    {
+     "key": "recolour.to",
+     "type": "int",
+     "default": 357,
+     "label": "The new colour (hue)",
+     "help": "The colour the picked pixels take, as a hue on the same wheel.",
+     "example": "357 is a blood red, 222 a dark blue, 50 gold, 145 mint green. For white or grey the hue only gives the faint warm (40) or cool (220) cast.",
+     "guide": "0 to 360: red 0, orange 30, yellow 60, green 120, cyan 180, blue 240, purple 280, pink 320, red again 360.",
+     "widget": "hue"
+    },
+    {
+     "key": "recolour.to_dark",
+     "type": "int",
+     "label": "Colour of the shadows",
+     "help": "A second hue for the darkest picked shades; it blends to the new colour at the brightest. Empty = one hue everywhere.",
+     "example": "Gold (the new colour 50) with 34 here gets amber shadows instead of olive ones.",
+     "guide": "0 to 360, usually within 30 of the new colour. Leave empty unless the shadows look muddy.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.sat",
+     "type": "number",
+     "default": 1.0,
+     "label": "Colour strength, times the pixel's own",
+     "help": "Each picked pixel keeps its own saturation multiplied by this. In lift it is used only while \"Colour strength, set\" is empty.",
+     "example": "1.0 keeps the strength (red stays as vivid as the green was); 0.8 is a little duller; 1.2 more vivid.",
+     "guide": "0.5 to 1.3 is sensible. 0 would be grey.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "hue",
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.set_sat",
+     "type": "number",
+     "default": 0.55,
+     "label": "Colour strength, set",
+     "help": "The saturation every picked pixel gets, the same everywhere.",
+     "example": "0.55 is a rich dark blue (the Skeleton SK-E).",
+     "guide": "0 to 1. 0.4 to 0.7 for a coloured material.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "tint"
+      ]
+     }
+    },
+    {
+     "key": "recolour.set_sat",
+     "type": "number",
+     "label": "Colour strength, set",
+     "help": "The saturation every picked pixel gets, the same everywhere. Empty = each pixel keeps its own times the box above.",
+     "example": "0.05 is white with a trace of warmth (the crow CC-D); 0.06 grey; 0.3 a pale peach (the goblin RG-D).",
+     "guide": "0 to 1. 0 to 0.1 for white, grey and black; 0.2 to 0.4 for a pale colour; leave empty for a vivid colour such as gold or green.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.value",
+     "type": "number",
+     "default": 0.6,
+     "label": "Darker by",
+     "help": "The brightness of every picked pixel is multiplied by this.",
+     "example": "0.6 makes pale ivory a dark blue; 1.0 would leave the brightness alone.",
+     "guide": "0.3 to 1. Lower is darker.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "tint"
+      ]
+     }
+    },
+    {
+     "key": "recolour.v_lo",
+     "type": "number",
+     "default": 0.5,
+     "label": "Brightness of the darkest picked pixel",
+     "help": "The picked pixels' brightness is spread again between this and the box below: this is where the darkest ends up.",
+     "example": "0.7 (with 1.0 below) makes everything bright: white with pale grey shading. 0.36 (with 0.74) is a mid grey. 0.05 (with 0.3) is black.",
+     "guide": "0 to 1, lower than the box below. Raise it if the result is too dark or too contrasty; lower it if the result is flat.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.v_hi",
+     "type": "number",
+     "default": 1.0,
+     "label": "Brightness of the brightest picked pixel",
+     "help": "Where the brightest picked pixel ends up.",
+     "example": "1.0 for white, gold and vivid colours; 0.74 for a grey; 0.3 for black.",
+     "guide": "0 to 1, higher than the box above.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.gamma",
+     "type": "number",
+     "default": 1.0,
+     "label": "Shading curve (gamma)",
+     "help": "How the shades between darkest and brightest are spread. Under 1 lifts the middle shades (softer, lighter); over 1 keeps them dark (more contrast).",
+     "example": "0.6 gave the white crow soft pale shading; 0.85 is a gentle lift; 1 is even.",
+     "guide": "0.5 to 1.5. If the result looks flat, go up; if the shadows look dirty, go down.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.min_sat",
+     "type": "number",
+     "default": 0.2,
+     "label": "Only pixels at least this colourful",
+     "help": "A picked pixel must have at least this much saturation. It keeps greys, whites and steel out of the change.",
+     "example": "0.3 on red skin leaves the white teeth and the grey club alone. 0 lets everything in (needed for black feathers, which have almost no colour).",
+     "guide": "0 to 1. 0.2 to 0.35 for a coloured material; 0 for black, grey or white ones. Raise it if the eyes or the weapon changed."
+    },
+    {
+     "key": "recolour.max_sat",
+     "type": "number",
+     "default": 1.0,
+     "label": "Only pixels at most this colourful",
+     "help": "A picked pixel must have at most this much saturation. It keeps vivid things out of the change.",
+     "example": "0.32 on a black crow leaves its yellow eyes and ivory beak alone. 1 = no limit.",
+     "guide": "0 to 1. Leave at 1 unless a vivid part changes that should not."
+    },
+    {
+     "key": "recolour.min_val",
+     "type": "number",
+     "default": 0.3,
+     "label": "Leave anything darker than",
+     "help": "Pixels darker than this stay as they are: the black lines, the eye sockets, the outline.",
+     "example": "0.3 keeps a skeleton's black lines black.",
+     "guide": "0 to 1. 0.2 to 0.35. Raise it if the outline changed colour.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "tint"
+      ]
+     }
+    },
+    {
+     "key": "recolour.min_val",
+     "type": "number",
+     "default": 0.0,
+     "label": "Leave anything darker than",
+     "help": "Pixels darker than this stay as they are: the black lines and the outline. It is also the brightness that counts as \"darkest\" for the two brightness boxes.",
+     "example": "0.16 keeps a goblin's outline. 0.035 on a black crow keeps only the pure-black outline and lets the charcoal feathers change.",
+     "guide": "0 to 1. 0.1 to 0.3 for a coloured material; 0.03 to 0.05 for a black one. Raise it if the outline changed.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.max_val",
+     "type": "number",
+     "default": 1.0,
+     "label": "Leave anything brighter than",
+     "help": "Pixels brighter than this stay as they are. For a material that has no colour to tell it from white eyes and teeth.",
+     "example": "0.3 on a black crow: only the dark feathers change, the pale beak and legs stay. 1 = no limit.",
+     "guide": "0 to 1. Leave at 1 unless a bright part changes that should not.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.src_hi",
+     "type": "number",
+     "default": 1.0,
+     "label": "Brightest shade of the material today",
+     "help": "The brightness in the source that counts as \"brightest\" for the two brightness boxes. Lower it when the material is dark, or the result uses only the bottom of the new range.",
+     "example": "0.2 for black feathers (they are never brighter than that); 0.9 for red skin; 1 when unsure.",
+     "guide": "0 to 1. If the result is too dark and flat, lower this.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.soft",
+     "type": "number",
+     "default": 0.04,
+     "label": "Soft edge of the limits",
+     "help": "How gently the change fades out at the colourfulness and brightness limits, so no hard pixel line shows where it stops.",
+     "example": "0.04 is the usual; 0.02 for a tight cut (black feathers next to a dark outline).",
+     "guide": "0 to 0.1.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.hue_soft",
+     "type": "number",
+     "default": 0,
+     "label": "Soft ends of the hue ranges (degrees)",
+     "help": "The change fades out this many degrees past each end of the ranges instead of cutting.",
+     "example": "3 took the last orange specks along the gold goblin's skin.",
+     "guide": "0 to 10. 0 = a sharp cut.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.mass",
+     "type": "int",
+     "default": 0,
+     "label": "Only thick areas (pixels)",
+     "help": "Keeps only picked areas at least twice this plus one pixels thick: the big shape, not thin parts of the same colour.",
+     "example": "3 recoloured the Bull Beetle's shell and left its thin red legs red. 0 = off.",
+     "guide": "0 to 6. 0 unless thin parts should stay.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.grow",
+     "type": "int",
+     "label": "Grow the thick areas back by (pixels)",
+     "help": "After \"Only thick areas\" the kept areas are grown back by this many pixels so their rim changes too. Empty = that number plus 2.",
+     "example": "4 with thick areas 3 (the white beetle BB-E).",
+     "guide": "Only used when \"Only thick areas\" is over 0.",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.keep_edge",
+     "type": "int",
+     "default": 0,
+     "label": "Icon: leave the outer rim (pixels)",
+     "help": "On the icon only: the figure's outer band this wide is left as it is, so the icon's grey outer stroke is not recoloured. The strip is never touched by this.",
+     "example": "4 kept the bone scorpion's icon stroke grey (LS-D). 0 = off.",
+     "guide": "0 to 6. Use it when the first pass picks every hue (0-360).",
+     "show_if": {
+      "key": "recolour.mode",
+      "in": [
+       "lift"
+      ]
+     }
+    },
+    {
+     "key": "recolour.passes",
+     "type": "json",
+     "default": [],
+     "label": "Extra passes",
+     "help": "Further passes, run in order on the result of the boxes above. Each has its own boxes, and may run on chosen frames only.",
+     "example": "A second pass on the hit frame: that frame is a white flash of the material, too pale for the first pass's \"at least this colourful\", so it gets a pass of its own with a lower one.",
+     "guide": "Frames are counted from 0 along the strip (idle, run, attack, hit, die ...). Leave \"Only these frames\" empty to run a pass on the whole strip and the icon.",
+     "widget": "passes"
+    },
+    {
+     "key": "recolour._preview",
+     "type": "text",
+     "default": "",
+     "label": "Before / after",
+     "help": "Runs the passes on the source look's first run frame, on each frame an extra pass names and on its icon, and shows them here. No job, nothing is written.",
+     "widget": "recolour_preview",
+     "form_only": true
+    }
    ],
    "refs": {"2d": false, "3d": []},
    "repair": {"vace": "no", "fill": "cell", "note": "a whole-strip hue transform of another look: repair the source look and run the recolour again, or edit cells here (history and copies in the Frames view)", "profile": {"window": "single", "frames": 13, "strength": 1.0, "steps": 4, "cfg": 1.0, "lora": true}, "escalation": ["single", "double", "reroll_view"]},
-   "runner": {"tool": "recolour_strip", "call": "cli", "argv": ["--src", "{folder}/{id}_sprite_{from letter}.png", "--dst", "{folder}/{id}_sprite_{letter}.png", "--ranges", "{ranges as a-b,c-d}", "--to", "{to}", "--sat", "{sat}", "--mode", "{mode}?", "--set-sat", "{set_sat}?", "--value", "{value}?", "--min-val", "{min_val}?", "--preview", "tools/dl/review/{id}_{letter}_recolour.png"],
-              "also_icon": true}
+   "runner": {
+    "tool": "recolour_strip",
+    "call": "cli",
+    "argv": [
+     "--src",
+     "{folder}/{id}_sprite_{from letter}.png",
+     "--dst",
+     "{folder}/{id}_sprite_{letter}.png",
+     "{each pass: --mode, --ranges a-b,c-d, --to and the flags its mode reads (recolour_io.pass_args)}",
+     "--preview",
+     "tools/dl/review/{id}_{letter}_recolour.png"
+    ],
+    "also_icon": true,
+    "passes": "one command per pass for the strip, then per pass for the icon; a later pass reads the result so far"
+   },
+   "guide": {
+    "title": "How to recolour a look",
+    "steps": [
+     "1. Pick the look to recolour (its code alone, e.g. CC-B) and, if one is close, a preset.",
+     "2. Say which pixels change: the hue ranges (0-360 for a black, grey or white material), then the limits: how colourful (at least / at most) and how dark or bright (leave anything darker / brighter than).",
+     "3. Say what they become: the new colour and, for lift, the brightness of the darkest and the brightest picked pixel.",
+     "Press Show before / after as often as you like: nothing is written until you queue the job."
+    ],
+    "sheet": "The job's preview sheet (tools/dl/review/<id>_<letter>_recolour.png, on the job's card) shows pairs: the source frame on the left, the recoloured one on the right, for the first, a middle and the last frame, plus every frame an extra pass names. Look at the outline, the eyes, the teeth and the weapon in each pair: they should be the same left and right.",
+    "faults": [
+     {
+      "see": "The outline changed colour",
+      "do": "raise \"Leave anything darker than\"",
+      "example": "0.16 to 0.25"
+     },
+     {
+      "see": "The eyes, the teeth or the weapon changed",
+      "do": "narrow the hue ranges, or raise \"Only pixels at least this colourful\"",
+      "example": "0-40 to 0-20, or 0.2 to 0.35"
+     },
+     {
+      "see": "A bright part changed on a black or grey material",
+      "do": "lower \"Leave anything brighter than\" or \"Only pixels at most this colourful\"",
+      "example": "1 to 0.3"
+     },
+     {
+      "see": "The white flash frame (hit) did not change",
+      "do": "add an extra pass on that frame with a lower \"at least this colourful\"",
+      "example": "frame 18, 0.3 to 0.05"
+     },
+     {
+      "see": "The result is flat, with no shading",
+      "do": "raise the shading curve, or lower \"Brightness of the darkest picked pixel\"",
+      "example": "gamma 0.6 to 1.0, or 0.7 to 0.5"
+     },
+     {
+      "see": "The result is too dark",
+      "do": "lower \"Brightest shade of the material today\", or raise the two brightness boxes",
+      "example": "1 to 0.3"
+     },
+     {
+      "see": "Thin parts of the same colour changed too",
+      "do": "set \"Only thick areas\"",
+      "example": "3"
+     }
+    ]
+   }
   },
   {
    "id": "item_icon",

@@ -149,22 +149,23 @@
       "head": 0.963
     },
     "SK-C": {
-      "note": "a chunky cartoon skeleton with thick rounded bones and no gaps on a free Wan clip (the recipe clears the base's pose driver); a lighter warm-grey outline",
+      "note": "a chunky cartoon skeleton with thick rounded bones and no gaps; a lighter warm-grey outline. Pass 131: both walks painted again on the big-guy swagger the D looks walk on (Mixamo bigguy_walking), retargeted in Blender to this painting's short, wide frame (tools/pose_driver.py body=...: front bigguy_chunky2, back bigguy_chunky3_spread with broader shoulders, a shorter neck and the wrists pushed clear of the body); it stands on its painting (stand: still); the paintings, the icon and the death are as they were, the old strip is in tools/dl/p131/SKEL/before/",
       "recipe": {
         "stills": "vc",
         "art_prompt": "a chunky cartoon skeleton in a clean readable game-art style: thick heavy rounded ivory bones with soft warm beige shading, a big round skull with a wide square jaw and big dark eye sockets, a broad solid barrel ribcage with the ribs fused into one shape and no gaps between them, short thick arms and legs, big rounded bony fists, no clothes, no weapon, standing in a slight crouch with its fists held low at its sides, facing the viewer",
         "back_hint": "seen from behind: the back of the big round skull, the thick spine and the broad solid back of the ribcage, the thick arms hanging at its sides, no face",
         "dead_hint": "collapsed into a low heap of thick cartoon bones, dead: the big skull resting on top of a short pile of thick rounded bones, nothing sticking out below it; the pile sits on nothing, with no ground, no sand and no shadow under it",
-        "stand": "walk",
-        "motion": "a chunky heavy skeleton with thick rounded bones stomping forward in place like on a treadmill, its thick arms swinging its big bony fists low beside its hips, keeping the same broad solid ribcage, thick limbs and big round skull the whole time",
+        "stand": "still",
+        "motion": "a chunky heavy skeleton with thick rounded bones walking with a heavy swagger, keeping the same broad solid ribcage, thick limbs and big round skull the whole time",
         "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing, arms folded, arms crossed over the chest, thin bones, slender limbs, a narrow ribcage, the figure shrinking",
         "death": "clip",
         "death_frames": 8,
         "outline_frac": 0.024,
         "outline_color": "#5a4a40",
         "anim_seed": 7,
-        "pose": "",
-        "pose_front": ""
+        "pose": "bigguy_chunky3_spread",
+        "pose_front": "bigguy_chunky2",
+        "gait": "swaggering in place on the spot with a heavy rolling walk, its thick arms swinging its big bony fists low beside its hips"
       },
       "sprite": "skeleton_sprite_c.png",
       "icon": "skeleton_icon_c.png",
@@ -254,6 +255,198 @@
       },
       "strip_cols": 43,
       "head": 0.963
+    },
+    "SK-F": {
+      "note": "SK-B with a clean back run (pass 131): the same paintings, front walk and death; only the back walk painted again, on the driver run12_hang (tools/pose_hang.py: seen from behind both arms hang at the sides as the painting holds them, where run12's bent arms put a second right arm and the left hand on the back of the poncho); the second of two rolls (anim_seed 3), picked by eye",
+      "recipe": {
+        "stills": "vb",
+        "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a ragged brown poncho draped over its shoulders and chest covering the ribcage, a battered flat-brimmed dark hat on its skull, bare bone arms and legs, a small bone-handled knife held low in one hand down at its side, the other arm hanging at its side, standing and facing the viewer",
+        "back_hint": "seen from behind: the back of the hat and the poncho hanging over its back, both arms hanging down at its sides, the small knife in the same hand, no face",
+        "dead_hint": "lying flat on its back on the ground, dead: its body stretched out sideways across the picture with the skull on the left and the feet on the right, arms flopped out limp, the small knife lying beside its open hand; it lies on nothing, with no ground and no shadow under it",
+        "pose": "run12_hang",
+        "pose_front": "run12",
+        "stand": "still",
+        "gait": "jogging in place on the spot with a light quick scurrying run, holding the same small bone-handled knife low in one hand the whole time",
+        "motion": "a skeleton jogging lightly with a small knife held low",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing",
+        "death": "pose:death_back",
+        "death_frames": 8,
+        "outline_frac": 0.018,
+        "outline_color": "#2a1a18",
+        "anim_seed": 3
+      },
+      "sprite": "skeleton_sprite_f.png",
+      "icon": "skeleton_icon_f.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.963,
+      "fresh": true
+    },
+    "SK-G": {
+      "note": "Pass 131 recolour of SK-F (Garry: the poncho only, crimson red): the poncho's browns lifted to crimson (hue 350), the bone, the hat, the knife and the outline as they are; the hit frame's washed poncho and the lying poncho of the death in passes of their own; the cloth's darkest shadows stay brown (tools/recolour_look.py, recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "SK-F",
+        "recolour_passes": [
+          "--mode lift --ranges 10-30 --hue-soft 2 --min-sat 0.36 --min-val 0.2 --max-val 0.66 --src-hi 0.62 --soft 0.04 --mass 5 --grow 7 --to 350 --set-sat 0.86 --v-lo 0.30 --v-hi 0.86 --gamma 0.9",
+          "--cells 18 --mode lift --ranges 8-32 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --mass 5 --grow 7 --to 350 --set-sat 0.36 --v-lo 0.74 --v-hi 0.90",
+          "--cells 22,23,24,25,26 --mode lift --ranges 13-28 --hue-soft 2 --min-sat 0.4 --min-val 0.2 --max-val 0.5 --src-hi 0.5 --soft 0.03 --mass 2 --grow 3 --to 350 --set-sat 0.86 --v-lo 0.30 --v-hi 0.78 --gamma 0.9"
+        ]
+      },
+      "sprite": "skeleton_sprite_g.png",
+      "icon": "skeleton_icon_g.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "head": 0.963,
+      "fps": {
+        "run": 15,
+        "die": 12
+      }
+    },
+    "SK-H": {
+      "note": "Pass 131 recolour of SK-F (Garry: the poncho only, white-pink): the poncho's browns lifted to a pale pink-white (hue 342, saturation 0.16), the bone, the hat, the knife and the outline as they are; the hit frame's washed poncho and the lying poncho of the death in passes of their own; the cloth's darkest shadows stay brown (tools/recolour_look.py, recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "SK-F",
+        "recolour_passes": [
+          "--mode lift --ranges 10-30 --hue-soft 2 --min-sat 0.36 --min-val 0.2 --max-val 0.66 --src-hi 0.62 --soft 0.04 --mass 5 --grow 7 --to 342 --set-sat 0.16 --v-lo 0.70 --v-hi 1.0 --gamma 0.9",
+          "--cells 18 --mode lift --ranges 8-32 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --mass 5 --grow 7 --to 342 --set-sat 0.05 --v-lo 0.86 --v-hi 0.97",
+          "--cells 22,23,24,25,26 --mode lift --ranges 13-28 --hue-soft 2 --min-sat 0.4 --min-val 0.2 --max-val 0.5 --src-hi 0.5 --soft 0.03 --mass 2 --grow 3 --to 342 --set-sat 0.16 --v-lo 0.70 --v-hi 0.97 --gamma 0.9"
+        ]
+      },
+      "sprite": "skeleton_sprite_h.png",
+      "icon": "skeleton_icon_h.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "head": 0.963,
+      "fps": {
+        "run": 15,
+        "die": 12
+      }
+    },
+    "SK-I": {
+      "note": "SK-F without the hat (pass 131), otherwise the same: SK-B's front and back paintings with the hat taken off by Klein edits of the paintings themselves (tools/dl/p131/SKEL/edit_hat.py, stills vbn), walked on the same drivers (front run12, back run12_hang) and the same Falling Back Death",
+      "recipe": {
+        "stills": "vbn",
+        "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a ragged brown poncho draped over its shoulders and chest covering the ribcage, a bare skull with no hat, bare bone arms and legs, a small bone-handled knife held low in one hand down at its side, the other arm hanging at its side, standing and facing the viewer",
+        "back_hint": "seen from behind: the bare back of the skull with no hat and the poncho hanging over its back, both arms hanging down at its sides, the small knife in the same hand, no face",
+        "dead_hint": "lying flat on its back on the ground, dead: its body stretched out sideways across the picture with the skull on the left and the feet on the right, arms flopped out limp, the small knife lying beside its open hand; it lies on nothing, with no ground and no shadow under it",
+        "pose": "run12_hang",
+        "pose_front": "run12",
+        "stand": "still",
+        "gait": "jogging in place on the spot with a light quick scurrying run, holding the same small bone-handled knife low in one hand the whole time",
+        "motion": "a skeleton jogging lightly with a small knife held low",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing, a hat, a hat appearing",
+        "death": "pose:death_back",
+        "death_frames": 8,
+        "outline_frac": 0.018,
+        "outline_color": "#2a1a18",
+        "anim_seed": 3
+      },
+      "sprite": "skeleton_sprite_i.png",
+      "icon": "skeleton_icon_i.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.969,
+      "fresh": true
+    },
+    "SK-J": {
+      "note": "Pass 131 recolour of SK-I (the hatless poncho skeleton), the poncho only, crimson red: SK-G's own passes; the bone, the knife and the outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "SK-I",
+        "recolour_passes": [
+          "--mode lift --ranges 10-30 --hue-soft 2 --min-sat 0.36 --min-val 0.2 --max-val 0.66 --src-hi 0.62 --soft 0.04 --mass 5 --grow 7 --to 350 --set-sat 0.86 --v-lo 0.30 --v-hi 0.86 --gamma 0.9",
+          "--cells 18 --mode lift --ranges 8-32 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --mass 5 --grow 7 --to 350 --set-sat 0.36 --v-lo 0.74 --v-hi 0.90",
+          "--cells 22,23,24,25,26 --mode lift --ranges 13-28 --hue-soft 2 --min-sat 0.4 --min-val 0.2 --max-val 0.5 --src-hi 0.5 --soft 0.03 --mass 2 --grow 3 --to 350 --set-sat 0.86 --v-lo 0.30 --v-hi 0.78 --gamma 0.9"
+        ]
+      },
+      "sprite": "skeleton_sprite_j.png",
+      "icon": "skeleton_icon_j.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "head": 0.969,
+      "fps": {
+        "run": 15,
+        "die": 12
+      }
+    },
+    "SK-K": {
+      "note": "Pass 131 recolour of SK-I (the hatless poncho skeleton), the poncho only, white-pink: SK-H's own passes; the bone, the knife and the outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "SK-I",
+        "recolour_passes": [
+          "--mode lift --ranges 10-30 --hue-soft 2 --min-sat 0.36 --min-val 0.2 --max-val 0.66 --src-hi 0.62 --soft 0.04 --mass 5 --grow 7 --to 342 --set-sat 0.16 --v-lo 0.70 --v-hi 1.0 --gamma 0.9",
+          "--cells 18 --mode lift --ranges 8-32 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --mass 5 --grow 7 --to 342 --set-sat 0.05 --v-lo 0.86 --v-hi 0.97",
+          "--cells 22,23,24,25,26 --mode lift --ranges 13-28 --hue-soft 2 --min-sat 0.4 --min-val 0.2 --max-val 0.5 --src-hi 0.5 --soft 0.03 --mass 2 --grow 3 --to 342 --set-sat 0.16 --v-lo 0.70 --v-hi 0.97 --gamma 0.9"
+        ]
+      },
+      "sprite": "skeleton_sprite_k.png",
+      "icon": "skeleton_icon_k.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "head": 0.969,
+      "fps": {
+        "run": 15,
+        "die": 12
+      }
     }
   },
   "variant": "SK-A"

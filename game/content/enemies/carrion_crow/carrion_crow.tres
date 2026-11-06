@@ -108,6 +108,68 @@ variants = {
 "sprite": "res://content/enemies/carrion_crow/carrion_crow_sprite_b.png",
 "sprite_file": "carrion_crow_sprite_b.png",
 "strip_cols": 43
+},
+"CC-C": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 16.0
+},
+"front_faces": "right",
+"head": 0.943,
+"icon": "res://content/enemies/carrion_crow/carrion_crow_icon_c.png",
+"note": "Pass 131 recolour of CC-B (Garry: a gray one): the black feathers lifted to a slate grey (every hue, saturation under 0.32, brightness 0.035 to 0.3 mapped onto 0.36..0.74); the beak, the eyes, the outline and the white hit flash as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {
+"drop": 0.05,
+"scale": [0.5, 0.5],
+"up": 0.0
+},
+"shelved": false,
+"sprite": "res://content/enemies/carrion_crow/carrion_crow_sprite_c.png",
+"sprite_file": "carrion_crow_sprite_c.png",
+"strip_cols": 43
+},
+"CC-D": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 16.0
+},
+"front_faces": "right",
+"head": 0.943,
+"icon": "res://content/enemies/carrion_crow/carrion_crow_icon_d.png",
+"note": "Pass 131 recolour of CC-B (Garry: a white one): the black feathers lifted to a warm white with pale grey shading (brightness mapped onto 0.7..1.0); the beak, the eyes, the outline and the white hit flash as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {
+"drop": 0.05,
+"scale": [0.5, 0.5],
+"up": 0.0
+},
+"shelved": false,
+"sprite": "res://content/enemies/carrion_crow/carrion_crow_sprite_d.png",
+"sprite_file": "carrion_crow_sprite_d.png",
+"strip_cols": 43
 }
 }
 variant = "CC-B"

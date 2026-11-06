@@ -4566,3 +4566,53 @@ Still waiting on Garry: his picks from the re-draws; whether "500+ UPGRADES" is 
 whether the Straw Man now looks right (one click on the Facing row turns it back); White Flowers' weight; running
 `python tools/posthog_boards.py`; a restart of his Level Editor (a new look op and a new route); everything still open
 from passes 128 and 129.
+
+
+## Pass 131 (2026-11-06): recolour looks from the Level Editor, the crow and goblin recolours, the skeletons' looks
+
+Garry: two colour variations of the Carrion Crow's CC-B (grey, white) "using our recolour method. I'd do it myself, but
+the tool wasn't clear enough"; the method's boxes explained; the skeletons' looks SK-B, KN-D ("NK-D") and SK-C repaired;
+SK-B's poncho colours and a hatless set; the Red Goblin in RR-C's white and IMP-A's green. Two lanes (RECUI, SKEL) and the
+lead. No rule of the game changed, so BALANCING has no section; none of the new looks is played (`fresh`, `variant`
+untouched).
+
+**Why he could not make the crow himself.** The form offered two modes, hue and tint; black to grey or white needs
+`recolour_strip.py --mode lift`, which only a shell could run. Lane RECUI: the form's 26 boxes each carry a plain label,
+help, an example and sensible values (new optional field keys any method may use: `label`, `example`, `guide`, `show_if`,
+`options_guide`, `widget`, `form_only`; `tools/level_editor/recolour_ui.js`); only the chosen mode's boxes show; `from` is
+a pick list of the creature's finished looks (the code alone); a hue strip marks the ranges; lift and extra passes (the
+hit frame's second pass) run from the form; seven presets named after real looks; a before / after that writes nothing
+(`POST /api/recolour/preview`, `tools/level_editor/recolour_io.py`); the look's recipe records `recolour_of` +
+`recolour_passes` like a shell-made one. Older faults it found: several hue ranges reached the tool as separate words
+(only the first was used); a recolour of the base look looked for `<id>_sprite_a.png`; the form's `min_sat` default (0.0)
+was not the tool's (0.2). `selftest_RECUI131.py` (144). Budget 220k, used 259k.
+
+**The recolours (lead; `tools/recolour_look.py`, new: passes on a look's strip and icon, a preview sheet, `--write`).**
+CC-C slate grey and CC-D warm white from CC-B: every hue, saturation under 0.32 (the beak and eyes are more colourful),
+brightness 0.035 to 0.3 (under it the outline, over it the beak and the white hit flash) mapped onto 0.36..0.74 / 0.7..1.0.
+RG-D from RG-A with RR-C's own pass; RG-E with IMP-A's pass on the ranges 340-360, 0-12 (IMP-A's 335-360, 0-32 turned the
+brown club and loincloth green too).
+
+**The skeletons (lane SKEL).** SK-F is SK-B with a clean back run: the `run12` driver bends both arms, and from behind
+the raised hand was painted on the poncho while the painting's own arm still hung with the knife; `tools/pose_hang.py`
+(new) hangs the arms at the sides in the back views (driver `run12_hang`). SK-G / SK-H are its crimson and white-pink
+ponchos (three passes each: the cloth, the hit frame, the lying poncho of the death), SK-I the same skeleton without the
+hat (Klein edits of SK-B's own paintings, the same walks), SK-J / SK-K its two colours. KN-D's back in place: the big-guy
+walk folds the shield arm in front of the chest for half the stride, `pose_hang.py arms=l` (driver `bigguy_shield`), only
+the 12 `run_b` cells spliced in. SK-C's walks in place on the D looks' walk retargeted to its measured frame
+(`pose_driver.py body=...`; drivers `bigguy_chunky2`, `bigguy_chunky3_spread`), third try kept. Old strips in
+`tools/dl/p131/SKEL/before/`. Budget 400k, used 284k. An accident: `python tools/gen_art.py --help` has no help and
+started a full run; five characters were re-packed from their caches before it was killed, and the eight rewritten files
+were restored from git.
+
+**Lead.** `pass334_test`'s specials clock read 64..86 s; Garry's map says [64, 120] now: the test reads the interval from
+the map. The form's pass list overlapped the help line above it (one CSS rule).
+
+Not done: no recolour job was run through a live worker (the lane's server was view-only; the planned commands were run
+for real by the selftest). Re-roll / Duplicate of a shell-made recolour does not fill the form's boxes from its recorded
+passes. Doubts by eye: the ponchos' darkest hem shadow stays brown in every colour, SK-I's death throws the knife as a
+loose piece, KN-D's shield reads edge-on in half the back frames, SK-C's back is softer than its painting and rolls
+strongly in the first frames. KN-D's death could not be repainted at 8 frames ("figure left the frame") and stays 5.
+
+Still waiting on Garry: his eye on the eleven new looks (CC-C, CC-D, RG-D, RG-E, SK-F..K, the repaired KN-D and SK-C);
+a restart of his Level Editor (the preview route and the job's new reader); everything open from passes 128 to 130.
