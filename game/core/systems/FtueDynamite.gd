@@ -19,6 +19,19 @@ const AT_LEVEL := 4
 const RARITY_RANK := {"common": 0, "uncommon": 1, "rare": 2, "epic": 3, "legendary": 4}
 
 
+## Pass 132 (Garry: "a hard rule that multiple projectiles card will only start appearing after Player claims their
+## first hard coded Dynamite ... hard set these rules to the first time players"): the Cards that wait for the pick.
+## Until the save's once-flag is set, none of these is offered as a new Card from any source (CardPool.offer_passives:
+## the level-up, the Shop, the Stranger; the chest's reel); from the pick on, in that same run too, they come as before.
+## Never held back in the arena.
+const HELD_CARDS: Array[String] = ["multishot"]
+
+
+## Whether passive `id` waits for the first Dynamite pick (HELD_CARDS).
+static func holds(id: String) -> bool:
+	return HELD_CARDS.has(id) and not Run.arena and not taken()
+
+
 ## Whether the player has picked the Dynamite once (the offer is over for good).
 static func taken() -> bool:
 	return Save.once(ONCE_KEY)

@@ -91,6 +91,8 @@ func _script(src: String) -> GDScript:
 
 
 func before_test() -> void:
+	# pass 132: Ironwood is free in the game now; this suite's checks of an outlaw sold for gold put him on sale for their time
+	Registry.character("ironwood").availability = "purchase"
 	Save.data = Save._default()
 	Run.start(Registry.character("ironwood"), Registry.map("red_canyon"))
 	Run.player_sheet.set_base("crit_chance", 0.0)
@@ -100,6 +102,7 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	Registry.character("ironwood").availability = "available"
 	if _falloff_was != null:
 		Settings.set("pierce_falloff", _falloff_was)
 		_falloff_was = null

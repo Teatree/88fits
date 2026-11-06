@@ -2487,6 +2487,16 @@ has none, so a new type gets its words. `trail_hint.js` builds the lines (page-f
 "what it was locked behind" comes from `trail_io.locks` (`content/trail/quests_before.json` + `content/quests`) in
 `GET /api/trail`'s picks, so it shows after the server's next restart; the rest works on a page reload.
 
+### A walk or a wing beat plays too fast or too slow
+
+Pass 132. Enemies tab -> the creature -> Looks & previews -> click the look's card. Under the Facing row the **Frame
+rate** row shows the walk (or flight) and the death, each as two small players side by side: on the left the rate that
+is saved, on the right the rate in the box. Drag the slider or type a number (pictures a second, 1 to 60) and the right
+player follows at once, with what the change comes to ("8 fps · 1.5 s a cycle · -50% slower"). **Save** writes the
+look's own rate (`variants[CODE].fps.run` / `.die`; a backup first; look op `fps` {anim, value}) and imports it; no art
+job runs. Lower = the legs or wings move slower; the creature's speed over the ground is its Speed stat, not this. In
+the game a walk plays at this rate times the map's pace.
+
 ### A creature looks the wrong way
 
 A creature that looks away from where it walks (pass 130: the Straw Man running up the screen) has a painting that

@@ -84,6 +84,8 @@ var _added: Array = []
 
 
 func before_test() -> void:
+	# pass 132: Ironwood is free in the game now; this suite's checks of an outlaw sold for gold put him on sale for their time
+	Registry.character("ironwood").availability = "purchase"
 	Save.data = Save._default()
 	Save._dirty = false
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
@@ -93,6 +95,7 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	Registry.character("ironwood").availability = "available"
 	for id: String in _added:
 		Registry.enemies.erase(id)
 	_added.clear()

@@ -502,6 +502,9 @@ var _t_sh := PackedFloat32Array()
 ## per type (pass 88, lane TWEAKS): the share of the cell its death strip sinks by at its last frame (EnemyDef.shadow
 ## "die_drop", die_drop_of), eased in from nothing at the strip's first frame
 var _t_ddrop := PackedFloat32Array()
+## Pass 132: a type's death slide (EnemyDef.shadow "die_slide", die_slide_of), the share of its size the death painting
+## moves towards the camera along the ground by its last frame.
+var _t_dslide := PackedFloat32Array()
 ## per type (pass 48): 1 for the training dummy's brain, whose touch never reaches the hero (pass 49: unless it is set
 ## to melee, dummy_mode)
 var _t_dummy := PackedByteArray()
@@ -962,7 +965,7 @@ func _vis_bounds_into(i: int, cam_up: Vector3, scf: Vector3) -> void:
 	var cv := t * CV_N
 	var sq_hi := maxf(maxf(squash[i], 1.0 + 1.6 * _t_cv[cv + 1]), VIS_STRETCH) * 1.05 + 0.05
 	var sb := t * 4
-	var drop := absf(_t_sh[sb + 3]) + (absf(_t_ddrop[t]) if t < _t_ddrop.size() else 0.0)
+	var drop := absf(_t_sh[sb + 3]) + (absf(_t_ddrop[t]) if t < _t_ddrop.size() else 0.0) + (absf(_t_dslide[t]) if t < _t_dslide.size() else 0.0)
 	var lo := -s * sq_hi * drop
 	var hi := s * sq_hi * (1.0 + drop)
 	var half_w := 0.7 * s
@@ -1428,6 +1431,7 @@ func register_type(def: EnemyDef) -> int:
 	_t_throw.append(1 if def.attack_throw else 0)
 	_t_sh.append_array(shadow_numbers(def))
 	_t_ddrop.append(die_drop_of(def))
+	_t_dslide.append(die_slide_of(def))
 	_t_cv.append_array(charge_numbers(def))
 	# pass 125: what the compiled crowd reads per type (_nat_arrays): 1 a chaser, 2 a flock (the brains it walks itself; a
 	# charger that shoves as it walks is the script's), the gear badge and any badge, the head's height
@@ -1486,6 +1490,8 @@ func set_shadow_tuning(t: int, tuning: Dictionary) -> void:
 		_t_sh[t * 4 + k] = n[k]
 	if t < _t_ddrop.size():
 		_t_ddrop[t] = clampf(float(tuning.get("die_drop", 0.0)), -0.5, 0.5)
+	if t < _t_dslide.size():
+		_t_dslide[t] = clampf(float(tuning.get("die_slide", 0.0)), -1.0, 1.0)
 
 
 func _height(x: float, z: float) -> float:
@@ -4625,7 +4631,7 @@ func _nat_arrays() -> Array:
 		type_idx, elite_idx, state, _st_last, timer, anim_t, flash, squash, max_hp, speed, radius, size, contact_cd, cooldown, hamper_t,
 		hamper_f, status_t, shove_t, ign_t, rise_t, rise_v, view_t, frenzy_t, freeze_t, stun_t, slow_t, mark_t, spin_t, lift_t, lift_cd,
 		lift_h, _wade_k, _nat_map.heights if _nat_map != null else PackedFloat32Array(), _g_head, _g_next, _s_head, _s_next, _bg_head, _bg_j,
-		_bg_next, _t_faces, _t_eight, _t_big, _t_plain, _t_gear, _t_far, _t_badge_on, _t_run_fps, _t_die_fps, _t_cv, _t_sh, _t_ddrop, _t_head,
+		_bg_next, _t_faces, _t_eight, _t_big, _t_plain, _t_gear, _t_far, _t_badge_on, _t_run_fps, _t_die_fps, _t_cv, _t_sh, _t_ddrop, _t_dslide, _t_head,
 		poison_src, fire_src, _flee, _corpse_air, _burst_bodies]
 
 
@@ -6354,6 +6360,15 @@ static func die_drop_of(def: EnemyDef) -> float:
 	return clampf(float(def.shadow_tuning().get("die_drop", 0.0)), -0.5, 0.5)
 
 
+## A def's death slide (pass 132; Garry: the poncho skeletons' dead "are sitting over the shadow"): EnemyDef.shadow
+## "die_slide", the share of the creature's size its death painting moves towards the camera along the ground, eased in
+## frame by frame like die_drop (nothing on the first frame, all of it on the last). A body painted lying in an upright
+## cell has its middle well above the foot point, where the shadow is; die_drop would push its lower half under the
+## sand, a slide lays it across the shadow whole. Clamped to -1..1; 0 when it has none.
+static func die_slide_of(def: EnemyDef) -> float:
+	return clampf(float(def.shadow_tuning().get("die_slide", 0.0)), -1.0, 1.0)
+
+
 ## How far creature `i`'s death painting sinks (pass 88, die_drop_of): down the billboard's own plane (`cam_up`) by its
 ## type's die_drop share of the cell at its size and squash `sq`, eased in frame by frame: nothing on the strip's first
 ## frame (`k` 0, the hit), all of it on its last (`k` 1, the body on the ground), so the fall lands on the shadow.
@@ -6665,6 +6680,9 @@ func _draw_one(i: int, t: int, k: int) -> void:
 	if strip == A_DIE and _t_ddrop[t] != 0.0:
 		# pass 88 (lane TWEAKS): the death strip sinks onto its shadow frame by frame (EnemyDef.shadow "die_drop")
 		at -= die_sink(i, float(mini(int(anim_t[i]), n - 1)) / float(maxi(n - 1, 1)), sq, cam_up)
+	if strip == A_DIE and _t_dslide[t] != 0.0:
+		# pass 132: the death painting slides towards the camera on the ground, onto its shadow (die_slide_of)
+		at -= _dr_scf * (_t_dslide[t] * clampf(float(mini(int(anim_t[i]), n - 1)) / float(maxi(n - 1, 1)), 0.0, 1.0) * s)
 	# rising out of the sand (pass 60): the painting sits down the billboard's up by the part still under, the terrain
 	# hiding it; quick at first and settling (an ease-out), the figure's top (`head`) reaching the ground at 0
 	var rise: float = rise_t[i]

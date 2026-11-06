@@ -4616,3 +4616,53 @@ strongly in the first frames. KN-D's death could not be repainted at 8 frames ("
 
 Still waiting on Garry: his eye on the eleven new looks (CC-C, CC-D, RG-D, RG-E, SK-F..K, the repaired KN-D and SK-C);
 a restart of his Level Editor (the preview route and the job's new reader); everything open from passes 128 to 130.
+
+
+## Pass 132 (2026-11-06): the Revolver's fan, first-time rules, Ironwood free, the dead on their shadows, the knight's looks, the crow's wing beat
+
+Garry: the Revolver's extra rounds "fly in distinct directions, not just stacked atop each other"; "a hard rule that
+multiple projectiles card will only start appearing after Player claims their first hard coded Dynamite"; Ironwood
+"available from the start. Should be 2 outlaws from the start"; the skeletons' new looks' dead "are sitting over the
+shadow"; "Skeleton Knights didn't seem to be added"; the Carrion Crow's run fps slowed "by quite a lot", and "show the
+fps change in the LevelEditor ... it's hard to comprehend the difference". One art lane (KNIGHT) and the lead.
+BALANCING 73.
+
+**The Revolver.** A burst weapon's `params.burst_fan_deg` (`ProjectileEmitter.burst_fan_angle`): the first round on
+the aim, the next ones a step to either side in turn; 7 degrees on the Revolver and the Golden Revolver. The rounds
+were one line 0.14 s apart with 1.5 degrees of scatter, so their tracers lay on each other.
+
+**The Hydra waits for the Dynamite.** `FtueDynamite.HELD_CARDS` / `holds`: `multishot` is kept out of
+`CardPool.offer_passives` and the chest's reel until the save's `ftue_dynamite_taken`; never in the arena.
+
+**Ironwood** is `available`. No outlaw is sold for gold now; the buying code stays (the suites that test it put him on
+sale for their time: pass110_econ, pass111_skins, pass123_HEROES, pass123_MAINMENU, pass128_weaponkey, pass62_hm,
+pass47_rules, one test of pass69_ui); pass129_setup, pass69_ui and pass83_meta re-pinned to two free outlaws.
+
+**The dead on their shadows.** The poncho skeletons' death is a sitting sprawl whose middle stands a third of a cell
+above the foot point, so it read as floating over its shadow (capture `game/tools/_p132_SKEL_shots.gd`). `die_drop`
+0.28 put it on the shadow but the sand cut its lower half (the painting sinks down its own plane, under the terrain).
+New `shadow.die_slide` (EnemyManager `_t_dslide`, `die_slide_of`; `native/src/crowd_render.cpp` and the bound arrays,
+both libraries rebuilt with `tools/build_native.py --windows --android`): the death painting moves towards the camera
+along the ground; 0.3 on SK-B and SK-F..K. The pass 131 report read "they sit over the shadow" nowhere: the fault was
+not looked for.
+
+**The Skeleton Knight's set (lane KNIGHT, 185k tokens of 180k).** The knight's looks pair with the skeleton's by
+letter and pass 131 made none: KN-G (crimson cape) and KN-H (white-pink cape) from KN-B by `recolour_look.py` (the cape
+at hue 336-360, the hit frame its own pass), KN-I (no helmet: Klein edits of KN-B's three paintings, the back walked on
+`run12_hang` after run12 twisted it, the 5-frame death as KN-B's), KN-J / KN-K its two colours. All fresh. Sheets in
+`tools/dl/p132/KNIGHT/sheets/`. Doubts: the bare skull is a tall egg and a plain dome from behind; a thin wine-dark
+stair-step at the white-pink cape's edge at 4x; the back cape a little shorter running than standing.
+
+**The crow and the Frame rate row.** CC-B, CC-C, CC-D fly at fps.run 8 (16). The Level Editor's open creature look has
+a **Frame rate** row under Facing (`looks.js` `fpsRow`, look op `fps` {anim: run|die, value 1..60} in `server.py`,
+`selftest_P132.py`): the walk and the death each played twice side by side, the saved rate and the rate in the box
+(a slider), with the seconds a cycle and the % slower or faster; Save writes `variants[CODE].fps` and imports.
+Seen once in a browser on the crow (`tools/dl/p132/fps_row.png`).
+
+Not done / to know: the fan was not captured in play (the rule is unit-tested; 7 degrees is the lead's number). A sim
+or Watch bot on a fresh save now never sees The Hydra until it picks the Dynamite. Nobody who paid 1,000 for Ironwood
+is paid back. The crowd's pixel proof (`_p125_NATIVE_pixels.gd`) was not rerun; the new branch runs only for a type
+with a die_slide.
+
+Still waiting on Garry: his eye on KN-G..K and the dead skeletons; a restart of his Level Editor (the new look op);
+everything open from passes 128 to 131.

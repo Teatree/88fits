@@ -27,12 +27,15 @@ func after() -> void:
 
 
 func before_test() -> void:
+	# pass 132: Ironwood is free in the game now; this suite's checks of an outlaw sold for gold put him on sale for their time
+	Registry.character("ironwood").availability = "purchase"
 	Save.data = Save._default()
 	Save._dirty = false
 	Settings.preview_locked_heroes = false
 
 
 func after_test() -> void:
+	Registry.character("ironwood").availability = "available"
 	Settings.preview_locked_heroes = false
 	Save.data = Save._default()
 	Save._dirty = false

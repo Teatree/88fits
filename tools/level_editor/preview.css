@@ -331,3 +331,6 @@ input.inherited, textarea.inherited, textarea.txt.area.inherited, .jform textare
 .fgfaults th { color: var(--muted); font-weight: 600; }
 /* pass 131 (lead): the pass list takes the whole row, clear of the help line above it */
 .fpasses { grid-column: 1 / -1; margin-top: 10px; }
+
+.lg-fps-box { width: 58px; }
+.lg-fps-slide { width: 150px; }

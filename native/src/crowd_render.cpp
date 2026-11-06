@@ -241,6 +241,11 @@ int64_t CrowdCore::render(const Array &a, const PackedFloat64Array &p_s) {
 			const double kk = dclamp((double)(ai < n - 1 ? ai : n - 1) / (double)(n - 1 > 1 ? n - 1 : 1), 0.0, 1.0);
 			at = sub(at, mul(cam_up, (float)(dd < 0.0 ? dd * kk * s : dd * kk * s * sqm)));
 		}
+		if (strip == A_DIE && t_dslide[t] != 0.0f) {
+			// pass 132: the death painting slides towards the camera on the ground (EnemyManager.die_slide_of)
+			const double kk = dclamp((double)(ai < n - 1 ? ai : n - 1) / (double)(n - 1 > 1 ? n - 1 : 1), 0.0, 1.0);
+			at = sub(at, mul(scf, (float)((double)t_dslide[t] * kk * s)));
+		}
 		const double rise = rise_t[i];
 		const bool rising = rise < 1.0;
 		const double r = dclamp(rise, 0.0, 1.0);

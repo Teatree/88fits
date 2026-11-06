@@ -179,9 +179,9 @@ func test_the_outlaws_come_in_title_order_at_their_own_prices() -> void:
 	sorted.sort()
 	assert_array(levels).is_equal(sorted)
 	assert_bool(int(levels[0]) <= 10 and int(levels[levels.size() - 1]) >= 40 and int(levels[levels.size() - 1]) <= 50).override_failure_message("outlaw levels %s" % [levels]).is_true()
-	# the Drifter is free and Ironwood is bought on the Outlaws screen: no node names them
+	# the Drifter and (pass 132) Ironwood are free from the start: no node names them
 	assert_bool(Trail.gated("outlaw", "drifter") or Trail.gated("outlaw", "ironwood")).is_false()
-	assert_str(Registry.hero_state(Registry.character("ironwood"))).is_equal("buyable")
+	assert_str(Registry.hero_state(Registry.character("ironwood"))).is_equal("owned")
 
 
 func test_the_dust_bowl_and_blood_moon_are_trail_unlocks_and_the_first_two_stages_are_not() -> void:

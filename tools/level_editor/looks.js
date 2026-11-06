@@ -293,6 +293,8 @@ const LookGrid = (() => {
     // pass 130 (lane LE): which way the front and back paintings turn, one click to flip (creatures and bosses; an
     // outlaw's front and back sets never mirror)
     if (kind !== 'hero' && !isStub(look)) info.appendChild(facingRow(kind, id, record, look, s));
+    // pass 132: the frames a second its walk and its death play at, the saved rate beside the one being tried
+    if (kind !== 'hero' && !isStub(look)) info.appendChild(fpsRow(kind, id, record, look, s));
     // pass 70: choose the look's badge / icon / cut-out from everything the finished jobs painted
     if (!isStub(look)) info.appendChild(pickers(kind, id, look));
     // pass 76 (lane ICON): the look's icon now, Revert icon, its changes and every icon on disk ("Use for this look")
@@ -349,6 +351,61 @@ const LookGrid = (() => {
         cur === 'straight' ? null : b('Never mirror', `${view} view: "straight", the same picture heading left and right (for a painting that looks straight at the camera or straight away)`, 'straight'),
         !look.base && src === 'look' ? b('Use the creature’s', `drop ${look.code}’s own ${key}: it follows the creature’s rule (${record[key] || 'right'}) again`, 'inherit') : null);
       line.appendChild(el('span', { class: 'lg-facing-set' }, now, btns));
+      wrap.appendChild(line);
+    }
+    return wrap;
+  }
+
+  // ------------------------------------------------------------------ pass 132: the Frame rate row
+  // Garry: "Carrion Crows slow down the fps of the run ... Also show the fps change in the LevelEditor when you do, cz
+  // it's hard to comprehend the difference." Two previews of the same strip side by side, the saved rate and the rate
+  // in the box, both playing; Save writes the look's own fps (look op `fps`), then an import.
+  function fpsRow(kind, id, record, look, s) {
+    for (const p of s.fpsPlayers || []) { try { p.destroy(); } catch (_) { /* gone already */ } }
+    s.fpsPlayers = [];
+    const wrap = el('div', { class: 'lg-facing lg-fps' });
+    wrap.appendChild(el('div', { class: 'lg-facing-head' }, el('b', { text: 'Frame rate' }),
+      el('span', { class: 'muted small', text: 'how many pictures a second the game shows. Lower = the legs or wings move slower (the creature still travels at its Speed). Left: as saved. Right: the number in the box. Change it and watch, then Save.' })));
+    const anims = look.anims || record.anims || {};
+    const saved = Object.assign({}, look.fps || record.fps || {});
+    const DEF = { run: 10, die: 6 };   // EnemyManager's rates when the JSON has none
+    for (const anim of ['run', 'die']) {
+      if (!(anims[anim] > 0)) continue;
+      const cur = Number(saved[anim]) > 0 ? Number(saved[anim]) : DEF[anim];
+      const frames = anims[anim];
+      const line = el('div', { class: 'lg-facing-line' });
+      line.appendChild(el('span', { class: 'lb', text: anim === 'run' ? 'Walk / fly' : 'Death', title: anim === 'run' ? 'the run strip (fps.run): the game plays it at this rate times the map’s pace' : 'the death strip (fps.die): played once' }));
+      const make = (rate, label) => StripPlayer.create(playerOpts(kind, record, look, { mode: 'hover', always: true, zoom: 0.4, anim, dir: 'front', fps: Object.assign({}, saved, { [anim]: rate }), label }));
+      const before = make(cur, `${look.code} ${anim} at ${cur} fps (saved)`);
+      s.fpsPlayers.push(before);
+      const secs = (r) => `${U.fmtN(frames / r, 2)} s ${anim === 'run' ? 'a cycle' : 'in all'}`;
+      line.appendChild(el('span', { class: 'lg-facing-pv' }, before.el, el('span', { class: 'muted small', text: `saved: ${cur} fps · ${secs(cur)}` })));
+      const tryHost = el('span', { class: 'lg-facing-pv' });
+      const tryText = el('span', { class: 'muted small' });
+      let tryPlayer = null, tryRate = cur;
+      const box = el('input', { type: 'number', min: 1, max: 60, step: 1, value: String(cur), class: 'lg-fps-box', title: 'frames a second, 1 to 60' });
+      const slide = el('input', { type: 'range', min: 1, max: 40, step: 1, value: String(Math.min(cur, 40)), class: 'lg-fps-slide' });
+      const saveBtn = el('button', { type: 'button', class: 'btn small flip', text: 'Save', disabled: true, title: `write ${look.code}’s own fps.${anim} (a backup first), then import; no art job`,
+        onclick: (e) => { e.stopPropagation(); op(kind, id, record, s, look.code, { op: 'fps', anim, value: tryRate }).then((r) => { if (r && r.ok) redraw(); }); } });
+      const show = (rate) => {
+        tryRate = rate;
+        if (tryPlayer) { const k = s.fpsPlayers.indexOf(tryPlayer); if (k >= 0) s.fpsPlayers.splice(k, 1); try { tryPlayer.destroy(); } catch (_) { /* gone */ } }
+        tryPlayer = make(rate, `${look.code} ${anim} at ${rate} fps (trying)`);
+        s.fpsPlayers.push(tryPlayer);
+        tryHost.textContent = '';
+        tryHost.appendChild(tryPlayer.el);
+        tryHost.appendChild(tryText);
+        const pct = Math.round((rate / cur - 1) * 100);
+        tryText.textContent = `trying: ${rate} fps · ${secs(rate)}${pct ? ` · ${pct > 0 ? '+' : ''}${pct}% ${pct > 0 ? 'faster' : 'slower'}` : ' · the same'}`;
+        saveBtn.disabled = s.busy || rate === cur;
+      };
+      const take = (v) => { const n = Math.max(1, Math.min(60, Math.round(Number(v) || cur))); box.value = String(n); slide.value = String(Math.min(n, 40)); show(n); };
+      box.addEventListener('change', () => take(box.value));
+      slide.addEventListener('input', () => take(slide.value));
+      for (const x of [box, slide]) x.addEventListener('click', (e) => e.stopPropagation());
+      line.appendChild(tryHost);
+      line.appendChild(el('span', { class: 'lg-facing-set' }, el('span', { class: 'lg-facing-btns' }, slide, box, el('span', { class: 'muted small', text: 'fps' }), saveBtn)));
+      show(cur);
       wrap.appendChild(line);
     }
     return wrap;

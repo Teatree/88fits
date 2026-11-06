@@ -256,6 +256,7 @@ bool CrowdCore::bind(const Array &a) {
 	BIND_T_F32(t_cv)
 	BIND_T_F32(t_sh)
 	BIND_T_F32(t_ddrop)
+	BIND_T_F32(t_dslide)
 	{
 		PackedFloat64Array p = a[k++];
 		t_head = wptr(p.ptr());
@@ -919,7 +920,7 @@ void CrowdCore::refresh_drawn(const PackedFloat32Array &p_planes, const Vector3 
 		const int cv = t * CV_N;
 		const double sq_hi = dmax(dmax((double)squash[i], 1.0 + 1.6 * (double)t_cv[cv + 1]), VIS_STRETCH) * 1.05 + 0.05;
 		const int sb = t * 4;
-		const double drop = std::abs((double)t_sh[sb + 3]) + std::abs((double)t_ddrop[t]);
+		const double drop = std::abs((double)t_sh[sb + 3]) + std::abs((double)t_ddrop[t]) + std::abs((double)t_dslide[t]);
 		double lo = -s * sq_hi * drop;
 		double hi = s * sq_hi * (1.0 + drop);
 		double half_w = 0.7 * s;

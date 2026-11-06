@@ -35,7 +35,7 @@ frame_px = 176
 strip_cols = 43
 fps = {
 "die": 12.0,
-"run": 16.0
+"run": 8.0
 }
 knockback = 3.4
 flies = true
@@ -93,7 +93,7 @@ variants = {
 "back_faces": "right",
 "fps": {
 "die": 12.0,
-"run": 16.0
+"run": 8.0
 },
 "front_faces": "right",
 "head": 0.943,
@@ -124,7 +124,7 @@ variants = {
 "back_faces": "right",
 "fps": {
 "die": 12.0,
-"run": 16.0
+"run": 8.0
 },
 "front_faces": "right",
 "head": 0.943,
@@ -155,7 +155,7 @@ variants = {
 "back_faces": "right",
 "fps": {
 "die": 12.0,
-"run": 16.0
+"run": 8.0
 },
 "front_faces": "right",
 "head": 0.943,

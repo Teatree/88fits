@@ -29,12 +29,15 @@ func after() -> void:
 
 
 func before_test() -> void:
+	# pass 132: Ironwood is free in the game now; this suite's checks of an outlaw sold for gold put him on sale for their time
+	Registry.character("ironwood").availability = "purchase"
 	Save.data = Save._default()
 	Save._dirty = false
 	_keep_may = (Registry.character("may").variants as Dictionary).duplicate(true)
 
 
 func after_test() -> void:
+	Registry.character("ironwood").availability = "available"
 	Registry.character("may").variants = _keep_may
 	Registry.quests.erase(SOLD_QID)
 	Save.data = Save._default()

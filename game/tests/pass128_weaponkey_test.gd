@@ -15,6 +15,8 @@ const KEYS := {"gravity_gun": "astro", "guitarra": "calavera", "pike": "ironwood
 
 
 func before_test() -> void:
+	# pass 132: Ironwood is free in the game now; this suite's checks of an outlaw sold for gold put him on sale for their time
+	Registry.character("ironwood").availability = "purchase"
 	# a new save: only the Drifter is owned
 	Save.data = Save._default()
 	Run.arena = false
@@ -22,6 +24,7 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	Registry.character("ironwood").availability = "available"
 	CardPool.rng = null
 	Run.arena = false
 	Run.end()

@@ -366,7 +366,7 @@ func _pool_for(kind: String, def: ContentDef) -> Array:
 			# pass 119 (lane LEGEND_A): not even as filler, an item the hero's own shuts out; pass 121 (lane LEGEND): nor a
 			# legendary the hold keeps out of the chest (LegendaryHold)
 			# pass 121 (lane GRIND): nor a Grindstone used this run (or with nothing to work on: Run.grind_idle)
-			if not Run.shut_out((p as PassiveDef).id) and not LegendaryHold.held(p as PassiveDef) and not Run.grind_idle(p as PassiveDef):
+			if not Run.shut_out((p as PassiveDef).id) and not LegendaryHold.held(p as PassiveDef) and not Run.grind_idle(p as PassiveDef) and not FtueDynamite.holds((p as PassiveDef).id):
 				pool.append(p)
 		for wi in Run.weapons:
 			pool.append(wi.def)

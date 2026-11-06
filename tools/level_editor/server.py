@@ -2552,7 +2552,7 @@ def look_op(kind, cid, codes, op, body=None):
     tfolder, path = content_path(kind, cid)
     if path is None:
         return {"ok": False, "error": "no %s %s" % (kind, cid), "status": 404}
-    if op not in ("approve", "shelve", "unshelve", "remove", "note", "recipe", "default", "facing"):
+    if op not in ("approve", "shelve", "unshelve", "remove", "note", "recipe", "default", "facing", "fps"):
         return {"ok": False, "error": "unknown look op %s" % op, "status": 400}
     codes = [c for c in (codes if isinstance(codes, list) else [codes]) if isinstance(c, str) and CODE_RE.match(c)]
     if not codes:
@@ -2587,7 +2587,7 @@ def look_op(kind, cid, codes, op, body=None):
         base = str(d.get("variant_base", ""))
         text = src
         for code in codes:
-            if code not in vs and not (op == "facing" and code == base):   # the base look may have no entry of its own
+            if code not in vs and not (op in ("facing", "fps") and code == base):   # the base look may have no entry of its own
                 return {"ok": False, "error": "%s has no look %s" % (cid, code), "status": 404}
             if op == "approve":
                 text = cio.set_variant_entry(text, code, {"fresh": cio.REMOVE})
@@ -2617,6 +2617,21 @@ def look_op(kind, cid, codes, op, body=None):
                         text = cio.set_top_key(text, key, value, places)
                 else:
                     text = cio.set_variant_entry(text, code, {key: cio.REMOVE if value == "inherit" else value})
+            elif op == "fps":
+                # pass 132: fps {anim: run|die, value: 1..60}: the frames a second the game plays that strip at
+                # (EnemyDef.fps; a walk plays at fps.run x the map's pace), written into the look's own `fps` beside
+                # what it already holds; a base look without an entry writes the creature's top-level `fps`
+                anim, value = body.get("anim"), body.get("value")
+                if anim not in ("run", "die") or isinstance(value, bool) or not isinstance(value, (int, float)) or not 1 <= value <= 60:
+                    return {"ok": False, "error": "fps needs anim run|die and a value from 1 to 60", "status": 400}
+                value = int(value) if float(value).is_integer() else round(float(value), 2)
+                own = (vs.get(code) or {}).get("fps") if code in vs else None
+                now = dict(own) if isinstance(own, dict) else dict(d.get("fps") or {}) if isinstance(d.get("fps"), dict) else {}
+                now[anim] = value
+                if code in vs:
+                    text = cio.set_variant_entry(text, code, {"fps": now})
+                else:
+                    text = cio.set_top_key(text, "fps", now, (("before", "variants"), ("end", None)))
             elif op == "recipe":
                 r = body.get("recipe")
                 if r is not None and not isinstance(r, dict):
@@ -2650,7 +2665,7 @@ def look_op(kind, cid, codes, op, body=None):
     import_ok, output, job = (None, "no import needed", None)
     EV.look_events(kind, cid, codes, op, backup=backup_rel, moved=moved or None,   # pass 97 (lane PROGRESS, WF-02)
                    note=str(body.get("note", "")) if op == "note" else None, recipe=body.get("recipe") if op == "recipe" else None)
-    if op in ("shelve", "unshelve", "remove", "facing"):
+    if op in ("shelve", "unshelve", "remove", "facing", "fps"):
         import_ok, output = run_import("%s/%s" % (tfolder, cid))
     else:
         # approve / note / recipe change nothing the game reads, but they make the JSON newer than the .tres, which the

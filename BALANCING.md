@@ -10023,3 +10023,43 @@ sends `trail_bundle` and `build_id`; a replay's header carries the whole `trail`
 `docs/store/06_trail.png`: the Trail at level 9 on the game's own file, "500+ UPGRADES / Blaze your own trail" on a sage
 band (`docs/store/plan.json`; capture `game/tools/_p130_STORE_trail.gd`). The Trail holds 100 nodes today; the claim
 counts the game's upgrades together (weapon levels, mutations, cards, items, the Trail).
+
+
+## 73. Pass 132: the Revolver's fan, the first-time rules, Ironwood free, the dead on their shadows
+
+### 73.FAN The Revolver's rounds fly apart
+
+Garry: "Multiple projectiles of the Revolver doesn't look like multiple projectiles. Make it so they fly in distinct
+directions." A burst weapon may carry `params.burst_fan_deg` (`ProjectileEmitter.burst_fan_angle`): the first round of
+a pull goes on the aim, every further one a step off it, alternating sides (0, +1, -1, +2, -2 steps), and none of them
+scatters at random. The Revolver and the Golden Revolver carry **7 degrees** (his to tune in the weapon's JSON; 0 or no
+key = the old burst down one line). What it changes in play: only the first round of a pull is aimed at the target;
+the others hit what stands beside it (at 6 m a step is 0.7 m to the side), so against one small creature alone the
+extra rounds can miss, against a crowd or a boss they land. The Tommy Gun (its own scatter) is unchanged.
+
+### 73.FTUE The first-time rules
+
+Garry: "a hard rule that multiple projectiles card will only start appearing after Player claims their first hard
+coded Dynamite ... hard set these rules to the first time players." `FtueDynamite.HELD_CARDS` = The Hydra
+(`multishot`): until the save's once-flag `ftue_dynamite_taken` is set (the player has picked the Dynamite once, in
+any run), the Card is never offered as a new Card at a level-up, in the Shop, by the Stranger, or shown on a chest's
+reel. From the pick on it comes as before, in that same run too. Never held in the arena. A sim or a Watch run plays
+on a fresh save, so its bot meets the same rule until it picks the Dynamite.
+
+### 73.OUTLAW Two outlaws from the start
+
+Ironwood is `availability: "available"` (he cost 1,000 gold): a new save owns the Drifter and Ironwood. A save that
+bought him keeps him; nothing is paid back. His Spear follows him into everyone's card pool (pass 128's rule).
+
+### 73.SHADOW A dead body on its shadow
+
+`shadow.die_slide` (a creature's or a look's own `shadow` block; `EnemyManager.die_slide_of`, the compiled draw too):
+the share of the creature's size its death painting moves towards the camera along the ground, eased in over the death
+strip. `die_drop` (pass 88) sinks a painting down its own plane, which pushes a body painted low in the cell under the
+sand; a slide lays it across the shadow whole. The poncho skeletons (SK-B, SK-F..K) carry **0.3**: their sitting sprawl
+stood a third of a cell above the shadow.
+
+### 73.CROW The Carrion Crow's wing beat
+
+CC-B, CC-C and CC-D play their flight at **8** pictures a second (16 before): one wing cycle in 1.5 s. Their speed over
+the ground is unchanged.

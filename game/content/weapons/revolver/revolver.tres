@@ -74,6 +74,7 @@ visual = ExtResource("4_a46im")
 visual_file = "revolver_visual.tscn"
 params = {
 "burst": true,
+"burst_fan_deg": 7.0,
 "burst_gap": 0.14,
 "drum_axis": "forward",
 "drum_step": 1.0472,

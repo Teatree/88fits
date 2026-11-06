@@ -29,6 +29,7 @@ visual = ExtResource("3_bnuvs")
 visual_file = "golden_revolver_visual.tscn"
 params = {
 "burst": true,
+"burst_fan_deg": 7.0,
 "burst_gap": 0.14,
 "drum_axis": "forward",
 "drum_step": 1.0472,

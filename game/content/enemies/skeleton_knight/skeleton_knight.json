@@ -195,11 +195,19 @@
         "stand": "still",
         "gait": "swaggering in place on the spot with a heavy rolling walk, the same round wooden shield strapped to the same forearm the whole time",
         "motion": "a skeleton walking with a heavy swagger",
-        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing, arms detached from the shield / misaligned relative to where the shield is supposed to be",
         "death": "pose:death_back",
         "death_frames": 8,
         "outline_frac": 0.024,
-        "outline_color": "#0e080c"
+        "outline_color": "#0e080c",
+        "method": "creature_pose2",
+        "screen": "blue",
+        "seed_offset": 2,
+        "anim_seed": 2,
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        }
       },
       "sprite": "skeleton_knight_sprite_d.png",
       "icon": "skeleton_knight_icon_d.png",
@@ -217,7 +225,8 @@
         "run": 15,
         "die": 8
       },
-      "head": 1.0
+      "head": 1.0,
+      "fresh": true
     },
     "KN-E": {
       "note": "the KN-A knight with dark blue bones and its steel and leather left alone (pass 54; a two-pass tint of the KN-A strip, tools/recolour_strip.py --mode tint)",
@@ -278,6 +287,155 @@
       "fps": {
         "run": 15,
         "die": 12
+      }
+    },
+    "KN-G": {
+      "note": "Pass 132 recolour of KN-B (Garry: the knight's own set, SK-G's twin), the cape only, a clear bright crimson (hue 352) beside KN-B's dark wine red: the cape's wine reds lifted, the bone, the steel, the knife and the outline as they are; the hit frame's washed cape in a pass of its own; the death needs none (its cape keeps the cape's colours) (tools/recolour_look.py, recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "KN-B",
+        "recolour_passes": [
+          "--mode lift --ranges 336-360 --hue-soft 2 --min-sat 0.45 --min-val 0.07 --src-hi 0.54 --soft 0.04 --to 352 --set-sat 0.88 --v-lo 0.34 --v-hi 0.92 --gamma 0.9",
+          "--cells 18 --mode lift --ranges 336-360 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --to 352 --set-sat 0.36 --v-lo 0.74 --v-hi 0.90"
+        ]
+      },
+      "sprite": "skeleton_knight_sprite_g.png",
+      "icon": "skeleton_knight_icon_g.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "head": 0.975,
+      "fps": {
+        "run": 15,
+        "die": 8
+      }
+    },
+    "KN-H": {
+      "note": "Pass 132 recolour of KN-B (Garry: the knight's own set, SK-H's twin), the cape only, white-pink (hue 342, saturation 0.14): the cape's wine reds lifted to a pale pink-white, the bone, the steel, the knife and the outline as they are; the hit frame's washed cape in a pass of its own (tools/recolour_look.py, recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "KN-B",
+        "recolour_passes": [
+          "--mode lift --ranges 336-360 --hue-soft 2 --min-sat 0.45 --min-val 0.07 --src-hi 0.54 --soft 0.04 --to 342 --set-sat 0.14 --v-lo 0.60 --v-hi 1.0 --gamma 0.8",
+          "--cells 18 --mode lift --ranges 336-360 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --to 342 --set-sat 0.05 --v-lo 0.86 --v-hi 0.97"
+        ]
+      },
+      "sprite": "skeleton_knight_sprite_h.png",
+      "icon": "skeleton_knight_icon_h.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "head": 0.975,
+      "fps": {
+        "run": 15,
+        "die": 8
+      }
+    },
+    "KN-I": {
+      "note": "KN-B without the helmet (pass 132, SK-I's twin), otherwise the same: KN-B's front, back and lying paintings with the kettle helmet taken off by Klein edits of the paintings themselves (tools/dl/p132/KNIGHT/edit_helmet.py, stills vbn); the front walk on run12 as KN-B's; the back walk on run12_hang (SK-F's hanging-arm driver: on run12 the bare-headed back twisted sideways and the cape rode up); the death is the painting leaning over onto the lying painting, as KN-B's strip has it (the Falling Back Death clip left the frame on six rolls, so `death` is empty here)",
+      "recipe": {
+        "stills": "vbn",
+        "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a short tattered dark-red cape hanging from the shoulders of its dented steel breastplate, a bare skull with no helmet, bare bone arms and legs, a small bone-handled knife held low in one hand down at its side, the other arm hanging at its side, standing and facing the viewer",
+        "back_hint": "seen from behind: the bare back of the skull with no helmet and the dark-red cape over the back plate, both arms hanging down at its sides, the small knife in the same hand, no face",
+        "dead_hint": "lying flat on its back on the ground, dead: its body stretched out sideways across the picture with the skull on the left and the feet on the right, arms flopped out limp, the small knife lying beside its open hand; it lies on nothing, with no ground and no shadow under it",
+        "pose": "run12_hang",
+        "pose_front": "run12",
+        "stand": "still",
+        "gait": "jogging in place on the spot with a light quick scurrying run, holding the same small bone-handled knife low in one hand the whole time",
+        "motion": "a skeleton jogging lightly with a small knife held low",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing, a helmet, a hat, a helmet appearing",
+        "death": "",
+        "death_frames": 8,
+        "outline_frac": 0.018,
+        "outline_color": "#2a1a18"
+      },
+      "sprite": "skeleton_knight_sprite_i.png",
+      "icon": "skeleton_knight_icon_i.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.975,
+      "fresh": true
+    },
+    "KN-J": {
+      "note": "Pass 132 recolour of KN-I (the helmetless knight, SK-J's twin), the cape only, crimson red: KN-G's own passes; the bone, the steel, the knife and the outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "KN-I",
+        "recolour_passes": [
+          "--mode lift --ranges 336-360 --hue-soft 2 --min-sat 0.45 --min-val 0.07 --src-hi 0.54 --soft 0.04 --to 352 --set-sat 0.88 --v-lo 0.34 --v-hi 0.92 --gamma 0.9",
+          "--cells 18 --mode lift --ranges 336-360 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --to 352 --set-sat 0.36 --v-lo 0.74 --v-hi 0.90"
+        ]
+      },
+      "sprite": "skeleton_knight_sprite_j.png",
+      "icon": "skeleton_knight_icon_j.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "head": 0.975,
+      "fps": {
+        "run": 15,
+        "die": 8
+      }
+    },
+    "KN-K": {
+      "note": "Pass 132 recolour of KN-I (the helmetless knight, SK-K's twin), the cape only, white-pink: KN-H's own passes; the bone, the steel, the knife and the outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "KN-I",
+        "recolour_passes": [
+          "--mode lift --ranges 336-360 --hue-soft 2 --min-sat 0.45 --min-val 0.07 --src-hi 0.54 --soft 0.04 --to 342 --set-sat 0.14 --v-lo 0.60 --v-hi 1.0 --gamma 0.8",
+          "--cells 18 --mode lift --ranges 336-360 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --to 342 --set-sat 0.05 --v-lo 0.86 --v-hi 0.97"
+        ]
+      },
+      "sprite": "skeleton_knight_sprite_k.png",
+      "icon": "skeleton_knight_icon_k.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "head": 0.975,
+      "fps": {
+        "run": 15,
+        "die": 8
       }
     }
   },

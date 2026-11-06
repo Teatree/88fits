@@ -221,7 +221,7 @@ def page_checks(check):
     ins = _read(HERE, "instructions.js")
     check("A creature looks the wrong way" in ins and "<b>Facing</b>" in ins and "<b>Hint</b>" in ins, "P130LE page: instructions.js has the how-to and the hint box's line")
     server_src = _read(HERE, "server.py")
-    check('"default", "facing")' in server_src and '"faces_src"' in server_src and 'out["locks"] = locks(srv)' in _read(HERE, "trail_io.py"), "P130LE page: the server knows the facing op, faces_src and the locks list")
+    check('"default", "facing"' in server_src and '"faces_src"' in server_src and 'out["locks"] = locks(srv)' in _read(HERE, "trail_io.py"), "P130LE page: the server knows the facing op, faces_src and the locks list")
 
 
 def checks(check, run_node, server):

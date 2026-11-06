@@ -1,0 +1,118 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a short tattered dark-red cape hanging from the shoulders of its dented steel breastplate, a bare skull with no helmet, bare bone arms and legs, a small bone-handled knife held low in one hand down at its side, the other arm hanging at its side, standing and facing the viewer",
+ "renders": {
+  "front": {
+   "seed": 132977,
+   "prompt": "Remove the steel helmet from this exact character. Show the same picture with the helmet gone: the bare smooth rounded ivory top of the skull above the eye sockets, nothing on its head. Front view, facing the viewer. Everything else stays exactly the same: the same short tattered dark-red cape, the same steel breastplate, the same bones, the same small knife in the same hand, the same pose, the same proportions, the same size and position in the picture, the same line art and colours. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/p132_skeleton_knight_vb_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 279,
+     "right": 294,
+     "top": 63,
+     "bottom": 49,
+     "height": 911,
+     "width": 450
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 132990,
+   "prompt": "Remove the steel helmet from this exact character seen from behind. Show the same picture with the helmet gone: the bare smooth rounded ivory back of the skull, nothing on its head, no face visible. Back view. Everything else stays exactly the same: the same short tattered dark-red cape, the same steel breastplate, the same bones, the same small knife in the same hand, the same pose, the same proportions, the same size and position in the picture, the same line art and colours. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/p132_skeleton_knight_vb_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 279,
+     "right": 294,
+     "top": 63,
+     "bottom": 58,
+     "height": 902,
+     "width": 450
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 133967,
+   "prompt": "Remove the steel helmet from this exact character lying dead on its back. Show the same picture with the helmet gone: the bare smooth rounded ivory top of the skull, nothing on its head, the same lying pose. Everything else stays exactly the same: the same short tattered dark-red cape, the same steel breastplate, the same bones, the same small knife in the same hand, the same pose, the same proportions, the same size and position in the picture, the same line art and colours. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/p132_skeleton_knight_vb_dead.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 105,
+     "right": 81,
+     "top": 329,
+     "bottom": 268,
+     "height": 426,
+     "width": 837
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "stills": "vbn",
+  "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a short tattered dark-red cape hanging from the shoulders of its dented steel breastplate, a bare skull with no helmet, bare bone arms and legs, a small bone-handled knife held low in one hand down at its side, the other arm hanging at its side, standing and facing the viewer",
+  "back_hint": "seen from behind: the bare back of the skull with no helmet and the dark-red cape over the back plate, both arms hanging down at its sides, the small knife in the same hand, no face",
+  "dead_hint": "lying flat on its back on the ground, dead: its body stretched out sideways across the picture with the skull on the left and the feet on the right, arms flopped out limp, the small knife lying beside its open hand; it lies on nothing, with no ground and no shadow under it",
+  "pose": "run12_hang",
+  "pose_front": "run12",
+  "stand": "still",
+  "gait": "jogging in place on the spot with a light quick scurrying run, holding the same small bone-handled knife low in one hand the whole time",
+  "motion": "a skeleton jogging lightly with a small knife held low",
+  "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing, a helmet, a hat, a helmet appearing",
+  "death": "",
+  "death_frames": 8,
+  "outline_frac": 0.018,
+  "outline_color": "#2a1a18"
+ },
+ "clip_kind": {
+  "front": "pose",
+  "back": "pose",
+  "die": "procedural"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": "run12_hang"
+ },
+ "qa_online": null
+}

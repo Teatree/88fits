@@ -484,6 +484,19 @@ func debug_force_spin() -> void:
 	_force_spin = true
 
 
+## Pass 132 (Garry: "Multiple projectiles of the Revolver doesn't look like multiple projectiles. Make it so they fly
+## in distinct directions, not just stacked atop each other"): the line of round `k` of a burst whose weapon carries
+## `params.burst_fan_deg` (`step`, radians here), as a turn off the aim: the first round on the aim, then one step to
+## one side, one to the other, two to the first side and so on (0, +1, -1, +2, -2 steps), so the first round still goes
+## at the target and every further one opens the fan. Such a round takes no random scatter.
+static func burst_fan_angle(k: int, step: float) -> float:
+	if k <= 0:
+		return 0.0
+	@warning_ignore("integer_division")
+	var n := (k + 1) / 2
+	return step * float(n) * (1.0 if k % 2 == 1 else -1.0)
+
+
 func _fire_burst_shot() -> void:
 	if _burst.is_empty():
 		return
@@ -923,11 +936,15 @@ func _fire() -> bool:
 		# a burst: one shot now, the rest every 50 ms from wherever the gun is by then, each with its own scatter
 		_burst.clear()
 		var sweep := deg_to_rad(float(inst.params.get("sweep_deg", 0.0)))
+		# pass 132: params.burst_fan_deg, the rounds of one pull each on a line of their own (burst_fan_angle)
+		var fan_step := deg_to_rad(float(inst.params.get("burst_fan_deg", 0.0)))
 		var scatter: float = deg_to_rad(float(inst.params["scatter_deg"])) if inst.params.has("scatter_deg") else maxf(half_spread, deg_to_rad(5.0))
 		for k in range(amount):
 			var shot := {"speed": speed, "damage": damage, "pierce": pierce, "prad": prad, "life": life, "knock": knock, "spread": scatter}
 			if sweep > 0.0 and amount > 1:
 				shot["angle"] = lerpf(-sweep * 0.5, sweep * 0.5, float(k) / float(amount - 1))
+			elif fan_step > 0.0 and amount > 1:
+				shot["angle"] = burst_fan_angle(k, fan_step)
 			_burst.append(shot)
 		_burst_t = 0.0
 		_stream_gap = stream_gap(stat("cooldown", 1.0), amount) if bool(inst.params.get("stream", false)) else 0.0

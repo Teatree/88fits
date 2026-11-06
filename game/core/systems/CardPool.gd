@@ -160,6 +160,8 @@ static func offer_passives() -> Array:
 			out.append(fav)
 	# pass 119 (lane LEGEND_B): never a Grindstone while no weapon can take its level (Run.grind_idle)
 	out = out.filter(func(p: PassiveDef) -> bool: return not Run.grind_idle(p))
+	# pass 132: nor the multi-shot Card before the player's first Dynamite pick (FtueDynamite.holds); one held keeps its levels
+	out = out.filter(func(p: PassiveDef) -> bool: return Run.passives.has(p.id) or not FtueDynamite.holds(p.id))
 	# pass 121 (lane LEGEND): nor a new legendary item before the stage clock reaches `legendary.from` (LegendaryHold);
 	# one held keeps its levels
 	out = out.filter(func(p: PassiveDef) -> bool: return Run.passives.has(p.id) or not LegendaryHold.held(p))

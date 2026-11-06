@@ -226,7 +226,7 @@
       },
       "strip_cols": 43,
       "fps": {
-        "run": 16,
+        "run": 8,
         "die": 12
       },
       "head": 0.943
@@ -262,7 +262,7 @@
       "strip_cols": 43,
       "head": 0.943,
       "fps": {
-        "run": 16,
+        "run": 8,
         "die": 12
       }
     },
@@ -297,7 +297,7 @@
       "strip_cols": 43,
       "head": 0.943,
       "fps": {
-        "run": 16,
+        "run": 8,
         "die": 12
       }
     }

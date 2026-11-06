@@ -12,6 +12,8 @@ var _keep: Dictionary = {}
 
 
 func before_test() -> void:
+	# pass 132: Ironwood is free in the game now; this suite's checks of an outlaw sold for gold put him on sale for their time
+	Registry.character("ironwood").availability = "purchase"
 	_keep = {"debug": Settings.debug_mode, "preview": Settings.preview_locked_heroes,
 		"inset": Settings.top_inset}
 	Settings.preview_locked_heroes = false
@@ -21,6 +23,7 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	Registry.character("ironwood").availability = "available"
 	Stage.forget()
 	Settings.debug_mode = bool(_keep["debug"])
 	Settings.preview_locked_heroes = bool(_keep["preview"])

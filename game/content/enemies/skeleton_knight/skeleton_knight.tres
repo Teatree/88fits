@@ -200,6 +200,141 @@ variants = {
 "sprite": "res://content/enemies/skeleton_knight/skeleton_knight_sprite_f.png",
 "sprite_file": "skeleton_knight_sprite_f.png",
 "strip_cols": 43
+},
+"KN-G": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.975,
+"icon": "res://content/enemies/skeleton_knight/skeleton_knight_icon_g.png",
+"note": "Pass 132 recolour of KN-B (Garry: the knight's own set, SK-G's twin), the cape only, a clear bright crimson (hue 352) beside KN-B's dark wine red: the cape's wine reds lifted, the bone, the steel, the knife and the outline as they are; the hit frame's washed cape in a pass of its own; the death needs none (its cape keeps the cape's colours) (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton_knight/skeleton_knight_sprite_g.png",
+"sprite_file": "skeleton_knight_sprite_g.png",
+"strip_cols": 40
+},
+"KN-H": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.975,
+"icon": "res://content/enemies/skeleton_knight/skeleton_knight_icon_h.png",
+"note": "Pass 132 recolour of KN-B (Garry: the knight's own set, SK-H's twin), the cape only, white-pink (hue 342, saturation 0.14): the cape's wine reds lifted to a pale pink-white, the bone, the steel, the knife and the outline as they are; the hit frame's washed cape in a pass of its own (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton_knight/skeleton_knight_sprite_h.png",
+"sprite_file": "skeleton_knight_sprite_h.png",
+"strip_cols": 40
+},
+"KN-I": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.975,
+"icon": "res://content/enemies/skeleton_knight/skeleton_knight_icon_i.png",
+"note": "KN-B without the helmet (pass 132, SK-I's twin), otherwise the same: KN-B's front, back and lying paintings with the kettle helmet taken off by Klein edits of the paintings themselves (tools/dl/p132/KNIGHT/edit_helmet.py, stills vbn); the front walk on run12 as KN-B's; the back walk on run12_hang (SK-F's hanging-arm driver: on run12 the bare-headed back twisted sideways and the cape rode up); the death is the painting leaning over onto the lying painting, as KN-B's strip has it (the Falling Back Death clip left the frame on six rolls, so `death` is empty here)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton_knight/skeleton_knight_sprite_i.png",
+"sprite_file": "skeleton_knight_sprite_i.png",
+"strip_cols": 40
+},
+"KN-J": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.975,
+"icon": "res://content/enemies/skeleton_knight/skeleton_knight_icon_j.png",
+"note": "Pass 132 recolour of KN-I (the helmetless knight, SK-J's twin), the cape only, crimson red: KN-G's own passes; the bone, the steel, the knife and the outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton_knight/skeleton_knight_sprite_j.png",
+"sprite_file": "skeleton_knight_sprite_j.png",
+"strip_cols": 40
+},
+"KN-K": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.975,
+"icon": "res://content/enemies/skeleton_knight/skeleton_knight_icon_k.png",
+"note": "Pass 132 recolour of KN-I (the helmetless knight, SK-K's twin), the cape only, white-pink: KN-H's own passes; the bone, the steel, the knife and the outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/skeleton_knight/skeleton_knight_sprite_k.png",
+"sprite_file": "skeleton_knight_sprite_k.png",
+"strip_cols": 40
 }
 }
 variant = "KN-A"

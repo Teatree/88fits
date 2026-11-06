@@ -689,6 +689,11 @@ const Instructions = (() => {
       'Click the picture you want (any job\'s, any look\'s), then <b>Install … as &lt;CODE&gt;\'s badge</b>. An install job runs on the local lane: the round badge is made from the portrait (the old file backed up), the look\'s entry names it, then an import. The base look\'s choice goes to the outlaw\'s own files.',
       'More to choose from: <b>Badge candidates…</b> / <b>Cut-out candidates…</b> on the look\'s card (with other words: a different action or pose gives different pictures).'));
 
+    how('A walk or a wing beat plays too fast or too slow', 'Pass 132. How many pictures a second the game shows of a look\'s walk (or flight) and of its death. No art job is needed.', ol(
+      'Enemies tab → the creature → <b>Looks &amp; previews</b> → click the look\'s card. Under the Facing row, the <b>Frame rate</b> row plays the strip twice side by side: left as saved, right at the number in the box.',
+      'Drag the slider or type a number (1 to 60). The right player follows at once and says what the change comes to (seconds a cycle, % slower or faster).',
+      '<b>Save</b> writes the look\'s own rate (a backup first) and imports it. Lower = the legs or wings move slower; how fast the creature travels is its Speed, not this.'));
+
     how('A creature looks the wrong way', 'Pass 130. A creature that looks away from where it walks (the Straw Man ran up the screen looking the other way) has a painting that turns the other way than the game assumes. No art job is needed.', ol(
       'Enemies tab → the creature → <b>Looks &amp; previews</b> → click the look\'s card. Beside the big player the <b>Facing</b> row shows the <b>Front view</b> (walking down the screen) and the <b>Back view</b> (walking up), each heading left and heading right.',
       'The view that looks the wrong way → <b>Flip</b>. It is saved at once (a backup first) and imported; the previews show the result.',

@@ -3452,6 +3452,8 @@ func _heroes_audit() -> void:
 				_fail("heroes_screen", "Close", "a real tap did not close the looks")
 		# BUY: Ironwood on sale; the question audited and cancelled, then the real deed
 		var iron = reg.character("ironwood")
+		# pass 132: he is free in the game now; the audit puts him on sale to drive the BUY controls (the buying stays in the code)
+		iron.availability = "purchase"
 		await _heroes_tap_tile(s, "ironwood")
 		await _confirm_audit("heroes_buy_confirm", s, func(): s.call("ask_buy"))
 		var still: bool = reg.hero_state(iron) == "buyable"

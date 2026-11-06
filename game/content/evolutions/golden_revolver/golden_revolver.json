@@ -34,6 +34,7 @@
     "burst": true,
     "burst_gap": 0.14,
     "scatter_deg": 1.5,
+    "burst_fan_deg": 7.0,
     "drum_axis": "forward",
     "drum_step": 1.0472,
     "no_shells": true,

@@ -83,7 +83,7 @@ private:
 	int64_t g_head_n = 0, s_head_n = 0, bg_head_n = 0, bg_cap = 0;
 	// per type
 	uint8_t *t_faces = nullptr, *t_eight = nullptr, *t_big = nullptr, *t_plain = nullptr, *t_gear = nullptr, *t_far = nullptr, *t_badge = nullptr;
-	float *t_run_fps = nullptr, *t_die_fps = nullptr, *t_cv = nullptr, *t_sh = nullptr, *t_ddrop = nullptr;
+	float *t_run_fps = nullptr, *t_die_fps = nullptr, *t_cv = nullptr, *t_sh = nullptr, *t_ddrop = nullptr, *t_dslide = nullptr;
 	double *t_head = nullptr;
 	Array poison_src, fire_src;
 	Dictionary flee, corpse_air, burst_bodies;

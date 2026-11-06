@@ -40,11 +40,14 @@ const SAVE_DIR := "user://test_saves/pass47_rules"
 
 
 func before_test() -> void:
+	# pass 132: Ironwood is free in the game now; this suite's checks of an outlaw sold for gold put him on sale for their time
+	Registry.character("ironwood").availability = "purchase"
 	# nothing unlocked, no Mirror ranks: the base numbers
 	Save.data = Save._default()
 
 
 func after_test() -> void:
+	Registry.character("ironwood").availability = "available"
 	Run.arena = false
 	Run.banished.clear()
 	Run.player_sheet.remove_source("test")

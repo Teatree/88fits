@@ -130,6 +130,9 @@
         "outline_frac": 0.018,
         "outline_color": "#2a1a18"
       },
+      "shadow": {
+        "die_slide": 0.3
+      },
       "sprite": "skeleton_sprite_b.png",
       "icon": "skeleton_icon_b.png",
       "anims": {
@@ -275,6 +278,9 @@
         "outline_color": "#2a1a18",
         "anim_seed": 3
       },
+      "shadow": {
+        "die_slide": 0.3
+      },
       "sprite": "skeleton_sprite_f.png",
       "icon": "skeleton_icon_f.png",
       "anims": {
@@ -292,7 +298,8 @@
         "die": 12
       },
       "head": 0.963,
-      "fresh": true
+      "fresh": true,
+      "front_faces": "left"
     },
     "SK-G": {
       "note": "Pass 131 recolour of SK-F (Garry: the poncho only, crimson red): the poncho's browns lifted to crimson (hue 350), the bone, the hat, the knife and the outline as they are; the hit frame's washed poncho and the lying poncho of the death in passes of their own; the cloth's darkest shadows stay brown (tools/recolour_look.py, recolour_strip.py --mode lift)",
@@ -304,6 +311,9 @@
           "--cells 18 --mode lift --ranges 8-32 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --mass 5 --grow 7 --to 350 --set-sat 0.36 --v-lo 0.74 --v-hi 0.90",
           "--cells 22,23,24,25,26 --mode lift --ranges 13-28 --hue-soft 2 --min-sat 0.4 --min-val 0.2 --max-val 0.5 --src-hi 0.5 --soft 0.03 --mass 2 --grow 3 --to 350 --set-sat 0.86 --v-lo 0.30 --v-hi 0.78 --gamma 0.9"
         ]
+      },
+      "shadow": {
+        "die_slide": 0.3
       },
       "sprite": "skeleton_sprite_g.png",
       "icon": "skeleton_icon_g.png",
@@ -321,7 +331,8 @@
       "fps": {
         "run": 15,
         "die": 12
-      }
+      },
+      "front_faces": "left"
     },
     "SK-H": {
       "note": "Pass 131 recolour of SK-F (Garry: the poncho only, white-pink): the poncho's browns lifted to a pale pink-white (hue 342, saturation 0.16), the bone, the hat, the knife and the outline as they are; the hit frame's washed poncho and the lying poncho of the death in passes of their own; the cloth's darkest shadows stay brown (tools/recolour_look.py, recolour_strip.py --mode lift)",
@@ -333,6 +344,9 @@
           "--cells 18 --mode lift --ranges 8-32 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --mass 5 --grow 7 --to 342 --set-sat 0.05 --v-lo 0.86 --v-hi 0.97",
           "--cells 22,23,24,25,26 --mode lift --ranges 13-28 --hue-soft 2 --min-sat 0.4 --min-val 0.2 --max-val 0.5 --src-hi 0.5 --soft 0.03 --mass 2 --grow 3 --to 342 --set-sat 0.16 --v-lo 0.70 --v-hi 0.97 --gamma 0.9"
         ]
+      },
+      "shadow": {
+        "die_slide": 0.3
       },
       "sprite": "skeleton_sprite_h.png",
       "icon": "skeleton_icon_h.png",
@@ -350,7 +364,8 @@
       "fps": {
         "run": 15,
         "die": 12
-      }
+      },
+      "front_faces": "left"
     },
     "SK-I": {
       "note": "SK-F without the hat (pass 131), otherwise the same: SK-B's front and back paintings with the hat taken off by Klein edits of the paintings themselves (tools/dl/p131/SKEL/edit_hat.py, stills vbn), walked on the same drivers (front run12, back run12_hang) and the same Falling Back Death",
@@ -371,6 +386,9 @@
         "outline_color": "#2a1a18",
         "anim_seed": 3
       },
+      "shadow": {
+        "die_slide": 0.3
+      },
       "sprite": "skeleton_sprite_i.png",
       "icon": "skeleton_icon_i.png",
       "anims": {
@@ -388,7 +406,8 @@
         "die": 12
       },
       "head": 0.969,
-      "fresh": true
+      "fresh": true,
+      "front_faces": "left"
     },
     "SK-J": {
       "note": "Pass 131 recolour of SK-I (the hatless poncho skeleton), the poncho only, crimson red: SK-G's own passes; the bone, the knife and the outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
@@ -400,6 +419,9 @@
           "--cells 18 --mode lift --ranges 8-32 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --mass 5 --grow 7 --to 350 --set-sat 0.36 --v-lo 0.74 --v-hi 0.90",
           "--cells 22,23,24,25,26 --mode lift --ranges 13-28 --hue-soft 2 --min-sat 0.4 --min-val 0.2 --max-val 0.5 --src-hi 0.5 --soft 0.03 --mass 2 --grow 3 --to 350 --set-sat 0.86 --v-lo 0.30 --v-hi 0.78 --gamma 0.9"
         ]
+      },
+      "shadow": {
+        "die_slide": 0.3
       },
       "sprite": "skeleton_sprite_j.png",
       "icon": "skeleton_icon_j.png",
@@ -417,7 +439,8 @@
       "fps": {
         "run": 15,
         "die": 12
-      }
+      },
+      "front_faces": "left"
     },
     "SK-K": {
       "note": "Pass 131 recolour of SK-I (the hatless poncho skeleton), the poncho only, white-pink: SK-H's own passes; the bone, the knife and the outline as they are (tools/recolour_look.py, recolour_strip.py --mode lift)",
@@ -429,6 +452,9 @@
           "--cells 18 --mode lift --ranges 8-32 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --mass 5 --grow 7 --to 342 --set-sat 0.05 --v-lo 0.86 --v-hi 0.97",
           "--cells 22,23,24,25,26 --mode lift --ranges 13-28 --hue-soft 2 --min-sat 0.4 --min-val 0.2 --max-val 0.5 --src-hi 0.5 --soft 0.03 --mass 2 --grow 3 --to 342 --set-sat 0.16 --v-lo 0.70 --v-hi 0.97 --gamma 0.9"
         ]
+      },
+      "shadow": {
+        "die_slide": 0.3
       },
       "sprite": "skeleton_sprite_k.png",
       "icon": "skeleton_icon_k.png",
@@ -446,7 +472,8 @@
       "fps": {
         "run": 15,
         "die": 12
-      }
+      },
+      "front_faces": "left"
     }
   },
   "variant": "SK-A"
