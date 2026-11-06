@@ -95,7 +95,7 @@ func test_source_times() -> void:
 	assert_array(WDPS.source_times(events, "perk:quickdraw")).is_equal([12.0])
 	assert_array(WDPS.source_times(events, "stranger:3")).is_equal([20.0])
 	assert_array(WDPS.source_times(events, "totem:raven")).is_equal([21.0])
-	assert_array(WDPS.source_times(events, "talent:grit:0")).is_empty()
+	assert_array(WDPS.source_times(events, "trail:might")).is_empty()
 
 
 func test_lanes_keep_icons_apart() -> void:

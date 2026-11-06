@@ -1244,7 +1244,6 @@ const App = (() => {
     if (assetDoc()) { await Assets.save(S.tab); return; }
     // pass 111 (lane WANTED): Ctrl+S on the Wanted tab saves the Bounty Board's config
     if (S.tab === 'wanted' && typeof Wanted !== 'undefined') { await Wanted.save(); return; }
-    if (S.tab === 'mirror' && typeof Mirror !== 'undefined') { await Mirror.save(); return; }
     if (S.tab === 'trail' && typeof Trail !== 'undefined') { await Trail.save(); return; }   // pass 129 (lane TRAIL-EDITOR)
     if (!S.map || S.saving) return;
     const issues = validate();
@@ -1493,8 +1492,6 @@ const App = (() => {
       else if (S.tab === 'drivers' && typeof Drivers !== 'undefined') Drivers.render(panel);
       // pass 111 (lane WANTED): the Bounty Board (wanted.js: its own document, wanted.json; rolls from the map's timeline)
       else if (S.tab === 'wanted' && typeof Wanted !== 'undefined') Wanted.render(panel);
-      // pass 116 (lane EDITOR): the Upgrade board's talents (mirror.js, talents_io.py)
-      else if (S.tab === 'mirror' && typeof Mirror !== 'undefined') Mirror.render(panel);
       // pass 129 (lane TRAIL-EDITOR): the Trail (trail.js, trail_io.py: its own document, trail.json)
       else if (S.tab === 'trail' && typeof Trail !== 'undefined') Trail.render(panel);
       else if (assetsTab()) Assets.render(S.tab, panel);
@@ -1602,7 +1599,7 @@ const App = (() => {
       });
       lv.addEventListener('keydown', (e) => { if (e.key === 'Enter') lv.blur(); });
     }
-    window.addEventListener('beforeunload', (e) => { if (dirty() || (typeof Assets !== 'undefined' && Assets.anyDirty()) || (typeof Wanted !== 'undefined' && Wanted.dirty()) || (typeof Mirror !== 'undefined' && Mirror.dirty()) || (typeof Trail !== 'undefined' && Trail.dirty())) { e.preventDefault(); e.returnValue = ''; } });
+    window.addEventListener('beforeunload', (e) => { if (dirty() || (typeof Assets !== 'undefined' && Assets.anyDirty()) || (typeof Wanted !== 'undefined' && Wanted.dirty()) || (typeof Trail !== 'undefined' && Trail.dirty())) { e.preventDefault(); e.returnValue = ''; } });
   }
 
   // only the buttons that carry data-tab: the zoom buttons share the nav (a click on "+" once switched to no tab at all)

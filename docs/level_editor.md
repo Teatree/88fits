@@ -1117,11 +1117,13 @@ running (when one is), the history, and the sim shown with its charts.
      runs of 25:00 took 10:23 instead of 18:10); off, every frame is drawn and every sound played as in the game
      (slower: a check that the sim mode changes nothing). Offered when the game's runner has the sim mode; the header and the history say "everything
      drawn" for a sim that played with it off.
-   - **Upgrade board**: the eight talents, each with its rank (0-6) and its form (Grit: Padding or Plate, ...). The
-     buttons fill them: **none**, **a quarter** (12 of the 48 ranks), **half**, **full** (every talent in its usual form,
-     as the difficulty probe plays them), **my save** (the talents bought in your save on this PC, forms rank by rank).
-     Change any row and the board is **custom**. Every run plays the same board. A rank's forms can be mixed in your save
-     ("2 Padding, 1 Plate"); choosing one form makes every rank that form.
+   - **The Trail** (pass 129; the Upgrade board talent by talent until then): how far along the Trail every run's
+     save is. The buttons are shares of the Trail's levels: **none**, **a quarter** (Trail Level 18 of 70), **half**
+     (35), **full** (70); the **level** box takes any Trail Level. Every required node up to that level is bought at no
+     cost, the choices taken in turn (the first choice group its first member, the second its second, ...); **optional
+     nodes too** adds the Stakes, the Grubstake and Spirit up to that level. The outlaws, items and stages a node gives
+     come with it, so the card pool is what a player at that Trail Level has. Every run plays the same Trail. A sim from
+     before pass 129 reads "the old Upgrade board: a quarter" in the history.
 2. Press **Run sim**. If the map has unsaved changes it asks first: **Save and run**, or **Run the saved map**. The line
    under the button says about how long it will take if every run lasts to the stop (a run that ends at a death makes
    it shorter), and the line under that why: a sim plays the real game frame by frame (60 frames to a second of play,
@@ -1133,7 +1135,7 @@ running (when one is), the history, and the sim shown with its charts.
 
 ### Read the charts
 
-The header says what the sim played: the hero, the settings, the board talent by talent, which save of the map (when it
+The header says what the sim played: the hero, the settings, the Trail, which save of the map (when it
 was saved and a short code), the game version, when it ran and how long it took, "every item unlocked". Under it, the
 **tiles**: how many runs reached the stop, when a run ended (the middle one), deaths, level, kills and coins per run
 (each run counted at its own end), and each boss: how many of the runs that met it beat it, the fight's usual length and
@@ -1219,15 +1221,18 @@ The header warns when the map has been saved since the sim shown ran.
 ### For scripts
 
     python tools/sim_batch.py --out tools/dl/sim/runs/<name> --hero drifter --players 10 [--workers 0] --limit 1500 \
-        [--board 1.5 | --talents grit:AAB,study:BB [--board-label "my save"]] --death end --seed 1 [--map red_canyon] \
+        [--trail none|quarter|half|full|<level>] [--trail-optional] --death end --seed 1 [--map red_canyon] \
         [--fps 60] [--no-fast] [--note "..."]
     python tools/sim_batch.py --aggregate tools/dl/sim/runs/<name>     # the players' files again into result.json
     python tools/sim_batch.py --out <dir> --synthetic                  # made-up runs (the selftest's and the page's fixture)
 
-`--talents`: one entry a talent, its picks one letter a rank (A its first form, B its second), as the save keeps them;
-it wins over `--board` (a preset: 0, 1.5, 3, 6 ranks a talent). `--workers 0` = auto. `--no-fast` plays without the
-runner's sim mode. The runs get `board=`, `talents=` (only with ranks), `death=` and `fast=0/1` (when the runner has it);
-an older runner that knows neither `talents=` nor a policy is refused before anything plays (`caps_problem`).
+`--trail` (pass 129): the Trail every run's save holds: `none`, `quarter`, `half`, `full` (shares of the Trail's levels,
+rounded half up) or a Trail Level; every required node up to it is bought at no cost, the choices in turn, the optional
+nodes only with `--trail-optional` (`game/tools/trail_arg.gd` is the rule, `sim_batch.trail_ids_upto` its copy).
+`--board <ranks>` is the old name: it plays the same share of the Trail and prints one line saying so; `--talents` went
+with the Upgrade board. `--workers 0` = auto. `--no-fast` plays without the runner's sim mode. The runs get `trail=`,
+`trail_optional=1`, `death=` and `fast=0/1` (when the runner has it); an older runner that reads no `trail=` or knows
+no such policy is refused before anything plays (`caps_problem`).
 
 A sim's folder `tools/dl/sim/runs/<id>/`: `settings.json`, `progress.json` (where every run is, rewritten every
 second or two), `result.json` (the averages; rewritten after every finished run, `meta.partial` until the end),
@@ -1241,17 +1246,17 @@ runs), kills_ps / spawned_ps / hits_ps (10 s), deaths (over every run), clock / 
 kills_by, gold_by, took_by, healed_by, alive_by, held_by: {kind cum|level, order, mean {id: []}, score}}, `markers`
 {stages [{stage, t, n, min, max}], bosses [{id, occurrence, start, end, n, beaten, fight_s, mult, hp}], deaths,
 revives}, `players` [{k, seed, ok, end_reason, end_t, wall_s, boot_s, rate, deaths, revives, level, kills, gold, xp,
-dmg, build, assists}], `summary`, `names`, `settings` (with `talents`, `board_label`), `rules`, `meta` {started, ended,
+dmg, build, assists, trail_level}], `summary`, `names`, `settings` (with `trail`, `trail_optional`; a sim older than pass 129: `board`, `talents`, `board_label`), `rules`, `meta` {started, ended,
 wall_s, partial, players_done, players_total, map_rev {sha, saved, name}, version, sync, job, unlocks, assists,
-board_differs, sim_mode (what the runs played: false = everything drawn)}.
+trail_differs, sim_mode (what the runs played: false = everything drawn)}.
 
-The routes (`sim_io.py`): `GET /api/sim/settings` (the form's choices and defaults, the talents and their presets with
-"my save", the runner's capabilities, the processors, the measured speed and its words, the saved map's code), `GET
+The routes (`sim_io.py`): `GET /api/sim/settings` (the form's choices and defaults, `trail` {levels, presets, the PC save's own Trail},
+the runner's capabilities, the processors, the measured speed and its words, the saved map's code), `GET
 /api/sim/status` (the sim queued or running: its job, its progress.json, the lock), `GET /api/sim/history`, `GET
 /api/sim/result/<id>`; `POST /api/sim/run {settings}` (queued as a job of kind `sim`; 400 for bad settings, 409 while one
 is queued or runs or when the runner cannot play them), `POST /api/sim/settings`, `POST /api/sim/<id>/keep {keep}`,
 `POST /api/sim/<id>/delete`, `POST /api/sim/<id>/cancel`, `POST /api/sim/unlock {force}`. The job kind `sim` (jobs.py
-SPECS: hero, players, workers, limit, board, talents, board_label, death, seed, map, fps, note, fast) runs on its own
+SPECS: hero, players, workers, limit, trail, trail_optional, death, seed, map, fps, note, fast) runs on its own
 lane `sim`. The charts' definitions are plain data in and out (`sim_model.js` `charts(result, compared, opts)`), so the
 run dashboard can reuse them.
 
@@ -2257,7 +2262,7 @@ server route: page files only (a reload shows it). Rules: docs/waves_schema.md "
   **How do I change it?** fold and docs/howto/boss_bullet_heaven.md.
 - The Level Editor server needs a restart for the Save changes (server.py); the page files reload by themselves.
 
-## Pass 116 (lane EDITOR): the Mirror tab, icon re-rolls, stage clocks, row numbers
+## Pass 116 (lane EDITOR): icon re-rolls, stage clocks, row numbers (and the Mirror tab, gone since pass 129)
 
 ### Walking through "a card's icon has a defect: re-roll it" (as Garry, before this pass)
 
@@ -2299,10 +2304,8 @@ hero_puppet and recolour reuse paintings and take no prompt.
 
 ### Mirror tab
 
-The Upgrade board's talents (`game/content/talents`), in the board's order (first rank's price, then `order`): the
-talent's picture, both forms with their pictures, words and effects (stat, op, value a rank), the six ranks' prices
-with running totals and what each form holds at each rank. Save (Ctrl+S) writes only the changed keys of each changed
-talent (backup first) and imports its .tres (`talents_io.py`, `/api/talents`). **Needs a server restart** (new route).
+Gone in pass 129 with the Upgrade board it edited (`mirror.js`, `mirror.css`, `talents_io.py`, `/api/talents`): the
+**Trail tab** stands in its place in the tab row and edits what replaced the board (`docs/trail_schema.md`).
 
 ### Timeline per stage
 

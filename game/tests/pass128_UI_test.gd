@@ -29,8 +29,8 @@ func test_the_gold_bar_starts_past_the_multiplier() -> void:
 
 
 func test_a_boards_scroll_starts_inside_its_sheet_and_the_page_rests_where_it_did() -> void:
-	for path: String in ["res://ui/HeroesScreen.tscn", "res://ui/SettingsScreen.tscn", "res://ui/ShopScreen.tscn",
-			"res://ui/HomesteadScreen.tscn", "res://ui/StagesScreen.tscn"]:
+	for path: String in ["res://ui/HeroesScreen.tscn", "res://ui/SettingsScreen.tscn",
+			"res://ui/StagesScreen.tscn"]:
 		var s: ScreenBase = auto_free(load(path).instantiate())
 		add_child(s)
 		await get_tree().process_frame

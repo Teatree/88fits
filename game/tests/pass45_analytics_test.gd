@@ -105,7 +105,7 @@ func test_samples_once_a_second_from_the_hooks_and_writes_a_run_file() -> void:
 	assert_object(RunAnalytics.I).is_same(ra)
 	# pass 74: schema 2 (was 1); pass 101 (lane FPS): schema 3; pass 102 (lane STEADY): schema 4; pass 115
 	# (lane DASH): schema 5, re-pinned on purpose
-	assert_int(int(ra.header["schema"])).is_equal(5)
+	assert_int(int(ra.header["schema"])).is_equal(6)   # pass 129: schema 6 (the Upgrade board gone), re-pinned on purpose
 	assert_str(str(ra.header["hero"])).is_equal("astro")
 	ra.dealt("peashooter", 12.0)
 	ra.took({"by": "Goblin", "id": "goblin", "kind": "melee"}, 10.0, 8.0, 0.0, "")
@@ -174,7 +174,7 @@ func test_samples_once_a_second_from_the_hooks_and_writes_a_run_file() -> void:
 	f.close()
 	DirAccess.remove_absolute(path)
 	assert_bool(doc is Dictionary).is_true()
-	assert_int(int(doc["schema"])).is_equal(5)
+	assert_int(int(doc["schema"])).is_equal(6)   # pass 129: schema 6 (the Upgrade board gone), re-pinned on purpose
 	assert_str(str(doc["result"])).is_equal("end")
 	assert_int((doc["samples"] as Array).size()).is_equal(3)
 	assert_int((doc["events"] as Array).size()).is_equal(2)

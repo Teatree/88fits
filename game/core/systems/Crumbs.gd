@@ -2,7 +2,7 @@
 ## Make the existing crumb trail that we have to the Upgrade red as well, and make it disappear once Player had tapped it.
 ## So if there is enough coins for a new kind of Upgrade where previously there wasn't, the crumb trail will show up. Once
 ## Player had tapped it at least once it disappears."). What the player has already been shown lives in the save
-## (`crumbs`: "upgrade": the ranks seen affordable, "<talent>:<rank>"; "looks": the looks seen unlocked, "<hero>:<code>"),
+## (`crumbs`: "upgrade": the Trail nodes seen affordable, by node id; "looks": the looks seen unlocked, "<hero>:<code>"),
 ## so a mark means something NEW. Read by the tab bar (the Royale theme's) and the Heroes screen.
 class_name Crumbs
 extends RefCounted
@@ -26,27 +26,18 @@ static func _seen_to_write(kind: String) -> Array:
 	return c[kind]
 
 
-## The next ranks the purse can pay for now.
-## Pass 129 (lane TRAIL-UI): once the Trail has nodes the fourth tab is the Trail's, and the same crumb follows the same
-## rule on its nodes: the ids of the nodes the purse can buy now (Trail.can_buy). Seen ones are kept in the same list.
+## The Trail nodes the purse can buy now, by id (Trail.can_buy). Pass 129: the fourth tab (its id is still "upgrade")
+## is the Trail, and pass 123's crumb keeps its rule on the Trail's nodes; the save's list is the same one (a save from
+## the Upgrade board's days holds "<talent>:<rank>" keys there too: they match no node and do nothing).
 static func upgrade_keys() -> Array:
 	var out: Array = []
-	if Trail.has_nodes():
-		for n: Dictionary in Trail.nodes():
-			if Trail.can_buy(str(n["id"])):
-				out.append(str(n["id"]))
-		return out
-	for def: TalentDef in Registry.talents_list():
-		if not Registry.is_unlocked("talent", def.id):
-			continue
-		var rank := Save.talent_rank(def.id)
-		var cost := def.cost_of_rank(rank)
-		if cost >= 0 and Currency.can_afford(def.currency_type, cost):
-			out.append("%s:%d" % [def.id, rank])
+	for n: Dictionary in Trail.nodes():
+		if Trail.can_buy(str(n["id"])):
+			out.append(str(n["id"]))
 	return out
 
 
-## The crumb to the Upgrade tab: a rank the purse can pay for that the player has not been shown yet.
+## The crumb to the Trail's tab: a node the purse can buy that the player has not been shown yet.
 static func upgrade_due() -> bool:
 	var seen := _seen("upgrade")
 	for k: String in upgrade_keys():
@@ -55,7 +46,7 @@ static func upgrade_due() -> bool:
 	return false
 
 
-## The Upgrade board was opened (or a rank bought on it): everything affordable now has been seen.
+## The Trail was opened (or a node bought on it): everything affordable now has been seen.
 static func upgrade_mark_seen() -> void:
 	var seen := _seen("upgrade")
 	var changed := false

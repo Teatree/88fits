@@ -1,7 +1,7 @@
 {
   "id": "gold",
   "name": "Gold",
-  "flavour": "Banked at the end of every run; spent on outlaws, the Upgrade board and looks.",
+  "flavour": "Banked at the end of every run; spent on outlaws, the Trail and looks.",
   "order": 0,
   "icon": "res://art/ui/wanted/coin.png",
   "colour": "#C9932F",

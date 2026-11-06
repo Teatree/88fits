@@ -371,15 +371,13 @@ func test_a_locked_hero_shows_his_requirement_and_start_refuses_him() -> void:
 
 # ---------------------------------------------------------------- rules that live once, and the tools
 
-func test_the_upgrade_mark_is_the_tab_bars_rule() -> void:
-	var t := await _title(true)
-	Save.data["gold"] = 0
-	assert_bool(t._rank_affordable()).is_equal(TabBarScript.upgrade_mark())
-	Save.data["gold"] = 10000000
-	assert_bool(t._rank_affordable()).is_equal(TabBarScript.upgrade_mark())
-	assert_bool(t._rank_affordable()).is_true()
-	# START and ARENA still go into a run through the curtain only (pass 120's count)
+func test_the_upgrade_mark_lives_in_the_tab_bar_only() -> void:
+	# pass 129: the title keeps no copy of the mark's rule (its old _rank_affordable went with the Upgrade board): the
+	# tab bar reads Crumbs.upgrade_due on the Trail's nodes
 	var src := _src("res://ui/TitleScreen.gd")
+	assert_bool(src.contains("_rank_affordable")).is_false()
+	assert_str(_src("res://ui/wanted/WTabBar.gd")).contains("Crumbs.upgrade_due()")
+	# START and ARENA still go into a run through the curtain only (pass 120's count)
 	assert_int(src.count("UiFx.go_run(get_tree())")).is_equal(2)
 
 

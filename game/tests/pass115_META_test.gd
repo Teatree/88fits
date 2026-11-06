@@ -3,19 +3,15 @@
 ## the title's OUTLAW / SURVIVORS, the Settings version line. And Nerve (Garry: "Change the Revive to only affect the
 ## amount of HP Player gets when they revive ... by default ... 40% of their health ... all at max ... 100% ... skips and
 ## this new revive thing are not valuable at all, rebalance their ordering in the view as well as their prices"): a
-## revive stands him up at 40% with no rank, +10% a Second Wind rank to 100% at six, no revives from Nerve, Nerve
-## the second cheapest talent on the board, an older save's overpaid ranks paid back once; the Phoenix Feather keeps 50%.
+## revive stands him up at 40%, Second Wind adds revive health and no revive; the Phoenix Feather keeps 50%.
+## Pass 129: the Upgrade board (and its Nerve talent) is gone. The 40% is the sheet's own default now
+## (StatSheet.PLAYER_DEFAULTS), and Second Wind is a Trail upgrade (`second_wind`: revive health, read from
+## content/trail/trail.json, never pinned here); Nerve's prices, its place on the board and its refund left with the board.
 extends GdUnitTestSuite
 
 const Title := preload("res://ui/TitleScreen.gd")
 const Stage := preload("res://ui/TitleStage.gd")
-const HS := preload("res://ui/HomesteadScreen.gd")
 const SettingsScreenScript := preload("res://ui/SettingsScreen.gd")
-
-## Nerve's new prices, rank by rank (rank k = k x k x 150, the board's pass 110 ladder).
-const NERVE_COST := [150, 600, 1350, 2400, 3750, 5400, 7350]
-## The board top to bottom: by the first rank's price, `order` the same.
-const BOARD := ["spite", "nerve", "fortune", "choice", "drive", "study", "stride", "grit"]
 
 var _keep: Dictionary = {}
 
@@ -27,6 +23,22 @@ func before_test() -> void:
 	Settings.top_inset = -1
 	Save.data = Save._default()
 	Save._dirty = false
+	Trail.load_from()
+	Trail.refresh()
+
+
+## Every Second Wind node of the game's Trail bought (the save's `trail`), and what they add to revive health together.
+func _buy_second_wind() -> float:
+	var ids: Array = []
+	var sum := 0.0
+	for nd: Dictionary in Trail.nodes():
+		var g: Dictionary = nd["gives"]
+		if str(g.get("type", "")) == "upgrade" and str(g.get("upgrade", "")) == "second_wind":
+			ids.append(str(nd["id"]))
+			sum += float(g["value"])
+	Save.data["trail"] = {"bought": ids, "spent": 0, "had": []}
+	Trail.refresh()
+	return sum
 
 
 func after_test() -> void:
@@ -37,14 +49,11 @@ func after_test() -> void:
 	Settings.top_inset = int(_keep["inset"])
 	Save.data = _keep["data"]
 	Save._dirty = false
+	Trail.refresh()
 
 
 func _start(hero: String = "drifter") -> void:
 	Run.start(Registry.character(hero), Registry.map("red_canyon"))
-
-
-func _nerve() -> TalentDef:
-	return Registry.talent("nerve")
 
 
 ## A hero on the field, felled, as Game._on_player_died finds him.
@@ -93,7 +102,10 @@ func test_the_settings_line_names_the_game() -> void:
 # ---------------------------------------------------------------- 2. Second Wind: revive health only
 
 func test_a_revive_stands_him_up_at_forty_percent_with_no_rank() -> void:
-	assert_float(_nerve().base_of("revive_hp", -1.0)).is_equal_approx(0.4, 0.0001)
+	# pass 129: the sheet's own default (the Nerve talent's base_stats until the board went)
+	assert_float(float(StatSheet.PLAYER_DEFAULTS["revive_hp"])).is_equal_approx(0.4, 0.0001)
+	# a plain add of revive health reads as a step (a Trail node's line, the pause screen's sources)
+	assert_str(TextGen.describe_effect(Effect.make("revive_hp", "add", 0.1, "player"))).is_equal("+10% health on revive")
 	_start()
 	assert_float(Run.player_sheet.get_stat("revive_hp", 0.5)).is_equal_approx(0.4, 0.0001)
 	var p := _felled()
@@ -101,60 +113,24 @@ func test_a_revive_stands_him_up_at_forty_percent_with_no_rank() -> void:
 	assert_float(p.hp).is_equal_approx(p.max_hp * 0.4, 0.001)
 
 
-func test_six_second_wind_ranks_give_a_whole_revive_and_no_extra_one() -> void:
-	Save.data["talents"] = {"nerve": {"picks": [1, 1, 1, 1, 1, 1]}}
+func test_the_trails_second_wind_adds_revive_health_and_no_extra_revive() -> void:
+	var more := _buy_second_wind()
+	assert_float(more).is_greater(0.0)
 	_start()
-	assert_float(Run.player_sheet.get_stat("revive_hp", 0.5)).is_equal_approx(1.0, 0.0001)
-	# Nerve gives no revives: Down! offers its one chance a run, as without it (Game._open_revive's count)
+	assert_float(Run.player_sheet.get_stat("revive_hp", 0.5)).is_equal_approx(0.4 + more, 0.0001)
+	# Second Wind gives no revives: Down! offers its one chance a run, as without it (Game._open_revive's count)
 	assert_float(Run.player_sheet.get_stat("revives", 0.0)).is_equal(0.0)
 	var chances: int = 1 + Run.player_sheet.get_int("revives", 0) - Run.revives_used
 	assert_int(chances).is_equal(1)
 	var p := _felled()
 	p.revive()
-	assert_float(p.hp).is_equal_approx(p.max_hp, 0.001)
-
-
-func test_every_second_wind_rank_is_ten_points_of_revive_health_and_nothing_else() -> void:
-	var nerve := _nerve()
-	assert_str(nerve.form_name(1)).is_equal("Second Wind")
-	for r in range(1, 7):
-		var revive_hp := 0.0
-		for e: Effect in nerve.effects_for(1, r):
-			assert_str(e.stat).override_failure_message("rank %d: %s" % [r, e.stat]).is_equal("revive_hp")
-			assert_str(e.op).is_equal("add")
-			revive_hp += e.value
-		assert_float(revive_hp).override_failure_message("rank %d" % r).is_equal_approx(0.1 * r, 0.0001)
-		assert_float(nerve.base_of("revive_hp", 0.0) + revive_hp).is_less_equal(1.0 + 0.0001)
-	# Skip is as it was: +1 skip a stage, a rank
-	assert_str(nerve.form_name(0)).is_equal("Skip")
-	assert_str((nerve.effects_for(0, 1)[0] as Effect).stat).is_equal("skips")
-	assert_float((nerve.effects_for(0, 1)[0] as Effect).value).is_equal(1.0)
-	# no form of any talent gives revives now
-	for td: TalentDef in Registry.talents.values():
-		for f in range(td.forms.size()):
-			for e: Effect in td.effects_for(f, td.max_rank()):
-				assert_str(e.stat).override_failure_message(td.id).is_not_equal("revives")
-
-
-func test_the_board_says_the_revive_health_in_plain_words() -> void:
-	var nerve := _nerve()
-	Save.data["talents"] = {"nerve": {"picks": [1]}}
-	assert_str(HS.held_line(nerve)).is_equal("Revive with 50% health")
-	Save.data["talents"] = {"nerve": {"picks": [1, 1]}}
-	assert_str(HS.held_line(nerve)).is_equal("Revive with 60% health")
-	Save.data["talents"] = {"nerve": {"picks": [0, 0, 1]}}
-	assert_str(HS.held_line(nerve)).is_equal("+2 skips, revive with 50% health")
-	Save.data["talents"] = {"nerve": {"picks": [1, 1, 1, 1, 1, 1]}}
-	assert_str(HS.held_line(nerve)).is_equal("Revive with 100% health")
-	# a plain add of revive health still reads as a step (an item's card, the pause screen's sources)
-	assert_str(TextGen.describe_effect(Effect.make("revive_hp", "add", 0.1, "player"))).is_equal("+10% health on revive")
-	assert_str(TextGen.describe_effect(Effect.make("revive_hp", "set", 0.7, "player"))).is_equal("revive with 70% health")
+	assert_float(p.hp).is_equal_approx(p.max_hp * minf(0.4 + more, 1.0), 0.001)
 
 
 func test_the_phoenix_feather_keeps_its_half_health() -> void:
 	_start()
 	assert_bool(Run.add_or_level_passive("phoenix_feather")).is_true()
-	# the feather's own floor; the plain revive health stays Nerve's 40%
+	# the feather's own floor; the plain revive health stays the default 40%
 	assert_float(Run.player_sheet.get_stat("revive_hp", 0.5)).is_equal_approx(0.4, 0.0001)
 	var p := _felled()
 	assert_float(p.revive_share(true)).is_equal_approx(0.5, 0.0001)
@@ -162,92 +138,10 @@ func test_the_phoenix_feather_keeps_its_half_health() -> void:
 	Run.use_phoenix()
 	p.revive(true)
 	assert_float(p.hp).is_equal_approx(p.max_hp * 0.5, 0.001)
-	# Second Wind still raises a Phoenix revive once it passes the feather's half: three ranks, 70%
+	# Second Wind still raises a Phoenix revive once it passes the feather's half: the larger of the two
 	Run.end()
-	Save.data["talents"] = {"nerve": {"picks": [1, 1, 1]}}
+	var more := _buy_second_wind()
 	_start()
 	Run.add_or_level_passive("phoenix_feather")
 	var q := _felled()
-	assert_float(q.revive_share(true)).is_equal_approx(0.7, 0.0001)
-
-
-# ---------------------------------------------------------------- 3. the price and the place on the board
-
-func test_nerve_costs_a_k_squared_ladder_from_150() -> void:
-	var nerve := _nerve()
-	assert_int(nerve.cost.size()).is_equal(NERVE_COST.size())
-	for k in range(NERVE_COST.size()):
-		assert_int(int(nerve.cost[k])).is_equal(int(NERVE_COST[k]))
-		assert_int(int(nerve.cost[k])).is_equal((k + 1) * (k + 1) * 150)
-	# under every talent but the Stakes (the gold-and-challenge one)
-	for td: TalentDef in Registry.talents.values():
-		if td.id == "nerve":
-			continue
-		if td.id == "spite":
-			assert_int(td.first_price()).is_less(nerve.first_price())
-		else:
-			assert_int(td.first_price()).override_failure_message(td.id).is_greater(nerve.first_price())
-
-
-func test_the_board_lists_nerve_second() -> void:
-	var list := Registry.talents_list()
-	var ids: Array = []
-	for td: TalentDef in list:
-		ids.append(td.id)
-	assert_array(ids).is_equal(BOARD)
-	for k in range(list.size()):
-		assert_int((list[k] as TalentDef).order).override_failure_message((list[k] as TalentDef).id).is_equal(k + 1)
-
-
-# ---------------------------------------------------------------- 4. an older save's Nerve ranks
-
-func test_an_older_saves_nerve_ranks_stay_and_the_overpaid_gold_comes_back_once() -> void:
-	Save.data["gold"] = 100
-	Save.data["talents"] = {"nerve": {"picks": [1, 0, 1]}, "grit": {"picks": [0]}}
-	Save.data["talent_spent"] = 500 + 900 + 1500 + 450
-	var back: int = Save._migrate_nerve()
-	# counted at pass 88's prices against the new ones: (500-150) + (900-600) + (1500-1350)
-	assert_int(back).is_equal(350 + 300 + 150)
-	assert_int(Save.gold()).is_equal(100 + 800)
-	assert_int(Save.talent_spent()).is_equal(500 + 900 + 1500 + 450 - 800)
-	# the ranks stay, in the forms they were bought
-	assert_array(Save.talent_picks("nerve")).is_equal([1, 0, 1])
-	assert_int(Save.talent_rank("grit")).is_equal(1)
-	assert_str(str(Save.nerve_note().get("kind", ""))).is_equal("nerve_refund")
-	assert_array(HS.nerve_words(Save.nerve_note())).is_equal(["NERVE COSTS LESS NOW", "+800 GOLD BACK FOR 3 RANKS",
-		"SECOND WIND: REVIVE HEALTH"])
-	# once
-	assert_int(Save._migrate_nerve()).is_equal(0)
-	assert_int(Save.gold()).is_equal(900)
-	Save.clear_nerve_note()
-	assert_bool(Save.nerve_note().is_empty()).is_true()
-
-
-func test_a_refund_never_passes_what_the_board_cost() -> void:
-	# a board a tool set (nothing spent): the ranks stay, nothing comes back, Second Wind's change is still said
-	Save.data["gold"] = 0
-	Save.data["talents"] = {"nerve": {"picks": [1, 1]}}
-	Save.data["talent_spent"] = 0
-	assert_int(Save._migrate_nerve()).is_equal(0)
-	assert_int(Save.gold()).is_equal(0)
-	assert_array(HS.nerve_words(Save.nerve_note())).is_equal(["SECOND WIND: REVIVE HEALTH"])
-	# ranks 4-6 cost more now than at pass 88's prices: they bring nothing back, never a negative
-	Save.data = Save._default()
-	Save.data["talents"] = {"nerve": {"picks": [0, 0, 0, 0, 0, 0]}}
-	Save.data["talent_spent"] = 100000
-	assert_int(Save._migrate_nerve()).is_equal(350 + 300 + 150)
-	assert_array(HS.nerve_words(Save.nerve_note())).is_equal(["NERVE COSTS LESS NOW", "+800 GOLD BACK FOR 6 RANKS"])
-
-
-func test_a_new_save_and_a_nerve_rank_bought_now_are_never_paid_back() -> void:
-	assert_int(Save._migrate_nerve()).is_equal(0)
-	assert_bool(Save.once(Save.NERVE_ONCE)).is_true()
-	assert_bool(Save.nerve_note().is_empty()).is_true()
-	# a save wiped since its load: buying a Nerve rank marks it, so the next load keeps the rank and its price
-	Save.data = Save._default()
-	Save.add_gold(100000)
-	assert_bool(Save.buy_talent(_nerve(), 1)).is_true()
-	assert_int(Save.talent_spent()).is_equal(150)
-	assert_bool(Save.once(Save.NERVE_ONCE)).is_true()
-	assert_int(Save._migrate_nerve()).is_equal(0)
-	assert_int(Save.talent_rank("nerve")).is_equal(1)
+	assert_float(q.revive_share(true)).is_equal_approx(clampf(maxf(0.4 + more, 0.5), 0.0, 1.0), 0.0001)

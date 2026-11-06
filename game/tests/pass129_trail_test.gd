@@ -104,11 +104,11 @@ func test_a_trail_without_nodes_changes_nothing() -> void:
 		assert_bool(str(en["sid"]).begins_with("trail:")).is_false()
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
 	assert_int(Run.run_gold).is_equal(0)
-	# and the migration waits: nothing refunded, nothing flagged
+	# and the migration waits: nothing refunded, nothing flagged, the old board's keys still in the save
 	Save.data["talent_spent"] = 900
 	assert_int(Save._migrate_trail()).is_equal(0)
 	assert_bool(Save.once(Trail.ONCE)).is_false()
-	assert_int(Save.talent_spent()).is_equal(900)
+	assert_int(int(Save.data["talent_spent"])).is_equal(900)
 
 
 # ---------------------------------------------------------------- the file and the prices
@@ -586,7 +586,14 @@ func test_the_run_record_carries_the_trail() -> void:
 	assert_int(int(r["spent"])).is_equal(90)
 	assert_float(float((r["upgrades"] as Dictionary)["might"])).is_equal_approx(0.08, 0.00001)
 	var src := FileAccess.get_file_as_string("res://core/systems/RunAnalytics.gd")
-	assert_str(src).contains("header[\"trail\"] = Trail.record()")
+	# pass 129 (lane TRAIL-REMOVE, schema 6): the header's block is Trail.record() plus the Trail's size and the bought
+	# types' words (RunAnalytics.trail_block)
+	assert_str(src).contains("header[\"trail\"] = RunAnalytics.trail_block()")
+	var blk := RunAnalytics.trail_block()
+	assert_array(blk["bought"]).contains_exactly(["n1", "n2a"])
+	assert_int(int(blk["levels"])).is_equal(Trail.levels())
+	assert_int(int(blk["nodes"])).is_equal(Trail.nodes().size())
+	assert_str(str(blk["types"]["might"]["name"])).is_equal(str(Trail.upgrade("might")["name"]))
 	assert_bool(RunAnalytics.INDEX_SKIP.has("trail")).is_true()
 	assert_bool(RunAnalytics.META_REASONS.has("trail")).is_true()
 
@@ -681,11 +688,11 @@ func test_the_migration_refunds_the_board_and_keeps_what_the_save_has() -> void:
 	Registry.quests.erase("unlock_hammer")
 	Registry.quests.erase("unlock_sabre")
 	assert_int(Save._migrate_trail()).is_equal(1234)
-	# every coin back in full, the ranks cleared, the note for the toast
+	# every coin back in full, the old board's keys gone from the save (pass 129: nothing else reads them), the note
+	# for the toast
 	assert_int(Save.gold()).is_equal(1334)
-	assert_int(Save.talent_spent()).is_equal(0)
-	assert_dict(Save.data["talents"]).is_empty()
-	assert_int(Save.talent_rank("drive")).is_equal(0)
+	for k: String in ["talents", "talent_spent", "talent_spent_in"]:
+		assert_bool(Save.data.has(k)).override_failure_message("the save still has " + k).is_false()
 	var note := Save.board_note()
 	assert_str(str(note["kind"])).is_equal("trail_refund")
 	assert_int(int(note["gold"])).is_equal(1234)
@@ -716,7 +723,8 @@ func test_the_migration_refunds_the_board_and_keeps_what_the_save_has() -> void:
 	assert_bool(Save.once(Trail.ONCE)).is_true()
 	Save.data["talent_spent"] = 500
 	assert_int(Save._migrate_trail()).is_equal(0)
-	assert_int(Save.talent_spent()).is_equal(500)
+	assert_int(int(Save.data["talent_spent"])).is_equal(500)
+	assert_int(Save.gold()).is_equal(1334)
 
 
 func test_a_new_save_keeps_nothing_and_meets_every_gate() -> void:
@@ -740,7 +748,7 @@ func test_a_wiped_save_is_a_new_one_to_the_trail() -> void:
 	Save.data["talent_spent"] = 700
 	assert_int(Save._migrate_trail()).is_equal(0)
 	assert_array(Save.trail_had()).is_empty()
-	assert_int(Save.talent_spent()).is_equal(700)
+	assert_int(int(Save.data["talent_spent"])).is_equal(700)
 	assert_bool(Trail.has("weapon", "molotov")).is_false()
 	# with no nodes a wipe flags nothing: the migration still waits for them
 	Trail.load_from(EMPTY)

@@ -157,18 +157,6 @@ func test_a_heros_items_are_hidden_until_he_is_owned() -> void:
 
 # ---------------------------------------------------------------- 3. Thorns
 
-## Pass 88 (lane MIRROR, re-pinned on purpose): the Upgrade board's Thorns form is gone (Spite is Stakes: Difficulty and
-## Boss, game/tests/pass88_mirror_test.gd); thorns stay on the passive items (Bristle), at most one burst a cooldown.
-func test_the_upgrade_board_has_no_thorns_form_any_more() -> void:
-	var td: TalentDef = Registry.talent("spite")
-	assert_object(td).is_not_null()
-	for form in range(2):
-		assert_str(td.form_name(form)).is_not_equal("Thorns")
-		for x: Effect in td.effects_for(form, td.max_rank()):
-			assert_str(x.stat).is_not_equal("thorns")
-	assert_float(Game.THORNS_COOLDOWN).is_equal_approx(0.5, 0.001)
-
-
 func test_thorns_strike_once_a_cooldown_and_are_recorded() -> void:
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify({"weapon": "revolver", "level": 1, "character": "drifter", "map": "red_canyon", "map_seed": 11, "analytics": false}))

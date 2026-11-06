@@ -326,7 +326,9 @@ func test_the_results_under_royale() -> void:
 	for b in r.find_children("*", "WButton", true, false):
 		words[(b as WButton).label_text()] = (b as WButton).role
 	assert_str(str(words.get("PLAY AGAIN", ""))).is_equal("gold")
-	assert_str(str(words.get("UPGRADE", ""))).is_equal("blue")
+	# pass 129: the button to the Trail (the Upgrade board's UPGRADE until the board left the game)
+	assert_str(str(words.get("TRAIL", ""))).is_equal("blue")
+	assert_bool(words.has("UPGRADE")).is_false()
 	assert_str(str(words.get("MAIN MENU", ""))).is_equal("slate")
 	assert_float(r.backdrop_dim()).is_equal(RESULTS.ROYALE_BACKDROP_DIM)
 	# the stamp under Royale is the kit's tag, landing as WStamp does

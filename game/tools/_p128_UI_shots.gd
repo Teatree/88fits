@@ -7,9 +7,9 @@
 ##       --script res://tools/_p128_UI_shots.gd -- out=<dir> [before=1] [only=heroes,mirror,settings,stages,collection,shop,results]
 extends SceneTree
 
-const SCREENS := [["heroes", "res://ui/HeroesScreen.tscn"], ["mirror", "res://ui/HomesteadScreen.tscn"],
+const SCREENS := [["heroes", "res://ui/HeroesScreen.tscn"], ["trail", "res://ui/TrailScreen.tscn"],
 	["settings", "res://ui/SettingsScreen.tscn"], ["stages", "res://ui/StagesScreen.tscn"],
-	["collection", "res://ui/CollectionScreen.tscn"], ["shop", "res://ui/ShopScreen.tscn"], ["results", "res://ui/ResultsScreen.tscn"]]
+	["collection", "res://ui/CollectionScreen.tscn"], ["results", "res://ui/ResultsScreen.tscn"]]
 ## how far each screen is scrolled for its extra shots (px)
 const SCROLLS := {"heroes": [40, 90, 160], "results": [60], "settings": [40]}
 var _out := "user://p128_ui_shots"

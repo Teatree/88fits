@@ -5,7 +5,7 @@ extends GdUnitTestSuite
 ## frames a second above it with the step unchanged, the composition with the game's own time scale, step one second,
 ## run to the next level-up, the drawing gate, the measured speed), the ring buffer, the charts' scaling and bucketing,
 ## the derived numbers (Danger, Keeping up), the real DPS change 30 s after a decision, the decision log as CSV, the
-## board's talents from the command line and the Sim's average read from a result.json.
+## Sim's average read from a result.json (the board's talents from the command line left with the Upgrade board, pass 129).
 
 const CLOCK := preload("res://tools/watch/WatchClock.gd")
 const DATA := preload("res://tools/watch/WatchData.gd")
@@ -380,24 +380,6 @@ func test_decision_log_csv() -> void:
 
 
 # ---------------------------------------------------------------- the command line
-
-func test_talents_from_the_command_line() -> void:
-	var known := ["grit", "drive", "study"]
-	var t: Dictionary = WATCH.talents_from("grit:AAB,drive:A", known)
-	assert_array(t["grit"]["picks"]).is_equal([0, 0, 1])
-	assert_int(int(t["grit"]["rank"])).is_equal(3)
-	assert_int(int(t["grit"]["form"])).is_equal(1)
-	assert_int(int(t["drive"]["rank"])).is_equal(1)
-	assert_bool(WATCH.talents_from("none", known).is_empty()).is_true()
-	assert_bool(WATCH.talents_from("", known).is_empty()).is_true()
-	assert_bool(WATCH.talents_from("nope:A", known).has("error")).is_true()
-	assert_bool(WATCH.talents_from("grit:AAAAAAA", known).has("error")).is_true()
-	assert_bool(WATCH.talents_from("grit:AXB", known).has("error")).is_true()
-	assert_that(WATCH.typed_value("0.6")).is_equal(0.6)
-	assert_that(WATCH.typed_value("3")).is_equal(3)
-	assert_that(WATCH.typed_value("off")).is_equal(false)
-	assert_that(WATCH.typed_value("greedy")).is_equal("greedy")
-
 
 func test_the_sims_average_from_a_result() -> void:
 	var doc := {"t": [0, 1, 2], "series": {"dps": {"mean": [0.0, 10.0, null]}, "hp": {"mean": [100, 90, 80]},

@@ -7,7 +7,8 @@
 ## godot --audio-driver Dummy --resolution 1080x1920 --path game --script res://tools/touch_audit.gd [-- only=settings,pause]
 ## Screens: title (and its hero swipe), settings, dev (the 2 s hold on the version line, then the developer menu),
 ## collection, collection_page (a weapon's page, and the Peashooter's with a hero's mutation in its rows), collection_pages
-## (every item's page opens whole), mirror, mirror_sheet, spawn (the beam's skip tap, pass 45), then in a run hud, pause,
+## (every item's page opens whole), trail (the Trail screen; the Upgrade board's mirror, mirror_sheet, mirror_confirm and
+## upgrade_buy left with the board in pass 129), spawn (the beam's skip tap, pass 45), then in a run hud, pause,
 ## cards, debug_hand, resume_gate, chest (pass 46: a tap while the chest opens has to skip to the spin), portal,
 ## stranger, shop, revive (with the player's debug mode on, so the last hits and their buttons on Down! are tapped; pass
 ## 46 moved them there from Results), results, arena.
@@ -532,25 +533,6 @@ func _run() -> void:
 		await _collection_pages()
 	if _want("collection_royale"):
 		await _collection_royale_audit()
-	await _screen("mirror", "res://ui/HomesteadScreen.tscn")
-	if _want("mirror"):
-		# the refund asks only with ranks on the board: lend the save some spend, in memory, and take it back after
-		var save = root.get_node("Save")
-		var was: int = int(save.data.get("talent_spent", 0))
-		save.data["talent_spent"] = maxi(was, 100)
-		current_scene._refresh()
-		await _frames(2)
-		await _confirm_audit("mirror_confirm", current_scene, func(): current_scene._take_back())
-		save.data["talent_spent"] = was
-	if _want("mirror_sheet"):
-		change_scene_to_file("res://ui/HomesteadScreen.tscn")
-		await _wait(1.2)
-		var reg = root.get_node("Registry")
-		current_scene._open(reg.talents_list()[0])
-		await _wait(0.6)
-		await _audit("mirror_sheet", current_scene._sheet_root)
-	if _want("upgrade_buy"):
-		await _upgrade_buy()
 	if _want("spawn"):
 		await _spawn_skip()
 	if _want("stages") or _want("stages_play"):
@@ -3388,9 +3370,13 @@ func _heroes_audit() -> void:
 	var save = root.get_node("Save")
 	var reg = root.get_node("Registry")
 	var kept := {}
-	for k in ["gold", "heroes_owned", "quests_done", "skins_owned", "skin_worn", "hero_look", "last_character"]:
+	# pass 129: the Trail lent too (nothing bought, nothing had before it), so an outlaw a Trail node gives is locked
+	# whatever the PC's save holds (Fadeaway below: LOCKED was "owned" on a save that had him before the Trail)
+	for k in ["gold", "heroes_owned", "quests_done", "skins_owned", "skin_worn", "hero_look", "last_character", "trail"]:
 		var v = save.data.get(k)
 		kept[k] = v.duplicate(true) if (v is Array or v is Dictionary) else v
+	save.data["trail"] = {"bought": [], "spent": 0, "had": []}
+	load("res://core/systems/Trail.gd").refresh()
 	var may = reg.character("may")
 	var may_kept: Dictionary = (may.variants as Dictionary).duplicate(true)
 	for code in may.variants.keys():
@@ -3536,6 +3522,7 @@ func _heroes_audit() -> void:
 	may.variants = may_kept
 	for k in kept.keys():
 		save.data[k] = kept[k]
+	load("res://core/systems/Trail.gd").refresh()
 
 
 ## Pass 126 (lane UI; Garry: "Lock the Heroes select at the bottom as a separate scrollable area, the top part should be it's own
@@ -3610,104 +3597,6 @@ func _heroes_tap_tile(s, id: String) -> void:
 		return
 	await _tap(await _spot(t))
 	await _wait(0.45)
-
-
-## Pass 123 (lane UPGRADE): upgrade_buy (run alone with only=upgrade_buy): the Upgrade board under real fingers, the
-## save's talents and purse lent in memory and put back after: a tap on Grit's CHOOSE opens its choice; the pop-up's green
-## BUY in each option buys the next rank in that option for its price; a tap on the dim closes the choice; RESET UPGRADES
-## asks, its KEEP THEM keeps every rank, and asked again its deed takes the board back for half.
-func _upgrade_buy() -> void:
-	var save = root.get_node("Save")
-	var reg = root.get_node("Registry")
-	var kept := {}
-	for k in ["gold", "talents", "talent_spent", "talent_spent_in"]:
-		var v = save.data.get(k)
-		kept[k] = v.duplicate(true) if v is Dictionary else v
-	var def = reg.talent("grit")
-	save.data["talents"] = {}
-	save.data["talent_spent"] = 0
-	save.data["talent_spent_in"] = {}
-	save.data["gold"] = int(def.cost_of_rank(0)) + int(def.cost_of_rank(1)) + 1000
-	change_scene_to_file("res://ui/HomesteadScreen.tscn")
-	await _wait(1.2)
-	var hs = current_scene
-	var tile: Control = hs._grid.get_node_or_null("Talent_grit")
-	var opener: Control = null
-	if tile:
-		opener = tile.find_child("Choose", true, false)
-	var at := Vector2.INF
-	if opener:
-		at = await _spot(opener)
-	if at != Vector2.INF:
-		await _tap(at)
-		await _wait(0.6)
-	var opened: bool = hs._sheet_root != null and is_instance_valid(hs._sheet_root)
-	_count("upgrade_buy", opened)
-	if not opened:
-		_fail("upgrade_buy", "Grit's CHOOSE", "a real tap did not open its choice")
-	else:
-		for form in [0, 1]:
-			var gold_was := int(save.data["gold"])
-			var cost := int(def.cost_of_rank(int(save.talent_rank("grit"))))
-			var b: Control = hs._sheet_root.find_child("Buy%d" % form, true, false)
-			var at2 := Vector2.INF
-			if b:
-				at2 = await _spot(b)
-			if at2 != Vector2.INF:
-				await _tap(at2)
-				await _wait(0.4)
-			var picks: Array = save.talent_picks("grit")
-			var bought: bool = picks.size() == form + 1 and int(picks.back()) == form and int(save.data["gold"]) == gold_was - cost
-			_count("upgrade_buy", bought)
-			if not bought:
-				_fail("upgrade_buy", "Buy%d" % form, "a real tap did not buy rank %d in option %d (picks %s)" % [form + 1, form, str(picks)])
-		# the dim above the card closes the choice
-		var dim: Control = hs._sheet_root.find_child("Dim", true, false)
-		if dim and dim.has_meta("tap_at"):
-			await _tap(dim.get_global_transform() * (dim.get_meta("tap_at") as Vector2))
-			await _wait(0.5)
-		var shut: bool = hs._sheet_root == null
-		_count("upgrade_buy", shut)
-		if not shut:
-			_fail("upgrade_buy", "the choice's dim", "a real tap did not close it")
-			hs._close(false)
-			await _wait(0.3)
-	# RESET UPGRADES asks; KEEP THEM keeps; its deed refunds half
-	var reset: Control = hs.get("_reset")
-	for deed in [false, true]:
-		var back := int(save.talent_refund())
-		var gold_was2 := int(save.data["gold"])
-		var at3 := Vector2.INF
-		if reset:
-			at3 = await _spot(reset)
-		if at3 != Vector2.INF:
-			await _tap(at3)
-			await _wait(0.5)
-		var ask: Node = null
-		for n in hs.get_children():
-			if _is_kit(n, "WConfirm") and not bool(n.get("_done")):
-				ask = n
-		_count("upgrade_buy", ask != null)
-		if ask == null:
-			_fail("upgrade_buy", "RESET UPGRADES", "a real tap did not ask")
-			break
-		var btn: Control = ask.find_child("Confirm" if deed else "Cancel", true, false)
-		if btn:
-			await _tap(btn.get_global_rect().get_center())
-			await _wait(0.5)
-		var picks2: Array = save.talent_picks("grit")
-		var ok2: bool
-		if deed:
-			ok2 = picks2.is_empty() and int(save.data["gold"]) == gold_was2 + back and int(save.data.get("talent_spent", 0)) == 0
-		else:
-			ok2 = picks2.size() == 2 and int(save.data["gold"]) == gold_was2
-		_count("upgrade_buy", ok2)
-		if not ok2:
-			_fail("upgrade_buy", "Confirm" if deed else "Cancel", "the board after it: picks %s, gold %d" % [str(picks2), int(save.data["gold"])])
-		if is_instance_valid(ask) and not bool(ask.get("_done")):
-			ask.call("cancel")
-	for k in kept.keys():
-		save.data[k] = kept[k]
 
 
 ## Pass 123 (lane RUN_C): the mutation offer with the stage's skips spent: a real finger on its SKIP is refused (the

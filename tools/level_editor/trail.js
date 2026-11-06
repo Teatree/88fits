@@ -292,21 +292,22 @@ const Trail = (() => {
   function levelGroup(l) {
     const { ix, lay, st, from, by, byLevel } = S.d;
     const rail = el('div', {}), tile = el('div', {});
-    const y = lay.rowY(l);
     const lvIssues = byLevel.get(l) || [];
-    tile.appendChild(el('div', { class: 'trl-diamond' + (lvIssues.length ? (lvIssues.some((x) => x.sev === 'error') ? ' err' : ' warn') : '') + (l <= st.level ? ' lit' : ''), style: `left:${lay.diamondX}px;top:${y}px`, title: lvIssues.map((x) => x.text).join('\n') || `level ${l}`, onclick: () => scrollToLevel(l) }, el('span', { text: String(l) })));
+    // the level's diamond as the game draws it (M.diamondOf): smaller and lifted over a row whose leftmost tile reaches it
+    const dm = M.diamondOf(ix, lay, l), ds = Math.round((dm.d + 6) * Math.SQRT2);
+    tile.appendChild(el('div', { class: 'trl-diamond' + (dm.lifted ? ' small' : '') + (lvIssues.length ? (lvIssues.some((x) => x.sev === 'error') ? ' err' : ' warn') : '') + (l <= st.level ? ' lit' : ''), style: `left:${dm.x}px;top:${dm.y}px;width:${ds}px;height:${ds}px;margin:${-ds / 2}px 0 0 ${-ds / 2}px`, title: lvIssues.map((x) => x.text).join('\n') || `level ${l}`, onclick: () => scrollToLevel(l) }, el('span', { style: `font-size:${dm.px}px`, text: String(l) })));
+    // the rails as right-angled elbows (M.rails): each run's navy edge, then its fill (trail.css stacks edges, dark, lit)
+    for (const r of M.rails(ix, from, lay, l, st.state)) {
+      for (const b of r.runs) {
+        rail.appendChild(el('div', { class: 'trl-rail-edge', style: `left:${b.x - 4}px;top:${b.y - 4}px;width:${b.w + 8}px;height:${b.h + 8}px` }));
+        rail.appendChild(el('div', { class: 'trl-rail' + (b.w < b.h ? ' up' : '') + (r.lit ? ' lit' : '') + (r.shut ? ' shut' : ''), style: `left:${b.x}px;top:${b.y}px;width:${b.w}px;height:${b.h}px` }));
+      }
+    }
     const list = ix.byLevel.get(l) || [];
     for (const n of list) {
       const p = lay.nodes[n.id];
       if (!p || ix.byId.get(n.id) !== n) continue;
       const state = st.state[n.id] || 'locked';
-      for (const fid of M.railIds(ix, from, n.id, (x) => st.state[x] === 'closed')) {
-        const q = lay.nodes[fid];
-        if (!q) continue;
-        const dx = p.x - q.x, dy = p.y - q.y, len = Math.hypot(dx, dy), h = n.kind === 'optional' ? 12 : lay.rail;
-        const lit = state === 'bought' && st.state[fid] === 'bought';
-        rail.appendChild(el('div', { class: 'trl-rail' + (lit ? ' lit' : '') + (state === 'closed' || st.state[fid] === 'closed' ? ' shut' : ''), style: `left:${q.x}px;top:${q.y - h / 2}px;width:${len}px;height:${h}px;transform:rotate(${Math.atan2(dy, dx)}rad)` }));
-      }
       const gift = giftOf(n);
       const iss = by.get(n.id) || [];
       const u = n.gives && n.gives.type === 'upgrade' ? S.doc.upgrades[n.gives.upgrade] : null;
@@ -322,16 +323,12 @@ const Trail = (() => {
       el('span', { class: 'trl-cap' }, el('b', { text: cap }), S.showPrices ? el('i', { text: fmtGold(M.priceOf(S.doc, n)) }) : null));
       tile.appendChild(t);
     }
-    // a choice group's bar with its lock marks
-    const seen = new Set();
-    for (const n of list) {
-      if (n.kind !== 'choice' || n.group == null || seen.has(String(n.group))) continue;
-      seen.add(String(n.group));
-      const xs = list.filter((m) => m.kind === 'choice' && String(m.group) === String(n.group) && lay.nodes[m.id]).map((m) => lay.nodes[m.id].x).sort((a, b) => a - b);
-      if (xs.length < 2) continue;
-      rail.appendChild(el('div', { class: 'trl-bar-choice', style: `left:${xs[0]}px;top:${y - 9}px;width:${xs[xs.length - 1] - xs[0]}px` }));
-      for (let i = 0; i + 1 < xs.length; i++) tile.appendChild(el('div', { class: 'trl-lock', style: `left:${(xs[i] + xs[i + 1]) / 2}px;top:${y}px`, title: `choice ${n.group}: one may be taken` },
-        svg('svg', { viewBox: '0 0 16 16', width: 26, height: 26 }, svg('path', { d: 'M4.5 7V5a3.5 3.5 0 0 1 7 0v2h1v7h-9V7zm1.600 0h3.800V5a1.900 1.900 0 0 0-3.800 0z', fill: 'currentColor' }))));
+    // a choice group's bar, and between each pair of members an OR on a gold pill until one is bought, then a padlock on
+    // slate (M.choiceMarks)
+    for (const g of M.choiceMarks(ix, lay, l, st.state)) {
+      rail.appendChild(el('div', { class: 'trl-bar-choice' + (g.taken ? ' taken' : ''), style: `left:${g.bar.x0}px;top:${g.bar.y}px;width:${g.bar.x1 - g.bar.x0}px` }));
+      for (const m of g.marks) tile.appendChild(el('div', { class: `trl-or ${m.kind}`, style: `left:${m.x}px;top:${m.y}px;width:${m.w}px;height:${m.h}px`, title: m.kind === 'lock' ? `choice ${g.group}: one was taken, the others are closed` : `choice ${g.group}: one may be taken` },
+        m.kind === 'lock' ? svg('svg', { viewBox: '3.5 1.5 9 12.5', width: 18, height: 23 }, svg('path', { d: 'M4.5 7V5a3.5 3.5 0 0 1 7 0v2h1v7h-9V7zm1.600 0h3.800V5a1.900 1.900 0 0 0-3.800 0z', fill: 'currentColor' })) : el('span', { text: 'OR' })));
     }
     return { rail, tile };
   }
@@ -769,7 +766,7 @@ const Trail = (() => {
     R = { rows: new Map() };
     R.bar = el('div', { class: 'trl-top' });
     R.lbar = el('div', { class: 'trl-lbar' });
-    R.motifs = el('div', { class: 'trl-layer' }); R.dark = el('div', { class: 'trl-dark' }); R.rails = el('div', { class: 'trl-layer' }); R.plates = el('div', { class: 'trl-layer' }); R.tiles = el('div', { class: 'trl-layer' });
+    R.motifs = el('div', { class: 'trl-layer' }); R.dark = el('div', { class: 'trl-dark' }); R.rails = el('div', { class: 'trl-layer trl-rails' }); R.plates = el('div', { class: 'trl-layer' }); R.tiles = el('div', { class: 'trl-layer' });
     R.track = el('div', { class: 'trl-track' }, R.motifs, R.dark, R.rails, R.plates, R.tiles);
     R.sizer = el('div', { class: 'trl-sizer' }, R.track);
     R.view = el('div', { class: 'trl-view' }, R.sizer);

@@ -203,7 +203,7 @@ func test_a_track_of_500_levels_keeps_only_the_tiles_near_the_view() -> void:
 	assert_int(s._track.get_child_count()).is_less(16)
 
 
-func test_the_tab_is_the_trails_once_it_has_nodes() -> void:
+func test_the_tab_is_the_trails() -> void:
 	assert_str(TabBarScript.word_of("upgrade")).is_equal("TRAIL")
 	assert_str(TabBarScript.scene_of("upgrade")).is_equal(SCENE)
 	_have([], 0)
@@ -227,10 +227,11 @@ func test_the_tab_is_the_trails_once_it_has_nodes() -> void:
 	Trail.refresh()
 	bar.call("refresh")
 	assert_bool((bar.get_node("UpgradeMark") as Control).visible).is_true()
-	# an empty Trail leaves the Upgrade board's tab as it was
+	# pass 129 (lane TRAIL-REMOVE): the Upgrade board is gone, so the tab is the Trail's whatever the file holds
 	Trail.load_from("res://tests/fixtures/trail_empty.json")
-	assert_str(TabBarScript.word_of("upgrade")).is_equal("UPGRADE")
-	assert_str(TabBarScript.scene_of("upgrade")).is_equal("res://ui/HomesteadScreen.tscn")
+	assert_str(TabBarScript.word_of("upgrade")).is_equal("TRAIL")
+	assert_str(TabBarScript.scene_of("upgrade")).is_equal(SCENE)
+	assert_bool(ResourceLoader.exists("res://ui/HomesteadScreen.tscn")).is_false()
 
 
 func test_a_requirement_line_opens_the_trail_and_back_returns_to_the_outlaw() -> void:

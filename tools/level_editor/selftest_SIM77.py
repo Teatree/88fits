@@ -92,6 +92,7 @@ process.stdin.on('end', () => {
   out.eta = q.eta.map((e) => M.etaSeconds(e.s, e.speed, e.cores, e.sync));
   out.smooth = M.smooth([10, 0, 0, 0, 0, 10, null, 4, 4], 5);
   out.settingsLine = M.settingsLine({ players: 10, limit: 1500, board: 1.5, death: 'gold', seed: 3, hero: 'drifter' }, 'Drifter');
+  out.trailLine = M.settingsLine({ players: 6, limit: 600, trail: 'half', death: 'end', seed: 2, hero: 'drifter' }, 'Drifter');
   out.fastLine = M.settingsLine({ players: 2, limit: 120, board: 0, death: 'end', seed: 1, hero: 'drifter', fast: false }, 'Drifter');
   out.fastClean = [M.cleanSettings({}).settings.fast, M.cleanSettings({ fast: false }).settings.fast, M.cleanSettings({ fast: 'off' }).settings.fast, M.cleanSettings({ fast: true }).settings.fast];
   out.sections = M.SECTIONS.map((x) => x.id);
@@ -103,9 +104,16 @@ process.stdin.on('end', () => {
   const dg = defs.find((c) => c.id === 'hp5');
   const rg = M.chartRange(dg);
   out.range = [rg.lo, rg.hi, M.yTicksRange(rg.lo, rg.hi, 5)];
-  out.board = [M.setRank('AAB', 2), M.setRank('AB', 4), M.setRank('', 3, 1), M.picksWords('AAB', [{ name: 'Padding' }, { name: 'Plate' }]),
-    M.boardWords({ talents: { grit: 'AA', study: 'BB' }, board: -1, board_label: 'my save' }), M.boardRanks({ grit: 'AAB', drive: 'A' }),
-    (M.presetOf({ grit: 'AA' }, [{ key: 'x', talents: { grit: 'AA' } }]) || {}).key, M.presetOf({ grit: 'A' }, [{ key: 'x', talents: { grit: 'AA' } }])];
+  // pass 129: the Trail's maths (the Upgrade board editor's until the board left the game)
+  out.board = [M.trailLevelOf('quarter', 70), M.trailLevelOf('half', 70), M.trailLevelOf('36', 70), M.trailLevelOf('zz', 70),
+    M.trailWords({ trail: 'quarter' }, 70), M.trailWords({ trail: '36', trail_optional: true }, 70), M.trailWords({ trail: 'none', trail_optional: true }, 70),
+    M.trailWords({ board: 1.5 }), M.trailWords({ board: -1, board_label: 'my save' }), M.trailWords({ trail: 'half' }),
+    M.cleanSettings({ trail: 'zz' }).problems.length, M.cleanSettings({ trail: 'FULL', trail_optional: '1' }).settings.trail,
+    M.cleanSettings({ trail: 'full', trail_optional: '1' }).settings.trail_optional, M.cleanSettings({}).settings.trail];
+  // settings kept from the board's days laid over the defaults: the old `board` picks the Trail, the default does not
+  out.oldForm = [Object.assign({}, M.DEFAULTS, M.trailOfOld({ board: 6, talents: { grit: 'AAAAAA' } })).trail,
+    Object.assign({}, M.DEFAULTS, M.trailOfOld({ board: 0 })).trail, Object.assign({}, M.DEFAULTS, M.trailOfOld({ board: 2 })).trail,
+    Object.assign({}, M.DEFAULTS, M.trailOfOld({ board: 6, trail: '12' })).trail, M.trailOfOld(null)];
   out.secTicks = [M.tickLabel(150, 150, 'sec'), M.tickLabel(50, 100, 'sec'), M.fmtVal(1.234, 'pct1'), M.fmtVal(1.4, 'mult')];
   // a partial result (5 of 10 runs in): the share of runs playing is of the 5, not of the 10 asked for
   const part = Object.assign({}, q.res, { settings: Object.assign({}, q.res.settings, { players: 10 }) });
@@ -221,25 +229,43 @@ def _agg_checks(check, SB, tmp):
 
 def _round2_checks(check, SB, tmp):
     import locks
-    # the board talent by talent
-    # pass 88 (lane MIRROR): Spite is Stakes (Difficulty / Boss), which no preset buys (SB.PRESET_SKIP)
-    check(SB.board_talents(1.5) == {"grit": "AA", "drive": "A", "stride": "AA", "fortune": "A", "choice": "AA", "nerve": "B", "study": "BB"}
-          and SB.board_ranks(SB.board_talents(1.5)) == 11 and SB.board_ranks(SB.board_talents(6)) == 42 and SB.board_talents(0) == {},
-          "r2: the presets as difficulty_probe's FORMS and rank_for, Stakes left out (a quarter = 11 of 48 ranks)")
-    t, p = SB.clean_talents("grit:AAB,drive:1,nerve:2:B")
-    check(t == {"grit": "AAB", "drive": "B", "nerve": "BB"} and not p, "r2: the talents' text in its three shapes: %s %s" % (t, p))
-    t, p = SB.clean_talents({"grit": {"picks": [0, 1, 0]}, "study": {"rank": 2, "form": 1}, "spite": [1, 1], "stride": 3})
-    check(t == {"grit": "ABA", "stride": "AAA", "study": "BB", "spite": "BB"}, "r2: the save's shapes read (picks, rank+form, a list, a rank): %s" % t)
-    t, p = SB.clean_talents({"nope": "A", "grit": "AAAAAAA", "drive": "XYZ"})
-    check(len(p) == 3 and t == {"grit": "AAAAAA"}, "r2: an unknown talent, more than 6 ranks and bad letters are problems: %s" % p)
-    check(SB.talents_arg({"study": "BB", "grit": "A"}) == "grit:A,study:BB" and SB.talents_arg({}) == "none", "r2: the arg in the talents' order")
-    check(SB.preset_of(SB.board_talents(3)) == "half" and SB.preset_of({"grit": "B"}) is None, "r2: a board equal to a preset is that preset")
-    s, _ = SB.clean_settings({"talents": {"grit": "AB"}, "board_label": "my save"})
-    check(s["board"] == -1.0 and s["board_label"] == "my save" and s["talents"] == {"grit": "AB"}, "r2: a custom board: board -1, its label kept")
-    s, _ = SB.clean_settings({"talents": SB.board_talents(6)})
-    check(s["board"] == 6.0 and s["board_label"] == "full", "r2: talents equal to a preset name it")
-    s, _ = SB.clean_settings({"talents": {}, "board": 3})
-    check(s["talents"] == SB.board_talents(3), "r2: an empty board means the preset board= names (a job spec's default {})")
+    # pass 129: the Trail the players' saves hold (the Upgrade board talent by talent until the board left the game)
+    nodes = SB.trail_nodes()
+    levels = SB.trail_levels(nodes)
+    check(levels >= 10 and [SB.trail_level_of(a, 70) for a in ("none", "quarter", "half", "full", "36", "999", "-3", "zz")] == [0, 18, 35, 70, 36, 70, 0, None],
+          "p129: the Trail's presets are shares of its levels rounded half up, a number a level inside 0..levels (%d levels)" % levels)
+    check([SB.board_to_trail(v, 70) for v in (0, 1.5, 3, 6, "full", 2, 9)] == ["none", "quarter", "half", "full", "full", "23", "full"],
+          "p129: an old --board value plays the same share of the Trail")
+    fx = [{"id": "a", "level": 1, "kind": "node", "group": "", "gives": {}}, {"id": "b1", "level": 2, "kind": "choice", "group": "g", "gives": {}},
+          {"id": "b2", "level": 2, "kind": "choice", "group": "g", "gives": {}}, {"id": "o", "level": 2, "kind": "optional", "group": "", "gives": {}},
+          {"id": "c1", "level": 3, "kind": "choice", "group": "h", "gives": {}}, {"id": "c2", "level": 3, "kind": "choice", "group": "h", "gives": {}},
+          {"id": "d", "level": 4, "kind": "node", "group": "", "gives": {"type": "outlaw", "id": "astro"}}]
+    check(SB.trail_ids_upto(fx, 0) == [] and SB.trail_ids_upto(fx, 2) == ["a", "b1"] and SB.trail_ids_upto(fx, 3) == ["a", "b1", "c2"]
+          and SB.trail_ids_upto(fx, 4, True) == ["a", "b1", "o", "c2", "d"],
+          "p129: a level's nodes: every plain one, the choices in turn (the first group its first member, the second its second), optional ones only when asked")
+    check(SB.trail_level_from(fx, ["a", "b2"]) == 2 and SB.trail_level_from(fx, ["a", "c1"]) == 1 and SB.trail_level_from(fx, []) == 0
+          and SB.trail_level_from(fx, ["a", "b1", "c1", "d"]) == 4, "p129: the Trail Level a set of nodes comes to")
+    for lv in (0, levels // 4, levels // 2, levels):
+        check(SB.trail_level_from(nodes, SB.trail_ids_upto(nodes, lv)) == lv, "p129: on the game's Trail the nodes of level %d come to Trail Level %d" % (lv, lv))
+    check(SB.trail_text("quarter", False, 70) == "a quarter (Trail Level 18 of 70)" and SB.trail_text("36", True, 70) == "Trail Level 36 of 70, optional nodes too"
+          and SB.trail_text("none", True, 70) == "none" and SB.trail_text("save", False, 70, 12) == "my save (Trail Level 12 of 70)",
+          "p129: the Trail in words")
+    check(SB.trail_key("quarter") == "quarter" and SB.trail_key("36", True) == "36+opt" and SB.trail_key("", True) == "none" and SB.trail_key("save", True) == "save",
+          "p129: the key two runs' Trails are compared by")
+    s, pr = SB.clean_settings({})
+    check(s["trail"] == "quarter" and s["trail_optional"] is False and not pr and "board" not in s and "talents" not in s, "p129: the default is a quarter of the Trail")
+    s, pr = SB.clean_settings({"trail": "36", "trail_optional": "1"})
+    check(s["trail"] == "36" and s["trail_optional"] is True and not pr, "p129: a level and the optional nodes")
+    s, pr = SB.clean_settings({"trail": "zz"})
+    check(s["trail"] == "quarter" and len(pr) == 1 and "trail must be" in pr[0], "p129: a Trail that names nothing is a problem: %s" % pr)
+    s, pr = SB.clean_settings({"board": 3})
+    check(s["trail"] == "half" and not pr and "board_was" not in s, "p129: an old job's board= plays the same share of the Trail")
+    s, pr = SB.clean_settings({"talents": {"grit": "AB"}})
+    check(len(pr) == 1 and "went with the board" in pr[0], "p129: a board talent by talent is refused in words: %s" % pr)
+    s, pr = SB.clean_settings({"board": 1.5, "talents": {"grit": "AA"}, "board_label": "my save"}, legacy=True)
+    check(not pr and s["board_was"] == "my save" and SB.settings_trail_words(s) == "the old Upgrade board: my save"
+          and SB.settings_trail_words(SB.clean_settings({"board": 3}, legacy=True)[0]) == "the old Upgrade board: half",
+          "p129: a sim from before the Trail keeps its board's words in the history")
     # the death policies and at once
     s, p = SB.clean_settings({"death": "gold"})
     check(p and s["death"] == "end", "r2: gold is no longer a policy to run")
@@ -252,31 +278,32 @@ def _round2_checks(check, SB, tmp):
     old_runner = os.path.join(tmp, "old", "tools", "sim_run.gd")
     _write(old_runner, 'match k:\n\t\t\t"board": _board = float(v)\n\t\t\t"death": _death = v\n\tif not _death in ["gold", "end", "keep"]:\n')
     new_runner = os.path.join(tmp, "new", "tools", "sim_run.gd")
-    _write(new_runner, 'match k:\n\t\t\t"talents": _talent_arg = v\n\t\t\t"fast": _fast = v != "0"\n\tif not _death in ["ad", "end", "keep"]:\n')
+    _write(new_runner, 'match k:\n\t\t\t"trail": _trail = v\n\t\t\t"fast": _fast = v != "0"\n\tif not _death in ["ad", "end", "keep"]:\n')
     co, cn = SB.runner_caps(os.path.join(tmp, "old")), SB.runner_caps(os.path.join(tmp, "new"))
     # pass 80 (lane BOT, re-pinned on purpose): the caps carry "bot" (the runner's BOT_ARGS: the bot's options)
-    check(co == {"runner": True, "talents": False, "deaths": ["gold", "end", "keep"], "fast": False, "bot": False}
-          and cn == {"runner": True, "talents": True, "deaths": ["ad", "end", "keep"], "fast": True, "bot": False}
+    check(co == {"runner": True, "trail": False, "deaths": ["gold", "end", "keep"], "fast": False, "bot": False}
+          and cn == {"runner": True, "trail": True, "deaths": ["ad", "end", "keep"], "fast": True, "bot": False}
           and SB.runner_caps(os.path.join(tmp, "none"))["runner"] is False, "r2: the runner's capabilities read off its parser: %s %s" % (co, cn))
     bot_runner = os.path.join(tmp, "botr", "tools", "sim_run.gd")
-    _write(bot_runner, "\n".join(['const BOT_ARGS := ["preset", "skill"]', "match k:", '\t\t\t"talents": _talent_arg = v',
+    _write(bot_runner, "\n".join(['const BOT_ARGS := ["preset", "skill"]', "match k:", '\t\t\t"trail": _trail = v',
                                   '\t\t\t"fast": _fast = v != "0"', '\tif not _death in ["ad", "end", "keep"]:', ""]))
     cb = SB.runner_caps(os.path.join(tmp, "botr"))
     s_bot, _ = SB.clean_settings({"bot": {"preset": "sim77", "skill": 0.5}})
     check(cb["bot"] is True and SB.caps_problem(s_bot, cn).startswith("the runner") and SB.caps_problem(s_bot, cb) == "",
           "p80: a runner without BOT_ARGS refuses bot options, one with them plays them: %s" % cb)
-    s_custom, _ = SB.clean_settings({"talents": {"grit": "B"}})
+    s_trail, _ = SB.clean_settings({"trail": "half"})
     s_ad, _ = SB.clean_settings({"death": "ad"})
-    check("only the board presets" in SB.caps_problem(s_custom, co) and "death policy 'ad'" in SB.caps_problem(s_ad, co) and SB.caps_problem(s_custom, cn) == ""
-          and SB.caps_problem(SB.clean_settings({})[0], co) == "", "r2: an older runner refuses a custom board and an unknown policy, plays a preset")
+    check("does not read trail=" in SB.caps_problem(s_trail, co) and "death policy 'ad'" in SB.caps_problem(s_ad, co) and SB.caps_problem(s_trail, cn) == ""
+          and SB.caps_problem(SB.clean_settings({"trail": "none"})[0], co) == "", "p129: an older runner refuses a Trail above none and an unknown policy, plays none")
 
     class P:
         json, log, seed = "p.json", "p.log", 4
-    a = SB.player_args(SB.clean_settings({"talents": {"grit": "AAB"}})[0], P, "snap", "out", 900, cn)
-    b = SB.player_args(SB.clean_settings({"board": 0, "fast": False})[0], P, "snap", "out", 900, cn)
+    a = SB.player_args(SB.clean_settings({"trail": "36", "trail_optional": True})[0], P, "snap", "out", 900, cn)
+    b = SB.player_args(SB.clean_settings({"trail": "none", "fast": False})[0], P, "snap", "out", 900, cn)
     c = SB.player_args(SB.clean_settings({})[0], P, "snap", "out", 900, co)
-    check("talents=grit:AAB" in a and "board=0" in a and "fast=1" in a and not any(x.startswith("talents=") for x in b) and "fast=0" in b
-          and "board=1.5" in c and not any(x.startswith("fast=") for x in c), "r2: the runner's args (talents only when there are ranks; fast=0/1 when it has the mode): %s" % a[-4:])
+    check("trail=36" in a and "trail_optional=1" in a and "fast=1" in a and "trail=none" in b and not any(x.startswith("trail_optional") for x in b) and "fast=0" in b
+          and "trail=quarter" in c and not any(x.startswith("fast=") for x in c) and not any(x.startswith(("board=", "talents=")) for x in a + b + c),
+          "p129: the runner's args (trail=, trail_optional=1 only when asked; fast=0/1 when it has the mode): %s" % a[-4:])
     # pass 80 (lane BOT): the bot's options through the settings, the runner's args and the presets read off Bot.gd
     b80, bp80 = SB.clean_bot("preset=careless,skill=0.3,totems=0,stray=500,nope=1")
     check(b80 == {"preset": "careless", "skill": 0.3, "stray": 200.0, "totems": False} and len(bp80) == 2,
@@ -312,12 +339,19 @@ def _round2_checks(check, SB, tmp):
         locks.SAVE_DIR = os.path.join(tmp, "save")
         locks.KEEP_DIR = os.path.join(tmp, "keep")
         locks.RESTORE_PENDING = os.path.join(locks.KEEP_DIR, "restore_pending.json")
-        _write(os.path.join(locks.SAVE_DIR, "save.json"), json.dumps({"talents": {"grit": {"picks": [0, 0, 1]}, "study": {"rank": 2, "form": 1}}}))
-        b1, note = SB.save_board()
-        check(b1 == {"grit": "AAB", "study": "BB"} and "save.json" in note, "r2: my save read from the PC save: %s" % b1)
-        _write(os.path.join(locks.KEEP_DIR, "save.json.keep"), json.dumps({"talents": {"spite": {"picks": [1]}}}))
+        first = nodes[0]["id"]
+        gift = next(n for n in nodes if SB.trail_gift_key(n["gives"]).startswith("outlaw:"))
+        _write(os.path.join(locks.SAVE_DIR, "save.json"), json.dumps({"trail": {"bought": [first], "spent": 10, "had": []},
+                                                                    "heroes_owned": [gift["gives"]["id"]]}))
+        b1, note = SB.save_trail()
+        check(b1 == {"ids": [first, gift["id"]], "level": 1} and "save.json" in note,
+              "p129: my save's Trail read from the PC save (the nodes paid for, and one whose outlaw is owned): %s" % b1)
+        _write(os.path.join(locks.KEEP_DIR, "save.json.keep"), json.dumps({"trail": {"bought": [], "spent": 0, "had": [SB.trail_gift_key(gift["gives"])]}}))
         _write(locks.RESTORE_PENDING, "{}")
-        check(SB.save_board()[0] == {"spite": "B"}, "r2: while a tool has the save aside, the kept copy is the save")
+        check(SB.save_trail()[0] == {"ids": [gift["id"]], "level": 0}, "p129: while a tool has the save aside, the kept copy is the save (a gift it had counts its node)")
+        os.remove(locks.RESTORE_PENDING)
+        os.remove(os.path.join(locks.SAVE_DIR, "save.json"))
+        check(SB.save_trail()[0] is None, "p129: no save, no Trail of its own")
     finally:
         locks.SAVE_DIR, locks.KEEP_DIR, locks.RESTORE_PENDING = saved
     # the derived series on a run with every field
@@ -351,13 +385,20 @@ def _round2_checks(check, SB, tmp):
     check(set(ku) == {"median", "p10", "p90", "n"} and "mean" not in ku and ku["n"][100] == 4 and res["rules"]["medians"] == ["keep_up", "boss_s", "challenge"],   # pass 84 (lane SIMVIEW): challenge
           "r2: the ratios as a middle value with its band and its count of runs")
     check({"took_by", "healed_by", "held_by"} <= set(res["breakdowns"]) and res["breakdowns"]["held_by"]["kind"] == "level", "r2: the new breakdowns")
-    res2 = SB.aggregate([(1, dict(SB.synthetic_player(1, 1, {"limit": 120, "talents": {"grit": "AAA"}}), meta=dict(SB.synthetic_player(1, 1, {"limit": 120})["meta"], talents={"grit": 1})), {"seed": 1})],
-                        {"players": 1, "limit": 120, "talents": {"grit": "AAA"}}, game_dir=os.path.join(tmp, "nogame"))
-    check(res2["meta"].get("board_differs") == ["run 1 played grit 1 (asked 3)"], "r2: a run that played another board than asked is named: %s" % res2["meta"].get("board_differs"))
-    m3 = dict(SB.synthetic_player(1, 1, {"limit": 120})["meta"], talents={"grit": 3}, talent_forms={"grit": "AAB"})
-    res3 = SB.aggregate([(1, dict(SB.synthetic_player(1, 1, {"limit": 120}), meta=m3), {"seed": 1})], {"players": 1, "limit": 120, "talents": {"grit": "AAA"}},
+    half = SB.trail_level_of("half", SB.trail_levels())
+    res2 = SB.aggregate([(1, dict(SB.synthetic_player(1, 1, {"limit": 120, "trail": "half"}), meta=dict(SB.synthetic_player(1, 1, {"limit": 120})["meta"], trail="quarter", trail_level=3)), {"seed": 1})],
+                        {"players": 1, "limit": 120, "trail": "half"}, game_dir=os.path.join(tmp, "nogame"))
+    check(res2["meta"].get("trail_differs") == ["run 1 played Trail Level 3 (asked half = level %d)" % half],
+          "p129: a run that played another Trail than asked is named: %s" % res2["meta"].get("trail_differs"))
+    m3 = {k: v for k, v in SB.synthetic_player(1, 1, {"limit": 120})["meta"].items() if not k.startswith("trail")}
+    res3 = SB.aggregate([(1, dict(SB.synthetic_player(1, 1, {"limit": 120}), meta=m3), {"seed": 1})], {"players": 1, "limit": 120, "trail": "half"},
                         game_dir=os.path.join(tmp, "nogame"))
-    check(res3["meta"].get("board_differs") == ["run 1 played grit AAB (asked AAA)"], "r2: with the runner's forms the board is checked rank by rank: %s" % res3["meta"].get("board_differs"))
+    check(res3["meta"].get("trail_differs") == ["run 1 played no Trail (its runner reads no trail=; asked half)"]
+          and "trail_level" not in res3["players"][0] and res2["players"][0].get("trail_level") == 3,
+          "p129: a run of an older runner says so, and a player's row carries the Trail Level only when its run does: %s" % res3["meta"].get("trail_differs"))
+    res4 = SB.aggregate([(1, SB.synthetic_player(1, 1, {"limit": 120, "trail": "half"}), {"seed": 1})], {"players": 1, "limit": 120, "trail": "half"},
+                        game_dir=os.path.join(tmp, "nogame"))
+    check("trail_differs" not in res4["meta"], "p129: a run that played the Trail asked is not named")
     # what the runs played: their meta.fast (none: a runner from before the sim mode, everything drawn)
     def _played(fast):
         rows = []
@@ -569,12 +610,12 @@ def _routes_checks(check, SB, tmp):
             check(get(bad)[0] == 404, "routes: %s is refused" % "/".join(bad))
         code, body = get(["settings"])
         check(code == 200 and body["defaults"]["players"] == 10 and any(h["id"] == "drifter" for h in body["heroes"]) and body["max_workers"] == max(1, (os.cpu_count() or 4) - 2)
-              and [b["label"] for b in body["boards"]] == ["none", "a quarter", "half", "full"]
+              and [(q["key"], q["label"]) for q in body["trail"]["presets"]] == [("none", "none"), ("quarter", "a quarter"), ("half", "half"), ("full", "full")]
               and [d["value"] for d in body["deaths"]] == [k for k, _, _ in SB.DEATHS if k in SB.runner_caps(Srv.GAME)["deaths"]]
-              and sorted(t["id"] for t in body["talents"]) == sorted(SB.TALENT_ORDER)
-              and [t["first_price"] for t in body["talents"]] == sorted(t["first_price"] for t in body["talents"]) and [p["key"] for p in body["presets"]][:4] == ["none", "quarter", "half", "full"]
+              and body["trail"]["levels"] == SB.trail_levels() and [q["level"] for q in body["trail"]["presets"]] == [SB.trail_level_of(k, SB.trail_levels()) for k, _, _ in SB.TRAIL_PRESETS]
+              and "save" in body["trail"] and "boards" not in body and "talents" not in body and "presets" not in body and body["defaults"]["trail"] == "quarter"
               and "frame by frame" in body["speed_words"],
-              "routes: settings: the defaults, the heroes, the boards, the death modes, the processors")
+              "routes: settings: the defaults, the heroes, the Trail's presets and levels, the death modes, the processors")
         check(post(["s-old", "keep"], {"keep": True})[1]["kept"] is True and os.path.isfile(os.path.join(SB.runs_dir(), "s-old", "kept")), "routes: keep")
         code, body = get(["history"])
         check(any(s["id"] == "s-old" and s["kept"] for s in body["sims"]), "routes: the history says kept")
@@ -624,15 +665,16 @@ def _job_checks(check, SB, tmp):
         jobs.init({"content_path": lambda kind, cid: (None, None)}, ROOT)
         check("sim" in jobs.LANES and jobs.SPECS["sim"]["lane"] == "sim", "job: the sim kind on a lane of its own")
         f = jobs.SPECS["sim"]["fields"]
-        check(set(f) >= {"hero", "players", "workers", "limit", "board", "talents", "board_label", "death", "seed", "map", "fps", "note", "fast"}
+        check(set(f) >= {"hero", "players", "workers", "limit", "trail", "trail_optional", "death", "seed", "map", "fps", "note", "fast"}
+              and not ({"board", "talents", "board_label"} & set(f))
               and f["death"]["options"] == ["end", "ad", "keep"] and f["death"]["default"] == "end" and f["workers"]["default"] == 0,
               "job: the fields: %s" % sorted(f))
-        v = jobs.validate_spec("sim", {"players": "12", "board": "3", "limit": "600"})
-        check(v["players"] == 12 and v["board"] == 3.0 and v["limit"] == 600 and v["death"] == "end" and v["talents"] == SB.board_talents(3)
-              and v["workers"] == min(12, SB.max_workers()), "job: the spec coerced, the board talent by talent, at once auto: %s" % {k: v[k] for k in ("players", "board", "limit", "workers")})
-        v2 = jobs.validate_spec("sim", {"talents": {"grit": "AAB"}, "board_label": "my save"})
-        check(v2["talents"] == {"grit": "AAB"} and v2["board"] == -1.0 and v2["board_label"] == "my save", "job: a board talent by talent wins over the preset: %s" % v2["talents"])
-        for bad in ({"players": 0}, {"death": "maybe"}, {"death": "gold"}, {"limit": 5}, {"board": 9}, {"talents": {"nope": "A"}}, {"talents": {"grit": "AAAAAAA"}}):
+        v = jobs.validate_spec("sim", {"players": "12", "trail": "half", "limit": "600"})
+        check(v["players"] == 12 and v["trail"] == "half" and v["trail_optional"] is False and v["limit"] == 600 and v["death"] == "end"
+              and v["workers"] == min(12, SB.max_workers()), "job: the spec coerced, the Trail, at once auto: %s" % {k: v[k] for k in ("players", "trail", "limit", "workers")})
+        v2 = jobs.validate_spec("sim", {"trail": "36", "trail_optional": True})
+        check(v2["trail"] == "36" and v2["trail_optional"] is True, "job: a Trail Level with the optional nodes: %s" % v2["trail"])
+        for bad in ({"players": 0}, {"death": "maybe"}, {"death": "gold"}, {"limit": 5}, {"trail": "nine"}):
             try:
                 jobs.validate_spec("sim", bad)
                 check(False, "job: %s refused" % bad)
@@ -645,7 +687,7 @@ def _job_checks(check, SB, tmp):
         argv = [str(x) for x in plan["steps"][0]]
         check(job["lane"] == "sim" and plan["mode"] == "sim" and plan["lock"] is None and not plan.get("keep_save"), "job: the plan: its own mode, no lock, no save keep")
         check(argv[0] == sys.executable and argv[2].endswith("sim_batch.py") and argv[argv.index("--out") + 1] == out and argv[argv.index("--sim-dir") + 1] == os.path.join(jobs.DL, "sim")
-              and "--synthetic" in argv and argv[argv.index("--talents") + 1] == SB.talents_arg(SB.board_talents(1.5)) and argv[argv.index("--players") + 1] == "3" and argv[argv.index("--job") + 1] == job["id"],
+              and "--synthetic" in argv and argv[argv.index("--trail") + 1] == "quarter" and "--talents" not in argv and "--board" not in argv and argv[argv.index("--players") + 1] == "3" and argv[argv.index("--job") + 1] == job["id"],
               "job: the driver's argv: %s" % " ".join(argv[2:]))
         # pass 80 (lane BOT): the bot's options ride the job to the driver's --bot (none: no --bot, the runner's default)
         check("bot" in f and "--bot" not in argv, "p80: the sim job has a bot field; no options, no --bot")
@@ -792,9 +834,15 @@ def _page_checks(check, run_node, SB, tmp):
     sm = out["smooth"]
     check(sm[:6] == [10, 5, 10 / 3.0, 2.5, 2, 2] and sm[6] is None and sm[7:] == [4, 4], "page: the rolling mean restarts after a gap: %s" % sm)
     check(out["partial"] == [4, 3, 7, 100], "page: shares and words count the runs in the result (a partial one too): %s" % out["partial"])
-    check(out["board"] == ["AA", "ABBB", "BBB", "2 Padding, 1 Plate", "my save (4 of 48 ranks)", 4, "x", None], "page: the board editor's maths: %s" % out["board"])
+    check(out["board"] == [18, 35, 36, None, "a quarter (Trail Level 18 of 70)", "Trail Level 36 of 70, optional nodes too", "none",
+                           "the old Upgrade board: a quarter", "the old Upgrade board: my save", "half", 1, "full", True, "quarter"],
+          "page: the Trail's maths (pass 129): %s" % out["board"])
+    check(out["oldForm"] == ["full", "none", "quarter", "12", None],
+          "page: saved settings from the board's days open on the same share of the Trail (pass 129): %s" % out["oldForm"])
     check(out["secTicks"] == ["2:30", "50 s", "1.2%", "×1.4"], "page: the new formats: %s" % out["secTicks"])
-    check(out["settingsLine"] == "Drifter · 10 runs to 25:00 · Upgrade board a quarter · revive with gold, then the run ends · seed 3", "page: the header line: %s" % out["settingsLine"])
+    check(out["settingsLine"] == "Drifter · 10 runs to 25:00 · Trail the old Upgrade board: a quarter · revive with gold, then the run ends · seed 3",
+          "page: the header line of a sim from before the Trail: %s" % out["settingsLine"])
+    check(out["trailLine"] == "Drifter · 6 runs to 10:00 · Trail half · end the run at the first death · seed 2", "page: the header line: %s" % out["trailLine"])
     check(out["fastLine"].endswith(" · everything drawn (sim mode off)") and out["fastClean"] == [True, False, False, True],
           "page: the Drawing switch: the settings carry fast (on unless switched off), the header names a sim that drew everything: %s %s" % (out["fastLine"], out["fastClean"]))
     # the wiring

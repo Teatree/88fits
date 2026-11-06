@@ -1,6 +1,6 @@
 ## Pass 46, the UI lane: the painted coin everywhere (the drawn disc until it is painted), brass kept for buying (the
-## choice's pick in ink, the Upgrade buttons turquoise, the Upgrade tiles' prices on paper), six ranks a talent with
-## Second Wind's ranks alternating, the floating damage numbers, the chest that opens before its reel, the hero's
+## choice's pick in ink, the Upgrade buttons turquoise), Second Wind as revive health only (the Trail's upgrade
+## since pass 129; the Upgrade board's ranks and tiles left with the board), the floating damage numbers, the chest that opens before its reel, the hero's
 ## favourite passive on the title plaque, and the mutation offer's words.
 extends GdUnitTestSuite
 
@@ -104,85 +104,20 @@ func test_the_choice_marks_its_pick() -> void:
 	assert_str(((c._halves[0] as WTap).box as HardBox).role).is_equal("slate")
 
 
-
-
-
-
-
-
-func test_a_full_talent_reads_its_seven_ranks() -> void:
-	_fresh_save()
-	Save.data["talents"] = {"grit": {"form": 0, "rank": 7}}
-	var h: Control = auto_free(load("res://ui/HomesteadScreen.tscn").instantiate())
-	add_child(h)
-	await get_tree().process_frame
-	h._open(Registry.talent("grit"))
-	await get_tree().process_frame
-	var sheet: Control = h._sheet_root.find_child("Sheet", true, false)
-	var said := _texts(sheet)
-	assert_str(said).contains("Rank 7 of 7 owned")
-	# six ranks of +10% and the seventh's +15% (pass 123)
-	assert_str(said).contains("+75% max HP")
-	assert_object(sheet.find_child("Buy0", true, false)).is_null()
-	h._close(false)
-	h.visible = false
-	Save.data["talents"] = {}
-	await get_tree().process_frame
-
-
-# ---------------------------------------------------------------- six ranks
-
-func test_every_talent_has_seven_ranks_on_the_steepening_curve() -> void:
-	# (pass 110, lane ECON, re-pinned: Garry's "Mirror costs should be more exponential (Polynomial) ... Starting point
-	# prices should stay the same": rank k costs k x k times the first, was x1.8, x3, x4.5, x6.5, x9)
-	# (pass 123: "Add 1 more upgrade slot to all ... the extra slot, higher cost and higher increase": 49 x the first)
-	var mult := [1.0, 4.0, 9.0, 16.0, 25.0, 36.0, 49.0]
-	assert_int(Registry.talents_list().size()).is_equal(8)
-	for td: TalentDef in Registry.talents_list():
-		assert_int(td.ranks).override_failure_message(td.id).is_equal(7)
-		assert_int(td.max_rank()).is_equal(7)
-		assert_int(td.cost.size()).override_failure_message(td.id + " prices").is_equal(7)
-		var first := int(td.cost[0])
-		for k in range(7):
-			# every rank k x k times the first (pass 110; the first rank's price is pass 88's)
-			assert_int(int(td.cost[k])).override_failure_message("%s rank %d" % [td.id, k + 1]).is_equal(int(round(first * float(mult[k]))))
-			if k > 0:
-				assert_int(int(td.cost[k])).is_greater(int(td.cost[k - 1]))
-		assert_int(td.cost_of_rank(6)).is_equal(int(td.cost[6]))
-		assert_int(td.cost_of_rank(7)).is_equal(-1)
-
-
-func test_second_wind_is_revive_health_a_rank() -> void:
-	# pass 115 (lane META, re-pinned): Second Wind alternated a revive and +15% revive health until pass 115; Garry: "Change
-	# the Revive to only affect the amount of HP Player gets when they revive": +10% revive health every rank, no revives
-	var nerve: TalentDef = Registry.talent("nerve")
-	var form := -1
-	for f in nerve.forms.size():
-		if nerve.form_name(f) == "Second Wind":
-			form = f
-	assert_int(form).is_greater_equal(0)
-	for r in range(1, 7):
-		var revives := 0.0
-		var hp := 0.0
-		for e in nerve.effects_for(form, r):
-			if e.stat == "revives":
-				revives += e.value
-			elif e.stat == "revive_hp":
-				hp += e.value
-		assert_float(revives).override_failure_message("rank %d" % r).is_equal(0.0)
-		assert_float(hp).override_failure_message("rank %d" % r).is_equal_approx(0.1 * float(r), 0.0001)
-	assert_str(TextGen.describe_effects(nerve.summed_effects(form, 4))).is_equal("+40% health on revive")
-	# and it reaches the hero's sheet
-	_fresh_save()
-	_start()
-	var r0 := Run.player_sheet.get_stat("revives", 0.0)
-	var h0 := Run.player_sheet.get_stat("revive_hp", 0.5)
-	Save.data["talents"] = {"nerve": {"form": form, "rank": 4}}
-	_start()
-	assert_float(Run.player_sheet.get_stat("revives", 0.0)).is_equal_approx(r0, 0.0001)
-	assert_float(Run.player_sheet.get_stat("revive_hp", 0.5)).is_equal_approx(h0 + 0.4, 0.0001)
-	Save.data["talents"] = {}
-	Run.end()
+func test_second_wind_is_revive_health_only() -> void:
+	# pass 115 (lane META): Garry: "Change the Revive to only affect the amount of HP Player gets when they revive".
+	# pass 129 (re-pinned to the Trail; the Upgrade board's Nerve talent until then): the Trail's Second Wind upgrade
+	# adds revive health and nothing else, and no upgrade type of the Trail's but Boot Hill Pass gives a revive
+	var up: Dictionary = Trail.upgrade("second_wind")
+	assert_bool(up.is_empty()).is_false()
+	for e: Dictionary in up["effects"]:
+		assert_str(str(e["stat"])).is_equal("revive_hp")
+		assert_str(str(e["op"])).is_equal("add")
+	for type: Variant in Trail.upgrade_types():
+		for e: Dictionary in Trail.upgrade(str(type)).get("effects", []):
+			if str(e.get("stat", "")) == "revives":
+				assert_str(str(type)).is_equal("extra_life")
+	assert_str(TextGen.describe_effects([Effect.make("revive_hp", "add", 0.4, "player")])).is_equal("+40% health on revive")
 
 
 # ---------------------------------------------------------------- the damage numbers
@@ -429,9 +364,6 @@ func test_a_tap_while_the_chest_opens_skips_to_the_spin() -> void:
 
 
 # ---------------------------------------------------------------- the title plaque
-
-
-
 
 
 # ---------------------------------------------------------------- the mutation offer

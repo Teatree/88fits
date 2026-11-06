@@ -5,7 +5,7 @@ second of play into result.json. The Level Editor's Sim tab starts it as a job (
 it runs from a shell too:
 
     python tools/sim_batch.py --out tools/dl/sim/runs/try1 --hero drifter --players 10 --workers 6 --limit 1500 \\
-        --board 1.5 --death gold --seed 1 [--map red_canyon] [--fps 60] [--note "after the cap change"]
+        --trail quarter --death end --seed 1 [--trail-optional] [--map red_canyon] [--fps 60] [--note "after the cap change"]
     python tools/sim_batch.py --aggregate tools/dl/sim/runs/try1    # the players' files again into result.json (no Godot)
     python tools/sim_batch.py --out <dir> --bot "preset=sim77"       # pass 80: the bot's options (BOT_KEYS; the runner's
                                                                      # own default is the Explorer)
@@ -27,7 +27,7 @@ What it does, in order:
     a script's class_name changed, and when the copy is new. `import_json.gd -- only=...` runs on the copy for every
     content JSON newer than its .tres: the sim plays the saved JSON even when the real import lagged or was queued.
  3. The players: `Godot --headless --fixed-fps <fps> --path <snapshot> --log-file players/pNN.log --script
-    res://tools/sim_run.gd -- out=players/pNN.json hero= seed=<seed + k - 1> limit= board= death= map= progress=10`,
+    res://tools/sim_run.gd -- out=players/pNN.json hero= seed=<seed + k - 1> limit= trail= death= map= progress=10`,
     K at a time, each with a wall-time cap; a player is judged by its JSON (a headless run can exit 0xC0000005 at
     teardown after writing it). progress.json beside result.json says where every player is.
  4. The aggregation (aggregate(): the rules are in tools/dl/p77/balancing_SIMUI.md and docs/level_editor.md "Pass 77"):
@@ -74,27 +74,21 @@ HP_BUCKET = 5                # pass 115 (lane DASH): the health bars' seconds (h
 FOLD_DEFAULT = 7             # the page folds a breakdown to this many entries + "Other"
 SCHEMA = 1
 
-# the settings and their defaults (INTERFACES "Lane SIMUI"; round 2: the board talent by talent, the death policies
-# without gold, the number at once from the processors); the page, the job spec and the CLI share them
-DEFAULTS = {"hero": "drifter", "players": 10, "workers": 0, "limit": 1500, "board": 1.5, "talents": None, "board_label": "",
+# the settings and their defaults (INTERFACES "Lane SIMUI"; the death policies without gold, the number at once from
+# the processors; pass 129: `trail` and `trail_optional` in place of the Upgrade board's board / talents / board_label);
+# the page, the job spec and the CLI share them
+DEFAULTS = {"hero": "drifter", "players": 10, "workers": 0, "limit": 1500, "trail": "quarter", "trail_optional": False,
             "death": "end", "seed": 1, "map": "red_canyon", "fps": 60, "note": "", "fast": True, "bot": {}, "stage": 1}
 # pass 87 (lane STOOLS): the stage every run of a sim plays (1-based; sim_run.gd's stage=, lane SGAME's launch key)
 STAGE_MAX = 20
-BOARDS = [(0.0, "none"), (1.5, "a quarter"), (3.0, "half"), (6.0, "full")]
-PRESETS = [("none", 0.0), ("quarter", 1.5), ("half", 3.0), ("full", 6.0)]   # the page's preset keys
+# pass 129: the Trail's presets (key, the share of the Trail's levels, the words), as game/tools/trail_arg.gd has them
+TRAIL_PRESETS = [("none", 0.0, "none"), ("quarter", 0.25, "a quarter"), ("half", 0.5, "half"), ("full", 1.0, "full")]
+BOARD_FULL = 6.0   # the old Upgrade board's ranks a talent that --board counted as full (board_to_trail)
 DEATHS = [("end", "end the run at the first death", "no revive: the run ends at the first death (the default: Garry took Get up with gold out)"),
           ("ad", "revive once with an ad, then end", "Down! answered with the ad revive while it is offered (a chance left), then the run ends"),
           ("keep", "keep playing, count every death",
            "the hero is put back on his feet at once and plays to the stop time; every down is counted (the difficulty probe's way)")]
 LEGACY_DEATHS = {"gold": "revive with gold, then the run ends"}   # an older sim's setting, never offered again
-# the Upgrade board (game/content/talents): difficulty_probe's FORMS, in its order (a fractional board alternates the
-# ranks in this order); a talent's picks are one letter a rank bought, its form: A the first, B the second
-TALENT_ORDER = ("grit", "drive", "stride", "fortune", "choice", "nerve", "study", "spite")
-TALENT_FORMS = {"grit": 0, "drive": 0, "stride": 0, "fortune": 0, "choice": 0, "nerve": 1, "study": 1, "spite": 0}
-# pass 88 (lane MIRROR): the talents the presets leave empty: Spite is Stakes now (Difficulty / Boss: harder creatures for
-# a little more coin and XP), a challenge rather than power, so a preset board never buys it (a board talent by talent may)
-PRESET_SKIP = ("spite",)
-MAX_RANK = 6
 MAX_PLAYERS = 100
 LIMIT_MIN, LIMIT_MAX = 30, 3 * 3600
 
@@ -186,17 +180,6 @@ def write_json(path, obj, indent=None):
 
 
 # ---------------------------------------------------------------- the settings
-
-def board_label(v):
-    try:
-        v = float(v)
-    except (TypeError, ValueError):
-        return str(v)
-    for b, lab in BOARDS:
-        if abs(b - v) < 1e-6:
-            return lab
-    return "%g ranks" % v
-
 
 def death_label(v):
     for k, lab, _ in DEATHS:
@@ -370,134 +353,176 @@ def bot_words(b):
     return name + (", " + ", ".join(extra) if extra else "")
 
 
-# ---------------------------------------------------------------- the Upgrade board, talent by talent
+# ---------------------------------------------------------------- the Trail (pass 129; the Upgrade board until then)
 
-def rank_for(m, k):
-    """difficulty_probe.rank_for: a whole board gives every talent that many ranks; a half alternates ceiling / floor in
-    TALENT_ORDER (1.5 = 2, 1, 2, 1, ...: 12 of 48 ranks)."""
-    lo = int(math.floor(m))
-    if m - lo <= 0.001:
-        return max(0, min(MAX_RANK, lo))
-    return max(0, min(MAX_RANK, lo + (1 if k % 2 == 0 else 0)))
-
-
-def board_talents(m):
-    """The board of a preset (0, 1.5, 3, 6 ranks a talent) as {talent: picks}, each rank in its FORMS form."""
-    out = {}
-    for k, tid in enumerate(TALENT_ORDER):
-        r = rank_for(float(m), k)
-        if r > 0 and tid not in PRESET_SKIP:
-            out[tid] = "AB"[TALENT_FORMS[tid]] * r
+def trail_nodes(path=None):
+    """The Trail's nodes in file order as the tools need them: [{id, level, kind, group, gives}] ([] without a file).
+    A node without an id, and the second node of an id used twice, are left out (as Trail.gd does)."""
+    data = read_json(path or os.path.join(GAME, "content", "trail", "trail.json"), tries=2) or {}
+    out, seen = [], set()
+    for n in data.get("nodes") or []:
+        if not isinstance(n, dict) or not n.get("id") or n["id"] in seen:
+            continue
+        seen.add(n["id"])
+        kind = n.get("kind") if n.get("kind") in ("node", "choice", "optional") else "node"
+        out.append({"id": str(n["id"]), "level": max(1, int(n.get("level") or 1)), "kind": kind,
+                    "group": str(n.get("group") or "") if kind == "choice" else "",
+                    "gives": n.get("gives") if isinstance(n.get("gives"), dict) else {}})
     return out
 
 
-def picks_letters(v):
-    """A talent's picks in any of the shapes they come in (the save's {picks: [0, 1]} or {rank, form}, a list of 0/1, a
-    string of 0/1 or A/B) as letters A/B, at most MAX_RANK; None when it cannot be read."""
-    if isinstance(v, dict):
-        if isinstance(v.get("picks"), list):
-            v = v["picks"]
-        else:
-            try:
-                return "AB"[min(1, max(0, int(v.get("form", 0))))] * max(0, min(MAX_RANK, int(v.get("rank", 0))))
-            except (TypeError, ValueError):
-                return None
-    if isinstance(v, (int, float)) and not isinstance(v, bool):
-        return "A" * max(0, min(MAX_RANK, int(v)))
-    if isinstance(v, list):
-        try:
-            return "".join("AB"[min(1, max(0, int(x)))] for x in v)[:MAX_RANK]
-        except (TypeError, ValueError):
-            return None
-    if isinstance(v, str):
-        t = v.strip().upper().replace("0", "A").replace("1", "B")
-        return t[:MAX_RANK] if re.match(r"^[AB]*$", t) else None
+def trail_levels(nodes=None):
+    nodes = trail_nodes() if nodes is None else nodes
+    return max([n["level"] for n in nodes] or [0])
+
+
+def trail_level_of(arg, levels):
+    """The Trail Level a `trail` value names (trail_arg.gd level_of): a preset's share of the levels rounded half up, a
+    number as it is (kept inside 0..levels); None for anything else."""
+    a = str(arg if arg is not None else "").strip().lower()
+    if a == "":
+        return 0
+    for key, share, _ in TRAIL_PRESETS:
+        if a == key:
+            return int(math.floor(share * levels + 0.5))
+    if re.match(r"^[+-]?\d+$", a):
+        return max(0, min(int(levels), int(a)))
     return None
 
 
-def clean_talents(raw):
-    """The board as {talent: picks letters} (talents without a rank left out): from a dict, or the arg's text
-    "grit:AAB,drive:A" ("none" = empty). (board, problems)."""
-    probs = []
-    if raw is None:
-        return {}, probs
-    items = {}
-    if isinstance(raw, str):
-        txt = raw.strip()
-        if txt.lower() in ("", "none"):
-            return {}, probs
-        for part in txt.split(","):
-            if not part.strip():
-                continue
-            bits = part.strip().split(":")
-            if len(bits) == 3:   # <id>:<rank>:<form>
-                try:
-                    items[bits[0]] = "AB"[1 if bits[2].strip().upper() in ("1", "B") else 0] * int(bits[1])
-                except ValueError:
-                    probs.append("talents: %r is not <id>:<rank>:<form>" % part)
-            elif len(bits) == 2:
-                items[bits[0]] = bits[1]
-            else:
-                probs.append("talents: %r is not <id>:<picks>" % part)
-    elif isinstance(raw, dict):
-        items = raw
-    else:
-        return {}, ["talents must be {talent: picks} or \"grit:AAB,drive:A\""]
-    out = {}
-    for tid, v in items.items():
-        tid = str(tid).strip()
-        if tid not in TALENT_FORMS:
-            probs.append("talents: no talent %r (one of %s)" % (tid, ", ".join(TALENT_ORDER)))
-            continue
-        p = picks_letters(v)
-        if p is None:
-            probs.append("talents: %s's picks %r are not 0-6 letters A/B" % (tid, v))
-            continue
-        if len(str(v if not isinstance(v, (dict, list)) else "")) > MAX_RANK and isinstance(v, str):
-            probs.append("talents: %s has more than %d ranks" % (tid, MAX_RANK))
-        if p:
-            out[tid] = p
-    return {k: out[k] for k in TALENT_ORDER if k in out}, probs
-
-
-def talents_arg(t):
-    """The runner's talents= text: "grit:AAB,drive:A", or "none"."""
-    return ",".join("%s:%s" % (k, t[k]) for k in TALENT_ORDER if t.get(k)) or "none"
-
-
-def preset_of(t):
-    """The preset ("none", "quarter", "half", "full") whose board this is, else None (a custom board)."""
-    for key, m in PRESETS:
-        if board_talents(m) == (t or {}):
+def board_to_trail(v, levels):
+    """An old --board value (ranks a talent: 0, 1.5, 3, 6) as a trail one (trail_arg.gd board_to_trail): a name passes
+    through, a number becomes the preset of the same share, else that share of the Trail's levels."""
+    a = str(v if v is not None else "").strip().lower()
+    if a in [k for k, _, _ in TRAIL_PRESETS] or a == "save":
+        return a
+    try:
+        m = max(0.0, min(BOARD_FULL, float(a)))
+    except ValueError:
+        return a
+    for key, share, _ in TRAIL_PRESETS:
+        if abs(m / BOARD_FULL - share) < 1e-6:
             return key
-    return None
+    return str(int(math.floor(m / BOARD_FULL * levels + 0.5)))
 
 
-def board_ranks(t):
-    return sum(len(v) for v in (t or {}).values())
+def clean_trail(raw, levels=None):
+    """A `trail` setting as the runner takes it: (a preset's key or a level as text, problems)."""
+    levels = trail_levels() if levels is None else levels
+    a = str(raw if raw is not None else "").strip().lower()
+    if isinstance(raw, float) and raw == int(raw):
+        a = str(int(raw))
+    lv = trail_level_of(a, levels)
+    if lv is None:
+        return DEFAULTS["trail"], ["trail must be none, quarter, half, full or a Trail Level 0 to %d (got %r)" % (levels, raw)]
+    if a in [k for k, _, _ in TRAIL_PRESETS]:
+        return a, []
+    return ("none" if lv <= 0 else str(lv)), []
 
 
-def board_text(t, label=""):
-    """The board in words: "a quarter (12 of 48 ranks)", "my save (20 of 48 ranks)", "custom (...)"."""
-    pre = preset_of(t)
-    name = label or (board_label(dict(PRESETS)[pre]) if pre else "custom")
-    return "%s (%d of %d ranks)" % (name, board_ranks(t), MAX_RANK * len(TALENT_ORDER))
+def trail_groups(nodes):
+    """Choice groups in file order: [[node, ...], ...] (a group is its level and its `group`)."""
+    out, seen = [], {}
+    for n in nodes:
+        if n["kind"] == "choice":
+            key = (n["level"], n["group"])
+            if key not in seen:
+                seen[key] = []
+                out.append(seen[key])
+            seen[key].append(n)
+    return out
 
 
-def save_board(save_dir=None):
-    """The PC save's Upgrade board ({talent: picks}) for the "my save" preset: %APPDATA%/Godot/app_userdata/88fits/
-    save.json, or the copy tools/locks.py keeps aside while a Godot tool has the save (restore pending). (board, note)."""
+def trail_ids_upto(nodes, level, optional=False):
+    """The node ids a player at Trail Level `level` holds (trail_arg.gd ids_upto; trail_setup.py bought_upto): every
+    plain node of levels 1..level, one member of each choice group in turn (the k-th group its member k mod its size),
+    the optional nodes only with `optional`."""
+    pick = {g[k % len(g)]["id"] for k, g in enumerate(trail_groups(nodes))}
+    return [n["id"] for n in nodes if n["level"] <= level
+            and (n["kind"] == "node" or n["id"] in pick or (optional and n["kind"] == "optional"))]
+
+
+def trail_level_from(nodes, ids):
+    """The Trail Level a set of bought nodes comes to: the highest L with every level 1..L done (every plain node
+    bought, one member of every choice group; a level without a required node is done). Closed nodes are not modelled:
+    the game's own Trail.level() is the truth, this is for a label."""
+    ids = set(ids)
+    top = trail_levels(nodes)
+    groups = trail_groups(nodes)
+    lv = 0
+    for l in range(1, top + 1):
+        if any(n["level"] == l and n["kind"] == "node" and n["id"] not in ids for n in nodes):
+            break
+        if any(g[0]["level"] == l and not any(m["id"] in ids for m in g) for g in groups):
+            break
+        lv = l
+    return lv
+
+
+def trail_gift_key(gives):
+    """A node's gift as the save's `trail.had` lists it (Trail.gift_key): "<type>:<id>", a stage "stage:<map>:<stage>",
+    "" for an upgrade."""
+    t = str((gives or {}).get("type") or "")
+    if t in ("", "upgrade"):
+        return ""
+    if t == "stage":
+        return "stage:%s:%s" % (gives.get("map", ""), gives.get("stage", ""))
+    return "%s:%s" % (t, gives.get("id", ""))
+
+
+def trail_text(arg, optional=False, levels=None, save_level=None):
+    """The Trail in words: "a quarter (Trail Level 18 of 70)", "Trail Level 36 of 70, optional nodes too", "my save
+    (Trail Level 12 of 70)", "none"."""
+    levels = trail_levels() if levels is None else levels
+    a = str(arg or "").strip().lower()
+    if a == "save":
+        return "my save" + (" (Trail Level %d of %d)" % (save_level, levels) if save_level is not None else "")
+    lv = trail_level_of(a, levels)
+    if not lv:
+        return "none"
+    where = "Trail Level %d of %d" % (lv, levels)
+    words = dict((k, w) for k, _, w in TRAIL_PRESETS)
+    return ("%s (%s)" % (words[a], where) if a in words else where) + (", optional nodes too" if optional else "")
+
+
+def trail_key(arg, optional=False):
+    """One Trail setting as a key two runs are compared by (WatchSetup.trail_key): "none", "quarter", "36", "save";
+    "+opt" with the optional nodes."""
+    a = str(arg or "").strip().lower()
+    if a in ("", "0"):
+        a = "none"
+    return a + ("+opt" if optional and a not in ("none", "save") else "")
+
+
+def settings_trail_words(s):
+    """A sim's Trail in words from its settings; an older sim's Upgrade board (its settings have `board`, no `trail`)
+    says so: "the old Upgrade board: a quarter"."""
+    s = s if isinstance(s, dict) else {}
+    if s.get("board_was"):
+        return "the old Upgrade board: %s" % s["board_was"]
+    return trail_text(s.get("trail", "none"), bool(s.get("trail_optional")))
+
+
+def save_trail(save_dir=None):
+    """The PC save's own Trail for the "my save" preset: ({ids: the nodes that count as bought (paid for, or their gift
+    already had: trail.had, an outlaw or a skin owned), level}, note), or (None, why). %APPDATA%/Godot/app_userdata/
+    88fits/save.json, or the copy tools/locks.py keeps aside while a Godot tool has the save (restore pending)."""
     d = save_dir or locks.SAVE_DIR
     paths = []
     if os.path.isfile(locks.RESTORE_PENDING):
         paths.append(os.path.join(locks.KEEP_DIR, "save.json.keep"))
     paths.append(os.path.join(d, "save.json"))
+    nodes = trail_nodes()
     for p in paths:
         data = read_json(p, tries=2)
         if isinstance(data, dict):
-            tal = data.get("talents") if isinstance(data.get("talents"), dict) else {}
-            board, _ = clean_talents({k: v for k, v in tal.items() if k in TALENT_FORMS})
-            return board, "read from %s" % p
+            tr = data.get("trail") if isinstance(data.get("trail"), dict) else {}
+            bought = set(str(x) for x in (tr.get("bought") or []))
+            had = set(str(x) for x in (tr.get("had") or []))
+            had |= set("outlaw:%s" % h for h in (data.get("heroes_owned") or []))
+            had |= set("skin:%s" % k for k in (data.get("skins_owned") or []))
+            ids = [n["id"] for n in nodes if n["id"] in bought or (trail_gift_key(n["gives"]) and trail_gift_key(n["gives"]) in had)]
+            return {"ids": ids, "level": trail_level_from(nodes, ids)}, "read from %s" % p
     return None, "no save found at %s" % paths[-1]
 
 
@@ -568,33 +593,33 @@ def save_stages(save_dir=None):
 
 
 def caps_problem(s, caps):
-    """Why the runner cannot play these settings ("" when it can): a death policy it refuses, a custom board it would
-    play as no board (an older runner reads only board= presets)."""
+    """Why the runner cannot play these settings ("" when it can): a death policy it refuses, a Trail it would play as
+    none (an older runner does not read trail=)."""
     if not caps.get("runner", True):
         return "game/tools/sim_run.gd is not there: nothing can play the runs"
     if caps.get("deaths") and s.get("death") not in caps["deaths"]:
         return "the runner (game/tools/sim_run.gd) does not know the death policy %r yet (it knows %s)" % (s.get("death"), ", ".join(caps["deaths"]))
-    if not caps.get("talents") and float(s.get("board", 0)) < 0:
-        return ("the runner (game/tools/sim_run.gd) plays only the board presets (none, a quarter, half, full) until it reads "
-                "talents=: this board is %s" % board_text(s.get("talents"), s.get("board_label")))
+    if not caps.get("trail") and trail_key(s.get("trail"), s.get("trail_optional")) != "none":
+        return ("the runner (game/tools/sim_run.gd) does not read trail= yet: it would play no Trail node, not %s"
+                % trail_text(s.get("trail"), bool(s.get("trail_optional"))))
     if s.get("bot") and caps.get("runner", True) and not caps.get("bot"):
         return "the runner (game/tools/sim_run.gd) has no bot options yet (pass 80's game/tools/bot/Bot.gd): it would play its own bot"
     return ""
 
 
 def runner_caps(game_dir=None):
-    """What the runner (game/tools/sim_run.gd) understands, read off its argument parser: talents= (the board talent by
-    talent), the death policies, fast= (lane SIMRUN's sim mode). An older runner ignores an argument it does not know
+    """What the runner (game/tools/sim_run.gd) understands, read off its argument parser: trail= (pass 129: the Trail
+    Level the player's save holds), the death policies, fast= (lane SIMRUN's sim mode). An older runner ignores an argument it does not know
     and refuses a death policy it does not know."""
     p = os.path.join(game_dir or GAME, "tools", "sim_run.gd")
     try:
         with open(p, "r", encoding="utf-8", errors="replace") as f:
             src = f.read()
     except OSError:
-        return {"runner": False, "talents": False, "deaths": [], "fast": False, "bot": False}
+        return {"runner": False, "trail": False, "deaths": [], "fast": False, "bot": False}
     m = re.search(r"_death\s+in\s+\[([^\]]*)\]", src)
     deaths = re.findall(r'"([a-z]+)"', m.group(1)) if m else ["gold", "end", "keep"]
-    return {"runner": True, "talents": bool(re.search(r'^\s*"talents"\s*:', src, re.M)), "deaths": deaths,
+    return {"runner": True, "trail": bool(re.search(r'^\s*"trail"\s*:', src, re.M)), "deaths": deaths,
             "fast": bool(re.search(r'^\s*"fast"\s*:', src, re.M)), "bot": "BOT_ARGS" in src}
 
 
@@ -628,29 +653,24 @@ def clean_settings(raw, heroes=None, maps=None, legacy=False):
     s["seed"] = num("seed", int, 0, 2 ** 31 - 1)
     s["fps"] = num("fps", int, 10, 240)
     s["stage"] = num("stage", int, 1, STAGE_MAX)
-    b = raw.get("board", DEFAULTS["board"])
-    try:
-        b = float(b)
-    except (TypeError, ValueError):
-        probs.append("board must be one of %s" % ", ".join("%g" % x for x, _ in BOARDS))
-        b = DEFAULTS["board"]
-    if b < 0 or b > 6:
-        probs.append("board must be between 0 and 6 ranks (got %g)" % b)
-        b = min(6.0, max(0.0, b))
-    s["board"] = b
-    # the board talent by talent (round 2): given, it wins over board= (which then only names a preset it equals)
-    traw = raw.get("talents")
-    if traw is None or traw == "" or traw == {}:   # not given (a job spec's default {}): the preset board= names
-        s["talents"] = board_talents(b)
-        s["board_label"] = board_label(b)
+    # pass 129: the Trail the players' saves hold (the Upgrade board's board / talents / board_label until then). An
+    # older sim's settings (`legacy`: the history) have `board` and no `trail`: they keep the board's words (board_was)
+    # and read as the same share of the Trail
+    levels = trail_levels()
+    if "trail" not in raw and raw.get("board") is not None:
+        t_old = board_to_trail(raw.get("board"), levels)
+        s["trail"], tp = clean_trail(t_old, levels)
+        if legacy:
+            lab = str(raw.get("board_label") or "").strip()
+            s["board_was"] = lab[:40] if lab else dict((k, w) for k, _, w in TRAIL_PRESETS).get(s["trail"], "%s ranks a talent" % raw.get("board"))
+        else:
+            probs += tp   # the old name alone is no problem: it plays the same share of the Trail (the CLI says so)
     else:
-        t, tp = clean_talents(traw)
+        s["trail"], tp = clean_trail(raw.get("trail", DEFAULTS["trail"]), levels)
         probs += tp
-        s["talents"] = t
-        pre = preset_of(t)
-        s["board"] = dict(PRESETS)[pre] if pre else -1.0
-        lab = str(raw.get("board_label") or "").strip()
-        s["board_label"] = lab[:40] if lab else (board_label(s["board"]) if pre else "custom")
+    s["trail_optional"] = str(raw.get("trail_optional", False)).strip().lower() in ("1", "true", "yes", "on")
+    if not legacy and raw.get("talents") not in (None, "", {}):
+        probs.append("talents (the Upgrade board talent by talent) went with the board in pass 129: set trail")
     d = str(raw.get("death", DEFAULTS["death"]))
     ok_deaths = [k for k, _, _ in DEATHS] + (list(LEGACY_DEATHS) if legacy else [])
     if d not in ok_deaths:
@@ -1243,19 +1263,17 @@ class SynthProc:
 
 
 def player_args(settings, p, snap, out_dir, wall_cap, caps=None):
-    """The runner's command line. The board goes both ways: board= the preset it equals (an older runner reads only
-    that) and talents= talent by talent (lane SIMRUN's round 2: it wins over board=); fast=1 (the sim mode that skips
-    the purely visual work) when the runner has it and the settings keep it on."""
+    """The runner's command line: trail= (and trail_optional=1) the Trail the player's save holds (pass 129); fast=1
+    (the sim mode that skips the purely visual work) when the runner has it and the settings keep it on."""
     s = settings
     caps = caps or {}
-    board = float(s["board"]) if float(s.get("board", 0)) >= 0 else 0.0
     args = ["--headless", "--fixed-fps", str(int(s["fps"])), "--path", snap, "--log-file", p.log,
             "--script", "res://tools/sim_run.gd", "--",
-            "out=" + p.json, "hero=" + s["hero"], "seed=%d" % p.seed, "limit=%d" % int(s["limit"]), "board=%g" % board,
+            "out=" + p.json, "hero=" + s["hero"], "seed=%d" % p.seed, "limit=%d" % int(s["limit"]), "trail=" + str(s.get("trail", "none")),
             "death=" + s["death"], "map=" + s["map"], "progress=%d" % PROGRESS_EVERY, "wall=%d" % max(60, int(wall_cap) - 45),
             "stage=%d" % int(s.get("stage", 1) or 1)]
-    if s.get("talents"):
-        args.append("talents=" + talents_arg(s["talents"]))   # an empty board: board=0 alone (the runner reads no "none")
+    if s.get("trail_optional"):
+        args.append("trail_optional=1")
     if caps.get("fast"):
         args.append("fast=%d" % (1 if s.get("fast", True) else 0))   # the runner's sim mode is on unless told fast=0
     if caps.get("bot"):
@@ -1578,28 +1596,20 @@ def _median_series(grids, key, T):
     return {"median": med, "p10": p10, "p90": p90, "n": n}
 
 
-def board_check(settings, ok_players):
-    """Whether every run played the board asked for (lane SIMRUN's meta.talents {talent: ranks}): [] when they all did,
-    else a sentence per run that did not (an older runner plays only board= presets)."""
-    want = {k: len(v) for k, v in (settings.get("talents") or {}).items() if v}
-    want_forms = {k: v for k, v in (settings.get("talents") or {}).items() if v}
+def trail_check(settings, ok_players):
+    """Whether every run played the Trail asked for (the runner's meta.trail and meta.trail_level): [] when they all
+    did, else a sentence per run that did not (an older runner reads no trail=; a Trail changed under the snapshot)."""
+    want = str(settings.get("trail", "none"))
+    want_lv = trail_level_of(want, trail_levels())
     out = []
     for k, d, rec in ok_players:
-        forms = (d.get("meta") or {}).get("talent_forms")
-        if isinstance(forms, dict):
-            # the runner's own picks, rank by rank (lane SIMRUN's meta.talent_forms): the board exactly
-            forms = {str(a): str(b) for a, b in forms.items() if b}
-            if forms != want_forms:
-                diff = sorted(set(want_forms) | set(forms))
-                out.append("run %d played %s" % (k, ", ".join("%s %s (asked %s)" % (t, forms.get(t, "-"), want_forms.get(t, "-")) for t in diff if forms.get(t) != want_forms.get(t))))
+        m = d.get("meta") or {}
+        if "trail_level" not in m:
+            if want_lv:
+                out.append("run %d played no Trail (its runner reads no trail=; asked %s)" % (k, want))
             continue
-        got = (d.get("meta") or {}).get("talents")
-        if not isinstance(got, dict):
-            continue
-        got = {str(a): int(_num(b)) for a, b in got.items() if int(_num(b)) > 0}
-        if got != want:
-            diff = sorted(set(want) | set(got))
-            out.append("run %d played %s" % (k, ", ".join("%s %d (asked %d)" % (t, got.get(t, 0), want.get(t, 0)) for t in diff if got.get(t, 0) != want.get(t, 0))))
+        if int(_num(m.get("trail_level"))) != int(want_lv or 0):
+            out.append("run %d played Trail Level %d (asked %s = level %d)" % (k, int(_num(m.get("trail_level"))), want, int(want_lv or 0)))
     return out
 
 
@@ -2095,10 +2105,17 @@ def aggregate(players, settings, meta=None, game_dir=None):
                       "level": at_end("level"), "kills": at_end("kills"), "gold": at_end("gold_total"), "xp": at_end("xp_total"),
                       "dmg": _r(sum(_bd_end(g, "dmg_by", i) for i in g[3].get("dmg_by", {}))) if g else None,
                       "fps": m.get("fps"), "build": str(m.get("build_text") or ""), "assists": m.get("assists"),
-                      "end_stage": m.get("end_stage"), "endless_wave": m.get("endless_wave"), "talents": m.get("talents") or {},
+                      "end_stage": m.get("end_stage"), "endless_wave": m.get("endless_wave"),
+                      # an older run's Upgrade board ({talent: ranks}; {} since pass 129, when the board left the game): the
+                      # history and the dashboard still read it for old runs (sim_avg.js keeps the same key)
+                      "talents": m.get("talents") or {},
                       "chests": at_end("chests"), "powerups": at_end("powerups"), "totems": at_end("totems"),
                       # pass 87 (lane STOOLS): the stage run (sim_run.gd's meta): its stage, how it ended, its Endless
                       "stage": m.get("stage"), "outcome": m.get("outcome"), "boss_killed": m.get("boss_killed"), "endless_s": m.get("endless_s")})
+        # pass 129: the Trail Level the run's save held (sim_run.gd's meta.trail_level; a record's header trail.level): only
+        # when the run says it (an older run has no key), as sim_avg.js does
+        if "trail_level" in m:
+            plist[-1]["trail_level"] = m["trail_level"]
     mk = markers([d for _, d, _ in ok])
     names = content_names(game_dir or snap_game(), set(all_ids) | {b["id"] for b in mk["bosses"]} | {s["hero"]})
     reached = sum(1 for p in plist if p["ok"] and _num(p["end_t"]) >= limit - 1.5)
@@ -2120,9 +2137,9 @@ def aggregate(players, settings, meta=None, game_dir=None):
            "rules": {"dps_window": DPS_WINDOW, "rate_window": RATE_WINDOW, "trouble": TROUBLE_FRAC, "bands": list(BAND_SERIES),
                      "medians": list(MEDIAN_SERIES), "fold": FOLD_DEFAULT, "hp_bucket": HP_BUCKET}}
     res["meta"].setdefault("hero_name", names.get(s["hero"], s["hero"]))
-    bc = board_check(s, ok)
+    bc = trail_check(s, ok)
     if bc:
-        res["meta"]["board_differs"] = bc[:10]
+        res["meta"]["trail_differs"] = bc[:10]
     # what the runs played with (lane SIMRUN's meta): every item unlocked ("all") or the save's, the bot's assists
     ms = [d.get("meta") or {} for _, d, _ in ok]
     unl = sorted({str(m.get("unlocks")) for m in ms if m.get("unlocks")})
@@ -2305,12 +2322,14 @@ def synthetic_player(k, seed, settings, creatures=None):
     out["healed_by"] = healed_by
     out["held_by"] = held_by
     out["events"] = events
-    out["meta"] = {"schema": 1, "hero": s["hero"], "seed": seed, "board": s["board"], "death": s["death"], "limit": limit, "map": s["map"],
+    out["meta"] = {"schema": 1, "hero": s["hero"], "seed": seed, "trail": s.get("trail", "none"),
+                   "trail_level": trail_level_of(s.get("trail", "none"), trail_levels()) or 0, "trail_optional": bool(s.get("trail_optional")),
+                   "death": s["death"], "limit": limit, "map": s["map"],
                    "map_rev": "", "version": "synthetic", "fps": s["fps"], "wall_s": round(12.0 + end_t / 4.0, 1), "boot_s": 12.0,
                    "end_reason": end_reason, "end_t": end_t, "end_stage": stage, "end_level": level, "deaths": deaths, "revives": revives,
                    "assists": 0, "kills": int(kills), "gold_total": int(gold), "xp_total": round(xp, 1), "dmg_total": round(sum(db.values()), 1),
                    "build_text": " · ".join("%s %d" % (w.replace("_", " ").title(), 1 + level // 10) for w in joined), "rows": len(out["t"]),
-                   "talents": {k: len(v) for k, v in (s.get("talents") or {}).items()}, "unlocks": "all", "synthetic": True}
+                   "unlocks": "all", "synthetic": True}
     return out
 
 
@@ -2372,6 +2391,11 @@ class Batch:
         self.out = os.path.abspath(args.out)
         raw = {k: getattr(args, k) for k in DEFAULTS if hasattr(args, k)}
         raw["fast"] = not getattr(args, "no_fast", False)
+        if raw.get("trail") is None:
+            raw.pop("trail", None)
+            if getattr(args, "board", None) is not None:   # pass 129: the old name
+                raw["trail"] = board_to_trail(args.board, trail_levels())
+                print("sim: --board is the old name (the Upgrade board is gone): playing --trail %s" % raw["trail"], flush=True)
         self.settings, probs = clean_settings(raw)
         if probs:
             raise SystemExit("sim: error: " + "; ".join(probs))
@@ -2587,8 +2611,8 @@ class Batch:
         os.makedirs(os.path.join(self.out, "players"), exist_ok=True)
         write_json(os.path.join(self.out, "settings.json"), self.settings, indent=1)
         s = self.settings
-        self.say("sim: %d run%s of %s to %s, %d at once, Upgrade board %s, on death: %s, seed %d, map %s stage %d, %d fps -> %s" % (
-            s["players"], "" if s["players"] == 1 else "s", s["hero"], fmt_t(s["limit"]), s["workers"], board_text(s.get("talents"), s.get("board_label")),
+        self.say("sim: %d run%s of %s to %s, %d at once, the Trail %s, on death: %s, seed %d, map %s stage %d, %d fps -> %s" % (
+            s["players"], "" if s["players"] == 1 else "s", s["hero"], fmt_t(s["limit"]), s["workers"], settings_trail_words(s),
             death_label(s["death"]), s["seed"], s["map"], int(s.get("stage", 1) or 1), s["fps"], self.out))
         if not self.args.synthetic:
             why = caps_problem(s, self.caps)
@@ -2680,9 +2704,10 @@ def main(argv=None):
     ap.add_argument("--players", type=int, default=DEFAULTS["players"])
     ap.add_argument("--workers", type=int, default=DEFAULTS["workers"], help="runs at once (0 = auto: as many as the runs, at most cores - 2)")
     ap.add_argument("--limit", type=int, default=DEFAULTS["limit"], help="play seconds each run stops at (1500 = 25:00)")
-    ap.add_argument("--board", type=float, default=DEFAULTS["board"], help="the Upgrade board preset: 0 none, 1.5 a quarter, 3 half, 6 full")
-    ap.add_argument("--talents", default=None, help="the board talent by talent: grit:AAB,drive:A,... (A/B = each rank's form); wins over --board")
-    ap.add_argument("--board-label", default="", help="the board's name in the header (\"my save\")")
+    ap.add_argument("--trail", default=None, help="pass 129: the Trail the players hold: none, quarter, half, full (shares of the Trail's levels) "
+                    "or a Trail Level; every required node up to it is bought, the choices in turn (default quarter)")
+    ap.add_argument("--trail-optional", action="store_true", help="the optional nodes up to that level too (the Stakes, the Grubstake, Spirit)")
+    ap.add_argument("--board", default=None, help="the old name of --trail (the Upgrade board's ranks a talent: 0, 1.5, 3, 6): plays the same share of the Trail")
     ap.add_argument("--death", default=DEFAULTS["death"], choices=[k for k, _, _ in DEATHS])
     ap.add_argument("--no-fast", action="store_true", help="play without the runner's sim mode (every visual drawn), to compare")
     ap.add_argument("--seed", type=int, default=DEFAULTS["seed"])

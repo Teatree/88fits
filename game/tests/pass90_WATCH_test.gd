@@ -190,11 +190,11 @@ func test_the_falls_are_named_marks_and_a_revive_marks_its_fall() -> void:
 
 func _watch(death: String) -> Node:
 	var w = WATCH.new()
-	w.set("args", {"hero": "drifter", "seed": "11", "talents": "none", "analytics": "memory", "repo": "user://p90_no_such_dir",
+	w.set("args", {"hero": "drifter", "seed": "11", "trail": "none", "analytics": "memory", "repo": "user://p90_no_such_dir",
 		"speed": "1", "bot": "stub", "death": death})
 	add_child(w)
 	await get_tree().process_frame
-	var s := SETUP.defaults_from_args({"hero": "drifter", "seed": "11", "talents": "none", "bot": "stub", "death": death})
+	var s := SETUP.defaults_from_args({"hero": "drifter", "seed": "11", "trail": "none", "bot": "stub", "death": death})
 	w.setup.visible = false
 	w._begin_run(s, false)
 	var waited := 0

@@ -13,14 +13,15 @@ const SimModel = (() => {
   const COMPARE_DASH = '7 5';
   const SHORT_DASH = '3 3';         // a second measure of the same sim (the estimate, the max HP)
   const FOLD = 7;
+  // pass 129: the Trail's presets [key, the share of the Trail's levels, the words] (sim_batch.py TRAIL_PRESETS,
+  // game/tools/trail_arg.gd); BOARDS only names the Upgrade board of a sim older than the Trail (its settings' `board`)
+  const TRAIL_PRESETS = [['none', 0, 'none'], ['quarter', 0.25, 'a quarter'], ['half', 0.5, 'half'], ['full', 1, 'full']];
   const BOARDS = [[0, 'none'], [1.5, 'a quarter'], [3, 'half'], [6, 'full']];
   // the death policies (round 2: "end" the default, "ad" when the runner has it, "keep"; "gold" only an older sim's)
   const DEATHS = { end: 'end the run at the first death', ad: 'revive once with an ad, then end', keep: 'keep playing, count every death',
     gold: 'revive with gold, then the run ends' };
-  const DEFAULTS = { hero: 'drifter', players: 10, workers: 0, limit: 1500, board: 1.5, talents: null, board_label: '', death: 'end', seed: 1,
+  const DEFAULTS = { hero: 'drifter', players: 10, workers: 0, limit: 1500, trail: 'quarter', trail_optional: false, death: 'end', seed: 1,
     map: 'red_canyon', fps: 60, note: '', fast: true };
-  const TALENT_ORDER = ['grit', 'drive', 'stride', 'fortune', 'choice', 'nerve', 'study', 'spite'];
-  const MAX_RANK = 6;
 
   // ------------------------------------------------------------------ formats
 
@@ -624,48 +625,45 @@ const SimModel = (() => {
   function settingsLine(s, heroName) {
     const st = s || {};
     // pass 87 (lane STOOLS): the stage the runs played
-    return `${heroName || st.hero} · ${st.stage ? 'stage ' + st.stage + ' · ' : ''}${st.players} run${st.players === 1 ? '' : 's'} to ${fmtT(st.limit)} · Upgrade board ${boardWords(st)} · ${DEATHS[st.death] || st.death} · seed ${st.seed}` +
+    return `${heroName || st.hero} · ${st.stage ? 'stage ' + st.stage + ' · ' : ''}${st.players} run${st.players === 1 ? '' : 's'} to ${fmtT(st.limit)} · Trail ${trailWords(st)} · ${DEATHS[st.death] || st.death} · seed ${st.seed}` +
       (st.fast === false ? ' · everything drawn (sim mode off)' : '');
   }
 
-  /** A board's ranks: {talent: picks} -> how many ranks bought. */
-  function boardRanks(t) {
-    let n = 0;
-    for (const k of Object.keys(t || {})) n += String(t[k] || '').length;
-    return n;
+  /** The Trail Level a `trail` value names on a Trail of `levels` levels (sim_batch.py trail_level_of): a preset's
+   *  share rounded half up, a whole number as it is (kept inside 0..levels); null for anything else. */
+  function trailLevelOf(arg, levels) {
+    const a = String(arg == null ? '' : arg).trim().toLowerCase();
+    if (a === '') return 0;
+    const pre = TRAIL_PRESETS.find((p) => p[0] === a);
+    if (pre) return Math.floor(pre[1] * levels + 0.5);
+    if (/^[+-]?\d+$/.test(a)) return Math.max(0, Math.min(levels, parseInt(a, 10)));
+    return null;
   }
 
-  /** The board in words: its name and its ranks, "a quarter (12 of 48 ranks)", "my save (16 of 48 ranks)". */
-  function boardWords(st) {
+  /** Settings kept from the Upgrade board's days (`board`, no `trail`) with the same share of the Trail written in
+   *  (sim_batch.py board_to_trail's four names: 0, 1.5, 3, 6 ranks = none, quarter, half, full); anything else, and a
+   *  record that already names a Trail, comes back as it is. The Sim tab calls it on the saved settings and on its
+   *  draft before it lays them over the defaults, whose own `trail` would otherwise hide the old `board`. */
+  function trailOfOld(o) {
+    if (!o || typeof o !== 'object' || o.trail != null || o.board == null) return o;
+    const old = { 0: 'none', 1.5: 'quarter', 3: 'half', 6: 'full' }[Number(o.board)];
+    return old ? Object.assign({}, o, { trail: old }) : o;
+  }
+
+  /** A sim's Trail in words (sim_batch.py settings_trail_words): "a quarter (Trail Level 18 of 70)", "Trail Level 36
+   *  of 70, optional nodes too", "none"; without `levels` the name or "Trail Level N" alone. A sim from before the
+   *  Trail (its settings have `board`, no `trail`) says "the old Upgrade board: a quarter". */
+  function trailWords(st, levels) {
     const s = st || {};
-    const name = s.board_label || (s.board != null && Number(s.board) >= 0 ? boardLabel(s.board) : 'custom');
-    return s.talents ? `${name} (${boardRanks(s.talents)} of ${MAX_RANK * TALENT_ORDER.length} ranks)` : name;
-  }
-
-  /** A talent's picks with rank r: kept up to r, a new rank in `form` (0/1; else the last one's, else A). */
-  function setRank(picks, r, form) {
-    const p = String(picks || '');
-    const rr = Math.max(0, Math.min(MAX_RANK, Math.round(Number(r) || 0)));
-    if (rr <= p.length) return p.slice(0, rr);
-    const f = form === 1 || form === 'B' ? 'B' : form === 0 || form === 'A' ? 'A' : (p.slice(-1) || 'A');
-    return p + f.repeat(rr - p.length);
-  }
-
-  /** The preset a board equals ({key, label} of meta.presets), else null (custom). */
-  function presetOf(t, presets) {
-    const key = (x) => TALENT_ORDER.map((k) => `${k}:${(x || {})[k] || ''}`).join(',');
-    const want = key(t);
-    return (presets || []).find((p) => key(p.talents) === want) || null;
-  }
-
-  /** "2 Padding, 1 Plate" for mixed picks; the form's name for uniform ones; '' for none. */
-  function picksWords(picks, forms) {
-    const p = String(picks || '');
-    if (!p) return '';
-    const a = (p.match(/A/g) || []).length, b = p.length - a;
-    const nm = (i) => ((forms || [])[i] || {}).name || 'AB'[i];
-    if (!a || !b) return nm(a ? 0 : 1);
-    return `${a} ${nm(0)}, ${b} ${nm(1)}`;
+    if (s.board_was) return `the old Upgrade board: ${s.board_was}`;
+    if (s.trail == null && s.board != null) return `the old Upgrade board: ${s.board_label || boardLabel(s.board)}`;
+    const a = String(s.trail == null ? 'none' : s.trail).trim().toLowerCase();
+    const pre = TRAIL_PRESETS.find((p) => p[0] === a);
+    const lv = levels ? trailLevelOf(a, levels) : (pre ? null : Number(a) || 0);
+    if (a === 'none' || lv === 0) return 'none';
+    const where = lv == null ? '' : `Trail Level ${lv}${levels ? ' of ' + levels : ''}`;
+    const words = pre ? (where ? `${pre[2]} (${where})` : pre[2]) : where;
+    return words + (s.trail_optional ? ', optional nodes too' : '');
   }
 
   /** The stat tiles over the charts: [{label, value, note}] from the summary (each run's own end, never survivors only). */
@@ -712,7 +710,10 @@ const SimModel = (() => {
     num('limit', L.limit_min || 30, L.limit_max || 10800, true);
     num('seed', 0, 2147483647, true);
     num('fps', 10, 240, true);
-    num('board', 0, 6, false);
+    // pass 129: the Trail (a preset or a level; L.trail_levels caps it when the page knows the Trail)
+    if (trailLevelOf(r.trail, L.trail_levels || 1000) == null) { probs.push('trail must be none, quarter, half, full or a Trail Level'); r.trail = DEFAULTS.trail; }
+    r.trail = String(r.trail).trim().toLowerCase();
+    r.trail_optional = r.trail_optional === true || ['1', 'true', 'yes', 'on'].includes(String(r.trail_optional).trim().toLowerCase());
     const deaths = L.deaths || ['end', 'ad', 'keep'];
     if (!deaths.includes(r.death)) { probs.push(`on death must be one of ${deaths.join(', ')}`); r.death = 'end'; }
     if (r.workers <= 0) r.workers = Math.max(1, Math.min(r.players, (L.max_workers && L.max_workers < 1000 ? L.max_workers : Math.max(1, (L.cores || 8) - 2))));
@@ -770,7 +771,7 @@ const SimModel = (() => {
 
   return {
     SLOTS, OTHER, COMPARE, COMPARE_DASH, SHORT_DASH, FOLD, BOARDS, DEATHS, DEFAULTS, tickLabel, shortName,
-    SECTIONS, missing, chartRange, yTicksRange, barParts, TALENT_ORDER, MAX_RANK, boardRanks, boardWords, setRank, presetOf, picksWords,
+    SECTIONS, missing, chartRange, yTicksRange, barParts, TRAIL_PRESETS, trailLevelOf, trailOfOld, trailWords,
     runsIn, fmtT, parseT, fmtNum, fmtVal, boardLabel, niceStep, niceMax, yTicks, timeTicks, smooth, fold, totalOf, charts, chartMax,
     readout, table, csv, settingsLine, tiles, cleanSettings, speedAt, etaSeconds, fmtDuration, maxOf, firstSeen,
     PICKUP_SERIES, PICKUP_KEYS, isSmall, pickupKind, pickupTimes, pickupCounts, pickupTotals,

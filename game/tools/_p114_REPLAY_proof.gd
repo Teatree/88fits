@@ -2,7 +2,7 @@
 ## through the same paths a player's do, wrapped in Lockstep.input_depth so the recorder keeps them), then the recording
 ## replayed through the real game with nothing but the file, and every checkpoint compared.
 ##   record: bash tools/godot.sh --headless --path game --script res://tools/_p114_REPLAY_proof.gd -- mode=record \
-##              out=<file> hero=drifter stage=1 seed=7 limit=600 [res=504x1122] [board=0.5] [unlocks=all] [check=1] [bot.<k>=v]
+##              out=<file> hero=drifter stage=1 seed=7 limit=600 [res=504x1122] [trail=half] [unlocks=all] [check=1] [bot.<k>=v]
 ##           (no --fixed-fps: the frames come as the machine gives them, irregular deltas and 0, 1 or 2 world steps)
 ##   replay: bash tools/godot.sh --headless --fixed-fps 64 --path game --script res://tools/_p114_REPLAY_proof.gd -- \
 ##              mode=replay file=<file> out=<report.json> [res=504x1122] [seek=0] [assist=1]
@@ -15,7 +15,7 @@
 extends SceneTree
 
 const BOT := preload("res://tools/bot/Bot.gd")
-const PROBE := preload("res://tools/difficulty_probe.gd")
+const TRAIL_ARG := preload("res://tools/trail_arg.gd")
 const BOT_ARGS := ["preset", "skill", "style", "reaction", "dodge", "daring", "stray", "explore", "totems", "barrels", "powerups",
 	"structures", "shop", "stranger", "boss", "cards", "lure_w", "lure_close", "breakout", "specials", "portal"]
 
@@ -27,7 +27,8 @@ var _stage := 1
 var _seed := 7
 var _limit := 600.0
 var _res := Vector2i(504, 1122)
-var _board := 0.0
+## trail=none|quarter|half|full|<level> (tools/trail_arg.gd; board=<ranks> is its old name): the Trail the recorded save holds
+var _trail := "none"
 var _unlocks := "all"
 var _wall := 3600.0
 ## the bot's answer to Down!: end (give up) or ad (the ad revive, a tap the recording keeps)
@@ -50,8 +51,9 @@ var _given := false
 var _assist := false
 ## pass 125: native=0|1: the crowd's compiled loops off or on for this run (_p125_NATIVE_proof.gd); empty: as Settings says
 var _native := ""
-## stakes=<ranks>: the Upgrade board's Stakes in its Difficulty form (talent "spite", form 0) in the recorded save, so the
-## hero goes down sooner (the replay reads the same save)
+## stakes=<n>: the Trail's first n Stakes nodes (the optional ones that give the upgrade "stakes": creatures tougher)
+## bought in the recorded save, so the hero goes down sooner (the replay reads the same save). Until pass 129 these were
+## ranks of the Upgrade board's Stakes.
 var _stakes := 0
 ## down_tap=1: Down!'s debug and ad answers are real finger taps on its buttons (pressed, then lifted: a tap between frames,
 ## as the player's are), with the developer menu's free revive button shown
@@ -91,7 +93,8 @@ func _init() -> void:
 			"stage": _stage = maxi(int(v), 1)
 			"seed": _seed = int(v)
 			"limit": _limit = float(v)
-			"board": _board = float(v)
+			"trail": _trail = v
+			"board": _trail = TRAIL_ARG.board_to_trail(v, 70)
 			"unlocks": _unlocks = v
 			"wall": _wall = float(v)
 			"death": _death = v
@@ -176,27 +179,19 @@ func _start() -> void:
 			for qid in (reg.get("quests") as Dictionary).keys():
 				done.append(str(qid))
 			_save.data["quests_done"] = done
-		var talents := {}
-		if _board > 0.0:
-			var k := 0
-			for id: String in PROBE.FORMS.keys():
-				if id == "spite":
-					k += 1
-					continue
-				var rank: int = PROBE.rank_for(_board, k)
-				k += 1
-				if rank <= 0:
-					continue
-				var picks: Array = []
-				for _r in range(rank):
-					picks.append(int(PROBE.FORMS[id]))
-				talents[id] = {"picks": picks, "rank": rank, "form": int(PROBE.FORMS[id])}
+		var tinfo: Dictionary = TRAIL_ARG.apply(_save, _trail)
+		if tinfo.has("error"):
+			_say(str(tinfo["error"]) + ": no Trail node is bought")
+			TRAIL_ARG.apply(_save, "none")
 		if _stakes > 0:
-			var sp: Array = []
-			for _r in range(_stakes):
-				sp.append(0)
-			talents["spite"] = {"picks": sp, "rank": _stakes, "form": 0}
-		_save.data["talents"] = talents
+			var left := _stakes
+			var bought: Array = (_save.data["trail"] as Dictionary)["bought"]
+			for n: Dictionary in Trail.nodes():
+				var g: Dictionary = n["gives"]
+				if left > 0 and str(g.get("type", "")) == "upgrade" and str(g.get("upgrade", "")) == "stakes" and not bought.has(str(n["id"])):
+					bought.append(str(n["id"]))
+					left -= 1
+			Trail.refresh()
 		if settings:
 			settings.camera_mode = 0
 			settings.show_hints = false

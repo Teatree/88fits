@@ -167,26 +167,27 @@ func test_the_bottom_inset_lifts_the_tabs_over_the_gesture_bar() -> void:
 	assert_float(band.size.y).is_equal_approx(float(R.DOCK_BAR_H) + 48.0, 0.5)
 
 
-func test_the_upgrade_mark_is_the_titles_rule() -> void:
+## Pass 129: the fourth tab is the Trail's (the Upgrade board is gone); its mark is the crumb's rule (Crumbs.upgrade_due:
+## a Trail node the purse can buy that the player has not been shown), which the lane LEAD's test walks.
+func test_the_upgrade_mark_is_the_trails_crumb() -> void:
 	Save.begin_sandbox()
-	var script: GDScript = load("res://ui/wanted/WTabBar.gd")
+	Trail.load_from()
+	Save.data["trail"] = {"bought": [], "spent": 0, "had": []}
+	Save.data.erase("crumbs")
+	Trail.refresh()
 	Save.data["gold"] = 0
-	var want := false
-	for def: TalentDef in Registry.talents_list():
-		if not Registry.is_unlocked("talent", def.id):
-			continue
-		var cost := def.cost_of_rank(Save.talent_rank(def.id))
-		if cost >= 0 and Currency.can_afford(def.currency_type, cost):
-			want = true
-	assert_bool(script.upgrade_mark()).is_equal(want)
+	assert_bool(Crumbs.upgrade_due()).is_false()
 	Save.data["gold"] = 99999999
-	assert_bool(script.upgrade_mark()).is_true()
+	assert_bool(Crumbs.upgrade_due()).is_true()
 	var bar := _bar("battle")
 	await get_tree().process_frame
 	assert_bool((bar.get_node("UpgradeMark") as Control).visible).is_true()
 	Save.data["gold"] = 0
 	bar.call("refresh")
-	assert_bool((bar.get_node("UpgradeMark") as Control).visible).is_equal(script.upgrade_mark())
+	assert_bool((bar.get_node("UpgradeMark") as Control).visible).is_false()
+	var script: GDScript = load("res://ui/wanted/WTabBar.gd")
+	assert_str(str(script.scene_of("upgrade"))).is_equal("res://ui/TrailScreen.tscn")
+	assert_str(str(script.word_of("upgrade"))).is_equal("TRAIL")
 
 
 # ---------------------------------------------------------------- ScreenBase
@@ -235,7 +236,7 @@ func test_screen_base_under_royale_with_a_tab_bar() -> void:
 func test_every_screen_base_screen_builds_under_both_themes() -> void:
 	Save.begin_sandbox()
 	for scene: String in ["res://ui/SettingsScreen.tscn", "res://ui/StagesScreen.tscn", "res://ui/CollectionScreen.tscn",
-			"res://ui/HomesteadScreen.tscn", "res://ui/ShopScreen.tscn", "res://ui/ResultsScreen.tscn"]:
+			"res://ui/ResultsScreen.tscn"]:
 		for on: bool in [true]:
 			var s: Control = auto_free(load(scene).instantiate())
 			add_child(s)

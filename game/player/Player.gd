@@ -1526,8 +1526,8 @@ func _die() -> void:
 
 func revive(phoenix: bool = false) -> void:
 	dead = false
-	# the revive_hp share of his health (pass 115: Nerve's 40% base, +10% a Second Wind rank; a Phoenix Feather never less
-	# than its own 50%)
+	# the revive_hp share of his health (pass 115: 40%, StatSheet.PLAYER_DEFAULTS, plus the Trail's Second Wind nodes; a
+	# Phoenix Feather never less than its own 50%)
 	hp = clampf(max_hp * revive_share(phoenix), 1.0, max_hp)
 	invuln = 2.0 + revive_overflow_seconds()
 	sprite.play("idle")
@@ -1535,8 +1535,8 @@ func revive(phoenix: bool = false) -> void:
 	damaged.emit(hp, max_hp)
 
 
-## The share of his max HP a revive stands him up with (pass 115, lane META): the sheet's revive_hp (Nerve's base 40%
-## plus Second Wind's ranks); a Phoenix Feather's revive takes its `phoenix_hp` (50%) when that is more. 0..1.
+## The share of his max HP a revive stands him up with (pass 115, lane META): the sheet's revive_hp (the base 40% plus
+## the Trail's Second Wind nodes); a Phoenix Feather's revive takes its `phoenix_hp` (50%) when that is more. 0..1.
 func revive_share(phoenix: bool = false) -> float:
 	if sheet == null:
 		return 0.5
@@ -1546,8 +1546,8 @@ func revive_share(phoenix: bool = false) -> float:
 	return clampf(s, 0.0, 1.0)
 
 
-## Pass 123: what Second Wind's top rank takes past full health buys time instead (the seventh rank never a dead one):
-## REVIVE_OVER_S seconds untouchable for each whole share of max HP over 100% (115% is 1.5 s more).
+## Pass 123: what Second Wind takes past full health buys time instead (never a dead purchase): REVIVE_OVER_S seconds
+## untouchable for each whole share of max HP over 100% (115% is 1.5 s more).
 const REVIVE_OVER_S := 10.0
 
 

@@ -3549,3 +3549,46 @@ The game's fog lifts blacks to a warm taupe, so a charcoal painting reads pale o
 A look cannot carry its own `size` or cell (EnemyDef.apply_art, `frame_px` is the creature's): room for the hover and the wings raises the creature's `size` (the crow 1.5 -> 1.7, at `cell_fill` 0.8 its figure stands as tall as CC-A's). A look's `shadow` block is its own: a flyer's `{"scale": [..], "up": 0, "drop": 0.05}` keeps the blob straight under the body, `drop` the cell's foot line on the sand so the dead body lands on it. `recolour_strip.py --max-val 0.6` leaves what is brighter as it is (the Dust Bunny's white eyes on a body with no hue to tell them apart by).
 
 The cart: `cart_toppled` is painted over a model now (`tools/blender_cart.py` -> `tools/dl/cart_ref.png`; `gen_prop_variants.py` `FROM_RENDER` {ref, denoise}: the render is the last reference and the painting's start).
+
+## Pass 129 (lane TRAIL-REMOVE): the Upgrade board is gone, the tools say `trail`
+
+The Upgrade board ("the Mirror": `content/talents`, `TalentDef`, the save's `talents` / `talent_spent` /
+`talent_spent_in`) left the game; the Trail (`docs/trail_schema.md`) is the only permanent progression. Every line above
+that names `board=`, `mirror=`, `talents=`, `grit=`, `spite=`, `board_label` or `header.watch.board / talents` (the
+Pass 77 runner's args and output, Pass 80's Watch, Pass 85's setup file and pop-up, Pass 88's and Pass 111's talent
+keys) describes what was there until this pass.
+
+**The Trail argument** (`game/tools/trail_arg.gd` is the rule; `tools/sim_batch.py` `trail_ids_upto` its copy):
+
+| where | argument | default | meaning |
+| --- | --- | --- | --- |
+| `game/tools/sim_run.gd`, `difficulty_probe.gd`, `watch/Watch.gd`, `_p114_REPLAY_proof.gd`, the scratch probes | `trail=none\|quarter\|half\|full\|<level>` | `none` | the tool's save holds every required node of Trail levels 1..N at no cost: plain nodes all, the choices in turn (the k-th choice group in file order takes its member k mod its size), nothing spent. The names are shares of the Trail's levels, rounded half up (70 levels: 18, 35, 70) |
+| the same | `trail_optional=1` | off | the optional nodes up to that level too (the Stakes, the Grubstake, Spirit) |
+| `watch/Watch.gd` | `trail=save` + `trail_ids=n001,n002,...` | | the PC save's own nodes (watch.py reads them: the nodes paid for, and those whose gift the save had or whose outlaw / skin it owns); `trail_label=` its words for the header |
+| `_p114_REPLAY_proof.gd` | `stakes=<n>` | 0 | the Trail's first n nodes of upgrade type `stakes` bought on top (ranks of the board's Stakes until now) |
+| all of them | `board=` / `mirror=` `<ranks a talent>` | | the old name: 0, 1.5, 3, 6 read as none, quarter, half, full, any other number as its share of 6 of the Trail's levels; one line says so |
+| `tools/sim_batch.py`, `tools/watch.py` | `--trail`, `--trail-optional`, `--board` (the old name) | `quarter` | the same; `--talents` and `--board-label` are gone (sim_batch refuses a job spec's `talents` in words) |
+
+Outlaws, items and stages a node gives come with it (`Trail.has`), so the card pool is what a player at that Trail Level
+has; `unlocks=all` still marks every quest done for what no node gives.
+
+**The runner's output** (`sim_run.gd` meta): `trail` (the argument as played), `trail_level` (the Trail Level that came of
+it), `trail_nodes` (how many nodes), `trail_optional`; `board`, `talents`, `talent_forms` are gone. A sim's settings:
+`trail`, `trail_optional` (an older sim's `board` / `talents` / `board_label` still read in the history as "the old
+Upgrade board: ..."); `meta.trail_differs` in place of `board_differs`; a player's row carries `trail_level` when its
+run does, and keeps `talents` ({} now) for old runs.
+
+**The Watch's setup file** (`tools/dl/watch/setup.json`): `{trail: {levels, save: {ids, level} | null, save_note}, refs:
+[{hero, map, trail_key, path, label, stage}], save_stages, save_stages_note}` (`trail_key`: "none", "quarter", "36",
+"36+opt", "save"; a Sim from before the Trail is left out of `refs`). The pop-up's settings: `trail`, `trail_optional`,
+`trail_ids`, `trail_label`. Its checks' actions: `setup.trail=<preset>` (`setup.board=` still reads),
+`setup.trail_level=<n>`, `setup.trail_optional=<0|1>`; `setup.slot=` is gone. `header.watch = {bot, trail,
+trail_optional, trail_label, ref, look, run}`.
+
+**The run record** is schema 6 (`analytics/SCHEMA.md`): no `talents`, `talent_forms`, `board`; `trail` = {level, bought,
+paid, spent, upgrades, levels, nodes, types}; `icons["trail:<type>"]`; index row `trail_level`, `trail_bought`,
+`trail_spent`. PostHog `run_start`: `trail_level`, `trail_nodes`, `trail_spent`.
+
+**The save**: `talents`, `talent_spent`, `talent_spent_in` are read once by `Save._migrate_trail` (every coin back) and
+erased; `board_note` holds only the migration's `trail_refund`. `StatSheet.PLAYER_DEFAULTS.revive_hp` is 0.4 (it was the
+Nerve talent's `base_stats`). Quest `unlocks.type` "talent" is gone from the Level Editor's list.

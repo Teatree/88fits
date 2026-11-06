@@ -1,6 +1,6 @@
 ## The slab button: Alfa Slab One on a square box with an ink border and a hard shadow. Variants: primary (brass,
 ## darkens to brass dark while held; since pass 46 brass means buying or the one big go, PLAY), secondary (paper),
-## danger (rock with paper text), upgrade (turquoise with paper text, darker while held: the way to the Upgrade board,
+## danger (rock with paper text), upgrade (turquoise with paper text, darker while held: the way to the Trail,
 ## which wants to be seen without looking like a purchase), locked (aged at 45 %, still emits `pressed` so the screen can
 ## say why). The label is parts: text runs in their own colours and coins ("REROLL ×1", "SELL ○ +4", "RANK 2 ○ 252").
 ## Pass 122 (lane UIKIT_A), under Royale: the same button wears a `role` (Garry: button colours mean

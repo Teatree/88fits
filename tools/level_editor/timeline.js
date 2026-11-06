@@ -794,7 +794,7 @@ const Timeline = (() => {
     const runs = sim.ok_players || sim.players || 0;
     return {
       id, label: `${id} (${runs} run${runs === 1 ? '' : 's'})`,
-      note: `${sim.hero_name || sim.hero || ''} · ${runs} runs${sim.board_words ? ` · board ${sim.board_words}` : ''} · ${String(sim.started || '').replace('T', ' ').slice(0, 16)}${sim.stale ? ' · the map changed since' : ''}`,
+      note: `${sim.hero_name || sim.hero || ''} · ${runs} runs${sim.trail_words ? ` · Trail ${sim.trail_words}` : ''} · ${String(sim.started || '').replace('T', ' ').slice(0, 16)}${sim.stale ? ' · the map changed since' : ''}`,
       stale: !!sim.stale, clock, n: C + 1, has: o.has || [],
       alive: pick('alive', 'mean'), aliveReg: pick('alive_reg', 'mean'), aliveHell: pick('alive_hell', 'mean'), load: pick('load', 'mean'), cap: pick('cap', 'mean'),
       capFull: pick('cap_full', 'mean'), threat: pick('threat', 'mean'), power: pick('power', 'mean'), dps: pick('hero_dps', 'mean'), ehp: pick('hero_ehp', 'mean'),

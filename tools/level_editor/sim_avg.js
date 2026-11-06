@@ -519,6 +519,9 @@ const SimAvg = (() => {
         // pass 87 (lane STOOLS): the stage run (sim_run.gd's meta): its stage, how it ended, its Endless
         stage: own(m, 'stage') ? m.stage : null, outcome: own(m, 'outcome') ? m.outcome : null, boss_killed: own(m, 'boss_killed') ? m.boss_killed : null,
         endless_s: own(m, 'endless_s') ? m.endless_s : null });
+      // pass 129: the Trail Level a recorded run began at (fromRecord's meta.trail_level); a sim's run has none: no key,
+      // so the row stays sim_batch.py's
+      if (own(m, 'trail_level')) plist[plist.length - 1].trail_level = m.trail_level;
     }
     const mk = markers(ok.map((p) => p.d));
     const nm = {};
@@ -820,6 +823,9 @@ const SimAvg = (() => {
       run_id: String(rec.run_id || ''), talents: tal, talent_forms: forms, tool: !!rec.tool, headless: !!rec.headless,
       dev: !!(rec.settings && rec.settings.dev), device: String(rec.device || ''), platform: String(rec.platform || '') };
     if (o.player) out.meta.player = o.player;
+    // pass 129 (schema 6): the Trail Level the run began at (the header's trail.level), only from a record with a Trail
+    // (the talents above are an older record's: the Upgrade board left the game)
+    if (isObj(rec.trail)) out.meta.trail_level = int(rec.trail.level);
     return out;
   }
 

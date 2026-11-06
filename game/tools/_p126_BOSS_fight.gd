@@ -70,7 +70,6 @@ func _start() -> void:
 		return
 	save.begin_sandbox()
 	save.data["runs_started"] = 1
-	save.data["talents"] = {}
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify({"weapon": PROBE.START.get(_hero, "revolver"), "level": 1, "character": _hero, "map": "red_canyon",
 		"map_seed": _seed, "analytics": false, "sim_clock": true, "stage": _stage + 1}))

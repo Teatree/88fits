@@ -221,7 +221,7 @@ PLAYER_DEFAULTS = {
     "execute_frac": 0.0, "thorns": 0.0, "adrenaline_speed": 0.0, "adrenaline_might": 0.0, "overkill": 0.0,
     "cooldown_on_kill": 0.0, "xp_gain": 1.0, "ricochet": 0.0, "homing_turn": 1.0, "haste": 1.0, "evade": 0.0,
     "evade_invuln": 0.0, "shield_max": 0.0, "shield_delay": 3.0, "shield_rate": 0.5, "regen_delay": 3.0,
-    "lifesteal_cap": 0.03, "heal_drop": 0.0, "coin_drop": 0.0, "hit_invuln": 0.25, "revive_hp": 0.5, "desperado": 0.0,
+    "lifesteal_cap": 0.03, "heal_drop": 0.0, "coin_drop": 0.0, "hit_invuln": 0.25, "revive_hp": 0.4, "desperado": 0.0,
     "debuff_duration": 1.0, "difficulty": 0.0, "still_regen": 0.0, "still_might": 0.0, "barrel_speed": 0.0,
     "barrel_seconds": 0.0, "xp_drop_chance": 0.0, "elite_damage": 0.0, "phoenix_revive": 0.0, "hurt_speed": 0.0,
     "hurt_speed_seconds": 0.0, "powder_keg_chance": 0.0, "coin_on_hit": 0.0, "gas_mask_cap": 0.0, "kill_might": 0.0,
@@ -233,7 +233,7 @@ PLAYER_DEFAULTS = {
     # Gold Rush)
     "bronco_chance": 0.0, "debuff_jump": 0.0, "star_block_every": 0.0, "gem_sweep_every": 0.0, "vein_chance": 0.0,
     "gold_might": 0.0,
-    # pass 88 (lane MIRROR): the Upgrade board's Stakes (MirrorDanger.gd)
+    # pass 88 (lane MIRROR): the Stakes (MirrorDanger.gd; the Trail's Stakes nodes since pass 129)
     "danger_hp": 0.0, "danger_attack": 0.0, "danger_speed": 0.0, "danger_bounty": 0.0,
     "boss_danger_hp": 0.0, "boss_danger_attack": 0.0, "boss_danger_speed": 0.0, "boss_danger_bounty": 0.0,
     # pass 115 (lane META): the Phoenix Feather's least revive health (Player.revive_share)
@@ -359,7 +359,7 @@ STAT_HELP = {
     "gem_sweep_every": "Mother Lode: every this many seconds every XP gem on the screen flies to the hero (the first 1 s after it is taken); 0 = none",
     "vein_chance": "Eureka: the chance a kill bursts into 5 more XP gems of its size (rolled with Prospector's extra gem, so it needs xp_drop_chance above 0)",
     "gold_might": "Gold Rush: attack damage for every 100 gold gained while held (after coin gain), up to +50% in all; spending takes nothing back",
-    # pass 88 (lane MIRROR): the Upgrade board's Stakes; 0.1 = +10% (the ranks add); never in the arena
+    # pass 88 (lane MIRROR): the Stakes; 0.1 = +10% (the Trail's Stakes nodes add); never in the arena
     "danger_hp": "Stakes (Difficulty): regular creatures' HP (everything but a boss or an Elite by its kind)",
     "danger_attack": "Stakes (Difficulty): regular creatures' attack, their bite and every hit they throw",
     "danger_speed": "Stakes (Difficulty): regular creatures' walking speed",
@@ -616,7 +616,7 @@ def condition_problem(cond, top_of=None):
         if top > 0 and isinstance(lv, (int, float)) and not isinstance(lv, bool) and not (1 <= lv <= top):
             return "item_level: %s has levels 1 to %d, not %s" % (cond["id"], top, lv)
     return ""
-UNLOCK_TYPES = ["character", "weapon", "passive", "map", "talent", "mode", "skin"]   # pass 111: skin {id: "<hero>:<CODE>"}
+UNLOCK_TYPES = ["character", "weapon", "passive", "map", "mode", "skin"]   # pass 111: skin {id: "<hero>:<CODE>"}
 QUEST_TEMPLATE_CONDITION = {"type": "kills_total", "count": 400}
 
 # ---------------------------------------------------------------- placeholders (PlaceholderArt.gd)

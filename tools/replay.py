@@ -5,7 +5,9 @@
     python tools/replay.py --latest --player "Lanky Tinker"
     python tools/replay.py <file>                   # one recording (a *_replay.json)
     python tools/replay.py --list [--player NAME]   # every recording: when, who, hero, stage, result, its build, kept?
-    python tools/replay.py --board [<file> | --latest]   # pass 115: only print the Upgrade board the run began with
+    python tools/replay.py --trail [<file> | --latest]   # pass 129: only print the Trail the run began with (the nodes
+                                                         # paid for and their gold, the upgrades summed by type, the
+                                                         # unlocks); --board, pass 115's Upgrade board, is its old name
     options: --speed 0.25|0.5|1|2|4|8  --paused  --seek 5:00  --sound  --w 1600 --h 900
              --nearest (play on the nearest build without asking when the right one is gone)  --dry-run
              --shots <dir> --demo --quit-after <s>  (the scripted capture tour)
@@ -39,7 +41,12 @@ LOG_DIR = os.path.join(ROOT, "tools", "dl", "replay", "logs")
 
 
 def say(msg):
-    print("replay: " + msg, flush=True)
+    line = "replay: " + msg
+    try:
+        print(line, flush=True)
+    except UnicodeEncodeError:   # a console that cannot show a name's letter (cp1252 and "Jeżyk"): shown as "?"
+        enc = sys.stdout.encoding or "ascii"
+        print(line.encode(enc, "replace").decode(enc), flush=True)
 
 
 def describe(h):
@@ -52,31 +59,85 @@ def describe(h):
 
 
 # ---------------------------------------------------------------- pass 115 (lane DASH; Garry: "I need to know Player
-# Mirror Upgrades while watching the replay"): the Upgrade board the recording's save began with, in the terminal (any
-# recording, any build: the viewer of a build from 0.98 on shows it in its window too)
+# Mirror Upgrades while watching the replay"), pass 129: the Trail the recording's save began with, in the terminal (any
+# recording, any build; the viewer shows it in its window too: B folds it). Until pass 129 this printed the Upgrade
+# board from game/content/talents, which left the game with the board: a recording from before the Trail says in one
+# line what its save held.
 
-def _talent_defs():
-    """The board's talents from game/content/talents (the repo as it is now), in the board's order (TalentDef.board_before:
-    the cheaper first rank first, then `order`, then the id)."""
-    out = []
-    base = os.path.join(ROOT, "game", "content", "talents")
-    for tid in sorted(os.listdir(base)) if os.path.isdir(base) else []:
-        f = os.path.join(base, tid, tid + ".json")
+TRAIL_FILE = os.path.join(ROOT, "game", "content", "trail", "trail.json")
+# where a gift's own JSON (its `name`) lives, by the gift's type
+GIFT_DIRS = {"outlaw": "characters", "weapon": "weapons", "passive": "passives", "structure": "structures",
+             "powerup": "pickups", "map": "maps"}
+GIFT_WORDS = {"outlaw": "outlaws", "skin": "skins", "weapon": "weapons", "passive": "cards and items", "stage": "stages",
+              "map": "maps", "structure": "structures", "powerup": "power-ups", "feature": "features"}
+
+
+def _trail_defs(trail_file=None):
+    """The Trail as the repo has it now (game/content/trail/trail.json): ({upgrade type: {name, kind, text}}, [node]);
+    ({}, []) when the file cannot be read."""
+    try:
+        with open(trail_file or TRAIL_FILE, encoding="utf-8") as fh:
+            d = json.load(fh)
+    except (OSError, ValueError):
+        return {}, []
+    ups = d.get("upgrades") if isinstance(d, dict) else None
+    nodes = d.get("nodes") if isinstance(d, dict) else None
+    return (ups if isinstance(ups, dict) else {}), [n for n in (nodes if isinstance(nodes, list) else []) if isinstance(n, dict)]
+
+
+def _plain(a):
+    if abs(a - round(a)) < 0.001:
+        return str(int(round(a)))
+    if abs(a * 10.0 - round(a * 10.0)) < 0.001:
+        return "%.1f" % a
+    return "%.2f" % a
+
+
+def amount_text(kind, value):
+    """A sum as its upgrade kind writes it (Trail.amount_text): "+3%", "+2.5%", "+2", "+1", "+2 s"; "" for a word."""
+    sg = "+" if value >= 0 else "-"
+    a = abs(value)
+    if kind == "percent":
+        return sg + _plain(a * 100.0) + "%"
+    if kind == "count":
+        return sg + str(int(a + 0.5))
+    if kind == "seconds":
+        return sg + _plain(a) + " s"
+    if kind == "word":
+        return ""
+    return sg + _plain(a)
+
+
+def gift_key(gives):
+    """The key a gift is gated under (Trail.gift_key): "<type>:<id>" ("stage:<map>:<stage id>" for a stage); "" for an
+    upgrade or a gift that names nothing."""
+    t = str(gives.get("type", ""))
+    if t in ("", "upgrade"):
+        return ""
+    gid = str(gives.get("id", ""))
+    if t == "stage" and gid == "":
+        m, st = str(gives.get("map", "")), str(gives.get("stage", ""))
+        gid = "%s:%s" % (m, st) if m and st else ""
+    return "%s:%s" % (t, gid) if gid else ""
+
+
+def _gift_name(key):
+    """A gift's name from its own JSON (game/content/<folder>/<id>/<id>.json, the repo as it is now), else its id."""
+    t, _, gid = key.partition(":")
+    folder = GIFT_DIRS.get(t)
+    if folder and gid:
         try:
-            with open(f, encoding="utf-8") as fh:
-                d = json.load(fh)
-        except (OSError, ValueError):
-            continue
-        cost = [int(x) for x in d.get("cost") or []]
-        forms = [str((x or {}).get("name", "")) for x in (d.get("forms") or [])][:2]
-        out.append({"id": str(d.get("id", tid)), "name": str(d.get("name", tid)), "ranks": int(d.get("ranks", 3)), "cost": cost,
-                    "order": int(d.get("order", 0)), "forms": forms + [""] * (2 - len(forms))})
-    out.sort(key=lambda t: (t["cost"][0] if t["cost"] else 0, t["order"], t["id"]))
-    return out
+            with open(os.path.join(ROOT, "game", "content", folder, gid, gid + ".json"), encoding="utf-8") as fh:
+                nm = str(json.load(fh).get("name", ""))
+            if nm:
+                return nm
+        except (OSError, ValueError, AttributeError):
+            pass
+    return gid.replace(":", " ")
 
 
 def _picks(t):
-    """A save's talent entry as its ranks' forms (Save.talent_picks): picks, else an old {form, rank}."""
+    """An old save's talent entry as its ranks' forms (the Upgrade board, until pass 129): picks, else {form, rank}."""
     if not isinstance(t, dict):
         return []
     if isinstance(t.get("picks"), list):
@@ -84,34 +145,79 @@ def _picks(t):
     return [min(1, max(0, int(t.get("form", 0))))] * int(t.get("rank", 0) or 0)
 
 
-def board_lines(path):
-    """The Upgrade board the recorded run began with, as lines of plain text (A = a rank of its first form, B its second,
-    - not bought); [] when the recording has no save."""
+def trail_lines(path, trail_file=None):
+    """The Trail the recorded run began with, as lines of plain text: from the recording's save (`trail`: the nodes
+    paid for, what they cost, the gifts the save already had) and the Trail's file as the repo has it now. How many
+    nodes were paid for and their gold, every upgrade type's sum written by its kind, the unlocks bought by type (one
+    the save already had counts as bought at no cost, as Trail.gd reads it); [] when the recording cannot be read."""
     try:
         with open(path, encoding="utf-8") as f:
             rec = json.load(f)
     except (OSError, ValueError):
         return []
-    sv = rec.get("save") if isinstance(rec, dict) else None
-    if not isinstance(sv, dict) or not isinstance(sv.get("talents"), dict):
-        return ["the Upgrade board: not in this recording"]
-    tal = sv["talents"]
-    rows, ranks, most, gold = [], 0, 0, 0
-    for t in _talent_defs():
-        pk = _picks(tal.get(t["id"]))
-        g = sum(t["cost"][k] for k in range(len(pk)) if k < len(t["cost"]))
-        ranks += len(pk)
-        most += t["ranks"]
-        gold += g
-        n0 = pk.count(0)
-        words = ", ".join(w for w in ("%s x%d" % (t["forms"][0], n0) if n0 else "", "%s x%d" % (t["forms"][1], len(pk) - n0) if len(pk) - n0 else "") if w)
-        marks = "".join("AB"[f] for f in pk) + "-" * max(0, t["ranks"] - len(pk))
-        rows.append("    %-10s %d/%d  %s  %s" % (t["name"], len(pk), t["ranks"], marks, words or "no rank"))
-    spent = sv.get("talent_spent")
-    head = "the Upgrade board the run began with: %d of %d ranks, %s gold at today's prices%s" % (
-        ranks, most, "{:,}".format(gold), ("; the save says %s was paid" % "{:,}".format(int(spent))) if spent is not None and int(spent) != gold else "")
+    if not isinstance(rec, dict):
+        return []
+    sv = rec.get("save")
     look = str(rec.get("look") or "")
-    return [head] + rows + (["the hero's look: " + look] if look else [])
+    tail = ["the outlaw's look: " + look] if look else []
+    tr = sv.get("trail") if isinstance(sv, dict) else None
+    if not isinstance(tr, dict):
+        old = sv.get("talents") if isinstance(sv, dict) else None
+        if isinstance(old, dict):
+            ranks = sum(len(_picks(t)) for t in old.values())
+            spent = sv.get("talent_spent")
+            return ["the Trail: not in this recording (recorded before the Trail; its save had the old Upgrade board: "
+                    "%d rank%s%s)" % (ranks, "" if ranks == 1 else "s",
+                                      (", %s gold paid" % "{:,}".format(int(spent))) if spent is not None else "")] + tail
+        return ["the Trail: not in this recording"] + tail
+    paid = [str(x) for x in tr["bought"]] if isinstance(tr.get("bought"), list) else []
+    had = set(str(x) for x in tr["had"]) if isinstance(tr.get("had"), list) else set()
+    for key, pre in (("heroes_owned", "outlaw:"), ("skins_owned", "skin:")):
+        if isinstance(sv.get(key), list):
+            had.update(pre + str(x) for x in sv[key])
+    head = "the Trail the run began with: %d node%s paid for, %s gold" % (
+        len(paid), "" if len(paid) == 1 else "s", "{:,}".format(int(tr.get("spent", 0) or 0)))
+    ups, nodes = _trail_defs(trail_file)
+    if not nodes:
+        return [head, "    game/content/trail/trail.json cannot be read: what the nodes give is not listed"] + tail
+    paid_set, seen = set(paid), set()
+    totals, unlocks, free = {}, {}, 0
+    for n in nodes:
+        nid = str(n.get("id", ""))
+        g = n.get("gives") if isinstance(n.get("gives"), dict) else {}
+        key = gift_key(g)
+        is_paid = nid in paid_set
+        if is_paid:
+            seen.add(nid)
+        elif not (key and key in had):
+            continue
+        else:
+            free += 1
+        t = str(g.get("type", ""))
+        if t == "upgrade":
+            ut = str(g.get("upgrade", ""))
+            try:
+                totals[ut] = totals.get(ut, 0.0) + float(g.get("value", 0) or 0)
+            except (TypeError, ValueError):
+                pass
+        elif key:
+            unlocks.setdefault(t, []).append(_gift_name(key) + ("" if is_paid else " (the save had it)"))
+    if free:
+        head += "; %d more count%s as bought at no cost (the save already had what they give)" % (free, "s" if free == 1 else "")
+    rows = []
+    for ut in list(ups.keys()) + sorted(k for k in totals if k not in ups):
+        if ut not in totals or abs(totals[ut]) < 0.0000001:
+            continue
+        u = ups.get(ut) if isinstance(ups.get(ut), dict) else {}
+        rows.append(("        %-16s %-8s %s" % (str(u.get("name", ut)), amount_text(str(u.get("kind", "flat")), totals[ut]) or "bought",
+                                                str(u.get("text", "")))).rstrip())
+    out = [head] + ((["    upgrades, summed by type:"] + rows) if rows else ["    no upgrade bought"])
+    for t, names in unlocks.items():
+        out.append("    %s: %s" % (GIFT_WORDS.get(t, t), ", ".join(names)))
+    gone = [x for x in paid if x not in seen]
+    if gone:
+        out.append("    %d paid node%s not in today's Trail file: %s" % (len(gone), " is" if len(gone) == 1 else "s are", ", ".join(gone)))
+    return out + tail
 
 
 def pick_latest(player=""):
@@ -287,19 +393,22 @@ def main(argv=None):
     ap.add_argument("--demo-seek", default="")
     ap.add_argument("--quit-after", type=float, default=0.0)
     ap.add_argument("--menu", action="store_true", help="the menu replay.cmd opens: download, list, replay")
-    ap.add_argument("--board", action="store_true", help="only print the Upgrade board the run began with (pass 115)")
+    ap.add_argument("--trail", action="store_true", help="only print the Trail the run began with (pass 129)")
+    ap.add_argument("--board", action="store_true", help="the old name for --trail (pass 115's Upgrade board left the game in pass 129)")
     a = ap.parse_args(argv)
     if a.menu:
         return menu(a)
     if a.list:
         return cmd_list(a)
     if a.board:
+        say("--board is the old name for --trail (the Upgrade board left the game in pass 129): this prints the Trail")
+    if a.trail or a.board:
         path = os.path.abspath(a.file) if a.file else pick_latest(a.player)[0]
         if not path:
             say("no recordings found")
             return 1
         say("the file: " + path)
-        for ln in board_lines(path):
+        for ln in trail_lines(path):
             say(ln)
         return 0
     if a.file:
@@ -320,8 +429,8 @@ def main(argv=None):
 def play(a, path, h):
     say("the run: " + describe(h))
     say("the file: " + path)
-    # pass 115 (lane DASH): the Upgrade board it began with (the viewer of a build from 0.98 on shows it too: B folds it)
-    for ln in board_lines(path):
+    # pass 115 (lane DASH), pass 129: the Trail it began with (the viewer shows it too: B folds it)
+    for ln in trail_lines(path):
         say(ln)
     bid = str((h.get("build") or {}).get("id", ""))
     if bid.startswith("editor-") or bid.startswith("dev-"):

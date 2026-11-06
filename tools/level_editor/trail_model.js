@@ -10,6 +10,10 @@
 //   railIds(ix, from, id, isClosed)  Trail.from_of: the nodes a rail is drawn from (closed ones left out)
 //   layout(data) / place(data)  the schema's "Layout": design width 1080, rows 236 apart, level 1 at the bottom;
 //                             place -> {id: {x, y, size, fx, level}} in design pixels, y from the track's top
+//   links / railPoints / railRun / rails / diamondOf / choiceMarks   what game/ui/TrailScreen.gd draws round the tiles
+//                             (pass 129, sub-lane PREVIEW): the rails into a node (an optional node without `from` hangs
+//                             on its own level's nearest required node), each rail as a right-angled elbow, the level's
+//                             diamond (smaller and lifted on a crowded row), a choice group's bar and its OR / padlock
 //   evaluate(data, bought)    the schema's rules 1-4 for a set of bought ids: {state: {id: bought|open|locked|closed}, level}
 //   states(data, level, picks)  the same for a previewed Trail Level (every required node up to it bought, the first
 //                             member of each choice unless `picks` {group: id} says another, optional nodes left open)
@@ -25,6 +29,8 @@ const TrailModel = (() => {
   const W = 1080, ROW = 236, TILE = 148, TILE4 = 132, DIAMOND_X = 0.06, FREE_X = 0.75, RAIL = 22;
   const TOP_PAD = ROW * 1.5, BOTTOM_PAD = ROW * 0.75, OPTIONAL_TILE = 116, OPTIONAL_STEP = 0.20, OPTIONAL_RIGHT_MAX = 0.68;
   const AUTO_X = { 1: [0.5], 2: [0.33, 0.60], 3: [0.20, 0.42, 0.64], 4: [0.12, 0.30, 0.48, 0.66] };
+  // game/ui/TrailScreen.gd's own numbers (RAIL_THIN, DIAMOND, DIAMOND_SMALL, its `+ 16.0` and `- 8.0`, _or_mark's box)
+  const RAIL_THIN = 12, DIAMOND = 44, DIAMOND_SMALL = 32, DIAMOND_ROOM = 16, DIAMOND_LIFT = 8, OR_W = 62, OR_H = 36, OR_ROOM = 18;
   const KINDS = ['node', 'choice', 'optional'];
   const GIVES = ['upgrade', 'outlaw', 'skin', 'weapon', 'passive', 'stage', 'map', 'structure', 'powerup', 'feature'];
   const GIVE_WORDS = { upgrade: 'Upgrade', outlaw: 'Outlaw', skin: 'Skin', weapon: 'Weapon', passive: 'Card or item', stage: 'Stage', map: 'Map', structure: 'Structure', powerup: 'Power-up', feature: 'Feature' };
@@ -164,6 +170,98 @@ const TrailModel = (() => {
     return { nodes, width: W, height: TOP_PAD + (levels - 1) * ROW + BOTTOM_PAD, levels, rowY, endY: TOP_PAD - ROW, diamondX: DIAMOND_X * W, row: ROW, rail: RAIL };
   }
   function place(data) { return layout(data).nodes; }
+
+  // ---- what the game's screen draws round the tiles (game/ui/TrailScreen.gd: _links, _draw_canvas, _run, _or_mark)
+
+  /** TrailScreen._links: the rails into node `id` -> [{from, thin}]. An optional node that names no `from` hangs on the
+   *  nearest required node of its own level (by x; the first in file order when two are as near) by a thin rail. Every
+   *  other node, and an optional one alone on its level, takes Trail.from_of (railIds); an optional node's rail is thin. */
+  function links(ix, from, lay, id, isClosed) {
+    const n = ix.byId.get(id), me = lay.nodes[id];
+    if (!n || !me) return [];
+    const thin = !required(n);
+    if (thin && (!from[id] || from[id].auto)) {
+      let best = null, bestD = Infinity;
+      for (const m of ix.byLevel.get(lvl(n)) || []) {
+        const q = lay.nodes[m.id];
+        if (m === n || !required(m) || !q || ix.byId.get(m.id) !== m) continue;
+        const dist = Math.abs(q.x - me.x);
+        if (dist < bestD) { bestD = dist; best = m.id; }
+      }
+      if (best != null) return [{ from: best, thin: true }];
+    }
+    return railIds(ix, from, id, isClosed).map((f) => ({ from: f, thin }));
+  }
+  /** One rail's corners from the node it comes from (`a`) to the node it runs into (`b`), each {x, y}: two points when
+   *  they share a row or a column, else a right-angled elbow of four: up from `a`, across at the middle of the gap
+   *  under `b`'s row (b.y + ROW / 2), up into `b`. */
+  function railPoints(a, b) {
+    const A = { x: a.x, y: a.y }, B = { x: b.x, y: b.y };
+    if (Math.abs(A.y - B.y) < 1 || Math.abs(A.x - B.x) < 1) return [A, B];
+    const mid = B.y + ROW / 2;
+    return [A, { x: A.x, y: mid }, { x: B.x, y: mid }, B];
+  }
+  /** TrailScreen._run: one straight run of a rail as a box `w` wide, its ends squared off half a width past them. */
+  function railRun(p, q, w) {
+    return { x: Math.min(p.x, q.x) - w / 2, y: Math.min(p.y, q.y) - w / 2, w: Math.abs(p.x - q.x) + w, h: Math.abs(p.y - q.y) + w };
+  }
+  /** The rails into level `level`'s nodes -> [{id, from, thin, width (22, thin 12), lit, shut, points, runs}]. `state`
+   *  is {id: bought|open|locked|closed}: a rail is lit when both its ends are bought, shut when its node is closed. */
+  function rails(ix, from, lay, level, state) {
+    const s = state || {}, out = [];
+    for (const n of ix.byLevel.get(level) || []) {
+      const p = lay.nodes[n.id];
+      if (!p || ix.byId.get(n.id) !== n) continue;
+      for (const k of links(ix, from, lay, n.id, (x) => s[x] === 'closed')) {
+        const q = lay.nodes[k.from];
+        if (!q) continue;
+        const width = k.thin ? RAIL_THIN : RAIL, points = railPoints(q, p);
+        out.push({ id: n.id, from: k.from, thin: k.thin, width, lit: s[n.id] === 'bought' && s[k.from] === 'bought', shut: s[n.id] === 'closed',
+          points, runs: points.slice(1).map((pt, i) => railRun(points[i], pt, width)) });
+      }
+    }
+    return out;
+  }
+  /** The level's number diamond -> {x, y, d (half its diagonal), px (the number's size), lifted}. A row whose leftmost
+   *  tile's left edge is left of 0.06 * 1080 + 44 + 16 wears the smaller one (32), lifted into the gap over the row: its
+   *  middle 32 + 8 px above that tile's top edge. The number is 30 px (24 from level 100), scaled with the diamond. */
+  function diamondOf(ix, lay, level) {
+    let edge = W, side = TILE;
+    for (const n of ix.byLevel.get(level) || []) {
+      const p = lay.nodes[n.id];
+      if (!p || ix.byId.get(n.id) !== n) continue;
+      if (p.x - p.size / 2 < edge) { edge = p.x - p.size / 2; side = p.size; }
+    }
+    const x = DIAMOND_X * W, y = lay.rowY(level), lifted = edge < x + DIAMOND + DIAMOND_ROOM;
+    const d = lifted ? DIAMOND_SMALL : DIAMOND;
+    return { x, y: lifted ? y - side / 2 - DIAMOND_SMALL - DIAMOND_LIFT : y, d, px: Math.round((level < 100 ? 30 : 24) * d / DIAMOND), lifted };
+  }
+  /** Level `level`'s choice groups as the game marks them -> [{group, taken, bar: {x0, x1, y}, marks: [{kind, x, y, w, h}]}]:
+   *  a bar through the members' middles, and between each pair (left to right) a mark in the middle of the gap between
+   *  their tiles: "or" (OR on a gold pill) until one member is bought, then "lock" (a padlock on slate). The pill is
+   *  36 px high and as wide as the gap less 18 px, 62 px at most. A group of one has no bar and no mark. */
+  function choiceMarks(ix, lay, level, state) {
+    const s = state || {}, groups = new Map();
+    for (const n of ix.byLevel.get(level) || []) {
+      const p = lay.nodes[n.id];
+      if (!inGroup(n) || !p || ix.byId.get(n.id) !== n) continue;
+      const key = String(n.group);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push({ id: n.id, x: p.x, size: p.size });
+    }
+    const out = [], y = lay.rowY(level);
+    for (const [group, mem] of groups) {
+      if (mem.length < 2) continue;
+      mem.sort((a, b) => a.x - b.x);
+      const taken = mem.some((m) => s[m.id] === 'bought'), kind = taken ? 'lock' : 'or', marks = [];
+      for (let i = 0; i + 1 < mem.length; i++) {
+        const a = mem[i].x + mem[i].size / 2, b = mem[i + 1].x - mem[i + 1].size / 2;
+        marks.push({ kind, x: (a + b) / 2, y, w: Math.min(b - a - OR_ROOM, OR_W), h: OR_H });
+      }
+      out.push({ group, taken, bar: { x0: mem[0].x, x1: mem[mem.length - 1].x, y }, marks });
+    }
+    return out;
+  }
 
   /** The backdrop's colours at a level: a section's own, blending into the next one's over the three levels before it
    *  starts. -> {top, bottom} as [r, g, b]. */
@@ -801,8 +899,8 @@ const TrailModel = (() => {
   }
 
   return {
-    W, ROW, TILE, TILE4, RAIL, DIAMOND_X, FREE_X, AUTO_X, KINDS, GIVES, GIVE_WORDS, MOTIFS, VALUE_KINDS, NODE_KEYS, CSV_COLS, CSV_READ_ONLY, DEFAULT_PRICE,
-    normalise, index, groupKey, resolveFrom, railIds, autoSlots, layout, place, hexRgb, sectionsSorted, sectionAt, coloursAt, dependents, spread, evaluate, states,
+    W, ROW, TILE, TILE4, RAIL, RAIL_THIN, DIAMOND, DIAMOND_SMALL, DIAMOND_X, FREE_X, AUTO_X, KINDS, GIVES, GIVE_WORDS, MOTIFS, VALUE_KINDS, NODE_KEYS, CSV_COLS, CSV_READ_ONLY, DEFAULT_PRICE,
+    normalise, index, groupKey, resolveFrom, railIds, autoSlots, layout, place, links, railPoints, railRun, rails, diamondOf, choiceMarks, hexRgb, sectionsSorted, sectionAt, coloursAt, dependents, spread, evaluate, states,
     curvePrice, priceOf, totals, upgradeTotals, statTotals, fmtValue, parseValue, giveWhat, giveText, check, errorsOf,
     toCsv, parseCsv, fromCsv, diffNodes, nextId, sortNodes, addNode, duplicateNode, deleteNodes, moveNode, insertLevel, removeLevel, renameId, ordered,
   };

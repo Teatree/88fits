@@ -14,7 +14,7 @@ kind "sim" (jobs.py: their own lane, never the Godot lock); this module lists th
     POST /api/sim/<id>/delete     the sim's folder removed (refused while it runs)
     POST /api/sim/<id>/cancel     the job cancelled (a shell's sim: its driver's process tree killed)
     POST /api/sim/unlock          {force}: the sim lock released when its owner is gone (force: whoever holds it)
-    POST /api/sim/watch           {settings}: the Watch (pass 80, tools/watch.py) started with the tab's hero, board, seed
+    POST /api/sim/watch           {settings}: the Watch (pass 80, tools/watch.py) started with the tab's hero, Trail, seed
                                   and bot, not waited for (409 while a Watch is open)
     GET  /api/sim/overlay?map=<id>[&id=<sim>][&top=N]   pass 84 (lane SIMVIEW): the newest finished Sim of the map (or the
                                   one asked for) on the map's clock for the Timeline (overlay.json, or worked out from an
@@ -65,26 +65,13 @@ def heroes(srv):
     return out
 
 
-def talents(srv):
-    """The Upgrade board's eight talents in the board's order (pass 88: the cheaper first rank first, then `order`):
-    [{id, name, flavour, forms [{name, text}], ranks, preset_form, first_price, order, in_presets}] from
-    game/content/talents (the presets fill them in SB.TALENT_ORDER, never those in SB.PRESET_SKIP)."""
-    out = []
-    for tid in SB.TALENT_ORDER:
-        d = SB.read_json(os.path.join(_game(srv), "content", "talents", tid, tid + ".json"), tries=1) or {}
-        forms = [{"name": str(f.get("name") or ("AB"[i])), "text": str(f.get("text") or "")} for i, f in enumerate(d.get("forms") or [])][:2]
-        while len(forms) < 2:
-            forms.append({"name": "AB"[len(forms)], "text": ""})
-        cost = d.get("cost") or []
-        first = cost[0] if isinstance(cost, list) and cost and isinstance(cost[0], (int, float)) else 0
-        order = d.get("order", 100) if isinstance(d.get("order", 100), (int, float)) else 100
-        out.append({"id": tid, "name": str(d.get("name") or tid.capitalize()), "flavour": str(d.get("flavour") or ""), "forms": forms,
-                    "ranks": int(d.get("ranks") or SB.MAX_RANK), "preset_form": SB.TALENT_FORMS[tid], "first_price": first,
-                    "order": order, "in_presets": tid not in SB.PRESET_SKIP})
-    # pass 88 (lane MIRROR): as the Upgrade board lists them (TalentDef.board_before): the cheaper first rank first, then
-    # `order`, then the id
-    out.sort(key=lambda t: (t["first_price"], t["order"], t["id"]))
-    return out
+def trail_meta():
+    """The Sim tab's Trail control (pass 129; the Upgrade board's talents and presets until then): {levels, presets
+    [{key, label, level}], save: {ids, level} | None, save_note} from game/content/trail/trail.json and the PC save."""
+    levels = SB.trail_levels()
+    save, note = SB.save_trail()
+    return {"levels": levels, "presets": [{"key": k, "label": w, "level": SB.trail_level_of(k, levels)} for k, _, w in SB.TRAIL_PRESETS],
+            "save": save, "save_note": note}
 
 
 def speed_words(sp, caps):
@@ -194,7 +181,7 @@ def history_record(srv):
                     "map_rev": meta.get("map_rev") or {}, "version": meta.get("version", ""), "partial": bool(meta.get("partial")),
                     "players_done": meta.get("players_done", prog.get("done", 0)), "players_total": meta.get("players_total", prog.get("total", settings.get("players"))),
                     "has_result": head is not None, "synthetic": bool(meta.get("synthetic") or prog.get("synthetic")), "T": (head or {}).get("T"),
-                    "bosses": (head or {}).get("bosses") or [], "board_words": _board_words(settings),
+                    "bosses": (head or {}).get("bosses") or [], "trail_words": SB.settings_trail_words(settings),
                     "death_words": SB.death_label(settings.get("death", "")),
                     "bot_words": SB.bot_words(settings.get("bot")) if settings.get("bot") else "",
                     # the runs drew everything: the sim mode switched off, or a runner from before it
@@ -239,14 +226,10 @@ def settings_record(srv):
         except Exception:
             revs[mp["id"]] = {}
     caps = SB.runner_caps(_game(srv))
-    save_board, save_note = SB.save_board()
     sp = SB.load_speed()
     return {"ok": True, "defaults": SB.DEFAULTS, "saved": saved if isinstance(saved, dict) else None,
-            "boards": [{"value": v, "label": lab} for v, lab in SB.BOARDS],
-            # round 2: the board talent by talent, its presets (difficulty_probe's), Garry's own from the PC save
-            "talents": talents(srv), "presets": [{"key": key, "label": SB.board_label(m), "board": m, "talents": SB.board_talents(m)} for key, m in SB.PRESETS]
-            + ([{"key": "save", "label": "my save", "board": -1, "talents": save_board}] if save_board is not None else []),
-            "save_note": save_note, "max_rank": SB.MAX_RANK, "caps": caps,
+            # pass 129: the Trail the players' saves hold (its levels, the presets' levels, Garry's own from the PC save)
+            "trail": trail_meta(), "caps": caps,
             # the death policies the runner knows (a policy it does not know would make every run fail)
             "deaths": [{"value": k, "label": lab, "help": h} for k, lab, h in SB.DEATHS if not caps.get("deaths") or k in caps["deaths"]],
             "deaths_all": [{"value": k, "label": lab, "help": h, "runner": not caps.get("deaths") or k in caps["deaths"]} for k, lab, h in SB.DEATHS],
@@ -281,13 +264,6 @@ def _check(srv, raw):
     hs = {h["id"] for h in heroes(srv)}
     ms = {m["id"] for m in maps(srv)}
     return SB.clean_settings(raw, heroes=hs or None, maps=ms or None)
-
-
-def _board_words(settings):
-    t = settings.get("talents")
-    if not isinstance(t, dict):
-        t = SB.board_talents(float(settings.get("board", 0) or 0))
-    return SB.board_text(t, settings.get("board_label") or "")
 
 
 def save_settings(srv, raw):
@@ -370,10 +346,10 @@ def unlock(force):
 
 
 def watch_args(s):
-    """The Watch's command line (tools/watch.py) for the Sim tab's settings `s` (cleaned): the hero, the board talent by
-    talent, the seed, the map, Down!'s answer and the bot's options."""
-    t = s.get("talents") if isinstance(s.get("talents"), dict) and s.get("talents") else SB.board_talents(float(s.get("board", 0) or 0))
-    args = ["--hero", str(s.get("hero", "drifter")), "--talents", SB.talents_arg(t), "--seed", str(int(s.get("seed", 1) or 1)),
+    """The Watch's command line (tools/watch.py) for the Sim tab's settings `s` (cleaned): the hero, the Trail, the seed,
+    the map, Down!'s answer and the bot's options."""
+    args = ["--hero", str(s.get("hero", "drifter")), "--trail", str(s.get("trail", "none"))] + (["--trail-optional"] if s.get("trail_optional") else []) + [
+            "--seed", str(int(s.get("seed", 1) or 1)),
             "--map", str(s.get("map", "red_canyon")), "--death", str(s.get("death", "end")), "--stage", str(int(s.get("stage", 1) or 1))]
     for k, v in (s.get("bot") or {}).items():
         args += ["--bot", "%s=%s" % (k, ("1" if v else "0") if isinstance(v, bool) else ("%g" % v if isinstance(v, float) else str(v)))]
@@ -381,7 +357,7 @@ def watch_args(s):
 
 
 def watch(srv, raw):
-    """The Watch button (pass 80, lane WATCH): tools/watch.py started with the tab's hero, board, seed and bot, not waited
+    """The Watch button (pass 80, lane WATCH): tools/watch.py started with the tab's hero, Trail, seed and bot, not waited
     for (it refreshes its snapshot and opens a window). 409 while a Watch is open: one at a time."""
     s, probs = _check(srv, raw)
     if probs:
@@ -528,7 +504,7 @@ def overlay_record(srv, query):
     now = SB.map_rev(_game(srv), smap)
     sha = rev.get("sha", "") if isinstance(rev, dict) else ""
     sim = {"id": r["id"], "started": meta.get("started", ""), "hero": st.get("hero", ""), "hero_name": head.get("hero_name") or st.get("hero", ""),
-           "players": summ.get("players"), "ok_players": summ.get("ok"), "board_words": _board_words(st),
+           "players": summ.get("players"), "ok_players": summ.get("ok"), "trail_words": SB.settings_trail_words(SB.clean_settings(st, legacy=True)[0]),
            "bot_words": SB.bot_words(st.get("bot")) if st.get("bot") else "", "death": st.get("death", ""), "limit": st.get("limit"),
            "map": smap, "map_rev": sha, "map_rev_now": now.get("sha", ""), "stale": bool(sha) and sha != now.get("sha", ""),
            "map_saved": rev.get("saved", "") if isinstance(rev, dict) else "", "version": meta.get("version", ""),

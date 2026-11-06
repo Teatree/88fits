@@ -499,7 +499,7 @@ static func _spacer(h: float) -> Control:
 
 ## The question before the save goes (pass 45): a pop-up over the screen; the wipe itself runs only from its rock button.
 func _ask_wipe() -> void:
-	WConfirm.open(self, "Wipe the save?", "Gold, unlocks, talents, quests and records: everything goes, and nothing brings it back.",
+	WConfirm.open(self, "Wipe the save?", "Gold, unlocks, the Trail, quests and records: everything goes, and nothing brings it back.",
 		"Wipe", "Keep it", _wipe_now)
 
 

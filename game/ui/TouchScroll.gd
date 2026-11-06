@@ -3,7 +3,7 @@
 ## drag that started on a control inside it, so the owner feeds its `_input` here and the list's scroll_vertical is moved
 ## from the ScreenDrag events, with a fling that coasts after the finger lifts. Past SLOP the list is told it is
 ## scrolling (NOTIFICATION_SCROLL_BEGIN): that takes the tap back from the button or card the finger came down on, which
-## otherwise fired on release (a swipe down the Mirror bought talents). A finger a slider holds is left alone.
+## otherwise fired on release (a swipe down the old Upgrade board bought ranks). A finger a slider holds is left alone.
 class_name TouchScroll
 extends RefCounted
 

@@ -694,7 +694,7 @@ func _source_entry(x: Dictionary, events: Array, reg: Node) -> Dictionary:
 		for t in times:
 			at.append(DATA.mmss(float(t)))
 		when = "taken at " + ", ".join(at)
-	elif k in ["talent", "hero", "trait", "bonus", "momentum"]:
+	elif k in ["trail", "hero", "trait", "bonus", "momentum"]:
 		when = "there from the start"
 	var kw: String = str(WDPS.SRC_KIND_WORDS.get(k, k if k != "" else "a source"))
 	var kcol := k

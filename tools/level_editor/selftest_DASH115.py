@@ -15,11 +15,17 @@ Groups:
           table, a result without the bars named among the missing; nothing draws Danger any more
   record  sim_avg.js fromRecord keeps a schema 5 record's hp_min (the lowest inside each second) and an older record has
           none; analytics_csv.py's rows CSV carries hp_min (empty when the row has none) and its index row the board's
-          most and gold, the big blocks left out
-  page    the dashboard's scripts parse; its new cards (renderBoard, renderLevelItems, renderWeaponDps, renderHealth5) are
-          in its steps; the Remote runs list and the average's runs carry a board column; the markers plugin draws a
+          most and gold (a schema 5 record), the big blocks left out; pass 129: a schema 6 record's row has the Trail's
+          three keys and none of the board's, as RunAnalytics.index_row
+  page    the dashboard's scripts parse; its new cards (renderTrail, renderLevelItems, renderWeaponDps, renderHealth5) are
+          in its steps; the Remote runs list and the average's runs carry a trail column; the markers plugin draws a
           highlight and the icon strip follows the plot area
-  replay  tools/replay.py prints the Upgrade board of a recording's save (ranks, forms, gold at today's prices)
+  trail   pass 129 (schema 6: the Upgrade board left the game): the dashboard's own functions run under node on a made-up
+          DOM: a schema 6 record draws The Trail (level of levels, nodes of nodes and how many paid, gold, every upgrade
+          type's sum written by its kind, its icon key); a schema 5 record still draws its board as "Upgrade board
+          (before the Trail)"; one with both draws both; one with neither says so; the lists' short words
+  replay  tools/replay.py prints the Trail of a recording's save (the nodes paid for, their gold, the upgrades summed by
+          type and written by kind, the unlocks; --board the old name); a recording from before the Trail says so
 """
 import json
 import os
@@ -184,10 +190,28 @@ def checks(check, run_node, server):
     row = AC.index_row(rec, "x.json")
     check(row.get("board_max") == 48 and row.get("board_gold") == 2250 and not any(str(k).split(".")[0] in ("board", "weapon_sources", "weapon_family", "icons") for k in row),
           "record: the index row: the board's most and gold, schema 5's big blocks left out: %s" % sorted(k for k in row if "board" in k))
+    check(row.get("talents") == 0 and "trail_level" not in row, "record: a schema 5 record without talents still has its talents column (0), no Trail keys: %s" % row.get("talents"))
+    # pass 129 (schema 6): the Trail's three keys as RunAnalytics.index_row writes them, none of the board's
+    rec6 = _record(True)
+    rec6.update({"schema": 6, "stamp": "2026-11-06T10-00-00", "trail": _trail_block(), "chest_banks": {"jade_key": {"chests": 2}},
+                 "icons": {"trail:might": "art/ui/trail/might.png"}})
+    row6 = AC.index_row(rec6, "y.json")
+    check(row6.get("trail_level") == 12 and row6.get("trail_bought") == 14 and row6.get("trail_spent") == 3450,
+          "record: a schema 6 index row has the Trail's level, nodes bought and gold: %s" % {k: v for k, v in row6.items() if k.startswith("trail")})
+    check(not any(str(k).split(".")[0] in ("talents", "talent_forms", "board", "board_max", "board_gold", "trail", "chest_banks", "icons") for k in row6),
+          "record: a schema 6 index row has no talents, no board columns and none of the big blocks: %s" % sorted(k for k in row6 if "talent" in k or "board" in k or "." in k)[:6])
+    hcols, _hrows = AC.history_table([row6, row])
+    check(hcols.index("totems") < hcols.index("trail_level") < hcols.index("trail_bought") < hcols.index("trail_spent") < hcols.index("talents"),
+          "record: the history CSV puts the Trail's columns after totems (an older row's talents after them)")
+    old2 = {"schema": 2, "stamp": "2026-01-01T10-00-00", "talents": {"grit": [0, 1], "drive": [1]}, "talent_forms": {"grit": ["a", "b"]}}
+    rowo = AC.index_row(old2, "o.json")
+    check(rowo.get("talents") == 3 and rowo.get("talents.grit") == 2 and rowo.get("talents.drive") == 1,
+          "record: an older record's talents columns are written as before: %s" % {k: v for k, v in rowo.items() if k.startswith("talents")})
     # the page's csv-lib and analytics_csv.py give the same rows CSV byte for byte on a record with hp_min (FPS101's runner)
     import selftest_FPS101 as F
     F._csv_checks(check, [("dash115", rec)])
     _page_checks(check)
+    _trail_checks(check, run_node)
     _replay_checks(check)
 
 
@@ -195,12 +219,15 @@ def _page_checks(check):
     html = open(os.path.join(ROOT, "analytics", "dashboard.html"), encoding="utf-8").read()
     steps = re.search(r"const steps = \[(.*?)\];", html, re.S)
     st = steps.group(1) if steps else ""
-    order = [st.find(x) for x in ("renderFacts", "renderBoard", "renderPower", "renderHeroPower", "renderLevelItems", "renderWeaponDps", "renderHealth,", "renderHealth5")]
-    check(all(x >= 0 for x in order) and order == sorted(order), "page: the new cards in the run's steps (board after the facts, level and items and the weapons after Hero power, the 5 s bars after health): %s" % order)
-    for fn in ("function renderBoard(", "function renderLevelItems(", "function renderWeaponDps(", "function renderHealth5(", "function boardShort(", "function iconStrip(", "function sourcesBySid("):
+    order = [st.find(x) for x in ("renderFacts", "renderTrail", "renderPower", "renderHeroPower", "renderLevelItems", "renderWeaponDps", "renderHealth,", "renderHealth5")]
+    check(all(x >= 0 for x in order) and order == sorted(order) and "renderBoard" not in st,
+          "page: the new cards in the run's steps (the Trail after the facts, level and items and the weapons after Hero power, the 5 s bars after health): %s" % order)
+    for fn in ("function renderTrail(", "function trailOf(", "function trailShort(", "function trailAmount(", "function renderBoard(", "function renderLevelItems(", "function renderWeaponDps(", "function renderHealth5(", "function boardShort(", "function iconStrip(", "function sourcesBySid("):
         check(fn in html, "page: the dashboard defines %s" % fn)
-    check("'board', 'kills', 'version'" in html and "boardShort(r)" in html, "page: the Remote runs list has a board column")
-    check("'level', 'board', 'kills', 'coins'" in html, "page: the average's runs carry a board column")
+    check("'trail', 'kills', 'version'" in html and html.count("trailShort(r)") >= 2 and "boardShort(r), fmt" not in html, "page: the Remote runs list has a trail column")
+    check("'level', 'trail', 'kills', 'coins'" in html, "page: the average's runs carry a trail column")
+    check("trail: 'The Trail', talent: 'Upgrade board'" in html and "'trail_level', 'trail_bought', 'trail_spent', 'talents', 'build'];" in html,
+          "page: a source of kind trail reads The Trail (an older record's talent still Upgrade board); the history CSV's first columns name the Trail's")
     check("o.hl ||" in html and "chart.$iconPlace" in html, "page: the markers plugin draws the highlight; the icon strip follows the plot (a function kept on the chart)")
     check("record (recorded before 0.98)" in html and "const OLD_WORDS" in html, "page: an older record's missing data said in plain words")
     node = shutil.which("node")
@@ -222,25 +249,169 @@ def _page_checks(check):
     check("M.barParts(c)" in plot and "sim-fall" in plot and "row.kind === 'bar'" in plot, "page: sim_plot.js draws the bars, the falls and revives, a bar's readout key")
 
 
+def _trail_block(full=True):
+    """A header's `trail` as RunAnalytics.trail_block writes it (schema 6); without levels, nodes, types as a record
+    written before schema 6 had it."""
+    b = {"level": 12, "bought": ["n%03d" % k for k in range(1, 15)], "paid": 11, "spent": 3450,
+         "upgrades": {"might": 0.12, "reroll": 1.0, "calm": 2.0, "omen": 1.0, "grub": 25.5}}
+    if full:
+        b.update({"levels": 60, "nodes": 100, "types": {
+            "might": {"name": "Might", "kind": "percent", "text": "Attack damage"}, "reroll": {"name": "Reroll", "kind": "count", "text": "Rerolls"},
+            "calm": {"name": "Calm", "kind": "seconds", "text": "Untouchable time"}, "omen": {"name": "Omen", "kind": "word", "text": "A sign"},
+            "grub": {"name": "Grubstake", "kind": "flat", "text": "Starting coins"}}})
+    return b
+
+
+# the dashboard's own Trail and board functions on a made-up DOM (every node an object with its class, text and children)
+TRAIL_RUNNER = r"""
+let src = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => { src += c; });
+process.stdin.on('end', () => {
+  const q = JSON.parse(src);
+  const mk = (tag, cls, text) => ({ tag, cls: cls || '', text: text == null ? '' : String(text), kids: [], style: {}, appendChild(k) { this.kids.push(k); return k; } });
+  const el = mk;
+  const fmtI = (n) => (n == null || n === '' || isNaN(n)) ? '–' : Math.round(+n).toLocaleString('en-US');
+  const titleCase = (x) => String(x);
+  const card = (title, desc, opts) => { const c = mk('card'); c.title = title; c.desc = desc; c.slug = (opts || {}).slug; c._tables = []; return c; };
+  const tileIn = (wrap, lbl, val, sub) => { const t = mk('tile'); t.lbl = lbl; t.val = String(val); t.sub = sub || ''; wrap.appendChild(t); return t; };
+  const tableView = (c, columns, rows) => { c._tables.push({ head: columns.map((x) => x.label), rows }); };
+  const iconEl = (S, key) => { const n = mk('ico'); n.key = key; return n; };
+  const hoverTip = () => {};
+  const F = new Function('el', 'fmtI', 'titleCase', 'card', 'tileIn', 'tableView', 'iconEl', 'hoverTip',
+    "const OLD_WORDS = 'OLDW', BOARD_MAX_OLD = 48, TRAIL_OLD_WORDS = 'OLD6';\n" + q.src +
+    "\nreturn { renderTrail, trailOf, trailWords, trailShort, trailAmount, boardShort };")(el, fmtI, titleCase, card, tileIn, tableView, iconEl, hoverTip);
+  const walk = (n, f) => { f(n); for (const k of n.kids || []) walk(k, f); };
+  const out = { runs: [], short: q.rows.map((r) => F.trailShort(r)), amounts: q.amounts.map(([k, v]) => F.trailAmount(k, v)) };
+  for (const rec of q.records) {
+    const grid = mk('grid');
+    F.renderTrail(grid, { run: rec });
+    const cards = grid.kids.map((c) => {
+      const o = { title: c.title, slug: c.slug, tiles: [], amounts: [], icons: [], notes: [], names: [], table: c._tables.map((t) => ({ head: t.head, rows: t.rows })) };
+      walk(c, (n) => {
+        if (n.tag === 'tile') o.tiles.push([n.lbl, n.val, n.sub]);
+        if (n.cls === 'tamt') o.amounts.push(n.text);
+        if (n.tag === 'ico') o.icons.push(n.key);
+        if (n.cls === 'oldnote') o.notes.push(n.text);
+        if (n.tag === 'b') o.names.push(n.text);
+      });
+      return o;
+    });
+    const t = F.trailOf(rec);
+    out.runs.push({ cards, short: F.trailShort(rec), words: t ? F.trailWords(t) : null });
+  }
+  process.stdout.write(JSON.stringify(out));
+});
+"""
+
+
+def _trail_checks(check, run_node):
+    html = open(os.path.join(ROOT, "analytics", "dashboard.html"), encoding="utf-8").read()
+    names = ("trailAmount", "trailOf", "trailWords", "trailShort", "renderTrail", "boardOf", "boardShort", "renderBoard")
+    parts = [re.search(r"\n  function %s\(.*?\n  \}\n" % n, html, re.S) for n in names]
+    check(all(parts), "trail: the dashboard's Trail and board functions are found: %s" % [n for n, m in zip(names, parts) if not m])
+    if not all(parts):
+        return
+    board5 = {"talents": [{"id": "grit", "name": "Grit", "picks": [0, 1], "max": 6, "gold": 2250, "forms": ["Thick Hide", "Second Skin"], "texts": ["a", "b"]}],
+              "ranks": 2, "max": 48, "gold": 2250, "spent": 2000}
+    recs = [{"schema": 6, "trail": _trail_block(), "icons": {"trail:might": "art/ui/trail/might.png"}},
+            {"schema": 5, "board": board5, "talents": {"grit": [0, 1]}},
+            {"schema": 5, "board": board5, "talents": {"grit": [0, 1]}, "trail": _trail_block(False)},
+            {"schema": 2, "talents": {"grit": [0, 1]}, "talent_forms": {"grit": ["Thick Hide", "Second Skin"]}, "names": {"grit": "Grit"}},
+            {"schema": 1}]
+    q = {"src": "".join(m.group(0) for m in parts), "records": recs,
+         "rows": [{"trail_level": 7}, {"talents": 12, "board_max": 56}, {"talents": 3}, {"trail_level": 0, "talents": 5}],
+         "amounts": [["percent", 0.03], ["percent", 0.025], ["flat", 2], ["flat", 0.3], ["count", 1], ["seconds", 2], ["word", 1], ["percent", -0.1]]}
+    out = run_node(q, TRAIL_RUNNER)
+    if out is None:
+        print("DASH115: node is not here: the Trail card's checks are skipped")
+        return
+    if not out:
+        return
+    check(out["amounts"] == ["+3%", "+2.5%", "+2", "+0.3", "+1", "+2 s", "", "\u221210%"], "trail: a sum written by its kind (Trail.amount_text): %s" % out["amounts"])
+    check(out["short"] == ["level 7", "board 12 / 56", "board 3 / 48", "level 0"], "trail: an index row in short (the Trail Level; an older row's board): %s" % out["short"])
+    s6, s5, both, old, none = out["runs"]
+    c = s6["cards"]
+    check(len(c) == 1 and c[0]["title"] == "The Trail" and c[0]["slug"] == "trail", "trail: a schema 6 record draws one card, The Trail: %s" % [(x["title"], x["slug"]) for x in c])
+    t = {x[0]: x for x in c[0]["tiles"]} if c else {}
+    check(t.get("Trail Level", [0, ""])[1] == "12 of 60" and t.get("Nodes bought", [0, ""])[1] == "14 of 100" and "11 paid for" in t.get("Nodes bought", [0, 0, ""])[2]
+          and "3 at no cost" in t.get("Nodes bought", [0, 0, ""])[2] and t.get("Gold spent", [0, ""])[1] == "3,450",
+          "trail: its tiles: Trail Level N of levels, nodes bought of nodes (how many paid for, how many at no cost), gold spent: %s" % c[0]["tiles"])
+    check(c[0]["amounts"] == ["+12%", "+1", "+2 s", "bought", "+25.5"] and c[0]["names"] == ["Might", "Reroll", "Calm", "Omen", "Grubstake"]
+          and c[0]["icons"] == ["trail:" + k for k in ("might", "reroll", "calm", "omen", "grub")] and not c[0]["notes"],
+          "trail: every upgrade type bought: its name, its sum by its kind, its icon key trail:<type>: %s %s" % (c[0]["amounts"], c[0]["icons"]))
+    tb = c[0]["table"][0] if c[0]["table"] else {}
+    check(tb.get("head") == ["upgrade", "id", "kind", "total", "written", "what it adds to"] and tb.get("rows", [[]])[0] == ["Might", "might", "percent", 0.12, "+12%", "Attack damage"],
+          "trail: the card's table (its CSV): %s" % tb.get("head"))
+    check(s6["short"] == "level 12" and s6["words"] == "Trail Level 12 of 60 \u00b7 14 of 100 nodes bought (11 paid for) \u00b7 3,450 gold spent", "trail: a record in short and in the facts' words: %s" % s6["words"])
+    c = s5["cards"]
+    check(len(c) == 1 and c[0]["title"] == "Upgrade board (before the Trail)" and c[0]["slug"] == "upgrade-board" and c[0]["tiles"][0][:2] == ["Ranks bought", "2 of 48"]
+          and "talent:grit" in c[0]["icons"] and s5["short"] == "board 2 / 48",
+          "trail: a schema 5 record (a board, no Trail) still draws its board, under the title Upgrade board (before the Trail): %s" % [(x["title"], x["tiles"][:1]) for x in c])
+    c = both["cards"]
+    check([x["title"] for x in c] == ["The Trail", "Upgrade board (before the Trail)"] and c[0]["tiles"][0][:2] == ["Trail Level", "12"]
+          and c[0]["amounts"][:2] == ["+0.12", "+1"] and c[0]["names"][0] == "might" and any("OLD6" in n for n in c[0]["notes"]) and both["short"] == "level 12",
+          "trail: a record from between the Trail's arrival and schema 6 draws both; its Trail names each type by its id with its plain sum: %s" % [(x["title"], x["amounts"][:2], x["notes"]) for x in c])
+    c = old["cards"]
+    check(len(c) == 1 and c[0]["title"] == "Upgrade board (before the Trail)" and old["short"] == "board 2 / 48", "trail: a record with only talents draws the old board: %s" % [x["title"] for x in c])
+    c = none["cards"]
+    check(len(c) == 1 and c[0]["title"] == "The Trail" and len(c[0]["notes"]) == 1 and "Neither the Trail nor the older Upgrade board" in c[0]["notes"][0] and none["short"] == "\u2013",
+          "trail: a record with neither says so in one line: %s" % [x["notes"] for x in c])
+
+
 def _replay_checks(check):
     import replay as RP
     tmp = tempfile.mkdtemp(prefix="le_dash115_rp_")
     try:
+        # the Trail's file as a fixture (Garry edits the real one): five upgrade types, one of each kind, and three unlocks
+        tf = os.path.join(tmp, "trail.json")
+        with open(tf, "w", encoding="utf-8") as f:
+            json.dump({"upgrades": {"might": {"name": "Might", "kind": "percent", "text": "Attack damage"}, "reroll": {"name": "Reroll", "kind": "count", "text": "Rerolls"},
+                                    "calm": {"name": "Calm", "kind": "seconds", "text": "Untouchable time"}, "omen": {"name": "Omen", "kind": "word", "text": "A sign"},
+                                    "grub": {"name": "Grubstake", "kind": "flat", "text": "Starting coins"}},
+                       "nodes": [{"id": "n1", "level": 1, "gives": {"type": "upgrade", "upgrade": "might", "value": 0.06}},
+                                 {"id": "n2", "level": 2, "gives": {"type": "upgrade", "upgrade": "might", "value": 0.065}},
+                                 {"id": "n3", "level": 3, "gives": {"type": "outlaw", "id": "zz_fx_outlaw"}},
+                                 {"id": "n4", "level": 4, "gives": {"type": "upgrade", "upgrade": "reroll", "value": 1}},
+                                 {"id": "n5", "level": 5, "gives": {"type": "weapon", "id": "zz_fx_gun"}},
+                                 {"id": "n6", "level": 6, "gives": {"type": "stage", "map": "zz_map", "stage": "s2"}},
+                                 {"id": "n7", "level": 7, "gives": {"type": "upgrade", "upgrade": "calm", "value": 2}},
+                                 {"id": "n8", "level": 8, "gives": {"type": "upgrade", "upgrade": "grub", "value": 25}},
+                                 {"id": "n9", "level": 9, "gives": {"type": "upgrade", "upgrade": "omen", "value": 1}},
+                                 {"id": "n10", "level": 10, "gives": {"type": "upgrade", "upgrade": "might", "value": 0.5}}]}, f)
         p = os.path.join(tmp, "x_replay.json")
         with open(p, "w", encoding="utf-8") as f:
+            json.dump({"kind": "88fits_replay", "look": "DM-G", "save": {"heroes_owned": ["zz_fx_outlaw"],
+                       "trail": {"bought": ["n1", "n2", "n4", "n5", "n7", "n8", "n9", "gone1"], "spent": 4321, "had": ["stage:zz_map:s2"]}}}, f)
+        lines = RP.trail_lines(p, tf)
+        check(bool(lines) and lines[0] == "the Trail the run began with: 8 nodes paid for, 4,321 gold; 2 more count as bought at no cost (the save already had what they give)"
+              and lines[-1] == "the outlaw's look: DM-G",
+              "replay: replay.py prints the Trail (the nodes paid for, their gold, the ones the save already had) and the look: %s" % lines[:1])
+        ups = [ln.split() for ln in lines[2:7]] if len(lines) > 7 else []
+        check(len(lines) > 7 and lines[1].strip() == "upgrades, summed by type:"
+              and [u[:2] for u in ups] == [["Might", "+12.5%"], ["Reroll", "+1"], ["Calm", "+2"], ["Omen", "bought"], ["Grubstake", "+25"]] and ups[2][2] == "s" and ups[0][2:] == ["Attack", "damage"],
+              "replay: every upgrade type's sum by its kind (percent, count, seconds, word, flat), a node not bought left out: %s" % lines[2:7])
+        rest = [ln.strip() for ln in lines[7:-1]]
+        check(rest == ["outlaws: zz_fx_outlaw (the save had it)", "weapons: zz_fx_gun", "stages: zz_map s2 (the save had it)", "1 paid node is not in today's Trail file: gone1"],
+              "replay: the unlocks bought by type (an outlaw owned and a stage the save had count at no cost), a paid node gone from the file named: %s" % rest)
+        check(RP.amount_text("percent", 0.03) == "+3%" and RP.amount_text("percent", 0.025) == "+2.5%" and RP.amount_text("seconds", 2) == "+2 s"
+              and RP.amount_text("count", 1.0) == "+1" and RP.amount_text("word", 1) == "" and RP.amount_text("flat", 0.3) == "+0.3",
+              "replay: amount_text is Trail.amount_text")
+        for flag in ("--trail", "--board"):
+            r = subprocess.run([sys.executable, os.path.join(TOOLS, "replay.py"), flag, p], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+            got = [ln for ln in r.stdout.splitlines() if ln.startswith("replay: ")]
+            said = any("--board is the old name for --trail" in ln for ln in got)
+            check(r.returncode == 0 and any("the Trail the run began with: 8 nodes paid for, 4,321 gold" in ln for ln in got) and said == (flag == "--board"),
+                  "replay: `replay.py %s <file>` prints the Trail%s: %s" % (flag, " and says it is --trail's old name" if flag == "--board" else "", got[:3]))
+        with open(p, "w", encoding="utf-8") as f:
             json.dump({"kind": "88fits_replay", "look": "DM-G", "save": {"talents": {"grit": {"picks": [0, 1]}, "drive": {"form": 1, "rank": 2}}, "talent_spent": 10}}, f)
-        lines = RP.board_lines(p)
-        defs = RP._talent_defs()
-        grit = next((t for t in defs if t["id"] == "grit"), None)
-        check(len(lines) == len(defs) + 2 and "4 of %d ranks" % sum(t["ranks"] for t in defs) in lines[0] and lines[-1] == "the hero's look: DM-G",
-              "replay: replay.py prints the board (every talent, the ranks of the whole board) and the look: %s" % lines[:1])
-        gl = [ln for ln in lines if ln.strip().startswith(grit["name"])] if grit else []
-        check(bool(gl) and " 2/%d " % grit["ranks"] in gl[0] and "AB" in gl[0] and grit["forms"][0] in gl[0] and grit["forms"][1] in gl[0],
-              "replay: a talent's line: its ranks, A/B a rank, both forms by name: %s" % gl)
-        dl = [ln for ln in lines if "Drive" in ln]
-        check(bool(dl) and "BB" in dl[0], "replay: an old {form, rank} save reads as that form rank times: %s" % dl)
+        check(RP.trail_lines(p, tf) == ["the Trail: not in this recording (recorded before the Trail; its save had the old Upgrade board: 4 ranks, 10 gold paid)", "the outlaw's look: DM-G"],
+              "replay: a recording from before the Trail says so and what its board held: %s" % RP.trail_lines(p, tf)[:1])
         with open(p, "w", encoding="utf-8") as f:
             json.dump({"kind": "88fits_replay"}, f)
-        check(RP.board_lines(p) == ["the Upgrade board: not in this recording"], "replay: a recording without a save says so")
+        check(RP.trail_lines(p, tf) == ["the Trail: not in this recording"], "replay: a recording without a save says so")
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump({"kind": "88fits_replay", "save": {"trail": {"bought": [], "spent": 0, "had": []}}}, f)
+        check(RP.trail_lines(p, tf) == ["the Trail the run began with: 0 nodes paid for, 0 gold", "    no upgrade bought"], "replay: a fresh save's Trail: %s" % RP.trail_lines(p, tf))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

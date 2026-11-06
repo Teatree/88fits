@@ -10,7 +10,7 @@
 ## - the gates: a thing some node's `gives` names is locked until that node is bought (`has`); a thing no node names
 ##   keeps the rule it had (`gated` is false, `has` is true). Every lock hook in the game asks here first;
 ## - the stat effects: all bought nodes of one upgrade type add up into one effect per stat, source id "trail:<type>",
-##   named "The Trail: <name>" (Run.hero_sheet adds them after the board's);
+##   named "The Trail: <name>" (Run.hero_sheet adds them);
 ## - `check`: the warnings the Level Editor's Trail tab shows.
 ## With no nodes in the file nothing is gated and nothing can be bought: every hook answers as it did before the Trail.
 ## States are cached and rebuilt after a buy, a load, or when the save's lists changed (their sizes, or the save's data

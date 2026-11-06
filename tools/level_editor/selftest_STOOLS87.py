@@ -436,9 +436,9 @@ def _sim_checks(check):
     a = argparse.Namespace(hero="drifter", seed=5, map="red_canyon", limit="0", speed="1", death="end", unlocks="all", mute=False,
                            no_numbers=False, log_speed="30", paused=False, stub=False, bot_preset="", bot=[], autoquit=False, wall=0,
                            shots="", shots_at="", size="", profile=False, actions="", skip_draw="1")
-    check("stage=1" in W.build_args(a, {}, "none", None, "", "C:/l"), "stools87: the Watch plays stage 1 unless told")
+    check("stage=1" in W.build_args(a, ("none", False, [], "none"), None, "", "C:/l"), "stools87: the Watch plays stage 1 unless told")
     a.stage = 3
-    check("stage=3" in W.build_args(a, {}, "none", None, "", "C:/l"), "stools87: --stage 3 reaches the Watch")
+    check("stage=3" in W.build_args(a, ("none", False, [], "none"), None, "", "C:/l"), "stools87: --stage 3 reaches the Watch")
     check(W.ref_stage_ok(2, 2) and W.ref_stage_ok(None, 1) and not W.ref_stage_ok(None, 2) and not W.ref_stage_ok(3, 2),
           "stools87: the Watch's grey line is a Sim of the same stage (an old whole-run Sim only for stage 1)")
     tmp = tempfile.mkdtemp(prefix="le_stools87_")
@@ -460,14 +460,14 @@ def _sim_checks(check):
         finally:
             SB.locks.RESTORE_PENDING = keep
         setup = os.path.join(tmp, "setup.json")
-        keep2 = W.SB.save_board, W.SB.list_sims, W.SB.save_stages
-        W.SB.save_board = lambda: ({}, "")
+        keep2 = W.SB.save_trail, W.SB.list_sims, W.SB.save_stages
+        W.SB.save_trail = lambda: ({"ids": [], "level": 0}, "")
         W.SB.list_sims = lambda: []
         W.SB.save_stages = lambda: ({"red_canyon": [True]}, "read from x")
         try:
             W.write_setup(setup)
         finally:
-            W.SB.save_board, W.SB.list_sims, W.SB.save_stages = keep2
+            W.SB.save_trail, W.SB.list_sims, W.SB.save_stages = keep2
         d = json.load(open(setup, encoding="utf-8"))
         check(d.get("save_stages") == {"red_canyon": [True]} and d.get("save_stages_note") == "read from x", "stools87: the Watch's setup file carries the save's stages")
     finally:

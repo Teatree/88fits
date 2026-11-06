@@ -94,31 +94,6 @@ func test_the_short_price_is_grey_with_the_amount_in_red() -> void:
 	assert_float(enough.ink_override.a).is_equal(0.0)
 
 
-func test_the_board_keeps_no_empty_room_and_says_no_shortfall() -> void:
-	Save.data["gold"] = 1
-	var h: Control = auto_free(load("res://ui/HomesteadScreen.tscn").instantiate())
-	add_child(h)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var row: Control = h.find_child("HoldRow", true, false)
-	var board: Control = h.find_child("Board", true, false)
-	# the board starts right under the row: no room kept for chips nobody has
-	assert_float(row.get_combined_minimum_size().y).is_less(140.0)
-	assert_float(board.global_position.y - (row.global_position.y + row.size.y)).is_less_equal(20.0)
-	assert_object(h.find_child("Short", true, false)).is_null()
-	h._open(Registry.talent("grit"))
-	await get_tree().process_frame
-	assert_object(h._choice.find_child("Short", true, false)).is_null()
-	var track: Control = h._choice.find_child("RankBar", true, false)
-	assert_float(track.pip.x).is_greater(R_POP_MIN)
-	h._close_choice()
-
-
-const R_POP_MIN := 80.0
-
-
-# ---------------------------------------------------------------- the title's hero
-
 func test_details_stays_in_one_place_for_every_hero() -> void:
 	Save.data["heroes_owned"] = ["drifter", "astro", "ironwood"]
 	var t := await _title()

@@ -18,7 +18,6 @@
 <link rel="stylesheet" href="boss_fights.css">
 <link rel="stylesheet" href="skins.css">
 <link rel="stylesheet" href="wanted.css">
-<link rel="stylesheet" href="mirror.css">
 <link rel="stylesheet" href="trail.css">
 </head>
 <body>
@@ -63,7 +62,6 @@
   <button type="button" data-tab="drivers" title="pass 93: every driver in tools/dl/drivers (the 3D motions the video model paints over): play them frame by frame with their frame numbers, the clay and look stills, the folder">Drivers</button>
   <button type="button" data-tab="bossattacks" title="pass 72: custom boss attacks: make, name, tune with a preview, give to a boss">Boss attacks</button>
   <button type="button" data-tab="wanted" title="pass 111: the Bounty Board: the Wanted posters a player picks before a stage run (task types, weights, difficulty, the reward), and a board you can roll">Wanted</button>
-  <button type="button" data-tab="mirror" title="pass 116: the Upgrade board (the Mirror): every talent with its pictures, both forms, the six ranks with their prices and effects, in the board's order">Mirror</button>
   <button type="button" data-tab="trail" title="pass 129: the Trail (the permanent progression): the whole track as the game shows it on the left, every level and node to edit on the right, the checks, CSV out and in">Trail</button>
   <button type="button" data-tab="instructions">Instructions</button>
   <span id="issues" class="issues good" title="what the checks say (the inspector lists them when nothing is selected)">no issues</span>
@@ -97,7 +95,6 @@
   <section id="tab-jobs" class="tab-panel page" hidden></section>
   <section id="tab-bossattacks" class="tab-panel page" hidden></section>
   <section id="tab-wanted" class="tab-panel page" hidden></section>
-  <section id="tab-mirror" class="tab-panel page" hidden></section>
   <section id="tab-trail" class="tab-panel page" hidden></section>
   <section id="tab-drivers" class="tab-panel page" hidden></section>
   <section id="tab-sim" class="tab-panel page" hidden></section>
@@ -175,8 +172,6 @@
      (wanted_model.js, the game's WantedBoard.gd mirrored, also run under Node by selftest_WANTED111.py) -->
 <script src="wanted_model.js"></script>
 <script src="wanted.js"></script>
-<!-- pass 116 (lane EDITOR): the Mirror tab (talents_io.py) -->
-<script src="mirror.js"></script>
 <!-- pass 129 (lane TRAIL-EDITOR): the Trail tab (trail_io.py), on its page-free maths (trail_model.js, also run under Node by
      selftest_TRAIL129.py) -->
 <script src="trail_model.js"></script>

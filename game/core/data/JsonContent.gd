@@ -4,7 +4,7 @@
 class_name JsonContent
 extends RefCounted
 
-const TYPES := ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters", "talents", "quests", "maps", "pickups", "structures", "boss_attacks", "currencies"]
+const TYPES := ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters", "quests", "maps", "pickups", "structures", "boss_attacks", "currencies"]
 ## Pass 76 (lane LOOKS): the weapon families' looks, preloaded (it has no class_name: see its header).
 const ItemLooks := preload("res://core/data/ItemLooks.gd")
 
@@ -41,8 +41,6 @@ static func build(type: String, d: Dictionary, dir: String) -> ContentDef:
 			res = _elite(d, dir)
 		"characters":
 			res = _character(d, dir)
-		"talents":
-			res = _talent(d, dir)
 		"quests":
 			res = _quest(d, dir)
 		"maps":
@@ -579,50 +577,6 @@ static func _map(d: Dictionary, dir: String) -> MapDef:
 	if mu is Dictionary and not mu.is_empty():
 		m.music = mu
 	return m
-
-
-static func _talent(d: Dictionary, dir: String) -> TalentDef:
-	var t := TalentDef.new()
-	t.order = int(d.get("order", 0))
-	t.ranks = int(d.get("ranks", 3))
-	var c = d.get("cost", [])
-	t.cost = c if c is Array else []
-	# pass 111 (lane SKINS): what the ranks are paid in
-	t.currency_type = str(d.get("currency_type", "gold"))
-	if t.currency_type == "":
-		t.currency_type = "gold"
-	# pass 115 (lane META): the stats whose starting value the talent owns (Nerve's revive health), numbers only
-	var bs = d.get("base_stats", {})
-	t.base_stats = {}
-	if bs is Dictionary:
-		for k in (bs as Dictionary).keys():
-			var v = (bs as Dictionary)[k]
-			if v is float or v is int:
-				t.base_stats[str(k)] = float(v)
-	var forms: Array = []
-	var tid := str(d.get("id", ""))
-	for f in (d.get("forms", []) as Array):
-		if not (f is Dictionary):
-			continue
-		var form := {"name": str(f.get("name", "")), "text": str(f.get("text", "")),
-			"effects": effects_list(f.get("effects", []), "player")}
-		# the form's own icon (pass 61, the Upgrade board's rank bars): `icon` in the form, else <id>_<form>_icon.png in the
-		# talent's folder; absent, the board draws the form's initial
-		var ifile := str(f.get("icon", "%s_%d_icon.png" % [tid, forms.size()]))
-		form["icon_file"] = ifile
-		var itex := resolve_texture(dir, ifile)
-		if itex:
-			form["icon"] = itex
-		# one effect list a rank (pass 46), when the ranks are not all the same step
-		var re = f.get("rank_effects", [])
-		if re is Array and not (re as Array).is_empty():
-			form["rank_effects"] = levels_list(re, "player")
-		# pass 123: the board's top rank gives this many steps (TalentDef.top_mult)
-		if f.has("top_mult"):
-			form["top_mult"] = float(f.get("top_mult", 1.0))
-		forms.append(form)
-	t.forms = forms
-	return t
 
 
 static func _pickup(d: Dictionary, dir: String) -> PickupDef:

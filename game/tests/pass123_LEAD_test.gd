@@ -1,7 +1,8 @@
 extends GdUnitTestSuite
 
-## Pass 123, the lead's rules from Garry's list (BALANCING 65): the seventh Upgrade rank (top_mult, Save.talent_top, the
-## price; Second Wind past full health buys untouchable time), the red crumbs (core/systems/Crumbs.gd), the Exploding Frog's
+## Pass 123, the lead's rules from Garry's list (BALANCING 65): Second Wind past full health buys untouchable time, the
+## red crumbs (core/systems/Crumbs.gd; on the Trail's nodes since pass 129, when the Upgrade board and its seventh rank
+## left the game), the Exploding Frog's
 ## body that waits for its blast, the Shaman's healing numbers, the boss barrier's reach, the Gila's Poison Rain, the mutation
 ## colour, the coin's painting under both themes and the numbers highlighted in the kit's text.
 
@@ -123,53 +124,8 @@ func _hero_on(rank_stat: float) -> Player:
 
 # ---------------------------------------------------------------- the seventh rank
 
-func test_every_talent_has_a_dearer_stronger_seventh_rank() -> void:
-	for def: TalentDef in Registry.talents_list():
-		assert_int(def.max_rank()).override_failure_message(def.id).is_equal(7)
-		assert_int(def.cost_of_rank(6)).override_failure_message(def.id).is_equal(int(def.cost[0]) * 49)
-		for f in def.forms.size():
-			# the top rank gives more than a plain one, in both forms
-			assert_float(def.top_mult(f)).override_failure_message("%s form %d" % [def.id, f]).is_greater(1.0)
-			var plain: Array = def.step_effects(f, false)
-			var top: Array = def.step_effects(f, true)
-			assert_int(top.size()).is_equal(plain.size())
-			for k in plain.size():
-				var a: Effect = plain[k]
-				var b: Effect = top[k]
-				assert_str(b.stat).is_equal(a.stat)
-				assert_float(absf(b.value)).override_failure_message("%s %s" % [def.id, a.stat]).is_greater(absf(a.value))
-
-
-func test_the_top_rank_counts_only_in_the_form_it_was_bought_in() -> void:
-	var grit: TalentDef = Registry.talent("grit")
-	assert_float(grit.top_mult(0)).is_equal(1.5)
-	Save.data["talents"] = {"grit": {"picks": [0, 0, 0, 0, 0, 0]}}
-	assert_bool(Save.talent_top(grit, 0)).is_false()
-	Save.data["talents"] = {"grit": {"picks": [0, 0, 0, 0, 0, 0, 1]}}
-	assert_bool(Save.talent_top(grit, 0)).is_false()
-	assert_bool(Save.talent_top(grit, 1)).is_true()
-	Save.data["talents"] = {"grit": {"picks": [1, 1, 1, 1, 1, 1, 0]}}
-	assert_bool(Save.talent_top(grit, 0)).is_true()
-	assert_bool(Save.talent_top(grit, 1)).is_false()
-	# six ranks of +10% and the seventh's +15%, summed for reading and folded into the sheet the same
-	var one := float((grit.effects_for(0, 1)[0] as Effect).value)
-	var summed: Effect = grit.summed_effects(0, 7, true)[0]
-	assert_float(summed.value).is_equal_approx(one * 7.5, 0.0001)
-	var listed := 0.0
-	for e: Effect in grit.effects_for(0, 7, true):
-		listed += e.value
-	assert_float(listed).is_equal_approx(one * 7.5, 0.0001)
-
-
 func test_second_wind_past_full_health_buys_untouchable_time() -> void:
-	var nerve: TalentDef = Registry.talent("nerve")
-	var form := -1
-	for f in nerve.forms.size():
-		if nerve.form_name(f) == "Second Wind":
-			form = f
-	assert_int(form).is_greater_equal(0)
-	assert_float(nerve.top_mult(form)).is_equal(1.5)
-	# 40% base + six ranks of 10% = 100%: nothing over; the seventh's 15% more = 1.5 s more
+	# the 40% base brought to 100%: nothing over; 15% more = 1.5 s more
 	var p := _hero_on(0.0)
 	var base := p.sheet.get_stat("revive_hp", 0.5)
 	p.sheet.add_effects([Effect.make("revive_hp", "add", 1.0 - base, "player")], "test2")
@@ -181,24 +137,40 @@ func test_second_wind_past_full_health_buys_untouchable_time() -> void:
 
 # ---------------------------------------------------------------- the crumbs
 
-func test_the_upgrade_crumb_shows_for_a_new_rank_the_purse_can_pay_and_goes_once_seen() -> void:
+## Pass 129: the crumb follows the same rule on the Trail's nodes (the Upgrade board's ranks until the board went): a
+## node the purse can buy now that the player has not been shown. On the rules fixture: n1 is the only open node of a
+## new save; once it is bought the next level's nodes open.
+func test_the_upgrade_crumb_shows_for_a_new_node_the_purse_can_pay_and_goes_once_seen() -> void:
+	Trail.load_from("res://tests/fixtures/trail_rules.json")
+	Save.data["trail"] = {"bought": [], "spent": 0, "had": []}
+	Save.data.erase("crumbs")
+	Trail.refresh()
+	var first := str(Trail.nodes()[0]["id"])
+	assert_str(Trail.state(first)).is_equal("open")
 	Save.data["gold"] = 0
 	assert_bool(Crumbs.upgrade_due()).is_false()
-	var cheapest: TalentDef = Registry.talents_list()[0]
-	Save.data["gold"] = cheapest.cost_of_rank(0)
+	Save.data["gold"] = Trail.price(first)
+	assert_array(Crumbs.upgrade_keys()).is_equal([first])
 	assert_bool(Crumbs.upgrade_due()).is_true()
 	Crumbs.upgrade_mark_seen()
 	assert_bool(Crumbs.upgrade_due()).is_false()
-	# the purse falls and rises again to the same rank: already seen, no crumb
+	# the purse falls and rises again to the same node: already seen, no crumb
 	Save.data["gold"] = 0
 	assert_bool(Crumbs.upgrade_due()).is_false()
-	Save.data["gold"] = cheapest.cost_of_rank(0)
+	Save.data["gold"] = Trail.price(first)
 	assert_bool(Crumbs.upgrade_due()).is_false()
-	# enough for one it had not been shown: the crumb is back
+	# the node bought: the next level opens, and a node there the purse can pay was never shown: the crumb is back
 	Save.data["gold"] = 1000000
+	assert_bool(Trail.buy(first)).is_true()
+	assert_bool(Crumbs.upgrade_keys().is_empty()).is_false()
+	assert_bool(Crumbs.upgrade_keys().has(first)).is_false()
 	assert_bool(Crumbs.upgrade_due()).is_true()
 	Crumbs.upgrade_mark_seen()
 	assert_bool(Crumbs.upgrade_due()).is_false()
+	Trail.load_from()
+	Save.data["trail"] = {"bought": [], "spent": 0, "had": []}
+	Save.data.erase("crumbs")
+	Trail.refresh()
 
 
 func test_reading_the_crumbs_never_writes_to_the_save() -> void:

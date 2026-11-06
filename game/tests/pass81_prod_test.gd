@@ -193,7 +193,7 @@ func test_every_item_in_play_with_its_path_and_evolution_is_kept() -> void:
 		assert_bool(_kept(p)).override_failure_message("passive %s" % p.id).is_true()
 		if p.evolves_into != "":
 			assert_bool(_kept(Registry.passive(p.evolves_into))).override_failure_message("%s's evolution" % p.id).is_true()
-	for dict_name in ["talents", "elites", "pickups", "structures"]:
+	for dict_name in ["elites", "pickups", "structures"]:
 		for d in (Registry.get(dict_name) as Dictionary).values():
 			if not d.hidden:
 				assert_bool(_kept(d)).override_failure_message("%s %s" % [dict_name, d.id]).is_true()

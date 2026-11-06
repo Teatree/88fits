@@ -1,4 +1,4 @@
-## One JSON save file: gold, talents, quests, totals, best runs, settings, hint flags, what has been met, and (pass 57)
+## One JSON save file: gold, the Trail, quests, totals, best runs, settings, hint flags, what has been met, and (pass 57)
 ## the anonymous install id the play data goes out under.
 ## Pass 45: the write is atomic (save.json.tmp, the old file to save.json.bak, the tmp into place), a file that cannot
 ## be read falls back to the backup and is kept aside, versions migrate forward only, writes are debounced and flushed
@@ -10,9 +10,9 @@ const DEBOUNCE_MS := 400   # a change made in a menu is on disk within half a se
 const LAZY_MS := 8000      # in-run tallies (kills, pickups, coins) wait up to 8 s; the background flush catches them
 
 signal gold_changed(gold: int)
-## The saved gold moved (pass 61): `delta` signed, `reason` the source or sink (run_bank, strongbox, talent,
-## talent_refund, wipe, ...), `balance` after it, `extra` what it was for (a talent's id and rank). Analytics sends it
-## as gold_meta.
+## The saved gold moved (pass 61): `delta` signed, `reason` the source or sink (run_bank, strongbox, trail, hero,
+## talent_refund = the old Upgrade board's coins paid back by _migrate_trail, wipe, ...), `balance` after it, `extra`
+## what it was for (a Trail node's id and level). Analytics sends it as gold_meta.
 signal gold_moved(delta: int, reason: String, balance: int, extra: Dictionary)
 signal quest_completed(quest_id: String)
 signal saved(ok: bool)
@@ -72,7 +72,6 @@ func _default() -> Dictionary:
 		"version": VERSION,
 		"saved_at": 0,
 		"gold": 0,
-		"talents": {}, "talent_spent": 0,
 		"quests_done": [],
 		"totals": {"kills": 0, "kills_with_weapon": {}, "kills_of_enemy": {}, "chests": 0, "evolutions": 0, "runs": 0, "extracts": 0,
 			"pickups": 0, "gold_earned": 0,
@@ -117,9 +116,6 @@ func _default() -> Dictionary:
 		# has neither: every hero wears the look the game plays, the one every player owns
 		"skins_owned": [],
 		"skin_worn": {},
-		# pass 111 (lane SKINS): what the Upgrade board cost in a currency other than gold (gold's total stays in
-		# "talent_spent"): currency id -> spent; Take it all back pays half of each back
-		"talent_spent_in": {},
 		# pass 129 (lane TRAILCORE): the Trail (core/systems/Trail.gd): the node ids bought (trail_buy), what they cost in
 		# the Trail's currency, and the gifts this save had before the Trail ("<type>:<id>", _migrate_trail: a node that
 		# gives one counts as bought at no cost)
@@ -180,11 +176,7 @@ func load_save() -> void:
 	_migrate_stages()
 	# pass 126 (lane STAGE): The Dust Bowl went in before the Blood Moon: what was stage 3 is stage 4 now, once
 	_migrate_dust_bowl()
-	# pass 88 (lane MIRROR): Spite's old Thorns / Thirst ranks paid back in full, once
-	_migrate_stakes()
-	# pass 115 (lane META): Nerve's ranks cost less now; what an older save paid over the new price comes back, once
-	_migrate_nerve()
-	# pass 129 (lane TRAILCORE): the Upgrade board's coins back and what this save already has kept, once the Trail has nodes
+	# pass 129 (lane TRAILCORE): the old Upgrade board's coins back and what this save already has kept, once the Trail has nodes
 	_migrate_trail()
 	# pass 119 (lane LOADUI): the painted title, once
 	_migrate_painted()
@@ -536,7 +528,7 @@ static func new_uuid4() -> String:
 
 
 ## The player's own keys a wipe keeps (pass 59): who they are to PostHog, their answer to the play-data card and their
-## survey record. Everything else (gold, talents, quests, totals, what has been met, settings) goes.
+## survey record. Everything else (gold, the Trail, quests, totals, what has been met, settings) goes.
 const KEEP_ON_WIPE := ["install_id", "player_name", "consent", "survey"]
 
 ## The western words a player's name is made of (pass 59, Garry: "assign them some type of ID / name"): an adjective, a
@@ -637,7 +629,7 @@ func gold() -> int:
 	return int(data.get("gold", 0))
 
 
-## Gold into the save; `source` says from where (pass 61: run_bank, strongbox, talent_refund, ...), `extra` rides along
+## Gold into the save; `source` says from where (pass 61: run_bank, strongbox, ...), `extra` rides along
 ## on the gold_meta event.
 func add_gold(n: int, source: String = "other", extra: Dictionary = {}) -> void:
 	var add := maxi(n, 0)
@@ -649,7 +641,7 @@ func add_gold(n: int, source: String = "other", extra: Dictionary = {}) -> void:
 	request_save()
 
 
-## Gold out of the save; `sink` says for what (pass 61: talent, ...).
+## Gold out of the save; `sink` says for what (pass 61: hero, trail, ...).
 func spend_gold(n: int, sink: String = "other", extra: Dictionary = {}) -> bool:
 	if gold() < n:
 		return false
@@ -855,214 +847,11 @@ func forget_bought_heroes() -> void:
 	request_save()
 
 
-# ---------------------------------------------------------------- the Mirror
+# ---------------------------------------------------------------- the old Upgrade board's last note
 
-## The forms bought for a talent, rank by rank (pass 63, Garry: "each Upgrade is a choice ... that choice stays"): [0, 1, 0]
-## = rank 1 the first form (Padding), rank 2 the second (Plate), rank 3 the first again. A rank's form never changes;
-## Take it all back is the only way to choose again. A save from before reads {form, rank} as that form `rank` times.
-func talent_picks(id: String) -> Array:
-	var t = data.get("talents", {}).get(id, {})
-	var out: Array = []
-	if not (t is Dictionary):
-		return out
-	var p = (t as Dictionary).get("picks")
-	if p is Array:
-		for f in p:
-			out.append(clampi(int(f), 0, 1))
-		return out
-	for k in range(int((t as Dictionary).get("rank", 0))):
-		out.append(clampi(int((t as Dictionary).get("form", 0)), 0, 1))
-	return out
-
-
-## How many ranks a talent has, both forms together.
-func talent_rank(id: String) -> int:
-	return talent_picks(id).size()
-
-
-## How many of a talent's ranks are of `form`.
-func talent_count(id: String, form: int) -> int:
-	var n := 0
-	for f in talent_picks(id):
-		if int(f) == form:
-			n += 1
-	return n
-
-
-## Whether `form` holds the board's top rank (pass 123, TalentDef.top_mult): the last rank bought, in that form.
-func talent_top(def: TalentDef, form: int) -> bool:
-	var p := talent_picks(def.id)
-	return p.size() >= def.ranks and def.ranks > 0 and int(p[def.ranks - 1]) == form
-
-
-## The form of the last rank bought (0 with none): what the analytics and old callers read.
-func talent_form(id: String) -> int:
-	var p := talent_picks(id)
-	return int(p[p.size() - 1]) if not p.is_empty() else 0
-
-
-## Buy the talent's next rank in `form` with gold: the rank keeps that form for good.
-func buy_talent(def: TalentDef, form: int = 0) -> bool:
-	var picks := talent_picks(def.id)
-	var rank := picks.size()
-	if rank >= def.ranks:
-		return false
-	form = clampi(form, 0, 1)
-	var cost := def.cost_of_rank(rank)
-	# pass 111 (lane SKINS): in the talent's `currency_type` (gold), through Currency
-	var cur := Currency.of(def.currency_type)
-	var extra := {"talent": def.id, "rank": rank + 1, "form": form}
-	if cur != "gold":
-		extra["currency"] = cur
-	if cost < 0 or not spend_currency(cur, cost, "talent", extra):
-		return false
-	picks.append(form)
-	# pass 88 (lane MIRROR): a Stakes rank bought is never taken for an old Spite rank (a save wiped since its load)
-	if def.id == "spite":
-		mark_once(STAKES_ONCE)
-	# pass 115 (lane META): nor a Nerve rank bought at the new price for an old one
-	if def.id == "nerve":
-		mark_once(NERVE_ONCE)
-	var all: Dictionary = data.get("talents", {})
-	all[def.id] = {"picks": picks, "rank": picks.size(), "form": form}
-	data["talents"] = all
-	if cur == "gold":
-		data["talent_spent"] = talent_spent() + cost
-	else:
-		if not (data.get("talent_spent_in") is Dictionary):
-			data["talent_spent_in"] = {}
-		data["talent_spent_in"][cur] = talent_spent_in(cur) + cost
-	request_save()
-	return true
-
-
-## What the board cost in currency `cur` (pass 111): gold is talent_spent, any other its own total.
-func talent_spent_in(cur: String) -> int:
-	if cur == "gold" or cur == "":
-		return talent_spent()
-	var d = data.get("talent_spent_in")
-	return int((d as Dictionary).get(cur, 0)) if d is Dictionary else 0
-
-
-func talent_spent() -> int:
-	return int(data.get("talent_spent", 0))
-
-
-## Everything back, for half the gold (pass 44: the refund keeps REFUND_FRAC of what was spent): the board empties and
-## half the coins return.
-const REFUND_FRAC := 0.5
-
-
-func talent_refund() -> int:
-	return int(floor(talent_spent() * REFUND_FRAC))
-
-
-func talent_refund_all() -> int:
-	var back := talent_refund()
-	# what went back (pass 61, on the gold_meta event): the ranks the board held and the gold they had cost
-	var ranks := 0
-	var all = data.get("talents", {})
-	if all is Dictionary:
-		for id in (all as Dictionary).keys():
-			ranks += talent_rank(str(id))
-	var info := {"ranks": ranks, "spent": talent_spent()}
-	# pass 111 (lane SKINS): a rank paid in another currency comes back half in that currency
-	var other = data.get("talent_spent_in")
-	data["talents"] = {}
-	data["talent_spent"] = 0
-	data["talent_spent_in"] = {}
-	add_gold(back, "talent_refund", info)
-	if other is Dictionary:
-		for cur in (other as Dictionary).keys():
-			var half := int(floor(float(int(other[cur])) * REFUND_FRAC))
-			if half > 0:
-				add_currency(str(cur), half, "talent_refund", {"spent": int(other[cur])})
-	request_save()
-	return back
-
-
-# ---------------------------------------------------------------- pass 88 (lane MIRROR): Spite's old forms
-
-## What Spite's ranks cost before pass 88, rank by rank, when its forms were Thorns and Thirst: an old save's ranks come
-## back at these prices (the talent is Stakes now: Difficulty and Boss, which make the game harder).
-const SPITE_OLD_COST := [500, 900, 1500, 2250, 3250, 4500]
-const STAKES_ONCE := "stakes_v88"
-
-
-## Once per save (the once-flag STAKES_ONCE, set on every save, a new one too, so a Stakes rank bought later is never
-## paid back): the ranks an older save bought in Spite (Thorns / Thirst) are erased and their whole price comes back
-## (SPITE_OLD_COST, not the half of Take it all back: the player never chose to give them up), the board's spent total
-## lowered by as much, and a note left for the Upgrade board's toast (board_note). Returns the gold paid back.
-func _migrate_stakes() -> int:
-	if once(STAKES_ONCE):
-		return 0
-	var all = data.get("talents", {})
-	var back := 0
-	var ranks := 0
-	if all is Dictionary and (all as Dictionary).has("spite"):
-		ranks = talent_rank("spite")
-		for k in range(ranks):
-			back += int(SPITE_OLD_COST[mini(k, SPITE_OLD_COST.size() - 1)])
-		(all as Dictionary).erase("spite")
-	if back > 0:
-		data["talent_spent"] = maxi(talent_spent() - back, 0)
-		add_gold(back, "talent_refund", {"talent": "spite", "ranks": ranks, "why": STAKES_ONCE})
-		data["board_note"] = {"kind": "stakes_refund", "gold": back, "ranks": ranks}
-	mark_once(STAKES_ONCE)
-	return back
-
-
-# ---------------------------------------------------------------- pass 115 (lane META): Nerve cheaper, Second Wind revive health
-
-## What a Nerve rank is counted as having cost when a save from before pass 115 holds it: pass 88's prices, rank by rank.
-## The save keeps no price a rank (only the board's total, talent_spent); pass 88's list sold Nerve from 2026-10-18 until
-## pass 110's dearer one (500, 2,000, 4,500, ...) on 2026-10-28, so it is what most ranks were bought at and it never
-## pays back more than a rank bought since pass 88 cost.
-const NERVE_OLD_COST := [500, 900, 1500, 2250, 3250, 4500]
-const NERVE_ONCE := "nerve_v115"
-
-
-## Once per save (the once-flag NERVE_ONCE, set on every save, a new one too, and by buying a Nerve rank, so a rank bought
-## at the new price is never paid back): Nerve's ranks stay as they were bought (Skip or Second Wind, the same count; a
-## Second Wind rank gives +10% revive health now instead of a revive), and for each the gold its NERVE_OLD_COST is over
-## the talent's new price (content/talents/nerve) comes back, never more than the board has cost in all (talent_spent;
-## a board set by a tool cost nothing and gets nothing), the spent total lowered by as much. A note for the Upgrade
-## board's toasts (nerve_note) is left when gold came back or a Second Wind rank changed. Returns the gold paid back.
-func _migrate_nerve() -> int:
-	if once(NERVE_ONCE):
-		return 0
-	var ranks := talent_rank("nerve")
-	var back := 0
-	var def = Registry.talents.get("nerve")
-	if ranks > 0 and def is TalentDef:
-		for k in range(ranks):
-			var now := (def as TalentDef).cost_of_rank(k)
-			if now >= 0:
-				back += maxi(int(NERVE_OLD_COST[mini(k, NERVE_OLD_COST.size() - 1)]) - now, 0)
-		back = mini(back, talent_spent())
-	var winds := talent_count("nerve", 1)
-	if back > 0:
-		data["talent_spent"] = maxi(talent_spent() - back, 0)
-		add_gold(back, "talent_refund", {"talent": "nerve", "ranks": ranks, "why": NERVE_ONCE})
-	if back > 0 or winds > 0:
-		data["board_note_nerve"] = {"kind": "nerve_refund", "gold": back, "ranks": ranks, "second_wind": winds}
-	mark_once(NERVE_ONCE)
-	return back
-
-
-## The Nerve note the Upgrade board shows once as toasts ({kind, gold, ranks, second_wind}; {} none).
-func nerve_note() -> Dictionary:
-	var n = data.get("board_note_nerve", {})
-	return n if n is Dictionary else {}
-
-
-func clear_nerve_note() -> void:
-	if data.has("board_note_nerve"):
-		data.erase("board_note_nerve")
-		request_save()
-
-
-## The note the Upgrade board shows once as a toast ({kind, gold, ranks}; {} none).
+## The note _migrate_trail leaves for the Trail screen's toast ({kind: "trail_refund", gold, ranks}; {} none). The name
+## is from the Upgrade board's days (pass 88 to 128), when the board showed its own notes; a save may still hold one of
+## those kinds (Trail.note_text says nothing for it and the Trail screen clears it).
 func board_note() -> Dictionary:
 	var n = data.get("board_note", {})
 	return n if n is Dictionary else {}
@@ -1136,8 +925,10 @@ func trail_reset(forget_had: bool = false) -> int:
 
 
 ## Once per save (the once-flag Trail.ONCE, "trail_v129"), and only once the Trail has nodes (an empty Trail changes
-## nothing, so it waits): the Upgrade board is the Trail now. Every coin the board cost (talent_spent, and what it cost
-## in any other currency) goes back to the purse in full and its ranks are cleared, with a note for the toast
+## nothing, so it waits): the Upgrade board is the Trail now. This is the only place that still reads the board's keys
+## of an older save (pass 129 removed the board): `talents` ({id: {picks: [form, ...]} or the older {rank, form}}),
+## `talent_spent` (the gold its ranks cost) and `talent_spent_in` ({currency: spent}). Every coin the board cost goes
+## back to the purse in full and the three keys leave the save, with a note for the toast
 ## (board_note, kind "trail_refund": Trail.note_text says "The Upgrade board is now the Trail. Your <n> coins are back.").
 ## And every gift the save already has by the rules as they were (Trail.had_before: outlaws and skins owned, items and
 ## maps not locked, stages open, structures, power-ups, the Bounty Board) is remembered in `trail.had`, so a node that
@@ -1146,16 +937,18 @@ func trail_reset(forget_had: bool = false) -> int:
 func _migrate_trail() -> int:
 	if once(Trail.ONCE) or not Trail.has_nodes():
 		return 0
-	var back := talent_spent()
+	var back := int(data.get("talent_spent", 0))
 	var ranks := 0
 	var all = data.get("talents", {})
 	if all is Dictionary:
 		for id in (all as Dictionary).keys():
-			ranks += talent_rank(str(id))
+			var t = (all as Dictionary)[id]
+			if t is Dictionary:
+				var picks = (t as Dictionary).get("picks")
+				ranks += (picks as Array).size() if picks is Array else int((t as Dictionary).get("rank", 0))
 	var other = data.get("talent_spent_in")
-	data["talents"] = {}
-	data["talent_spent"] = 0
-	data["talent_spent_in"] = {}
+	for k: String in ["talents", "talent_spent", "talent_spent_in"]:
+		data.erase(k)
 	if back > 0:
 		add_gold(back, "talent_refund", {"ranks": ranks, "spent": back, "why": Trail.ONCE})
 	if other is Dictionary:

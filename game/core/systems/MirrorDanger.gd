@@ -1,8 +1,9 @@
-## The Upgrade board's Stakes (pass 88, lane MIRROR; Garry: "Difficulty - Increases regular enemies movement speed, HP and
+## The Stakes (pass 88, lane MIRROR, for the Upgrade board; since pass 129 the Trail's optional Stakes nodes feed the same
+## stats and the board is gone; Garry: "Difficulty - Increases regular enemies movement speed, HP and
 ## ATK and increases the coins and exp (we don't write that in the description, and it's less than the difficulty
 ## increase)" and "BOSS - Increases Boss (and Elites) movement speed, HP and ATK and increases the coins and exp").
 ##
-## Two families of player stats, each a sum of the ranks bought (op "add", 0 without any), read here:
+## Two families of player stats, each a sum of the Stakes nodes bought (op "add", 0 without any), read here:
 ##   regular creatures (everything that is not a boss or an Elite by its kind; an elite-modded or special creature is a
 ##   regular one): danger_hp, danger_attack, danger_speed, danger_bounty;
 ##   bosses and Elites by their kind (archetype "boss" / "elite"): boss_danger_hp, boss_danger_attack, boss_danger_speed,

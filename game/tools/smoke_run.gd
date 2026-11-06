@@ -3,7 +3,7 @@
 ## on, the portal waits, and asks again once he has stepped out and back in), then (pass 87, stages as their own runs)
 ## lets the portal's countdown run out while its dialog is up: Endless starts (the dialog and the portal go), its waves
 ## come every few seconds, tougher each time, and the run is abandoned (portal=extract: EXTRACT on the second visit
-## instead, as before), then visits Results, Title, Shop, Collection, Settings, the Mirror and the developer menu. Exit
+## instead, as before), then visits Results, Title, Collection, Settings, the Trail and the developer menu. Exit
 ## code 0 only if the whole path ran. A revive (pass 48) and the Nuke run on the way, and the run file must record no damage past what the
 ## creatures had (no zero rows, nothing near the revive's or the boss kill's 100 000).
 ## Run: godot --headless --path game --script res://tools/smoke_run.gd -- seconds=90 weapon=boomstick
@@ -28,7 +28,7 @@ var _boss_n := 1          # boss=2: jump to the second boss with a stage-2 build
 var _evolve_all := false  # evolve=all: every base weapon added, maxed, mutated twice and evolved in the live game
 var _evolved := false
 var _portal_decided := 0
-var _screens := ["res://ui/ResultsScreen.tscn", "res://ui/TitleScreen.tscn", "res://ui/ShopScreen.tscn", "res://ui/CollectionScreen.tscn", "res://ui/SettingsScreen.tscn", "res://ui/HomesteadScreen.tscn", "res://ui/TrailScreen.tscn", "res://ui/DevMenu.tscn"]
+var _screens := ["res://ui/ResultsScreen.tscn", "res://ui/TitleScreen.tscn", "res://ui/CollectionScreen.tscn", "res://ui/SettingsScreen.tscn", "res://ui/TrailScreen.tscn", "res://ui/DevMenu.tscn"]
 var _screen_i := -1
 var _screen_t := 0.0
 var _cards_picked := 0
@@ -560,12 +560,18 @@ func _analytics_check() -> String:
 	# pass 74 (schema 2): a tool's run, the header's new blocks, the boss's HP as it came, a totem gift's offer
 	# pass 101 (lane FPS): schema 3: every row its frames, the header its frame_timing (a headless run's marked not valid)
 	# pass 102 (lane STEADY): schema 4: the rows' work times (steps, phys_ms, proc_ms, rest_ms), the header's work block
-	# pass 115 (lane DASH): schema 5: the header's Upgrade board, what shaped each held weapon, the evolutions' families
-	# and every id's icon (the dashboard's new cards); a row's hp_min only when he dipped inside its second
-	if int(mine.get("schema", 0)) != 5:
-		return "the run file is schema %s, not 5" % str(mine.get("schema", "?"))
-	if not (mine.get("board") is Dictionary) or ((mine["board"] as Dictionary).get("talents", []) as Array).is_empty():
-		return "the run file has no Upgrade board: %s" % str(mine.get("board"))
+	# pass 115 (lane DASH): schema 5: what shaped each held weapon, the evolutions' families and every id's icon (the
+	# dashboard's cards); a row's hp_min only when he dipped inside its second
+	# pass 129: schema 6: the Upgrade board's blocks are gone, the header's `trail` is whole (its level, how long the
+	# Trail is, how many nodes it has)
+	if int(mine.get("schema", 0)) != 6:
+		return "the run file is schema %s, not 6" % str(mine.get("schema", "?"))
+	for gone in ["board", "talents", "talent_forms"]:
+		if mine.has(gone):
+			return "the run file still carries the Upgrade board's `%s`" % gone
+	var trl = mine.get("trail")
+	if not (trl is Dictionary) or not (trl as Dictionary).has("level") or int((trl as Dictionary).get("levels", 0)) <= 0 or int((trl as Dictionary).get("nodes", 0)) <= 0:
+		return "the run file has no whole Trail block: %s" % str(trl)
 	for k in ["weapon_sources", "weapon_family", "icons"]:
 		if not (mine.get(k) is Dictionary):
 			return "the run file has no " + k

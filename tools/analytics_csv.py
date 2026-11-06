@@ -50,12 +50,14 @@ EVENT_FIRST = ["t", "clock", "kind", "id", "name", "level"]
 HISTORY_FIRST = ["file", "stamp", "started", "version", "schema", "tool", "headless", "hero", "hero_name", "hero_look",
                  "map", "map_rev", "seed", "result", "length", "clock", "stage", "endless_wave", "level", "kills", "gold",
                  "strongbox", "revives", "gold_before", "damage", "top_source", "dps_end", "hp_lost", "hits_taken", "bosses",
-                 "specials_killed", "elites_killed", "killer", "totems", "talents", "build"]
-# RunAnalytics.INDEX_SKIP: the header blocks the index leaves out
+                 "specials_killed", "elites_killed", "killer", "totems", "trail_level", "trail_bought", "trail_spent",
+                 "talents", "build"]
+# RunAnalytics.INDEX_SKIP: the header blocks the index leaves out (`talents`, `talent_forms` and `board` are an older
+# record's: the Upgrade board left the game in pass 129, schema 6)
 INDEX_SKIP = ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents", "talent_forms",
               "totems", "stat_names", "build_text", "heat", "tasks",
-              # pass 115 (lane DASH): schema 5's big blocks (the board goes in as board_max / board_gold below)
-              "board", "weapon_sources", "weapon_family", "icons",
+              # pass 115 (lane DASH): schema 5's big blocks (an older record's board goes in as board_max / board_gold below)
+              "board", "weapon_sources", "weapon_family", "icons", "chest_banks",
               # pass 129 (lane TRAILCORE): the Trail's block (it goes in as trail_level / trail_bought / trail_spent below)
               "trail"]
 # pass 82 (lane STATS): chests, power-ups and totems picked up so far, three columns after the row's own; the rule is
@@ -382,20 +384,31 @@ def _build_text(d):
     return " | ".join(" · ".join(g) for g in (ws, ps, ks) if g)
 
 
+def _schema(d):
+    """A record's schema as a number (1 for a record from before the key)."""
+    try:
+        return int(float(d.get("schema", 1) or 1))
+    except (TypeError, ValueError):
+        return 1
+
+
 def index_row(d, fname):
     row = {"file": str(d.get("stamp", os.path.splitext(fname)[0])) + ".json"}
     for k, v in d.items():
         if k not in INDEX_SKIP:
             flatten_into(row, k, v)
-    ranks = 0
+    # the Upgrade board's columns, only for a record from before schema 6 (pass 129 removed the board: RunAnalytics.index_row
+    # writes none of them now; an older file converts as it always did, `talents` 0 when it had no rank)
     tal = d.get("talents")
-    if isinstance(tal, dict):
-        for tid, picks in tal.items():
-            n = len(picks) if isinstance(picks, list) else 0
-            row["talents." + str(tid)] = n
-            ranks += n
-    row["talents"] = ranks
-    # pass 115 (lane DASH): the board's most ranks and what its ranks cost (schema 5; RunAnalytics.index_row the same)
+    if isinstance(tal, dict) or _schema(d) < 6:
+        ranks = 0
+        if isinstance(tal, dict):
+            for tid, picks in tal.items():
+                n = len(picks) if isinstance(picks, list) else 0
+                row["talents." + str(tid)] = n
+                ranks += n
+        row["talents"] = ranks
+    # pass 115 (lane DASH): the board's most ranks and what its ranks cost (schema 5 only; RunAnalytics.index_row the same then)
     bd = d.get("board")
     if isinstance(bd, dict):
         row["board_max"] = int(bd.get("max", 0) or 0)

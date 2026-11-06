@@ -5,7 +5,7 @@ extends GdUnitTestSuite
 ## spend_gold); the run recorder tallies a run's gold by source and by sink, second by second (gold_in / gold_out on the
 ## rows), into run_summary (gold_by_source, gold_spent_by, m_gold_in, m_gold_out) and run_end (gold_earned, gold_spent,
 ## gold_banked, gold_lost, gold_before, gold_after: earned - spent = banked + lost); the saved gold's every move goes out
-## as one gold_meta (talent buys and refunds, the Strongbox, the banking at the end); the arena sends none.
+## as one gold_meta (a Trail node bought, the old Upgrade board's one refund, the Strongbox, the banking at the end); the arena sends none.
 
 const AnalyticsScript := preload("res://core/autoload/Analytics.gd")
 const DIR := "user://test_saves/pass61_an"
@@ -492,66 +492,83 @@ func test_a_real_run_counts_every_coin_in_and_out() -> void:
 
 # ---------------------------------------------------------------- 3. the saved gold
 
-func test_a_talent_buy_and_a_refund_each_send_one_gold_meta() -> void:
+## Pass 129 (re-pinned to the Trail; the Upgrade board's ranks and its Take it all back until the board went): a Trail
+## node bought sends one gold_meta with reason "trail" and what it was for; the old board's coins paid back by the
+## migration send one with reason "talent_refund".
+func test_a_trail_buy_and_the_old_boards_refund_each_send_one_gold_meta() -> void:
 	_open()
 	assert_bool(Save.gold_moved.is_connected(Analytics.meta_gold)).is_true()
+	Trail.load_from("res://tests/fixtures/trail_rules.json")
+	Save.data["trail"] = {"bought": [], "spent": 0, "had": []}
+	Trail.refresh()
 	Save.add_gold(5000, "debug")
 	assert_int(_events("gold_meta").size()).is_equal(1)
 	Analytics.queue = []
-	var t: TalentDef = Registry.talent("grit")
-	var cost := t.cost_of_rank(0)
-	assert_bool(Save.buy_talent(t)).is_true()
+	var first := str(Trail.nodes()[0]["id"])
+	var cost := Trail.price(first)
+	assert_bool(Trail.buy(first)).is_true()
 	var metas := _events("gold_meta")
 	assert_int(metas.size()).is_equal(1)
 	var m: Dictionary = metas[0]
 	assert_int(int(m["delta"])).is_equal(-cost)
-	assert_str(str(m["reason"])).is_equal("talent")
+	assert_str(str(m["reason"])).is_equal("trail")
 	assert_int(int(m["balance_after"])).is_equal(5000 - cost)
-	assert_str(str(m["talent"])).is_equal("grit")
-	assert_int(int(m["rank"])).is_equal(1)
-	assert_int(int(m["form"])).is_equal(Save.talent_form("grit"))
+	assert_str(str(m["node"])).is_equal(first)
+	assert_int(int(m["level"])).is_equal(1)
+	assert_str(str(m["type"])).is_equal("upgrade")
 	assert_bool(bool(m["in_run"])).is_false()
-	# a second rank: one more, rank 2
-	var cost2 := t.cost_of_rank(1)
-	assert_bool(Save.buy_talent(t)).is_true()
-	metas = _events("gold_meta")
-	assert_int(metas.size()).is_equal(2)
-	assert_int(int(metas[1]["rank"])).is_equal(2)
-	assert_int(int(metas[1]["delta"])).is_equal(-cost2)
+	assert_int(_events("trail_buy").size()).is_equal(1)
 	# a buy that fails moves nothing and says nothing
 	Analytics.queue = []
 	var keep := Save.gold()
 	Save.data["gold"] = 0
-	assert_bool(Save.buy_talent(t)).is_false()
+	var next := ""
+	for nd: Dictionary in Trail.nodes():
+		if Trail.state(str(nd["id"])) == "open" and next == "":
+			next = str(nd["id"])
+	assert_str(next).is_not_empty()
+	assert_bool(Trail.buy(next)).is_false()
 	assert_int(_events("gold_meta").size()).is_equal(0)
 	Save.data["gold"] = keep
-	# Take it all back: half of what the ranks cost, one event
-	var back := Save.talent_refund_all()
-	assert_int(back).is_equal(int(floor((cost + cost2) * Save.REFUND_FRAC)))
+	# the old Upgrade board's coins, paid back once by the migration: one event, reason "talent_refund"
+	Save.data["once"].erase(Trail.ONCE)
+	Save.data["talents"] = {"grit": {"picks": [0, 1]}}
+	Save.data["talent_spent"] = 1260
+	assert_int(Save._migrate_trail()).is_equal(1260)
 	metas = _events("gold_meta")
 	assert_int(metas.size()).is_equal(1)
 	assert_str(str(metas[0]["reason"])).is_equal("talent_refund")
-	assert_int(int(metas[0]["delta"])).is_equal(back)
-	assert_int(int(metas[0]["balance_after"])).is_equal(keep + back)
+	assert_int(int(metas[0]["delta"])).is_equal(1260)
+	assert_int(int(metas[0]["balance_after"])).is_equal(keep + 1260)
 	assert_int(int(metas[0]["ranks"])).is_equal(2)
-	assert_int(int(metas[0]["spent"])).is_equal(cost + cost2)
-	# a refund of nothing sends nothing
+	assert_int(int(metas[0]["spent"])).is_equal(1260)
+	# a second look refunds nothing and sends nothing
 	Analytics.queue = []
-	Save.talent_refund_all()
+	assert_int(Save._migrate_trail()).is_equal(0)
 	assert_int(_events("gold_meta").size()).is_equal(0)
+	Trail.load_from()
+	Save.data["trail"] = {"bought": [], "spent": 0, "had": []}
+	Trail.refresh()
 
 
 func test_nothing_is_sent_from_the_arena_or_its_sandbox() -> void:
 	_open()
 	Save.add_gold(1000, "debug")
 	Analytics.queue = []
-	# the arena's sandbox: talent ranks bought there send nothing (and are put back)
+	# the arena's sandbox: a Trail node bought there sends nothing (and is put back)
 	Save.begin_sandbox()
-	assert_bool(Save.buy_talent(Registry.talent("grit"))).is_true()
+	var open_id := ""
+	for nd: Dictionary in Trail.nodes():
+		if open_id == "" and Trail.can_buy(str(nd["id"])):
+			open_id = str(nd["id"])
+	assert_str(open_id).is_not_empty()
+	assert_bool(Trail.buy(open_id)).is_true()
 	Save.add_gold(50, "strongbox")
 	Save.end_sandbox()
+	Trail.refresh()
 	assert_int(Analytics.queue.size()).is_equal(0)
 	assert_int(Save.gold()).is_equal(1000)
+	assert_str(Trail.state(open_id)).is_not_equal("bought")
 	# an arena run: no recorder, no event, whatever the purse does
 	Run.arena = true
 	Save.add_gold(10, "run_bank")

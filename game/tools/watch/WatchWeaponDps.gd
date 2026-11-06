@@ -14,7 +14,7 @@
 ##   each other;
 ## - each line's row: its colour, the weapon's icon, name (an evolved one "Revolver → Golden Revolver"), level and
 ##   mutations, the damage it dealt and its share, its DPS since its first hit and its peak, and "shaped by": the icons of
-##   every item, talent, perk, gift and hero trait that changes its numbers now (RunAnalytics.weapon_sources_of).
+##   every item, Trail upgrade, perk, gift and hero trait that changes its numbers now (RunAnalytics.weapon_sources_of).
 ## The pointer on an icon gives a hint (what it was, when, what it did) and lights its time(s) on the chart; a click on a
 ## row's name hides or shows its line; the wheel over the rows scrolls them. The panel hands the model (WatchPanel
 ## _refresh_wdps); the folding and the marks are pure (tested: tests/pass117_WATCHDPS_test.gd). Tools only.
@@ -62,7 +62,7 @@ const VIA_WORDS := {"starter": "the starting weapon", "card": "a level-up card",
 	"boss_chest": "the boss chest", "stranger": "the Stranger", "shop": "bought at the shop", "debug": "the debug hand"}
 ## a source's kind in words (the dashboard's SRC_KIND_WORDS; "buff" live: a boost running now)
 const SRC_KIND_WORDS := {"passive": "passive item or card", "favourite": "the outlaw's favourite", "perk": "perk", "mutation": "mutation",
-	"talent": "Upgrade board", "trait": "the outlaw's trait", "hero": "the outlaw", "momentum": "the outlaw's momentum", "totem": "Totem gift",
+	"trail": "the Trail", "trait": "the outlaw's trait", "hero": "the outlaw", "momentum": "the outlaw's momentum", "totem": "Totem gift",
 	"stranger": "the Stranger", "buff": "a boost running now", "weapon": "a weapon", "bonus": "the outlaw's favourite"}
 
 ## the model the panel hands over (set_model): {t: PackedFloat32Array, keys: [line key], raw: {key: PackedFloat32Array},

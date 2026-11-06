@@ -529,7 +529,7 @@ const STATS := ["damage_reduction", "regen", "move_speed", "might", "cooldown", 
 ## far, in the value's own unit; sage when it is better, rock when worse: a cooldown cut is sage), every one that did
 ## not dimmed; a stat that moved outside the list gets a cell of its own. A tapped cell opens its sources right under its
 ## row (the Build tab's rows open the same way), an aged card pointing at the cell: "At the start" (the base, the hero,
-## the Upgrade board) and "This run" (cards, items, perks, mutations, the hero's levels, Totem gifts, the Stranger, timed
+## the Trail's bought upgrades) and "This run" (cards, items, perks, mutations, the hero's levels, Totem gifts, the Stranger, timed
 ## buffs with their seconds left), a row a source with its icon and its summed amount. The first stat that moved opens
 ## by itself (max HP when none did); tapped again it closes.
 ## The open stat before the player picks one: the first that moved (see above).
@@ -835,7 +835,7 @@ func _source_row(r: Dictionary, this_run: bool) -> Control:
 
 
 ## A source's plate (SOURCE_PX): an item on its own plate (its colour, its level's for a card or a passive item), a hero
-## on his round badge, anything else that has a picture (a talent's form, the Totem Pole, the Stranger) on paper; the base
+## on his round badge, anything else that has a picture (a Trail upgrade, the Totem Pole, the Stranger) on paper; the base
 ## has none (an empty square keeps the names in line).
 func _source_icon(r: Dictionary) -> Control:
 	var def = r.get("def")

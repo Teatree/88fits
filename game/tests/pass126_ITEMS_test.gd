@@ -670,8 +670,7 @@ func test_life_steal_is_a_quarter_less_and_so_is_its_cap() -> void:
 	var sh := StatSheet.new()
 	sh.set_bases({"max_hp": 100.0, "lifesteal": 1.0})
 	assert_float(HeroPower.ehp(sh, 1000.0)).is_equal_approx(100.0 + HeroPower.SUSTAIN_SECONDS * 3.0, 0.001)
-	# the Upgrade board has none: nothing there changed
-	for td: TalentDef in Registry.talents_list():
-		for form in range(td.forms.size()):
-			for e in td.effects_for(form, 1):
-				assert_bool((e as Effect).stat in ["lifesteal", "lifesteal_cap"]).override_failure_message(td.id).is_false()
+	# the Trail's upgrade types have none (the Upgrade board had none either, until it went in pass 129)
+	for type: Variant in Trail.upgrade_types():
+		for e: Dictionary in Trail.upgrade(str(type)).get("effects", []):
+			assert_bool(str(e.get("stat", "")) in ["lifesteal", "lifesteal_cap"]).override_failure_message(str(type)).is_false()

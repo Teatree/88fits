@@ -152,12 +152,12 @@ func test_the_watch_offers_the_save_s_stages_or_every_stage() -> void:
 
 
 func test_the_watch_s_grey_line_is_a_sim_of_the_same_stage() -> void:
-	var refs := [{"hero": "drifter", "map": "red_canyon", "talents": "none", "path": "s2/result.json", "label": "s2", "stage": 2},
-		{"hero": "drifter", "map": "red_canyon", "talents": "none", "path": "old/result.json", "label": "old"}]
-	assert_str(str(SETUP.ref_for(refs, "drifter", "red_canyon", {}, 2).get("label", ""))).is_equal("s2")
+	var refs := [{"hero": "drifter", "map": "red_canyon", "trail_key": "none", "path": "s2/result.json", "label": "s2", "stage": 2},
+		{"hero": "drifter", "map": "red_canyon", "trail_key": "none", "path": "old/result.json", "label": "old"}]
+	assert_str(str(SETUP.ref_for(refs, "drifter", "red_canyon", "none", 2).get("label", ""))).is_equal("s2")
 	# a whole-run Sim from before pass 87 only for stage 1 (its start is stage 1); none for stage 3
-	assert_str(str(SETUP.ref_for(refs, "drifter", "red_canyon", {}, 1).get("label", ""))).is_equal("old")
-	assert_dict(SETUP.ref_for(refs, "drifter", "red_canyon", {}, 3)).is_empty()
+	assert_str(str(SETUP.ref_for(refs, "drifter", "red_canyon", "none", 1).get("label", ""))).is_equal("old")
+	assert_dict(SETUP.ref_for(refs, "drifter", "red_canyon", "none", 3)).is_empty()
 
 
 # ---------------------------------------------------------------- the run sim

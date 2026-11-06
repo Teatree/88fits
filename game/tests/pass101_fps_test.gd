@@ -117,8 +117,8 @@ func test_schema_3_and_the_frame_timing_header() -> void:
 	var ra := _recorder(_fake_game(0, 0))
 	# pass 102 (lane STEADY): schema 4 (the rows' work times, pass102_steady_test); pass 115 (lane DASH): schema 5
 	# (pass115_DASH_test), re-pinned on purpose
-	assert_int(RunAnalytics.SCHEMA).is_equal(5)
-	assert_int(int(ra.header["schema"])).is_equal(5)
+	assert_int(RunAnalytics.SCHEMA).is_equal(6)   # pass 129: schema 6 (the Upgrade board gone), re-pinned on purpose
+	assert_int(int(ra.header["schema"])).is_equal(6)   # pass 129: schema 6 (the Upgrade board gone), re-pinned on purpose
 	var ft: Dictionary = ra.header["frame_timing"]
 	for k in ["valid", "why", "max_fps", "frame_cap", "vsync", "refresh_hz", "physics_hz"]:
 		assert_bool(ft.has(k)).override_failure_message("frame_timing lacks " + k).is_true()

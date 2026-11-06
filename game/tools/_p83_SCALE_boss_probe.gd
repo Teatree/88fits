@@ -5,7 +5,7 @@
 ## burrows: every shot can land) and measures the kill from its first lost HP. Prints the HP it came with, the full DPS the
 ## director read, the seconds asked and the seconds it took. Sandboxed save; no analytics.
 ##   bash tools/godot.sh --headless --fixed-fps 60 --path game --script res://tools/_p83_SCALE_boss_probe.gd -- mode=boss \
-##       hero=calavera build=b1 level=22 stage=0 mirror=0 boss=tumbleweed_king
+##       hero=calavera build=b1 level=22 stage=0 trail=none boss=tumbleweed_king
 extends SceneTree
 
 const DP := preload("res://tools/difficulty_probe.gd")
@@ -15,7 +15,8 @@ var _hero := "drifter"
 var _build := "b1"
 var _level := 22
 var _stage := 0
-var _mirror := 0.0
+## trail=none|quarter|half|full|<level> (tools/trail_arg.gd; mirror=<ranks> is its old name)
+var _trail := "none"
 var _boss := "tumbleweed_king"
 var _pin := true
 ## weapons=id:level,id:level (in place of the build's weapons; the build's passives stay); dist= the boss's distance
@@ -45,7 +46,8 @@ func _init() -> void:
 			"build": _build = kv[1]
 			"level": _level = int(kv[1])
 			"stage": _stage = int(kv[1])
-			"mirror": _mirror = float(kv[1])
+			"trail": _trail = kv[1]
+			"mirror": _trail = load("res://tools/trail_arg.gd").board_to_trail(kv[1], 70)
 			"boss": _boss = kv[1]
 			"pin": _pin = kv[1] != "0"
 			"weapons": _weapons = kv[1]
@@ -57,19 +59,7 @@ func _start() -> void:
 	var save := root.get_node_or_null("Save")
 	save.begin_sandbox()
 	save.data["runs_started"] = 1
-	var talents := {}
-	if _mirror > 0.0:
-		var k := 0
-		for id: String in DP.FORMS.keys():
-			var rank := DP.rank_for(_mirror, k)
-			k += 1
-			if rank <= 0:
-				continue
-			var picks: Array = []
-			for _r in range(rank):
-				picks.append(int(DP.FORMS[id]))
-			talents[id] = {"picks": picks, "rank": rank, "form": int(DP.FORMS[id])}
-	save.data["talents"] = talents
+	load("res://tools/trail_arg.gd").apply(save, _trail)
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify({"weapon": DP.START.get(_hero, "revolver"), "level": 1, "character": _hero, "map": "red_canyon", "map_seed": 11, "analytics": false, "sim_clock": true}))
 	f.close()
@@ -111,7 +101,7 @@ func _screens() -> void:
 		_game.portal_dialog.decided.emit(false)
 
 
-## Every hero's power at level 1 with his own weapon, no talents.
+## Every hero's power at level 1 with his own weapon, no Trail node bought.
 func _base() -> void:
 	_phase = 9
 	var reg := root.get_node("Registry")
@@ -178,7 +168,7 @@ func _setup() -> void:
 	var parts: Array = []
 	for w in _run.weapons:
 		parts.append("%s est %.0f one %.0f" % [w.def.id, w.dps_estimate(), HeroPower.weapon_dps(w)])
-	print("probe83: hero %s build %s level %d stage %d mirror %.1f | %s" % [_hero, _build, _level, _stage, _mirror, ", ".join(parts)])
+	print("probe83: hero %s build %s level %d stage %d trail %s | %s" % [_hero, _build, _level, _stage, _trail, ", ".join(parts)])
 	print("probe83: full_dps %.0f boss_dps %.0f ehp %.0f power %.2f crit x%.2f" % [float(m["dps"]), HeroPower.boss_dps_now(), float(m["ehp"]), float(m["power"]), HeroPower.crit_factor(_run.player_sheet)])
 	var bdef = reg.enemy(_boss)
 	var at: Vector3 = _game.player.global_position + Vector3(0, 0, -(float(bdef.radius) + _dist))

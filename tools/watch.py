@@ -3,9 +3,9 @@
 the real game in a PC window, the phone's view on the left and a panel of numbers, charts and the bot's decisions on the
 right (game/tools/watch/). It starts Godot windowed and returns.
 
-    python tools/watch.py                                   # the Drifter, a quarter board, a random seed, the default bot
-    python tools/watch.py --hero calavera --board half --seed 7 --speed 4 --bot skill=0.6 --bot style=greedy
-    python tools/watch.py --talents grit:AAB,drive:A --limit 5:00 --ref auto
+    python tools/watch.py                                   # the Drifter, a quarter of the Trail, a random seed, the default bot
+    python tools/watch.py --hero calavera --trail half --seed 7 --speed 4 --bot skill=0.6 --bot style=greedy
+    python tools/watch.py --trail 36 --trail-optional --limit 5:00 --ref auto
     python tools/watch.py --wait --timeout 900 --autoquit --limit 300 --speed 4      # a check: waits, prints the end
 
 What it does, in order:
@@ -17,12 +17,15 @@ What it does, in order:
     .tres), its project.godot pointed at the user folder 88fits_watch.
  3. Godot --fixed-fps 60 --path <snapshot> --script res://tools/watch/watch_main.gd -- <the run's arguments>, its log in
     tools/dl/watch/logs/; the lock's owner.json names Godot's pid (the window lets go of the lock when it closes).
-The board: --board none|quarter|half|full|save|<ranks a talent> (save = the PC save's Upgrade board), or --talents
-grit:AAB,drive:A,... talent by talent (A the first form, B the second). --ref auto finds the newest Sim result
-(tools/dl/sim/runs/) of the same hero and board for the charts' grey line. The arguments: tools/dl/p80/keys_WATCH.md.
+The Trail (pass 129; the Upgrade board's --board / --talents until then): --trail none|quarter|half|full|save|<level>
+(the named ones are shares of the Trail's levels; save = the PC save's own Trail, node for node): the run's save holds
+every required node up to that Trail Level, the choices taken in turn, the optional nodes (the Stakes, the Grubstake,
+Spirit) only with --trail-optional; the outlaws, items and stages a node gives come with it. --board is the old name: it
+plays the same share of the Trail and says so. --ref auto finds the newest Sim result
+(tools/dl/sim/runs/) of the same hero and Trail for the charts' grey line. The arguments: tools/dl/p80/keys_WATCH.md.
 Pass 85: the window opens with the Hero Settings pop-up, filled with these options (Start Run starts the run down the
 spawn beam; the header's "Restart run" opens it again); --go (or --autoquit) starts at once as before. The sound is off
-unless --sound. watch.py writes tools/dl/watch/setup.json for the pop-up (the board presets, the PC save's board, the Sim
+unless --sound. watch.py writes tools/dl/watch/setup.json for the pop-up (the Trail's levels, the PC save's Trail, the Sim
 results for the grey line: write_setup).
 Standard library only (the Level Editor's Sim tab starts it: sim_io.py POST /api/sim/watch).
 """
@@ -39,14 +42,14 @@ ROOT = os.path.dirname(HERE)
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import locks  # noqa: E402
-import sim_batch as SB  # noqa: E402  (the snapshot code, the board's presets, the sims' history)
+import sim_batch as SB  # noqa: E402  (the snapshot code, the Trail's presets, the sims' history)
 
 GAME = os.path.join(ROOT, "game")
 WATCH_DIR = os.path.join(ROOT, "tools", "dl", "watch")
 USER_DIR_NAME = "88fits_watch"
 LOCK = os.path.join(locks.LOCK_DIR, "watch.lock")
 SCRIPT = "res://tools/watch/watch_main.gd"
-PRESETS = dict(SB.PRESETS)   # none, quarter, half, full -> ranks a talent
+PRESETS = [k for k, _, _ in SB.TRAIL_PRESETS]   # none, quarter, half, full: shares of the Trail's levels
 
 
 def snap_game():
@@ -117,37 +120,34 @@ def parse_limit(v):
     return int(float(v))
 
 
-def board_of(args):
-    """(talents {id: letters}, label, problems) from --talents or --board."""
-    if args.talents:
-        t, probs = SB.clean_talents(args.talents)
-        pre = SB.preset_of(t)   # the Sim tab passes a preset talent by talent: name it
-        return t, (SB.board_label(PRESETS[pre]) if pre else "custom"), probs
-    b = str(args.board or "quarter").strip().lower()
-    if b == "save":
-        t, note = SB.save_board()
-        if t is None:
-            return {}, "my save (not found)", [note]
-        return t, "my save", []
-    if b in PRESETS:
-        return SB.board_talents(PRESETS[b]), SB.board_label(PRESETS[b]), []
-    try:
-        m = float(b)
-    except ValueError:
-        return SB.board_talents(1.5), "a quarter", ["--board %r is none, quarter, half, full, save or a number: a quarter plays" % args.board]
-    return SB.board_talents(m), SB.board_label(m), []
+def trail_of(args):
+    """(trail, optional, ids, label, problems) from --trail / --trail-optional (--board is the old name): `trail` is a
+    preset, a level as text or "save"; `ids` the PC save's own nodes for "save"; `label` the words for the header."""
+    probs = []
+    levels = SB.trail_levels()
+    raw = args.trail
+    if raw is None and getattr(args, "board", None) is not None:
+        raw = SB.board_to_trail(args.board, levels)
+        probs.append("--board is the old name (the Upgrade board is gone): playing --trail %s" % raw)
+    t = str(raw if raw is not None else "quarter").strip().lower()
+    optional = bool(getattr(args, "trail_optional", False))
+    if t == "save":
+        sv, note = SB.save_trail()
+        if sv is None:
+            return "none", False, [], "my save (not found)", probs + [note]
+        return "save", False, sv["ids"], SB.trail_text("save", False, levels, sv["level"]), probs
+    c, tp = SB.clean_trail(t, levels)
+    if tp:
+        return "quarter", optional, [], SB.trail_text("quarter", optional, levels), probs + ["--trail %r is none, quarter, half, full, save or a Trail Level 0 to %d: a quarter plays" % (raw, levels)]
+    return c, optional and c != "none", [], SB.trail_text(c, optional, levels), probs
 
 
-def sim_talents(settings):
-    """A Sim's board as {id: letters} (its talents, else its preset)."""
-    t = settings.get("talents")
-    if isinstance(t, dict) and t:
-        c, _ = SB.clean_talents(t)
-        return c
-    try:
-        return SB.board_talents(float(settings.get("board", 0) or 0))
-    except (TypeError, ValueError):
-        return {}
+def sim_trail_key(settings):
+    """A Sim's Trail as the key runs are compared by (SB.trail_key); a Sim from before the Trail (its settings have
+    `board`, no `trail`) has none: it is never the grey line of a Trail run."""
+    if not isinstance(settings, dict) or "trail" not in settings:
+        return None
+    return SB.trail_key(settings.get("trail"), bool(settings.get("trail_optional")))
 
 
 def ref_stage_ok(sim_stage, stage):
@@ -157,8 +157,8 @@ def ref_stage_ok(sim_stage, stage):
     return st == int(stage or 1) or (st == 0 and int(stage or 1) == 1)
 
 
-def find_ref(hero, talents, map_id, stage=1):
-    """The newest Sim result of the same hero, board, map and stage (tools/dl/sim/runs/*/result.json): (path, label) or
+def find_ref(hero, key, map_id, stage=1):
+    """The newest Sim result of the same hero, Trail (`key`: SB.trail_key), map and stage (tools/dl/sim/runs/*/result.json): (path, label) or
     (None, why)."""
     for r in SB.list_sims():
         res = os.path.join(r["path"], "result.json")
@@ -171,24 +171,27 @@ def find_ref(hero, talents, map_id, stage=1):
             s = whole.get("settings") or {}
         if str(s.get("hero")) != hero or str(s.get("map", "red_canyon")) != map_id:
             continue
-        if sim_talents(s) != (talents or {}):
+        if sim_trail_key(s) != key:
             continue
         if not ref_stage_ok(s.get("stage"), stage):
             continue
         return res, r["id"]
-    return None, "no Sim result of %s with this board on stage %d yet" % (hero, int(stage or 1))
+    return None, "no Sim result of %s with this Trail on stage %d yet" % (hero, int(stage or 1))
 
 
-def build_args(a, talents, label, ref, ref_label, lock_path, setup=None):
-    """The Watch's command line after "--" (Watch.gd reads them). Pass 85: the sound is off unless --sound (--mute still
+def build_args(a, trail, ref, ref_label, lock_path, setup=None):
+    """The Watch's command line after "--" (Watch.gd reads them); `trail` is trail_of's (trail, optional, ids, label). Pass 85: the sound is off unless --sound (--mute still
     means off); the Hero Settings pop-up opens first unless --go (or --autoquit, a check that closes itself); `setup` is
     the pop-up's file (write_setup)."""
     sound = bool(getattr(a, "sound", False)) and not bool(getattr(a, "mute", False))
-    out = ["hero=" + a.hero, "seed=%d" % a.seed, "map=" + a.map, "talents=" + SB.talents_arg(talents),
-           "board_label=" + SB.board_text(talents, label), "limit=%d" % parse_limit(a.limit), "speed=%g" % float(a.speed),
+    t_arg, t_opt, t_ids, t_label = trail
+    out = ["hero=" + a.hero, "seed=%d" % a.seed, "map=" + a.map, "trail=" + t_arg, "trail_optional=%d" % (1 if t_opt else 0),
+           "trail_label=" + t_label, "limit=%d" % parse_limit(a.limit), "speed=%g" % float(a.speed),
            "death=" + a.death, "unlocks=" + a.unlocks, "repo=" + ROOT.replace("\\", "/"), "lock=" + lock_path.replace("\\", "/"),
            "stage=%d" % max(1, int(getattr(a, "stage", 1) or 1)),
            "sound=%d" % (1 if sound else 0), "numbers=%d" % (0 if a.no_numbers else 1), "log_speed=%g" % float(a.log_speed)]
+    if t_ids:
+        out.append("trail_ids=" + ",".join(t_ids))
     if bool(getattr(a, "go", False)) or bool(getattr(a, "autoquit", False)):
         out.append("go=1")
     if bool(getattr(a, "seed_random", False)):
@@ -231,9 +234,9 @@ def build_args(a, talents, label, ref, ref_label, lock_path, setup=None):
 # ---------------------------------------------------------------- the Hero Settings pop-up's file (pass 85)
 
 def ref_entries():
-    """The finished Sim results the pop-up may draw as the charts' grey line, newest first: [{hero, map, talents, path,
-    label}] (talents as the runner's text, "grit:AAB,..." or "none"); the pop-up takes the first of the run's hero, board
-    and map (find_ref's rule)."""
+    """The finished Sim results the pop-up may draw as the charts' grey line, newest first: [{hero, map, trail_key, path,
+    label}] (trail_key: SB.trail_key of the Sim's Trail; a Sim from before the Trail is left out); the pop-up takes the
+    first of the run's hero, Trail and map (find_ref's rule)."""
     out = []
     for r in SB.list_sims():
         res = os.path.join(r["path"], "result.json")
@@ -244,23 +247,18 @@ def ref_entries():
         if not isinstance(s, dict):
             whole = SB.read_json(res, tries=2) or {}
             s = whole.get("settings") or {}
-        out.append({"hero": str(s.get("hero", "")), "map": str(s.get("map", "red_canyon")), "talents": SB.talents_arg(sim_talents(s)),
+        if sim_trail_key(s) is None:
+            continue
+        out.append({"hero": str(s.get("hero", "")), "map": str(s.get("map", "red_canyon")), "trail_key": sim_trail_key(s),
                     "path": res.replace("\\", "/"), "label": r["id"], "stage": int(s.get("stage") or 0)})
     return out
 
 
 def write_setup(path):
-    """What the Watch's Hero Settings pop-up needs that only Python knows: the board presets talent by talent (none,
-    quarter, half, full as the Sim's; save = the PC save's board, read only, or null with why in save_note) and the Sim
-    results for the grey line. {presets: {name: {id: letters}}, labels: {name: words}, save_note, refs: ref_entries()}."""
-    presets = {}
-    labels = {}
-    for name, m in SB.PRESETS:
-        presets[name] = SB.board_talents(m)
-        labels[name] = SB.board_label(m)
-    t, note = SB.save_board()
-    presets["save"] = t
-    labels["save"] = "my save"
+    """What the Watch's Hero Settings pop-up needs that only Python knows: the Trail (its levels; save = the PC save's own
+    nodes and Trail Level, read only, or null with why in save_note) and the Sim results for the grey line.
+    {trail: {levels, save: {ids, level} | null, save_note}, refs: ref_entries(), save_stages, save_stages_note}."""
+    t, note = SB.save_trail()
     # pass 87 (lane STOOLS): the stages the PC save has beaten, per map (the pop-up's Stage row in the save's mode)
     try:
         stages, stage_note = SB.save_stages()
@@ -272,7 +270,7 @@ def write_setup(path):
         refs = []
         note = (note + "; " if note else "") + "the Sim results: %s" % e
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    SB.write_json(path, {"presets": presets, "labels": labels, "save_note": note or "", "refs": refs, "save_stages": stages,
+    SB.write_json(path, {"trail": {"levels": SB.trail_levels(), "save": t, "save_note": note or ""}, "refs": refs, "save_stages": stages,
                          "save_stages_note": stage_note})
     return path
 
@@ -312,8 +310,10 @@ def refresh_snapshot(no_sync=False):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Watch one bot-played run of 88fits in a PC window (pass 80).")
     ap.add_argument("--hero", default="drifter")
-    ap.add_argument("--board", default="quarter", help="none, quarter, half, full, save (the PC save's board) or ranks a talent")
-    ap.add_argument("--talents", default="", help="the board talent by talent: grit:AAB,drive:A (wins over --board)")
+    ap.add_argument("--trail", default=None, help="pass 129: none, quarter, half, full (shares of the Trail's levels), save (the PC save's own Trail) "
+                    "or a Trail Level: the run's save holds every required node up to it, the choices in turn (default quarter)")
+    ap.add_argument("--trail-optional", action="store_true", help="the optional nodes up to that level too (the Stakes, the Grubstake, Spirit)")
+    ap.add_argument("--board", default=None, help="the old name of --trail (the Upgrade board's ranks a talent or a preset): plays the same share of the Trail")
     ap.add_argument("--seed", default="random", help="a number, or random")
     ap.add_argument("--map", default="red_canyon")
     ap.add_argument("--limit", default="0", help="end the run after this much play (300 or 5:00); 0 = until he falls")
@@ -323,7 +323,7 @@ def main(argv=None):
                     help="pass 90: ask (the default: the run pauses at his fall; R revives him, B with the revive blast, E ends the run; as often as he falls), auto (the Watch revives him by itself), or the bot answers Down!: end, ad, keep (as the Sim)")
     ap.add_argument("--unlocks", default="all", choices=("all", "save"))
     ap.add_argument("--stage", type=int, default=1, help="pass 87: the stage the run plays (1-based; each stage is its own run)")
-    ap.add_argument("--ref", default="auto", help="a Sim result.json for the charts' grey line, auto (the newest of this hero and board) or none")
+    ap.add_argument("--ref", default="auto", help="a Sim result.json for the charts' grey line, auto (the newest of this hero and Trail) or none")
     ap.add_argument("--bot", action="append", default=[], help="a bot option key=value (repeatable): skill=0.6, style=greedy, totems=off ...")
     ap.add_argument("--bot-preset", default="", help="the bot's preset (lane BOT's names: sim77, explorer, careless, expert, survivor)")
     ap.add_argument("--stub", action="store_true", help="the Watch's stand-in bot instead of tools/bot/Bot.gd")
@@ -348,9 +348,9 @@ def main(argv=None):
     a = ap.parse_args(argv)
     a.seed_random = str(a.seed).lower() in ("random", "", "0")
     a.seed = random.randint(1, 99999) if a.seed_random else int(a.seed)
-    talents, label, probs = board_of(a)
+    t_arg, t_opt, t_ids, t_label, probs = trail_of(a)
     for p in probs:
-        say("board: " + p)
+        say("trail: " + p)
     if not os.path.isfile(locks.GODOT):
         raise SystemExit("watch: no Godot binary at %s" % locks.GODOT)
     ok, st = lock_take("%s seed %d" % (a.hero, a.seed))
@@ -361,7 +361,7 @@ def main(argv=None):
     try:
         ref, ref_label = None, ""
         if str(a.ref).lower() == "auto":
-            ref, why = find_ref(a.hero, talents, a.map, getattr(a, "stage", 1))
+            ref, why = find_ref(a.hero, SB.trail_key(t_arg, t_opt), a.map, getattr(a, "stage", 1))
             if ref:
                 ref_label = why
                 say("ref: %s" % os.path.relpath(ref, ROOT))
@@ -377,17 +377,17 @@ def main(argv=None):
         setup = None
         try:
             setup = write_setup(os.path.join(WATCH_DIR, "setup.json"))
-        except Exception as e:  # the pop-up then offers the command line's board and no presets
+        except Exception as e:  # the pop-up then offers the command line's Trail and no save
             say("setup: %s" % e)
         cmd = [locks.GODOT, "--fixed-fps", "60", "--path", snap, "--log-file", log, "--script", SCRIPT, "--"] + \
-            build_args(a, talents, label, ref, ref_label, LOCK, setup)
+            build_args(a, (t_arg, t_opt, t_ids, t_label), ref, ref_label, LOCK, setup)
         flags = 0
         if os.name == "nt" and not a.wait:
             flags = subprocess.CREATE_NEW_PROCESS_GROUP | getattr(subprocess, "DETACHED_PROCESS", 0x8)
         proc = subprocess.Popen(cmd, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                 creationflags=flags, close_fds=True)
         lock_owner(proc.pid, "%s seed %d" % (a.hero, a.seed))
-        say("started: %s, %s board (%s), seed %d, pid %d; log %s" % (a.hero, label, SB.talents_arg(talents), a.seed, proc.pid,
+        say("started: %s, the Trail %s, seed %d, pid %d; log %s" % (a.hero, t_label, a.seed, proc.pid,
                                                                      os.path.relpath(log, ROOT)))
         if not a.wait:
             return 0

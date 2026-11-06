@@ -11,7 +11,7 @@
 ## Rubik 500 28, no rule, the two buttons 106 tall (Ultra 38) on the card's foot, the card at least R.MODAL_MIN_H (520)
 ## tall with its top at R.MODAL_TOP_AT of the room (the mock's 560). Wanted is drawn as before.
 ## The same shell for every other pop-up (pass 123): WConfirm.shell(host, options) (the play-data card, the survey, the
-## Hero details, the Upgrade board's choice): a star line and / or a corner word, a title, a body line, the caller's own
+## Hero details, the Trail's buy card): a star line and / or a corner word, a title, a body line, the caller's own
 ## rows in `body_box`, any number of buttons by role, a link under the card; it answers with the button's id (`answered`,
 ## `on_answer`), the dim, the back gesture and Esc answer `cancel_id`. Same dim, same entry, same one-per-host rule, found
 ## by the same tools.

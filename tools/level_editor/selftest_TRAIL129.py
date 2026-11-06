@@ -4,13 +4,16 @@ Groups:
   model   trail_model.js under Node on fixtures/trail_sample.json (30 nodes: every kind, a 2-, 3- and 4-way choice, `any`,
           an optional beside its node, every `gives` type): the layout's numbers, `from` defaults, the rules at a
           previewed Trail Level (and with another member taken), prices, totals, the words
+  draw    (sub-lane PREVIEW) what game/ui/TrailScreen.gd draws round the tiles: a crowded row's lifted smaller diamond,
+          an optional node without `from` on its own level's nearest required node, rails as right-angled elbows, a
+          choice group's mark "or" until one member is bought, then "lock"
   checks  every check fires on a broken copy of the sample, and the sample itself is clean
   csv     out and back equal; a spreadsheet's semicolons and decimal commas; a row without an id; read-only columns
           ignored; the summary of what an import changes
   edits   add / duplicate / delete / move a node, insert and remove a level (sections move with it), rename, ids not reused
   io      trail_io on a temporary content tree: the pick lists, a save in the file's layout (LF, one node a line, floats
           kept though the page sends 2 for 2.0), unchanged, a stale page (409), a bad shape (400), a missing file made
-  page    the tab is on the page, app.js renders / saves / guards it, the hash routes know trail (and wanted, mirror),
+  page    the tab is on the page, app.js renders / saves / guards it, the hash routes know trail (and wanted; the Mirror tab is gone),
           server.py routes it, the scripts parse; the game's own trail.json has no error in the page's checks
 Nothing here writes under game/.
 """
@@ -80,6 +83,41 @@ out.model = {
   give: ['n001', 'n005', 'n008', 'n009', 'n011', 'n016', 'n018', 'n023', 'n024', 'n025', 'n029'].map((i) => M.giveText(d, node(d, i), P)),
   colours: [M.coloursAt(d, 1).top.join(','), M.coloursAt(d, 6).top.join(','), M.coloursAt(d, 7).top.join(','), M.coloursAt(d, 3).motif, M.coloursAt(d, 13).motif],
 };
+
+// ---- what the game's screen draws round the tiles (sub-lane PREVIEW): the diamond, the rails, the choice marks
+out.draw = (() => {
+  const ix = M.index(d), r2 = (v) => Math.round(v * 100) / 100;
+  const at = (level, pick) => { const s = M.states(d, level, pick); return { s, rails: (l) => M.rails(ix, s.from, lay, l, s.state), marks: (l) => M.choiceMarks(ix, lay, l, s.state) }; };
+  const dm = (l) => { const k = M.diamondOf(ix, lay, l); return [k.lifted, k.d, k.px, r2(k.x), r2(lay.rowY(l) - k.y)]; };
+  const pts = (r) => r.points.map((q) => [r2(q.x), r2(q.y - lay.rowY(lay.nodes[r.id].level))]);
+  const run = (b) => [b.x, b.y, b.w, b.h].map(r2);
+  const lk = (id, closed) => M.links(ix, f, lay, id, closed).map((k) => `${k.from}${k.thin ? ':thin' : ''}`).join(',');
+  const a4 = at(4), a6 = at(6), a5 = at(5), a13 = at(13);
+  const g = { type: 'upgrade', upgrade: 'might', value: 0.01 }, mk = (id, level, kind, x) => Object.assign({ id, level, kind, gives: g }, x || {});
+  // a lone node; three required with an optional over the middle one; a level of optional nodes only; two required with
+  // two optional (the second steps left of the leftmost); a node five levels up with its own `from`
+  const y = { nodes: [mk('a', 1, 'node'), mk('b1', 2, 'node'), mk('b2', 2, 'node'), mk('b3', 2, 'node'), mk('bo', 2, 'optional', { x: 0.5 }), mk('co', 3, 'optional'),
+    mk('d1', 4, 'node'), mk('d2', 4, 'node'), mk('do', 4, 'optional'), mk('dp', 4, 'optional'), mk('f', 7, 'node', { from: ['b1'], x: 0.6 })] };
+  const yx = M.index(y), yl = M.layout(y, yx), yf = M.resolveFrom(y, yx);
+  const ylk = (id) => M.links(yx, yf, yl, id).map((k) => `${k.from}${k.thin ? ':thin' : ''}`).join(',');
+  const ydm = (l) => { const k = M.diamondOf(yx, yl, l); return [k.lifted, k.d, r2(yl.rowY(l) - k.y)]; };
+  const far = M.rails(yx, yf, yl, 7, {})[0];
+  const z = { nodes: [mk('z', 100, 'node'), mk('z1', 101, 'node'), mk('z2', 101, 'node'), mk('z3', 101, 'node'), mk('z4', 101, 'node')] }, zx = M.index(z), zl = M.layout(z, zx);
+  return {
+    diamonds: [dm(1), dm(9), dm(13), dm(18)], lone: [ydm(4), ydm(2), ydm(6), M.diamondOf(zx, zl, 100).px, M.diamondOf(zx, zl, 101).px],
+    sizes: [M.DIAMOND, M.DIAMOND_SMALL, M.RAIL, M.RAIL_THIN],
+    hang: [lk('n017'), lk('n030'), lk('n004'), lk('n008'), lk('n008', (x) => x === 'n007'), f.n017.rails.join(','), ylk('bo'), ylk('co'), ylk('do'), ylk('dp')],
+    side: a4.rails(11).filter((r) => r.id === 'n017').map((r) => [r.from, r.width, r.points.length, pts(r)]),
+    elbow: a4.rails(6).map((r) => [r.from, r.width, r.lit, r.shut, pts(r), r.runs.map(run).map((b) => [b[2], b[3]])]),
+    straight: a4.rails(2).map((r) => [r.from, pts(r), run(r.runs[0]).slice(2)]),
+    farElbow: [far.points.length, r2(far.points[1].y - yl.rowY(7)), r2(far.points[0].y - yl.rowY(7)), far.points[1].x === far.points[0].x && far.points[2].x === far.points[3].x && far.points[1].y === far.points[2].y],
+    lit: [a6.rails(6).map((r) => `${r.from}:${r.lit}`).join(','), a5.rails(5).map((r) => `${r.id}:${r.lit}:${r.shut}`).join(',')],
+    or: [a4.marks(5), a5.marks(5)].map((gs) => gs.map((k) => [k.group, k.taken, k.marks.map((m) => [m.kind, r2(m.x), r2(m.y - lay.rowY(5)), r2(m.w), m.h]), r2(k.bar.x0), r2(k.bar.x1)])),
+    four: [at(12).marks(13), a13.marks(13)].map((gs) => gs.map((k) => k.marks.map((m) => `${m.kind}:${r2(m.x)}:${r2(m.w)}`).join(' '))),
+    other: (() => { const s = at(9, { [M.groupKey(node(d, 'n014'))]: 'n014' }); return s.marks(9)[0].marks.map((m) => m.kind).join(','); })(),
+    none: [a4.marks(1).length, M.choiceMarks(yx, yl, 2, {}).length, (() => { const x = copy(); x.nodes = x.nodes.filter((n) => n.id !== 'n007'); return M.choiceMarks(M.index(x), M.layout(x), 5, {}).length; })()],
+  };
+})();
 
 // ---- checks
 const broke = (fn, picks) => { const x = copy(); fn(x); return codes(x, picks); };
@@ -213,6 +251,35 @@ def _model_checks(check, r):
                         "Structure: Totem Pole", "Power-up: Rage", "Feature: Wanted", "A word to ride by"], "TRAIL129 words: what a node gives (%s)" % m["give"])
     c = m["colours"]
     check(c[0] == "247,178,74" and c[2] == "74,95,196" and c[1] not in (c[0], c[2]) and c[3] == "cactus" and c[4] == "dust", "TRAIL129 backdrop: a section's colours, blended on the levels before the next one (%s)" % c)
+
+
+def _draw_checks(check, r):
+    """Sub-lane PREVIEW: the four things game/ui/TrailScreen.gd draws round the tiles (docs/trail_schema.md "Layout")."""
+    w = r["draw"]
+    plain = [False, 44, 30, 64.8, 0]
+    check(w["sizes"] == [44, 32, 22, 12], "TRAIL129 draw: the game's sizes: diamond 44, the small one 32, rail 22, thin 12 (%s)" % w["sizes"])
+    check(w["diamonds"] == [plain, plain, [True, 32, 22, 64.8, 106], plain],
+          "TRAIL129 draw: a row of four required nodes lifts its diamond: 32 px, its middle 32 + 8 above the 132 px tile's top (106 over the row), number 22 px; one, three and two-with-an-optional keep the 44 px diamond on the row at x 64.8 (%s)" % w["diamonds"])
+    check(w["lone"] == [[True, 32, 98], [False, 44, 0], [False, 44, 0], 24, 17],
+          "TRAIL129 draw: an optional node stepped left of the leftmost lifts the diamond too (over its 116 px tile: 98); three required and an empty level do not; a level from 100 writes 24 px (17 on the small one) (%s)" % w["lone"])
+    h = w["hang"]
+    check(h[:3] == ["n016:thin", "n029:thin", "n003:thin"] and h[5] == "n015",
+          "TRAIL129 draw: an optional node without `from` hangs on its own level's nearest required node by a thin rail, not on the level below the rules name (%s, the rules: %s)" % (h[:3], h[5]))
+    check(h[3:5] == ["n006,n007", "n006"], "TRAIL129 draw: a required node's rails stay Trail.from_of's, a closed member left out (%s)" % h[3:5])
+    check(h[6:] == ["b2:thin", "b1:thin,b2:thin,b3:thin", "d2:thin", "d1:thin"],
+          "TRAIL129 draw: the nearest by x (over the middle of three: the middle one; right of two: the right one; left: the left one); alone on its level it is drawn from the level below (%s)" % h[6:])
+    check(w["side"] == [["n016", 12, 2, [[540, 0], [756, 0]]]], "TRAIL129 draw: that side rail is 12 px and straight along the row (%s)" % w["side"])
+    check(w["elbow"] == [["n006", 22, False, False, [[356.4, 236], [356.4, 118], [540, 118], [540, 0]], [[22, 140], [205.6, 22], [22, 140]]],
+                         ["n007", 22, False, False, [[648, 236], [648, 118], [540, 118], [540, 0]], [[22, 140], [130, 22], [22, 140]]]],
+          "TRAIL129 draw: a rail between two nodes at different x has four points: up from the lower node, across at the middle of the gap (118 under the upper row), up into the node; each run a 22 px box squared off half a width past its ends (%s)" % w["elbow"])
+    check(w["straight"] == [["n001", [[540, 236], [540, 0]], [22, 258]]], "TRAIL129 draw: two nodes in one column are joined straight: two points, one run (%s)" % w["straight"])
+    check(w["farElbow"] == [4, 118, 1180, True], "TRAIL129 draw: from five levels down the cross-piece still sits half a row under the upper node, the runs right-angled (%s)" % w["farElbow"])
+    check(w["lit"] == ["n006:true", "n006:true:false,n007:false:true"], "TRAIL129 draw: a rail is lit when both its ends are bought, shut when its node is closed (%s)" % w["lit"])
+    check(w["or"] == [[["c5", False, [["or", 502.2, 0, 62, 36]], 356.4, 648]], [["c5", True, [["lock", 502.2, 0, 62, 36]], 356.4, 648]]],
+          "TRAIL129 draw: a group's mark is \"or\" until one member is bought, then \"lock\": a 62 x 36 pill in the middle of the gap, on the bar from the first member to the last (%s)" % w["or"])
+    check(w["four"] == [["or:226.8:44.4 or:421.2:44.4 or:615.6:44.4"], ["lock:226.8:44.4 lock:421.2:44.4 lock:615.6:44.4"]],
+          "TRAIL129 draw: four members wear three marks, each as wide as the gap less 18 px (%s)" % w["four"])
+    check(w["other"] == "lock,lock" and w["none"] == [0, 0, 0], "TRAIL129 draw: any member bought locks every mark of its group; no choice or a group of one has no mark (%s %s)" % (w["other"], w["none"]))
 
 
 def _check_checks(check, r):
@@ -386,11 +453,12 @@ def _page_checks(check):
     srv = open(os.path.join(HERE, "server.py"), encoding="utf-8").read()
     check('data-tab="trail"' in idx and 'id="tab-trail"' in idx and 'href="trail.css"' in idx and idx.index('src="trail_model.js"') < idx.index('src="trail.js"'),
           "TRAIL129 page: the Trail tab, its style and its two scripts (the model first) are on the page")
-    check('data-tab="mirror"' in idx and idx.index('data-tab="mirror"') < idx.index('data-tab="trail"'), "TRAIL129 page: the Mirror tab stays, the Trail beside it")
+    check('data-tab="mirror"' not in idx and idx.index('data-tab="wanted"') < idx.index('data-tab="trail"') < idx.index('data-tab="instructions"'),
+          "TRAIL129 page: the Mirror tab is gone (pass 129), the Trail tab in its place between Wanted and Instructions")
     check("Trail.render(panel)" in app and "Trail.save()" in app and "Trail.dirty()" in app and "Trail.key(e, typing)" in app, "TRAIL129 page: app.js renders, saves (Ctrl+S), guards and hands keys to the tab")
     check("import trail_io as TRAILIO" in srv and srv.count("TRAILIO.api_") == 2, "TRAIL129 page: server.py routes /api/trail (GET and POST)")
     r = _node("const J = require('./jobs_model.js'); console.log(JSON.stringify(['#trail', '#wanted', '#mirror', '#timeline', '#nope'].map((h) => J.parseHash(h))));")
-    check(r == [{"tab": "trail"}, {"tab": "wanted"}, {"tab": "mirror"}, {"tab": "timeline"}, None], "TRAIL129 page: a reload comes back to the Trail, the Wanted and the Mirror tab (%s)" % r)
+    check(r == [{"tab": "trail"}, {"tab": "wanted"}, None, {"tab": "timeline"}, None], "TRAIL129 page: a reload comes back to the Trail and the Wanted tab; #mirror is no tab any more (%s)" % r)
     for f in ("trail.js", "trail_model.js", "app.js", "jobs_model.js"):
         p = subprocess.run(["node", "--check", os.path.join(HERE, f)], capture_output=True, text=True)
         check(p.returncode == 0, "TRAIL129 page: %s parses" % f)
@@ -434,7 +502,7 @@ def checks(check, run_node=None, server=None):
     except Exception as e:   # noqa: BLE001
         check(False, "TRAIL129 model: trail_model.js under Node: %s: %s" % (type(e).__name__, e))
         r = None
-    groups = [(lambda c: _model_checks(c, r)), (lambda c: _check_checks(c, r)), (lambda c: _csv_checks(c, r)), (lambda c: _edit_checks(c, r))] if r else []
+    groups = [(lambda c: _model_checks(c, r)), (lambda c: _draw_checks(c, r)), (lambda c: _check_checks(c, r)), (lambda c: _csv_checks(c, r)), (lambda c: _edit_checks(c, r))] if r else []
     for g in groups + [_io_checks, _page_checks]:
         try:
             g(check)

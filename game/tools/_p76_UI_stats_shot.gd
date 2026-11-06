@@ -1,5 +1,5 @@
 ## Pass 76 (lane UI) scratch capture: the pause menu's Stats tab mid-run, with stats changed since the start by every
-## kind of source (the Upgrade board at the start, cards and passive items, a hero level's signature stat, two gifts of
+## kind of source (the Trail's upgrades at the start, cards and passive items, a hero level's signature stat, two gifts of
 ## one Totem spirit and one of another, the Stranger's cut, a timed Berserk), the same build before and after the change.
 ## Windowed, bounded waits and a watchdog:
 ##   godot --audio-driver Dummy --resolution 1080x1920 --path game --script res://tools/_p76_UI_stats_shot.gd -- out=<dir> [inset=130] [hero=solenne]
@@ -56,10 +56,8 @@ func _main() -> void:
 	var keep: Dictionary = _save.data.duplicate(true)
 	if _inset >= 0:
 		root.get_node("Settings").top_inset = _inset
-	# the Upgrade board as a player halfway up it would have it: three Padding ranks, two Drive ranks of its second form
-	# (cooldown), one Stride rank (move speed)
-	_save.data["talents"] = {"grit": {"picks": [0, 0, 0], "rank": 3, "form": 0},
-		"drive": {"picks": [1, 1], "rank": 2, "form": 1}, "stride": {"picks": [0], "rank": 1, "form": 0}}
+	# the Trail as a player a quarter of the way along it has it (pass 129; the Upgrade board's ranks until then)
+	load("res://tools/trail_arg.gd").apply(_save, "quarter")
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify({"weapon": "sun_scepter", "level": 3, "character": _hero, "map": "red_canyon", "map_seed": 7, "analytics": false}))
 	f.close()
@@ -78,7 +76,7 @@ func _main() -> void:
 	g.set_paused(false)
 	await _wait(3.2)
 	g.hud._banner.visible = false
-	# the start: nothing taken yet (the Upgrade board's ranks are the start)
+	# the start: nothing taken yet (the Trail's upgrades are the start)
 	_run.debug_clear_items()
 	_run.debug_set_item("weapon", "sun_scepter", 3)
 	_run.build_changed.emit()

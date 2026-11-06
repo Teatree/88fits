@@ -507,7 +507,7 @@ func _page_three(canvas: Control) -> void:
 	card.add_child(cv)
 	cv.add_child(WConfirm_.make_star("Hold on"))
 	cv.add_child(WConfirm_.make_title("WIPE THE SAVE?"))
-	cv.add_child(WConfirm_.make_body("Gold, unlocks, talents, quests and records: everything goes."))
+	cv.add_child(WConfirm_.make_body("Gold, unlocks, the Trail, quests and records: everything goes."))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", R_.MODAL_BUTTON_GAP)
 	for spec in [["KEEP IT", "slate"], ["WIPE", "red"]]:

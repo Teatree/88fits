@@ -483,19 +483,12 @@ func run_begin(rid: String = "") -> bool:
 		rid = uuid7()
 	run_props = {"run_id": rid, "hero": hero.id if hero else "", "hero_look": hero_look_of(hero),
 		"map": mapdef.id if mapdef else "", "map_rev": map_rev(mapdef)}
-	var talents := {}
-	var forms := {}
-	var all = Save.data.get("talents", {})
-	if all is Dictionary:
-		for id in (all as Dictionary).keys():
-			var t = all[id]
-			var picks := Save.talent_picks(str(id))
-			if t is Dictionary and not picks.is_empty():
-				talents[str(id)] = picks.size()
-				# each rank's form in order since pass 63 (a rank keeps the form it was bought in)
-				forms[str(id)] = picks
+	# pass 129: the Trail as the run begins (its level, how many nodes count as bought, what they cost); the Upgrade
+	# board's `talents` and `talent_forms` left with the board
+	var trl: Dictionary = Trail.record()
 	var sw: WeaponDef = Registry.start_weapon_for(hero) if hero else null
-	track("run_start", {"start_weapon": sw.id if sw else "", "talents": talents, "talent_forms": forms,
+	track("run_start", {"start_weapon": sw.id if sw else "", "trail_level": int(trl.get("level", 0)),
+		"trail_nodes": (trl.get("bought", []) as Array).size(), "trail_spent": int(trl.get("spent", 0)),
 		"gold_before": Save.gold(), "runs_before": maxi(int(Save.data.get("runs_started", 1)) - 1, 0), "seed": Run.map_seed})
 	return true
 
@@ -784,8 +777,9 @@ static func _event_chars(e) -> int:
 
 
 ## One move of the saved gold (pass 61, Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)";
-## Save.gold_moved): gold_meta {delta (signed), reason (run_bank, strongbox, talent, talent_refund, wipe, ...),
-## balance_after, in_run} plus what it was for (a talent's `talent`, `rank`, `form`; a refund's `ranks`, `spent`). In a
+## Save.gold_moved): gold_meta {delta (signed), reason (run_bank, strongbox, trail, hero, talent_refund, wipe, ...),
+## balance_after, in_run} plus what it was for (a Trail node's `node`, `level`, `type`, `what`, `price`; the old Upgrade
+## board's one refund's `ranks`, `spent`). In a
 ## run (the Strongbox, the banking at the end) it carries the run's ids like every event. Nothing from the arena's
 ## sandbox, a tool or the test runner (track refuses). Returns whether it was queued.
 func meta_gold(delta: int, reason: String, balance: int, extra: Dictionary = {}) -> bool:

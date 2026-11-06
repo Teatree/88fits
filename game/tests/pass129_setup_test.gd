@@ -278,17 +278,17 @@ func _trail_power(level: int) -> float:
 	return sum / 2.0
 
 
-## Fit 1 (BALANCING.md pass 129): node 100 leaves the Drifter 1.25 to 1.4 times as strong as today's full Upgrade
-## board in its strongest forms (Muscle, Plate, Poultice at rank 7); a quarter of the board's gain where the Dust Bowl
+## Fit 1 (BALANCING.md pass 129): node 100 leaves the Drifter 1.25 to 1.4 times as strong as the full Upgrade board
+## in its strongest forms (Muscle, Plate, Poultice at rank 7) was; a quarter of the board's gain where the Dust Bowl
 ## opens and half where Blood Moon does, each within a wide margin (the stage nodes sit "within a few levels").
+## The board left the game later in pass 129, so its power is no longer measured here: BOARD_L30 is its last
+## measurement at this test's level-30 build (tools/trail_setup.py BOARD_POWER["l30"], the same probe).
+const BOARD_L30 := 2.195
+
+
 func test_fit_1_the_power_of_the_trail_against_the_full_board() -> void:
 	var fresh := _power()
-	var seven := [0, 0, 0, 0, 0, 0, 0]
-	var ones := [1, 1, 1, 1, 1, 1, 1]
-	Save.data["talents"] = {"drive": {"picks": seven, "rank": 7, "form": 0}, "grit": {"picks": ones, "rank": 7, "form": 1}, "study": {"picks": ones, "rank": 7, "form": 1}}
-	var board := _power() / fresh
-	Save.data["talents"] = {}
-	assert_bool(board > 1.8).override_failure_message("the full board measures x%.2f" % board).is_true()
+	var board := BOARD_L30
 	var top := _trail_power(_top) / fresh
 	assert_bool(top / board >= 1.25 and top / board <= 1.4).override_failure_message("node 100 is x%.3f of the full board (1.25 to 1.4)" % (top / board)).is_true()
 	var dust := (_trail_power(_level_of("stage", "red_canyon:dust")) / fresh - 1.0) / (board - 1.0)

@@ -3,7 +3,7 @@
 ## heroes that I already unlocked"; "Make the revolver basic projectile trail thing be a dim red instead of yellow ...
 ## Make the trail a bit thicker too"): the stats as the run began (Run.start_stats) and the marks against them, the
 ## better/worse colour (a cooldown cut is better), the open stat's sources grouped "At the start" / "This run" and merged
-## by their source ids, the five old bugs (talent and totem names, cooldown and duration in seconds, a cut coloured bad,
+## by their source ids, the five old bugs (a permanent upgrade's and a totem's names, cooldown and duration in seconds, a cut coloured bad,
 ## weapon-aimed rows, changed stats never listed); an owned hero never announced, never FOR SALE, never in progress, and
 ## no stale "Unlocked this run"; the Revolver's dim red, thicker tracer with Silver Bullet's and Venom Rounds' kept.
 extends GdUnitTestSuite
@@ -140,8 +140,20 @@ func test_a_cooldown_cut_is_better_and_reads_as_a_share() -> void:
 # ---------------------------------------------------------------- the sources
 
 func test_the_sources_are_grouped_by_start_and_run_and_merged_by_their_ids() -> void:
-	# the Upgrade board: three ranks of Padding (one effect a rank)
-	Save.data["talents"] = {"grit": {"picks": [0, 0, 0], "rank": 3, "form": 0}}
+	# the Trail (pass 129; three ranks of the Upgrade board's Padding until the board went): its first two Max health
+	# nodes, one source for the upgrade type with their values summed
+	Trail.load_from()
+	var hp_ids: Array = []
+	var hp_sum := 0.0
+	for nd: Dictionary in Trail.nodes():
+		var g: Dictionary = nd["gives"]
+		if hp_ids.size() < 2 and str(g.get("upgrade", "")) == "health":
+			hp_ids.append(str(nd["id"]))
+			hp_sum += float(g["value"])
+	assert_int(hp_ids.size()).is_equal(2)
+	Save.data["trail"] = {"bought": hp_ids, "spent": 0, "had": []}
+	Trail.refresh()
+	var hp_name := Trail.SOURCE % str(Trail.upgrade("health")["name"])
 	_start()
 	Run.add_or_level_passive("vigour")
 	Run.add_or_level_passive("vigour")
@@ -150,13 +162,13 @@ func test_the_sources_are_grouped_by_start_and_run_and_merged_by_their_ids() -> 
 	var rs := _rows("max_hp")
 	var start: Array = rs[SOURCES.START]
 	var run: Array = rs[SOURCES.RUN]
-	# At the start: the base, then the three ranks as one row (bug 1: the talent's name whole)
+	# At the start: the base, then the Trail's two nodes as one row (bug 1: the source's name whole)
 	assert_str(str(start[0]["key"])).is_equal("base")
-	var pad := _row(start, "talent:grit:0|mul")
-	assert_int(int(pad["count"])).is_equal(3)
-	assert_str(str(pad["name"])).contains("Grit")
-	assert_str(str(pad["name"])).contains("Padding rank 3")
-	assert_str(str(pad["text"])).is_equal("+33%")
+	var pad := _row(start, "trail:health|mul")
+	assert_bool(pad.is_empty()).is_false()
+	assert_str(str(pad["name"])).is_equal(hp_name)
+	assert_str(str(pad["text"])).is_equal("+%d%%" % int(round(hp_sum * 100.0)))
+	assert_object(pad["icon"]).is_not_null()
 	# This run: The Giant's two levels as one row, the two gifts of one spirit as one, their amounts summed
 	var giant := _row(run, "passive:vigour|mul")
 	assert_int(int(giant["count"])).is_equal(2)
@@ -168,19 +180,19 @@ func test_the_sources_are_grouped_by_start_and_run_and_merged_by_their_ids() -> 
 	assert_object(whale["icon"]).is_not_null()
 	# nothing of the start is among this run's rows, and the other way round
 	for r: Dictionary in run:
-		assert_str(str(r["sid"])).not_contains("talent:")
+		assert_str(str(r["sid"])).not_contains("trail:")
 	for r: Dictionary in start:
 		assert_str(str(r["sid"])).not_contains("totem:")
 	# the old breakdown keeps its words (the tests of passes 49-73 read them)
 	var words: Array = []
 	for b: Dictionary in Run.player_sheet.breakdown("max_hp"):
 		words.append(str(b["source"]))
-	assert_bool(words.has("Grit: Padding 3")).is_true()
+	assert_bool(words.has(hp_name)).is_true()
 	assert_bool(words.has("Totem: El-kolie")).is_true()
 	# bug 1 in the old namer: a source in words of its own is said whole
 	var ps: PauseScreen = auto_free(PauseScreen.new())
 	assert_str(ps._source_name("Totem: El-kolie")).is_equal("Totem: El-kolie")
-	assert_str(ps._source_name("Grit: Padding 3")).is_equal("Grit: Padding 3")
+	assert_str(ps._source_name(hp_name)).is_equal(hp_name)
 	assert_str(ps._source_name("passive:brawn")).is_equal(Registry.passive("brawn").display_name)
 
 

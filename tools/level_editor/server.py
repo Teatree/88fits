@@ -115,7 +115,7 @@ ITEM_LOOK_KINDS = ("passive", "weapon", "evolution", "mutation")
 FAMILY_LOOK_KINDS = ("weapon", "evolution", "mutation")
 # every content type the game scans (JsonContent.TYPES): a new id must be free under all of them
 ALL_TYPES = ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters",
-             "talents", "quests", "maps", "pickups", "structures", "boss_attacks"]
+             "quests", "maps", "pickups", "structures", "boss_attacks"]
 # the keys of a boss attack the estimate times its script by (pass 57)
 SCRIPT_KEYS = ("name", "windup", "duration", "count", "enemy", "interval", "warn", "spawn")
 # INTERFACES §0.1 (BALANCING §13): a new weapon starts hidden with its three template mutations and its evolution
@@ -154,7 +154,6 @@ import ops_io as OPSIO  # noqa: E402  (pass 97, lane PROGRESS: /api/ops, /api/ev
 import eyes_io as EYESIO  # noqa: E402  (pass 98, lane GEMINI: /api/eyes, Check with Gemini, the frames' eyes)
 import skins_io as SKINIO  # noqa: E402  (pass 111, lane SKINS: a hero's looks sold as skins, the currency registry)
 import wanted_io as WIO  # noqa: E402  (pass 111, lane WANTED: the Bounty Board's config, /api/wanted...)
-import talents_io as TALIO  # noqa: E402  (pass 116, lane EDITOR: the Mirror tab, /api/talents...)
 import trail_io as TRAILIO  # noqa: E402  (pass 129, lane TRAIL-EDITOR: the Trail tab, /api/trail...)
 
 _write_lock = threading.Lock()
@@ -4237,9 +4236,6 @@ class Handler(BaseHTTPRequestHandler):
         if parts[:1] == ["wanted"]:
             # pass 111 (lane WANTED): the Bounty Board's config and the poster imitation's pictures (wanted_io.py)
             return WIO.api_get(self, sys.modules[__name__], parts[1:], query)
-        if parts[:1] == ["talents"]:
-            # pass 116 (lane EDITOR): the Mirror tab's talents and their icons (talents_io.py)
-            return TALIO.api_get(self, sys.modules[__name__], parts[1:], query)
         if parts[:1] == ["trail"]:
             # pass 129 (lane TRAIL-EDITOR): the Trail's file, its pick lists and the upgrade icons (trail_io.py)
             return TRAILIO.api_get(self, sys.modules[__name__], parts[1:], query)
@@ -4589,9 +4585,6 @@ class Handler(BaseHTTPRequestHandler):
             if parts[:2] == ["api", "wanted"]:
                 # pass 111 (lane WANTED): the Bounty Board's config saved (wanted_io.py)
                 return WIO.api_post(self, sys.modules[__name__], parts[2:])
-            if parts[:2] == ["api", "talents"]:
-                # pass 116 (lane EDITOR): a talent saved and imported (talents_io.py)
-                return TALIO.api_post(self, sys.modules[__name__], parts[2:])
             if parts[:2] == ["api", "trail"]:
                 # pass 129 (lane TRAIL-EDITOR): the Trail saved (trail_io.py)
                 return TRAILIO.api_post(self, sys.modules[__name__], parts[2:])

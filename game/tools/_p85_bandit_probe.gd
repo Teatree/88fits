@@ -1,4 +1,4 @@
-## The difficulty probe (pass 62): a fixed build with a Mirror at rank 0, 3 or 6 dropped into the live
+## The difficulty probe (pass 62): a fixed build at a Trail Level dropped into the live
 ## director at a clock of the timeline, a kiting autopilot, and what the window cost him: HP lost a minute in max-HP
 ## units (gross and net of his healing), kills, the crowd against the cap. Never a death: below DOWN_AT of his health
 ## (or down) he is put back to full and the shortfall is counted, so the window plays to its end. The Save is sandboxed
@@ -6,11 +6,8 @@
 ## analytics record.
 ##   "$GODOT" --headless --fixed-fps 60 --path game --script res://tools/difficulty_probe.gd -- t0=300 secs=130 stage=0 \
 ##       level=22 build=b1 mirror=0 hero=calavera seed=11
-## `mirror` may be fractional (pass 64): 1.5 = a quarter of the board, the talents in FORMS order taking 2 and 1 ranks
-## by turns (grit 2, drive 1, stride 2, fortune 1, choice 2, nerve 1, study 2, spite 1 = 12 of 48 ranks); a whole
-## number gives every talent that many. `grit=` and `spite=` pick those talents' forms (spite 1 = Thirst, the default;
-## spite=0 = Thorns, a Mirror without lifesteal: Thirst's first rank already reaches the 4 % lifesteal cap). Ranks are
-## written as pass 63's picks (every rank in the talent's FORMS form). The probe is not deterministic (two runs of one
+## `trail` (pass 129, tools/trail_arg.gd): none, quarter, half, full or a Trail Level; `mirror=` is its old name (the
+## Upgrade board is gone). The probe is not deterministic (two runs of one
 ## seed can differ by 0.4 maxHP a minute): pool several seeds and both heroes before reading a cell.
 ## Autoloads are reached through the tree (SceneTree scripts compile before they exist).
 ## Pass 77 (lane SIMRUN): the kiting autopilot lives in tools/sim_pilot.gd (the run sim drives with it too); the probe
@@ -59,21 +56,16 @@ const BUILDS := {
 	},
 }
 const START := {"calavera": "guitarra", "drifter": "revolver", "astro": "gravity_gun", "solenne": "sun_scepter", "ironwood": "pike", "buck": "frisbee", "fadeaway": "basketball"}
-## The Mirror's forms the probe plays (lane PC: the defensive and damage forms; Omen, Reroll and Field Notes change
-## nothing a fixed build shows, so Fortune and Choice ride along and Study is Poultice): talent id -> form index.
-const FORMS := {"grit": 0, "drive": 0, "stride": 0, "fortune": 0, "choice": 0, "nerve": 1, "study": 1, "spite": 1}
 
 var _t0 := 300.0
 var _secs := 130.0
 var _stage := 0
 var _level := 22
 var _build := "b1"
-var _mirror := 0.0
+## trail=none|quarter|half|full|<level> (tools/trail_arg.gd; mirror=<ranks> is its old name: the Upgrade board is gone)
+var _trail := "none"
 var _hero := "calavera"
 var _seed := 11
-var _grit := 0
-## pass 88 (lane MIRROR): -1 (the default) leaves Spite (now Stakes: Difficulty 0 / Boss 1) out of a mirror= board
-var _spite := -1
 var _hpx := 1.0
 var _dmgx := 1.0
 var _game: Node
@@ -122,11 +114,10 @@ func _init() -> void:
 			"stage": _stage = int(kv[1])
 			"level": _level = int(kv[1])
 			"build": _build = kv[1]
-			"mirror": _mirror = float(kv[1])
+			"trail": _trail = kv[1]
+			"mirror": _trail = load("res://tools/trail_arg.gd").board_to_trail(kv[1], 70)
 			"hero": _hero = kv[1]
 			"seed": _seed = int(kv[1])
-			"grit": _grit = int(kv[1])
-			"spite": _spite = int(kv[1])
 			"hpx": _hpx = float(kv[1])
 			"dmgx": _dmgx = float(kv[1])
 			"boss": _boss_mode = kv[1] == "1"
@@ -145,27 +136,7 @@ func _start() -> void:
 	# nothing from here on reaches the disk (the sandbox is never ended: its flush on quit writes nothing)
 	save.begin_sandbox()
 	save.data["runs_started"] = 1
-	var talents := {}
-	if _mirror > 0.0:
-		var k := 0
-		for id: String in FORMS.keys():
-			var form: int = FORMS[id]
-			if id == "grit":
-				form = _grit
-			elif id == "spite":
-				form = _spite
-				if form < 0:
-					k += 1
-					continue
-			var rank := rank_for(_mirror, k)
-			k += 1
-			if rank <= 0:
-				continue
-			var picks: Array = []
-			for _r in range(rank):
-				picks.append(form)
-			talents[id] = {"picks": picks, "rank": rank, "form": form}
-	save.data["talents"] = talents
+	load("res://tools/trail_arg.gd").apply(save, _trail)
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	# pass 77: the run's own clock for the rules that counted real time (the Orbiter's repeat hit, the rebuild throttle):
 	# a headless probe runs several times faster than real time, so its orbiter numbers were low before (pass 62/64)
@@ -178,16 +149,6 @@ func _start() -> void:
 		print("probe: OLD spit cactus (no dynamite)")
 	change_scene_to_file("res://game/Game.tscn")
 	process_frame.connect(_tick)
-
-
-## The ranks the k-th talent (FORMS order) takes at a Mirror of `m` ranks a talent on average: whole numbers for every
-## talent, a half by turns (the ceiling first).
-static func rank_for(m: float, k: int) -> int:
-	var lo := floori(m)
-	var frac := m - float(lo)
-	if frac <= 0.001:
-		return clampi(lo, 0, 6)
-	return clampi(lo + (1 if k % 2 == 0 else 0), 0, 6)
 
 
 func _tick() -> void:
@@ -298,7 +259,7 @@ func _setup() -> void:
 		ws.append("%s L%d %s est %.0f" % [w.def.id, w.level, str(w.mutations.map(func(m): return m.id)), w.dps_estimate()])
 		est += w.dps_estimate()
 	var sh = _run.player_sheet
-	print("probe: hero %s build %s mirror %.1f (grit form %d, spite form %d) level %d stage %d t0 %.0f seed %d hpx %.2f dmgx %.2f" % [_hero, _build, _mirror, _grit, _spite, _level, _stage, _t0, _seed, _hpx, _dmgx])
+	print("probe: hero %s build %s trail %s level %d stage %d t0 %.0f seed %d hpx %.2f dmgx %.2f" % [_hero, _build, _trail, _level, _stage, _t0, _seed, _hpx, _dmgx])
 	print("probe: weapons %s" % str(ws))
 	print("probe: passives %s" % str(_run.passives))
 	print("probe: est_total %.0f | max_hp %.0f dr %.2f regen %.2f lifesteal %.3f move %.2f might %.2f cooldown %.2f area %.2f amount %.1f crit %.2f" % [est,
@@ -406,8 +367,8 @@ func _report(ran: float) -> void:
 		cap += float(s["cap"])
 	var n := maxf(_samples.size(), 1)
 	var dealt := _total_dmg() - _dmg0
-	print("probe: RESULT hero=%s build=%s mirror=%.1f grit=%d spite=%d hpx=%.2f dmgx=%.2f t0=%.0f secs=%.0f seed=%d | lost/min %.2f maxHP (gross %.0f HP, healed %.0f) net/min %.2f | refills %d downs %d | kills/min %.0f dealt/s %.0f | alive %.0f load %.1f cap %.1f | cards %d chests %d | max_hp %.0f" % [
-		_hero, _build, _mirror, _grit, _spite, _hpx, _dmgx, _t0, ran, _seed, _lost / mh / mins, _lost, _healed, (_lost - _healed) / mh / mins, _refills, _downs,
+	print("probe: RESULT hero=%s build=%s trail=%s hpx=%.2f dmgx=%.2f t0=%.0f secs=%.0f seed=%d | lost/min %.2f maxHP (gross %.0f HP, healed %.0f) net/min %.2f | refills %d downs %d | kills/min %.0f dealt/s %.0f | alive %.0f load %.1f cap %.1f | cards %d chests %d | max_hp %.0f" % [
+		_hero, _build, _trail, _hpx, _dmgx, _t0, ran, _seed, _lost / mh / mins, _lost, _healed, (_lost - _healed) / mh / mins, _refills, _downs,
 		float(int(_run.kills) - _kills0) / mins, dealt / maxf(ran, 1.0), alive / n, load / n, cap / n, _cards, _chests, mh])
 	var keys: Array = _by.keys()
 	keys.sort_custom(func(a, b): return float(_by[a]) > float(_by[b]))

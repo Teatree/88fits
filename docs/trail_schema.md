@@ -105,7 +105,9 @@ old quest was done, a stage already open when the Trail arrived) counts as bough
 6. The line between the lit and the dark part sits just above level Trail Level + 1.
 7. A locked thing reads **"Reach Trail Level N"** where N is its node's level; a tap on that line opens the Trail on
    that node, and Back returns to where the player was.
-8. Stakes (creatures tougher for more XP and coins) are optional nodes; once bought they are on for good (Garry).
+8. Stakes (creatures tougher for more XP and coins) are optional nodes; once bought they are on for good (Garry). Their
+   words name the danger and never the reward (Garry, pass 88: "we don't write that in the description";
+   `pass88_mirror_test`).
 9. An unlock (`outlaw`, `skin`, `weapon`, `passive`, `stage`, `map`, `structure`, `powerup`, `feature`) should never
    sit in a choice group (it could be lost for good): the editor warns, the game allows it.
 
@@ -121,9 +123,23 @@ Design width 1080. The right quarter (x > 0.75) is kept free. Levels are rows 23
   when that is no further right than 0.68, else 0.20 to the left of the leftmost; a second one takes the other
   side; any more keep stepping outward on the left. A level with only optional nodes places them by the count
   table. An `x` on a node always wins.
-- The level's number in a diamond at x 0.06, on every level.
-- Links: a 22 px rail from each `from` node; bought rails are lit, others dark. A choice group's members are joined
-  by a bar with a lock mark (one may be taken).
+- The level's number in a diamond at x 0.06, on every level: 44 px from its middle to a corner, on the row's
+  middle. A row whose leftmost tile's left edge is left of x 0.06 + 44 + 16 px (four required nodes, or an optional
+  node stepped far left) wears a **smaller diamond (32 px) lifted into the gap above the row**: its middle
+  32 + 8 px above that tile's top edge. (The 0.12 place and a 132 px tile overlap the 0.06 diamond by 45 px
+  otherwise.)
+- Links: a 22 px rail from each `from` node (12 px into an optional node); bought rails are lit, others dark.
+  Rails run as **right-angled elbows**: up from the lower node, across at the middle of the gap under the upper
+  node's row (half a row, 118 px, below it), up into the node; two nodes in one column or one row are joined
+  straight. Every rail's 4 px outline is drawn first, then the dark rails, then the lit ones, so rails that share
+  a run read as one.
+- An **optional node with no `from`** is drawn hanging on the **nearest required node of its own level** (by x;
+  the first in file order when two are as near) with a 12 px side rail, not from the level below. Drawing only:
+  the rules still read it as hanging on the level below. With no required node on its level it is drawn from the
+  level below.
+- A choice group's members are joined by a bar (8 px, cream; dark once one is bought), and between each pair of
+  members, in the middle of the gap between their tiles, stands the mark: **"OR" on a gold pill** until one member
+  is bought, then a **padlock on slate**. The pill is 36 px high and as wide as the gap less 18 px, 62 px at most.
 - Screen opens centred on the node bought last (a new save: level 1); from a requirement tap, on that node, ringed.
 - Above the last level: the `end.text` plate.
 

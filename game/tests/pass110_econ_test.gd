@@ -8,8 +8,8 @@ extends GdUnitTestSuite
 ## Normalize the Hero costs as well. And increase them."). Pinned here: every regular creature's chest at REGULAR_CHEST
 ## (Elites keep theirs); a special whose chest chance is 1 always drops one, one special at a time, a third of pass 69's
 ## chance again, ATK x3.5; the Elite and boss purses, the bosses' coins and the big coin halved, a special's own coin half
-## as often; the Upgrade board's rank k at k x k times rank 1 (rank 1 as pass 88 priced it, the per-rank effects
-## untouched), an old save's ranks kept and its refund half of what it paid; every hero on sale at 500 x his title place.
+## as often; every hero on sale at 500 x his title place. (The Upgrade board's rank prices, rank k at k x k times rank 1,
+## were pinned here too until the board left the game in pass 129.)
 
 const FAKE_GAME := """extends Node
 var player: Node3D
@@ -77,10 +77,6 @@ func spawn(_k, _at, _v = 0.0) -> int:
 
 ## Every regular creature's drops.chest (about one chest in 5,000 kills).
 const REGULAR_CHEST := 0.0002
-## Each talent's first rank as pass 88 priced it ("Starting point prices should stay the same"); pass 115 (lane META,
-## re-pinned): Nerve 150, Garry: "skips and this new revive thing are not valuable at all, rebalance ... their prices".
-const FIRST_RANK := {"choice": 325, "drive": 375, "fortune": 300, "grit": 450, "nerve": 150, "spite": 100, "stride": 425,
-	"study": 400}
 ## A hero on sale costs this much gold for each place in the title order (Ironwood, 2nd, 1,000; May, 8th, 4,000).
 const HERO_STEP := 500
 
@@ -337,45 +333,7 @@ func test_a_dying_special_says_so_while_its_death_is_paid() -> void:
 	assert_str(src).contains("PickupManager.SPECIAL_COIN_MULT if enemies and enemies.died_special else 1.0")
 
 
-# ---------------------------------------------------------------- 3. the Upgrade board
-
-func test_every_talents_rank_k_costs_k_squared_times_its_first() -> void:
-	assert_int(Registry.talents_list().size()).is_equal(8)
-	for td: TalentDef in Registry.talents_list():
-		assert_int(int(td.cost[0])).override_failure_message(td.id + " first rank").is_equal(int(FIRST_RANK[td.id]))
-		for k in range(td.ranks):
-			assert_int(td.cost_of_rank(k)).override_failure_message("%s rank %d" % [td.id, k + 1]).is_equal(int(td.cost[0]) * (k + 1) * (k + 1))
-	# the increases stay: Grit's Padding is still +10% max HP a rank; Drive's Muscle is a damage increase (pass 122: its
-	# number is Garry's to tune in drive.json, +6% -> +8% on 2026-11-03, so only its shape is pinned)
-	var grit: TalentDef = Registry.talent("grit")
-	var e: Effect = (grit.forms[0] as Dictionary)["effects"][0]
-	assert_str(e.stat).is_equal("max_hp")
-	assert_float(e.value).is_equal_approx(0.1, 0.0001)
-	assert_int(grit.effects_for(0, 3).size()).is_equal(3)
-	var mu: Effect = (Registry.talent("drive").forms[0] as Dictionary)["effects"][0]
-	assert_str(mu.stat).is_equal("might")
-	assert_str(mu.op).is_equal("mul")
-	assert_bool(mu.value > 0.0).is_true()
-
-
-func test_ranks_bought_at_the_old_prices_stay_and_refund_half_of_what_was_paid() -> void:
-	var grit: TalentDef = Registry.talent("grit")
-	# an older save: two ranks of Grit bought at pass 88's 450 + 810
-	Save.data["talents"] = {"grit": {"picks": [0, 1], "rank": 2, "form": 1}}
-	Save.data["talent_spent"] = 450 + 810
-	Save.data["gold"] = 5000
-	assert_int(Save.talent_rank("grit")).is_equal(2)
-	# the next rank is the third at the new price
-	assert_int(grit.cost_of_rank(Save.talent_rank("grit"))).is_equal(450 * 9)
-	assert_bool(Save.buy_talent(grit, 0)).is_true()
-	assert_int(Save.gold()).is_equal(5000 - 4050)
-	assert_array(Save.talent_picks("grit")).is_equal([0, 1, 0])
-	assert_int(Save.talent_spent()).is_equal(1260 + 4050)
-	# Take it all back: half of what was really paid, never of today's prices
-	assert_int(Save.talent_refund()).is_equal(int(floor((1260 + 4050) * Save.REFUND_FRAC)))
-
-
-# ---------------------------------------------------------------- 4. heroes
+# ---------------------------------------------------------------- 3. the outlaws' prices
 
 func test_every_hero_on_sale_costs_500_a_place_in_the_title_order() -> void:
 	var on_sale := 0

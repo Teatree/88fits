@@ -95,7 +95,7 @@ func test_the_csv_says_who_played() -> void:
 
 func _watch(extra: Dictionary = {}) -> Node:
 	var w = WATCH.new()
-	var a := {"hero": "drifter", "seed": "11", "talents": "none", "analytics": "memory", "repo": "user://p106_no_such_dir",
+	var a := {"hero": "drifter", "seed": "11", "trail": "none", "analytics": "memory", "repo": "user://p106_no_such_dir",
 		"speed": "1", "bot": "stub", "death": "ask"}
 	for k in extra:
 		a[k] = extra[k]

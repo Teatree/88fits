@@ -4,7 +4,7 @@
 ##
 ## What a recording keeps (enough for the same build to play the run again exactly):
 ## - the run's seed (Run.run_seed: every rule's dice, Dice), the launch (hero, map and its seed, stage, the spawn beam),
-##   the save as the run began (the Upgrade board, what is owned and unlocked, quests, looks) and the settings;
+##   the save as the run began (the Trail, what is owned and unlocked, quests, looks) and the settings;
 ## - every engine frame from the first after Game._ready: k = the 60 Hz world steps it ran, pd = their delta, d = the
 ##   frame's delta, whether the run's world ran (not paused), the game's time scale (run-length coded, gzip+base64);
 ## - the stick as the world steps read it at each frame's start (Lockstep.q2: 1/1024 steps), its base for the ghost;

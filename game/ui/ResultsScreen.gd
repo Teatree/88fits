@@ -417,7 +417,7 @@ func build() -> void:
 	gv.add_child(_after_line)
 	if not Save.hint_seen("results"):
 		Save.mark_hint("results")
-		gv.add_child(W.serif_text("Your gold comes home, whatever the end. Spend it on Upgrades.",
+		gv.add_child(W.serif_text("Your gold comes home, whatever the end. Spend it on the Trail.",
 			24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	hr.add_child(gv)
 	var prev: Dictionary = res.get("prev_best", {})
@@ -502,9 +502,8 @@ func build() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 22)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# pass 129 (lane TRAIL-UI): once the Trail has nodes the Upgrade button is the Trail's (the tab bar's rule)
-	var to_trail: bool = Trail.has_nodes() and ResourceLoader.exists(Nav.TRAIL)
-	for spec in [["Trail" if to_trail else "Upgrade", Nav.TRAIL if to_trail else "res://ui/HomesteadScreen.tscn", WButton.UPGRADE], ["Main Menu", TITLE, WButton.SECONDARY]]:
+	# pass 129: the Trail's button (the Upgrade board's until the board went)
+	for spec in [["Trail", Nav.TRAIL, WButton.UPGRADE], ["Main Menu", TITLE, WButton.SECONDARY]]:
 		# pass 123: the words in capitals under Royale (UPGRADE blue, MAIN MENU slate: the variants' roles)
 		var b := WButton.make([str(spec[0]).to_upper()], 30, spec[2], 5, 6, 20.0, 0.0)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL

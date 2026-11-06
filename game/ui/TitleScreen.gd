@@ -6,9 +6,7 @@
 ## his weapon, or the line or passive he favours, Ironwood's Brawn since pass 47, each plate in its colour), PLAY, the
 ## map and its best run in one line (a tap changes the map when there are several). Heroes still to unlock ride the
 ## same carousel after the open ones: a dark silhouette with a padlock, a half-aged dot, what unlocks them and how far
-## along that is, and PLAY reading LOCKED. (The developer menu can add the hidden heroes, locked, to preview the look.) Then Upgrade · Collection ·
-## Settings, Upgrade in turquoise (pass 46: brass is kept for buying) with a breathing glow and a mark when a rank is
-## affordable (pass 44: the Mirror's name said nothing about what it was for). No version label; the developer menu
+## along that is, and PLAY reading LOCKED. (The developer menu can add the hidden heroes, locked, to preview the look.) No version label; the developer menu
 ## lives in Settings (hold the version label for 2 s), and the player's own debug mode (ten taps on the hints switch)
 ## puts an ARENA button top right. The top block hangs from the top edge, the plaque and the buttons from the bottom;
 ## the hero keeps the middle.
@@ -25,7 +23,7 @@
 ## "★ SURVIVORS ★", the hero small on the disc as a run draws him (his played look's idle frames, HeroFigure) between ‹ ›
 ## slate squares, his name, one black pill with his trait ("+1% CRIT per Level"), DETAILS (blue: his sheet), START (gold,
 ## today's PLAY flow) and the docked tab bar (WTabBar, BATTLE open). Gone under Royale: the plaque, the Hero Collections
-## button and its drawer, the dots, the Upgrade · Collection · Settings row (the tabs and ≡ replace them) and the map's
+## button and its drawer, the dots, the old Collection · Settings row (the tabs and ≡ replace them) and the map's
 ## run line (Garry: "Move the run-history line ... to the Stages screen's header"). A hero not owned keeps today's rules:
 ## a black silhouette and UNKNOWN, START LOCKED; on sale a green price · BUY over him (the shared confirm, kind "buy");
 ## locked, the requirement and its progress on a slate card over his feet, the padlock on his chest. The sides stay empty
@@ -49,8 +47,6 @@ const SHORT := {"max_hp": "HP", "damage_reduction": "DEFENCE", "move_speed": "SP
 	"projectile_speed": "SHOT SPEED", "xp_gain": "XP", "crit_chance": "CRIT", "amount": "PROJECTILES"}
 ## A unit after a number whose stat has none of its own (regen is health a second: "+1.2/s" over REGEN).
 const UNIT := {"regen": "/s"}
-## The breathing halo behind Upgrade: the button's own turquoise (pass 46; it was brass with the button).
-const GLOW := W.TURQUOISE
 ## Stats a hero is better off with less of: a negative on these is a buff, and stays sage.
 const LOWER_BETTER := ["cooldown", "regen_delay", "shield_delay"]
 
@@ -77,11 +73,6 @@ const WHeroSheetScript := preload("res://ui/wanted/WHeroSheet.gd")
 var _sheet: Control
 var _swipe_id := -2   # -2 none, -1 the mouse, else a finger index
 var _swipe_from := Vector2.ZERO
-var _glow: Control
-var _mark: Control
-var _halo := StyleBoxFlat.new()
-var _affordable := false
-var _glow_t := 0.0
 var _arena_btn: WButton
 ## The live look (pass 52): the 3D stage behind everything, the padlock over a locked hero there, and the wash, whose
 ## clear middle reaches down to the hero's feet (it is under the hero in this look, over the still in the other). The
@@ -214,8 +205,6 @@ func _ready() -> void:
 	# seconds into the next run; since pass 76 they are not listed again as "Unlocked this run" (only a run's own checks
 	# fill QuestTracker.just_completed)
 	QuestTracker.check_all(false)
-	# gold cannot change on the title: the Upgrade mark is decided once
-	_affordable = _rank_affordable()
 	_heroes = _roster()
 	var last := Registry.playable_character(str(Save.data.get("last_character", Save.DEFAULT_HERO)))
 	# pass 69: a hero to be bought is not the one the title opens on (the first owned one is: the carousel lists them first)
@@ -398,22 +387,6 @@ func _refresh_map() -> void:
 	_map_line.text = " · ".join(bits)
 
 
-## Whether the purse buys the next rank of any open talent (pass 111, lane SKINS: in the talent's own currency). Pass 123
-## (lane MAINMENU): the rule lives once, in the tab bar's Upgrade mark (WTabBar.upgrade_mark, the same loop word for word).
-func _rank_affordable() -> bool:
-	return WTabBarScript.upgrade_mark()
-
-
-func _process(delta: float) -> void:
-	if _glow == null:
-		return
-	_glow_t += delta
-	_glow.queue_redraw()
-	# the row slides in (_enter): the mark follows the button
-	if _mark:
-		_mark.queue_redraw()
-
-
 func _on_play() -> void:
 	if _play.locked:
 		Audio.play("ui_locked")
@@ -528,15 +501,14 @@ func _buy_now(c: CharacterDef) -> void:
 	WCelebrate.burst(self, fig.get_center(), get_child_count(), 1.6)
 
 
-## The gold plate's number after a purchase, and the Upgrade mark (a rank may no longer be affordable).
+## The gold plate's number after a purchase, and the tab bar's Trail mark (a node may no longer be affordable).
 func _refresh_gold() -> void:
 	if _gold_plate:
 		for n in _gold_plate.find_children("Amount", "", true, false):
 			(n as WText).text = W.num(Save.gold())
 		# fewer digits: the plate shrinks to them
 		_gold_plate.reset_size()
-	_affordable = _rank_affordable()
-	# pass 123: the Royale tab bar's Upgrade mark follows the purse too
+	# pass 123: the tab bar's mark follows the purse too
 	if _tab_bar and is_instance_valid(_tab_bar):
 		_tab_bar.call("refresh")
 

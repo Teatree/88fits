@@ -392,7 +392,9 @@ func test_the_hit_log_says_who_and_in_what_colour() -> void:
 	var sk: EnemyDef = Registry.enemy("skeleton")
 	var want := "#" + Color(str(sk.variance["special"]["tint"])).to_html(false)
 	var found := false
-	for k in range(300):
+	# pass 129: 3,000 tries, not 300. Since pass 110 a skeleton comes special 1.33% of the time, so 300 spawns held none
+	# in 1.8% of runs and the build stopped on it by chance (it did, once)
+	for k in range(3000):
 		var j := em.spawn("skeleton", at)
 		if em.vspecial[j] == 1:
 			var info := em.hit_info(j, "melee")

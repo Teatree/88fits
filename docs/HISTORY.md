@@ -4369,3 +4369,125 @@ from pass 127.
 Lane ENV (after the first commit). Five new named variations of each of the 21 scenery props (105 paintings, candidates only: nothing is in the game) on one page for Garry to accept or forget by name, `docs/env_variants/index.html` (`tools/make_env_variants.py`). The list is `tools/env_variations.json`; `tools/gen_env_variations.py` paints through `gen_prop_variants`' own render and finish (2 seeds a variation, one process a kind), builds a contact sheet a kind and installs a named one later (`--install "<name>"`); the cart's five wreck states are Blender renders of the same wagon (`tools/blender_cart_states.py`). 250 renders; two variations are marked weak. Lesson: Klein redraws its reference's silhouette and ignores "no X" and counts, so a variation whose shape differs is painted from the style anchor and affirmative words alone (`"ref": null`). The lead gave the page one dark look, wrote the copy the Artifact tool publishes (`docs/env_variants/artifact.html`, no document skeleton) and published it: https://claude.ai/artifact/2Sx9fThGs4Fv6cEkLAWqVw. Garry answers by name; `python tools/gen_env_variations.py --install "<name>" ...` then `prop_shadows.py` and `--import` put a named one into the game (the real install is untested; a cart state needs `cart_toppled`'s shadow copied by hand).
 
 Lane ICONS (pass 129's, started early). The Trail's 35 upgrade icons, `game/art/ui/trail/<id>.png` (256 px): one bold emblem style settled on three test icons, 3 seeds each, 114 Klein renders, picked on sheets (`tools/dl/p128/ICONS/all_icons.png`); `tools/gen_icon_cands.py` gained the job kind `trail` with its jobs in `tools/trail_icons.json`. Weak: area (orange on an orange tile), regen (reads as an apple), shield (a blue orb). Lessons: the ComfyUI lock has no fairness (this lane waited about an hour behind ENV's chain of short processes); the lead's own look at a page through the shared Playwright browser navigated lane TRAIL-EDITOR's page away: one browser, one user at a time.
+
+## Pass 129 (2026-11-06): the Trail replaces the Upgrade board
+
+The third part of Garry's message of pass 128: the Upgrade board rebuilt as "The Trail", the ideas book's "The whole
+tree" made "more elaborate" in the mould of Survivor.io (his references `_REFERENCES/2d/survivorio1.jpg`,
+`survivorio2.jpg`): up to 500 levels, up to four nodes at a time, nodes that are permanent upgrades or unlocks (outlaws,
+skins, items, features, maps, structures, power-ups), plain / choice / optional nodes and nodes that need two or three
+others, a free amount per node, a Level Editor tab in place of the Mirror, and a first set of 100 nodes under "To be
+continued". His answers are in pass 128's entry. Five commits: the 35 upgrade icons (9458fab9, with pass 128), the
+rules beside the old board and the editor tab (60dec23f), the screen and the 100 nodes (62b72f43), then the old board's
+removal with the docs. Lanes TRAIL-CORE, TRAIL-EDITOR, TRAIL-UI, TRAIL-SETUP, TRAIL-REMOVE from
+`tools/dl/p128/<LANE>/brief.md`; the contract `docs/trail_schema.md` was written first by the lead and corrected by
+each lane to what it built. Rules and numbers: BALANCING 71.
+
+Lane TRAIL-CORE: the rules and hooks. `core/systems/Trail.gd` (static, names no autoload at compile time) reads
+`content/trail/trail.json`, keeps the graph and the rules (bought / open / locked / closed, levels done, the Trail
+Level, a gift the save already has = bought), prices, `buy` (Currency, `Save.trail_buy`, the event `trail_buy`), the
+gates (`gated` / `has` / `level_for` / `requirement_text`), the stat effects (one source per upgrade type,
+"trail:<type>") and `check`. Hooks: `Registry.is_unlocked`, `hero_state`, `skin_state` and their requirement texts,
+`quest_visible`, `Save.stage_unlocked`, `StagesScreen.requirement`, `StructureManager.in_play`, the power-up rosters
+and single drops, `WantedBoard.unlocked`. Three stats: `start_gold`, `totem_boost`, `boss_purse`.
+`Save._migrate_trail` (once-flag `trail_v129`) refunds the board in full and keeps what the save had (`trail.had`;
+`content/trail/quests_before.json` for quests retired later). `game/tools/trail_check.gd` reads a Trail file from the
+game's side. Lesson: a static function on a `class_name` script must not be named like a method of Script, Resource or
+Object: `Trail.reload(path)` called the engine's `Script.reload` and had to become `Trail.load_from(path)`.
+
+Lane TRAIL-EDITOR: the Level Editor's **Trail tab** (`tools/level_editor/trail.js`, `trail.css`, `trail_model.js`,
+`trail_io.py`). Left, a third of the width: the Trail as the game lays it out, built only for the levels in view, with
+the section colours and motifs, rails, choice marks, optional nodes, the end plate and a "Shown at Trail Level N" line
+with the dark band above it. Right: the price curve with a chart and the totals in gold and runs, every upgrade type's
+sum, the sections, the upgrade types, the checks, then one block per level and one row per node (kind, what it gives
+from a pick list with icons, the amount as the player reads it, an own price over the curve's grey one, a multiplier,
+from, group, x, name, note), filled as they near the view so 500 levels edit as fast as 30. Add N levels on top, + node,
++ level above / below, duplicate, move, delete, Tab and Enter through the cells, several rows set at once, a filter,
+undo / redo, CSV export and import (checked and summarised before it applies), Save with a backup in one-node-a-line
+layout. Errors block Save, warnings do not. `python tools/level_editor/trail_io.py --check` runs the same checks from a
+shell. The tab's rules mirror `Trail.gd`: change both. `jobs_model.js` `TABS` gained wanted and trail (a reload lost
+those tabs). Not built: dragging a node (it moves a level with the arrows, Alt+Up / Down or the blue bar's field).
+
+Lane TRAIL-UI: the screen (`ui/TrailScreen.gd`): one drawn canvas that follows the scroll (the sections' colours
+blending up the track, the section's sign tiled from `art/ui/trail/motifs` by `tools/make_trail_motifs.py`, rails as
+elbows, level diamonds, section plates, the dark band above level Trail Level + 1 with its crisp edge, the end plate)
+and a pool of tiles for the rows near the view only, so 500 levels cost what 40 do (1.78 ms a frame on the PC, the
+screen's own share 0.69 ms; not measured on the phone). Tile states: bought a green rim on a warm face with a tick,
+open a breathing gold rim on slate with its price under it (red on grey when short), locked dark slate with the picture
+grey, closed dimmer and struck through; optional nodes smaller on a thin rail; a named node a second frame and a plaque.
+A dock over the tab bar shows the chosen node and BUY. `core/systems/Nav.gd` is the way back from a "Reach Trail Level
+N" tap (a screen offers `nav_state()` and takes it back with `Nav.take`). Captures `game/tools/_p129_TRAIL_shots.gd`
+(sheets in `tools/dl/p128/TRAILUI/`). Lessons: (1) gdUnit's command tool stops at the first failing test unless `-c` is
+passed, which looks exactly like "only some tests were discovered"; (2) a tool whose first scene change happens on the
+engine's first frame gets its whole first timer eaten by that frame: wait frames as well as time; (3) a WText that
+wraps must be in the tree before its size is set, else it shapes to no width; (4) a local named `_set` in a SceneTree
+tool collides with `Object._set`.
+
+Lane TRAIL-SETUP: the first set, 100 nodes on 70 levels, written from `tools/trail_setup.py` (the design as data, the
+power and purse models, `--write` through the Level Editor's writer and never over nodes Garry has edited). Eight plain
+openers, 12 choices that grow from two-way to a four-way, 10 optional nodes (the eight Stakes among them), three nodes
+where rails meet, five named count milestones; six outlaws (Astro 9 to May 45) and eight items (Tumbleweed, Killer
+Bees, Death, Turret Buddy, The Ghost, Land Mine, Ricochet, Overkill) moved off their quests onto nodes, the Dust Bowl
+at level 20 and Blood Moon at level 36. Thirteen unlock quests deleted. Power measured with
+`game/tools/_p129_SETUP_power.gd` (the full board's strongest forms were Muscle, Plate, Poultice: x2.19 a fresh Drifter
+at level 30; node 100 x1.33 that; x1.78 at level 1, over the band by Extra Barrel's +1 projectile alone). Prices
+`40 + 7.2 x level^1.95` fitted to a purse model: 38 nodes by run 20, 66 by run 50, all required by run 100; 897,810
+coins in all. Lessons: (1) the sim with `--death end` measures the bot's death, not a purse, on the first two stages:
+read real run records (`analytics/remote`) beside it; (2) board ranks compounded, the Trail's sums do not: a power
+target has to say which build it is measured on (+1 projectile is x2 to a level-1 Revolver, x1.25 to a level-30
+build); (3) gdUnit's results.xml lists only the failing cases, several failures under one case.
+
+Lane TRAIL-REMOVE: the Upgrade board ("the Mirror" in code) left the game the way pass 124 took the old UI out:
+`content/talents`, `TalentDef`, `HomesteadScreen`, the old `ShopScreen` stub, the board's save API (only
+`Save._migrate_trail` still reads an old save's `talents`, `talent_spent` and `talent_spent_in`, pays the coins back
+and erases them), `Registry.talents`, the `talents` content type, the talent source kind, the title's and tab bar's
+rank mark, five board-only scratch tools, the Level Editor's Mirror tab and two test files. Second Wind's 40% base
+moved from the Nerve talent into `StatSheet.PLAYER_DEFAULTS`. Where a tool needed "how far the player's upgrades are"
+it now takes a Trail Level (`game/tools/trail_arg.gd`: `trail=none|quarter|half|full|<level>`, `trail_optional=1`;
+every required node up to the level, choices in turn): the run sim, the Watch (its pop-up and `--trail save`), the
+difficulty probe, the replay proof, the Sim tab; `--board` / `board=` / `mirror=` remain as the old names. The run
+record is schema 6 (no `talents`, `talent_forms`, `board`; `trail` whole with `levels`, `nodes`, `types`), the
+dashboard's card and the replay's panel (key B) show the Trail and an old record's board still reads. The editor's
+Trail preview draws what the game draws (OR pill, an optional node on its own level, the lifted diamond, elbow rails).
+The purses were measured again at Trail Levels 0 / 18 / 36 / 70 (BALANCING 71.TRAILSET; the prices unchanged). The
+suite went from 3,196 cases to 3,146: 17 in two deleted files, 35 board cases dropped and two new ones written, the
+rest re-pinned to the Trail; `pass120_REPLAY_test`'s recording moved to Blood Moon (its "he falls often" rested on six
+ranks of the board's Stakes; the Trail has four Stakes nodes). Also fixed on the way: `tools/replay.py` died printing
+"Jeżyk" on the Windows console; `tools/posthog_boards.py` had a syntax error since pass 126 (a quote in the Stages
+board's description), so it had not started since then. Lessons: (1) a helper that cuts "from marker A to marker B" out
+of a file removed far more than meant three times (all restored from git): print what a cut removes and check it holds
+one function before writing; (2) two sub-agents briefed for 90k tokens each used 219k and 275k, and the lane itself
+went well past its 500k: a removal that reaches the sim, the Watch and 41 test files is three lanes, not one; (3) the
+touch audit's Outlaws pass lent the save's outlaws but not its Trail, so on a save from before the Trail a "locked"
+outlaw was owned: an audit lends every key the screen reads.
+
+The lead: the Trail's Stakes read "Creatures tougher" / "Bosses and Elites tougher" (the written "better paid" went
+against Garry's pass 88 rule that the reward is not written; `pass88_mirror_test` pins the rule again, on the Trail);
+the Sim tab opened Garry's saved settings (a full board) on a quarter of the Trail, because the defaults' own `trail`
+hid the old `board` (`sim_model.js` `trailOfOld`, pinned; seen in a browser on the lead's own copy of the editor, with
+the Trail tab); `hell_check.gd` and `trail_check.gd` run (both OK); the docs; the build (3,147 cases). The first build
+stopped on `pass46_pacing_test` "the hit log says who and in what colour", by chance: it spawned 300 skeletons to find a
+special, and since pass 110 made specials a third as common (1.33%) 300 spawns hold none in 1.8% of runs; it tries
+3,000 now. Lesson: a test that waits for a dice roll has to be sized again whenever the chance it waits for is tuned. The Trail tab's "about N
+runs" divides the total by one coins-a-run box (800 at first, so it reads "about 1123 runs"): a yardstick on a page
+setting, not the purse model behind the 100-run fit.
+
+Not done in this pass: the design bible, the UI reference, the UI review and the one pager still show the Upgrade
+board (`tools/make_ui_screens.py`'s `upgrade_board` record names captures that are no longer made); `analytics/
+dashboard.html`, the Level Editor's Python messages and older docs still say "hero" where a person reads them;
+`tools/posthog_boards.py` was changed in code and **not run** (it rewrites Garry's live dashboards: `--check` first);
+the Sim tab's Trail control, the Watch's pop-up section and the replay viewer's Trail panel are pinned by tests and
+were not looked at on a screen; the difficulty probe and the Watch were not run with `trail=`; nothing was measured on
+the phone. `ShopUpgradeDef`, `BuildingDef` and the save's `materials` (from before the Mirror) are still in the code,
+unused.
+
+Still waiting on Garry: the pace of the Trail after he has played it (the purse model is the weak part: `STAGES` in
+`tools/trail_setup.py`, then `--fit`); the four rules under BALANCING 71.TRAIL he did not ask for in these words (a
+gated thing's quest hidden, a never-played save keeps nothing, an outlaw with his quest done but not bought locked
+again, the board refunded in full); a stage needing its node and the previous boss; the eight items and their levels
+(Calavera's skin CAL-B now waits for Death at Trail Level 28); the lead's numbers (node 1 at 10 coins, Stakes at a
+quarter of their level's price, the milestone multipliers x2 / x2.5 / x3, Astro at level 9, Extra Barrel's weight);
+Tempo's words ("Attack speed +3%" for a cooldown cut); the tab's crumb (red until seen, not red whenever affordable);
+the section plates and some optional nodes in the right quarter; the dock's height (252 px) and the dark band (82%);
+`posthog_boards.py`; a restart of his Level Editor (routes removed, the Sim's settings changed); everything still open
+from pass 128.

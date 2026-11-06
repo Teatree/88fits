@@ -610,30 +610,6 @@ func test_a_red_warning_under_him_pushes_him_out() -> void:
 
 # ---------------------------------------------------------------- the lead's additions (Garry looked at the Sim tab)
 
-func test_talents_are_read_rank_by_rank() -> void:
-	var known: Array = Registry.talents.keys()
-	# lane SIMUI's format: one form a rank, exactly Save.data.talents[id].picks (0/1, or A/B)
-	var t: Dictionary = SIM.parse_talents("grit:000,drive:1,nerve:11,stride:AAB", known)
-	assert_array(t["grit"]).is_equal([0, 0, 0])
-	assert_array(t["drive"]).is_equal([1])
-	assert_array(t["nerve"]).is_equal([1, 1])
-	assert_array(t["stride"]).is_equal([0, 0, 1])
-	assert_bool(t.has("fortune")).is_false()
-	# every rank in one form, and the empty board
-	assert_array(SIM.parse_talents("spite:2:1", known)["spite"]).is_equal([1, 1])
-	assert_array(SIM.parse_talents("study:9:A", known)["study"]).is_equal([0, 0, 0, 0, 0, 0])
-	assert_dict(SIM.parse_talents("none", known)).is_empty()
-	assert_bool(SIM.parse_talents("nope:00", known).has("error")).is_true()
-	assert_bool(SIM.parse_talents("grit:2:C", known).has("error")).is_true()
-	assert_bool(SIM.parse_talents("grit:0000000", known).has("error")).is_true()
-	assert_bool(SIM.parse_talents("grit:012", known).has("error")).is_true()
-	# what the game reads back: Save.talent_picks over the board as the runner writes it
-	Save.begin_sandbox()
-	Save.data["talents"] = {"drive": {"picks": [1, 1], "rank": 2, "form": 1}, "stride": {"picks": [0, 0, 1], "rank": 3, "form": 1}}
-	assert_array(Save.talent_picks("drive")).is_equal([1, 1])
-	assert_int(Save.talent_rank("stride")).is_equal(3)
-	assert_int(Save.talent_count("stride", 1)).is_equal(1)
-
 
 class FakeButton:
 	extends Control

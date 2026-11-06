@@ -1,10 +1,11 @@
 ## Pass 129 (lane TRAIL-SETUP): the Drifter's power (core/systems/HeroPower.gd) under a list of permanent set-ups: a
-## fresh save, the Upgrade board at given ranks and forms, the Trail with given nodes bought. Each set-up is measured
+## fresh save, the Trail with given nodes bought (the Upgrade board at given ranks too, until the board went later in
+## pass 129: its last measurement is tools/trail_setup.py BOARD_POWER). Each set-up is measured
 ## twice: at level 1 with the Revolver, and at level 30 with a plain build (PLAIN, no mutations).
 ## Run: bash tools/godot.sh --headless --fixed-fps 60 --path <project> --script res://tools/_p129_SETUP_power.gd
 ##        --log-file <f> -- plan=<abs path> out=<abs path>
 ## The plan (written by tools/trail_setup.py --probe-plan): {"trail": "<abs path of a Trail file, or empty for the
-## game's own>", "configs": [{"name": "...", "talents": {"drive": [1,1,...]}, "bought": ["n001", ...]}]}.
+## game's own>", "configs": [{"name": "...", "bought": ["n001", ...]}]}.
 ## The save is sandboxed (Save.begin_sandbox): nothing is written. Bounded by a frame cap.
 extends SceneTree
 
@@ -37,7 +38,6 @@ func _start() -> void:
 	var save := root.get_node_or_null("Save")
 	save.begin_sandbox()
 	save.data["runs_started"] = 1
-	save.data["talents"] = {}
 	save.data["trail"] = {"bought": [], "spent": 0, "had": []}
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify({"weapon": "revolver", "level": 1, "character": "drifter", "map": "red_canyon", "map_seed": 11, "analytics": false, "sim_clock": true}))
@@ -85,16 +85,6 @@ func _measure_all() -> void:
 	var rows: Array = []
 	for c: Variant in (plan as Dictionary).get("configs", []):
 		var cfg: Dictionary = c
-		var talents := {}
-		var tl: Variant = cfg.get("talents", {})
-		if tl is Dictionary:
-			for id: Variant in (tl as Dictionary).keys():
-				var picks: Array = []
-				for p: Variant in ((tl as Dictionary)[id] as Array):
-					picks.append(int(p))
-				if not picks.is_empty():
-					talents[str(id)] = {"picks": picks, "rank": picks.size(), "form": int(picks[picks.size() - 1])}
-		save.data["talents"] = talents
 		var bought: Array = []
 		for b: Variant in cfg.get("bought", []):
 			bought.append(str(b))
@@ -122,7 +112,6 @@ func _measure_all() -> void:
 		rows.append(row)
 		print("p129power: %s | trail level %d | L1 dps %.1f ehp %.1f power %.3f | L30 dps %.1f ehp %.1f power %.3f" % [row["name"], int(row["trail_level"]),
 			float(row["l1"]["dps"]), float(row["l1"]["ehp"]), float(row["l1"]["power"]), float(row["l30"]["dps"]), float(row["l30"]["ehp"]), float(row["l30"]["power"])])
-	save.data["talents"] = {}
 	save.data["trail"] = {"bought": [], "spent": 0, "had": []}
 	trail.load_from()
 	if _out != "":

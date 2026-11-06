@@ -4,8 +4,10 @@ extends GdUnitTestSuite
 ## Increases regular enemies movement speed, HP and ATK and increases the coins and exp (we don't write that in the
 ## description, and it's less than the difficulty increase) 2. BOSS - Increases Boss (and Elites) movement speed, HP and
 ## ATK and increases the coins and exp ... reassess the pricing of the Upgrades ... the ones who's first upgrade is the
-## cheapest go on top and the most expensive on the bottom"). Spite is Stakes: Difficulty and Boss (MirrorDanger); its
-## numbers are read from the talent's JSON, never pinned here (Garry tunes them).
+## cheapest go on top and the most expensive on the bottom"). The Stakes are MirrorDanger's two families of stats.
+## Pass 129: the Upgrade board is gone; the Trail's optional Stakes nodes (upgrade types `stakes` and `boss_stakes`) feed
+## the same stats, so these cases buy those nodes. Their numbers are read from content/trail/trail.json, never pinned
+## here (Garry tunes them). The board's own cases (its words, its order, Spite's old refund) left with the board.
 
 const FAKE_GAME := """extends Node
 var player: Node3D
@@ -60,13 +62,13 @@ func forward() -> Vector3:
 	return Vector3.FORWARD
 """
 
-const HS := preload("res://ui/HomesteadScreen.gd")
-
 var _added: Array = []
 
 
 func before_test() -> void:
 	Save.data = Save._default()
+	Trail.load_from()
+	Trail.refresh()
 	Run.arena = false
 
 
@@ -75,6 +77,7 @@ func after_test() -> void:
 		Registry.enemies.erase(id)
 	_added.clear()
 	Save.data = Save._default()
+	Trail.refresh()
 	Run.arena = false
 	Run.end()
 
@@ -123,70 +126,77 @@ func _plain_def(id: String, from: String) -> EnemyDef:
 	return d
 
 
-## The run started with `picks` ranks of Stakes ([0, 0] = two Difficulty ranks; [] = none).
-func _start_with(picks: Array) -> void:
+## The upgrade type of a family: 0 = the regular creatures' Stakes, 1 = the bosses' and Elites'.
+const TYPES := ["stakes", "boss_stakes"]
+
+
+## The ids of the Trail's first `n` nodes that give upgrade `type`, in file order.
+func _stake_ids(type: String, n: int) -> Array:
+	var out: Array = []
+	for nd: Dictionary in Trail.nodes():
+		var g: Dictionary = nd["gives"]
+		if out.size() < n and str(g.get("type", "")) == "upgrade" and str(g.get("upgrade", "")) == type:
+			out.append(str(nd["id"]))
+	return out
+
+
+## The run started with the Trail's first `regular` Stakes nodes and first `big` Boss Stakes nodes bought (0, 0 = none).
+func _start_with(regular: int, big: int = 0) -> void:
 	Run.end()
-	Save.data["talents"] = {} if picks.is_empty() else {"spite": {"picks": picks}}
+	var ids: Array = _stake_ids("stakes", regular)
+	ids.append_array(_stake_ids("boss_stakes", big))
+	assert_int(ids.size()).is_equal(regular + big)
+	Save.data["trail"] = {"bought": ids, "spent": 0, "had": []}
+	Trail.refresh()
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
 	Run.arena = false
 
 
-## 1 + ranks x the form's per-rank value of `stat`, as the talent's JSON says.
-func _want(form: int, stat: String, ranks: int) -> float:
-	var td: TalentDef = Registry.talent("spite")
+## 1 + what the first `n` nodes of family `form` (TYPES) add to `stat`: each node's value x the type's `per` for it.
+func _want(form: int, stat: String, n: int) -> float:
+	var type: String = TYPES[form]
+	var per := 0.0
+	for e: Dictionary in Trail.upgrade(type).get("effects", []):
+		if str(e.get("stat", "")) == stat:
+			per = float(e.get("per", 1.0))
 	var v := 0.0
-	for e in td.effects_for(form, ranks):
-		if (e as Effect).stat == stat:
-			v += (e as Effect).value
+	for id: String in _stake_ids(type, n):
+		v += float((Trail.node(id)["gives"] as Dictionary)["value"]) * per
 	return 1.0 + v
 
 
-func _per_rank(form: int, stat: String) -> float:
-	return _want(form, stat, 1) - 1.0
+# ---------------------------------------------------------------- 1. the Trail's Stakes nodes
+
+func test_the_trail_has_optional_stakes_nodes_for_both_families() -> void:
+	for type: String in TYPES:
+		var ids := _stake_ids(type, 99)
+		assert_int(ids.size()).is_greater_equal(2)
+		for id: String in ids:
+			assert_str(str(Trail.node(id)["kind"])).is_equal("optional")
+	assert_float(_want(0, "danger_hp", 1)).is_greater(1.0)
+	assert_float(_want(1, "boss_danger_hp", 1)).is_greater(1.0)
 
 
-# ---------------------------------------------------------------- 1. the talent
-
-func test_spite_is_stakes_with_difficulty_and_boss_and_no_thorns_or_thirst() -> void:
-	var td: TalentDef = Registry.talent("spite")
-	assert_object(td).is_not_null()
-	assert_str(td.display_name).is_equal("Stakes")
-	assert_str(td.form_name(0)).is_equal("Difficulty")
-	assert_str(td.form_name(1)).is_equal("Boss")
-	for form in range(2):
-		for e in td.effects_for(form, 1):
-			assert_bool((e as Effect).stat in ["thorns", "lifesteal"]).is_false()
-	# the danger on each form, the bounty on each, and the bounty below every danger it pays for
-	for form in range(2):
-		var pre := "danger_" if form == 0 else "boss_danger_"
-		var bounty := _per_rank(form, pre + "bounty")
-		assert_float(bounty).override_failure_message("form %d pays nothing" % form).is_greater(0.0)
-		for what in ["hp", "attack", "speed"]:
-			assert_float(_per_rank(form, pre + what)).override_failure_message("form %d %s" % [form, what]).is_greater(0.0)
-		for what in ["hp", "attack"]:
-			assert_float(bounty).override_failure_message("form %d: the bounty is not below its %s" % [form, what]).is_less(_per_rank(form, pre + what))
-
-
+## Garry (pass 88): the Stakes pay more coins and XP, and "we don't write that in the description". The board's test of
+## it went with the board; the Trail's two upgrade types keep the rule (pass 129): their words, their warning, a
+## node's give text and the stats' own text never name the reward.
 func test_the_words_say_the_danger_and_never_the_reward() -> void:
-	var td: TalentDef = Registry.talent("spite")
-	for form in range(2):
-		var t := td.form_text(form).to_lower()
-		var said := TextGen.describe_effects(td.summed_effects(form, 3)).to_lower()
-		for word in ["coin", "gold", "xp", "exp", "bounty", "reward"]:
-			assert_bool(t.contains(word)).override_failure_message("form %d's text says %s" % [form, word]).is_false()
-			assert_bool(said.contains(word)).override_failure_message("form %d's sum says %s" % [form, word]).is_false()
-		assert_str(said).contains("hp")
+	for type: String in TYPES:
+		var u: Dictionary = Trail.upgrade(type)
+		var id: String = _stake_ids(type, 1)[0]
+		var said := "%s | %s | %s | %s" % [str(u.get("name", "")), str(u.get("text", "")), str(u.get("warn", "")),
+				Trail.give_text(Trail.node(id))]
+		said = said.to_lower()
+		for word in ["coin", "gold", "xp", "exp", "bounty", "reward", "paid", "pay"]:
+			assert_bool(said.contains(word)).override_failure_message("%s's words say %s: %s" % [type, word, said]).is_false()
+		assert_str(said).contains("tougher")
 	assert_str(TextGen.describe_effect(Effect.make("danger_bounty", "add", 0.05, "player"))).is_empty()
 	assert_str(TextGen.describe_effect(Effect.make("boss_danger_bounty", "add", 0.05, "player"))).is_empty()
-	assert_bool(StatSources.listable("danger_bounty")).is_false()
-	assert_str(TextGen.describe_effect(Effect.make("danger_hp", "add", 0.1, "player"))).is_equal("+10% enemy HP")
 
-
-# ---------------------------------------------------------------- 2. the creatures
 
 func test_difficulty_makes_a_regular_creature_tougher_faster_and_richer() -> void:
 	_plain_def("t88_skel", "skeleton")
-	_start_with([])
+	_start_with(0)
 	var em := _world()
 	var a := em.spawn("t88_skel", Vector3(-5, 0, 0))
 	var hp0: float = em.max_hp[a]
@@ -194,7 +204,7 @@ func test_difficulty_makes_a_regular_creature_tougher_faster_and_richer() -> voi
 	var dm0: float = em.dmg[a]
 	var xp0: float = em.xp_scale[a]
 	var host0: float = em.host_of(a)
-	_start_with([0, 0, 0])
+	_start_with(3)
 	em.refresh_player_stats()
 	var b := em.spawn("t88_skel", Vector3(5, 0, 0))
 	assert_float(em.max_hp[b] / hp0).is_equal_approx(_want(0, "danger_hp", 3), 0.001)
@@ -208,7 +218,7 @@ func test_difficulty_makes_a_regular_creature_tougher_faster_and_richer() -> voi
 func test_difficulty_leaves_bosses_and_elites_and_boss_leaves_the_crowd() -> void:
 	_plain_def("t88_skel", "skeleton")
 	_plain_def("t88_golem", "stone_golem")
-	_start_with([])
+	_start_with(0)
 	var em := _world()
 	var s0 := em.spawn("t88_skel", Vector3(-5, 0, 0))
 	var g0 := em.spawn("t88_golem", Vector3(5, 0, 0))
@@ -216,13 +226,13 @@ func test_difficulty_leaves_bosses_and_elites_and_boss_leaves_the_crowd() -> voi
 	var ghp: float = em.max_hp[g0]
 	var gsp: float = em.speed[g0]
 	# Difficulty: the Elite is as it was
-	_start_with([0, 0])
+	_start_with(2)
 	em.refresh_player_stats()
 	var g1 := em.spawn("t88_golem", Vector3(5, 0, 6))
 	assert_float(em.max_hp[g1]).is_equal_approx(ghp, 0.001)
 	assert_float(em.speed[g1]).is_equal_approx(gsp, 0.001)
 	# Boss: the Elite is tougher and faster, the crowd as it was
-	_start_with([1, 1])
+	_start_with(0, 2)
 	em.refresh_player_stats()
 	var g2 := em.spawn("t88_golem", Vector3(5, 0, 12))
 	var s2 := em.spawn("t88_skel", Vector3(-5, 0, 12))
@@ -233,7 +243,7 @@ func test_difficulty_leaves_bosses_and_elites_and_boss_leaves_the_crowd() -> voi
 
 
 func test_the_boss_form_multiplies_after_the_seconds_floor() -> void:
-	_start_with([1, 1, 1])
+	_start_with(0, 3)
 	var em := _world()
 	# the seconds mode's floor far over the data HP: the floor rules, then the Boss form on top
 	em.boss_hp_target = 1000000.0
@@ -244,7 +254,7 @@ func test_the_boss_form_multiplies_after_the_seconds_floor() -> void:
 
 func test_nothing_changes_in_the_arena() -> void:
 	_plain_def("t88_skel", "skeleton")
-	_start_with([0, 0, 0, 0])
+	_start_with(4)
 	Run.arena = true
 	assert_float(MirrorDanger.factor(false, "hp")).is_equal(1.0)
 	assert_float(MirrorDanger.factor(true, "bounty")).is_equal(1.0)
@@ -265,52 +275,3 @@ func test_a_coin_pays_its_bounty_on_average() -> void:
 	for k in range(4000):
 		sum += MirrorDanger.scaled_count(2.0, 1.25)
 	assert_float(float(sum) / 4000.0).is_equal_approx(2.5, 0.08)
-
-
-# ---------------------------------------------------------------- 4. an old save's Spite
-
-func test_an_old_saves_thorns_and_thirst_come_back_in_full_once() -> void:
-	Save.data["gold"] = 100
-	Save.data["talents"] = {"spite": {"picks": [0, 1, 0]}, "grit": {"picks": [0]}}
-	Save.data["talent_spent"] = 2900 + 350
-	var back: int = Save._migrate_stakes()
-	assert_int(back).is_equal(500 + 900 + 1500)
-	assert_int(Save.gold()).is_equal(100 + 2900)
-	assert_bool((Save.data["talents"] as Dictionary).has("spite")).is_false()
-	assert_int(Save.talent_rank("grit")).is_equal(1)
-	assert_int(Save.talent_spent()).is_equal(350)
-	assert_str(str(Save.board_note().get("kind", ""))).is_equal("stakes_refund")
-	assert_array(HS.note_words(Save.board_note())).contains(["+2,900 GOLD BACK FOR 3 RANKS"])
-	# once: a second load pays nothing
-	assert_int(Save._migrate_stakes()).is_equal(0)
-	assert_int(Save.gold()).is_equal(3000)
-	Save.clear_board_note()
-	assert_bool(Save.board_note().is_empty()).is_true()
-
-
-func test_a_new_save_and_a_stakes_rank_are_never_paid_back() -> void:
-	assert_int(Save._migrate_stakes()).is_equal(0)
-	assert_bool(Save.once(Save.STAKES_ONCE)).is_true()
-	# a save wiped since its load: buying a Stakes rank marks it, so the next load keeps the rank
-	Save.data = Save._default()
-	Save.add_gold(100000)
-	assert_bool(Save.buy_talent(Registry.talent("spite"), 0)).is_true()
-	assert_bool(Save.once(Save.STAKES_ONCE)).is_true()
-	assert_int(Save._migrate_stakes()).is_equal(0)
-	assert_int(Save.talent_rank("spite")).is_equal(1)
-
-
-# ---------------------------------------------------------------- 5. the order
-
-func test_the_board_lists_the_cheapest_first_rank_first() -> void:
-	var list := Registry.talents_list()
-	assert_int(list.size()).is_equal(8)
-	for k in range(1, list.size()):
-		var a: TalentDef = list[k - 1]
-		var b: TalentDef = list[k]
-		assert_int(a.first_price()).override_failure_message("%s before %s" % [a.id, b.id]).is_less_equal(b.first_price())
-	# the JSON's `order` agrees with the prices (it breaks ties)
-	for k in range(list.size()):
-		assert_int((list[k] as TalentDef).order).override_failure_message((list[k] as TalentDef).id).is_equal(k + 1)
-	# the Stakes are a choice for gold and challenge: the cheapest
-	assert_str((list[0] as TalentDef).id).is_equal("spite")

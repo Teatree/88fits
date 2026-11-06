@@ -53,8 +53,7 @@ func test_a_level_up_always_offers_three_cards_and_luck_only_lifts_rarity() -> v
 	Run.debug_set_item("passive", "clover", 4)
 	assert_float(CardPool.weight_of(rare)).is_greater(w0)
 	assert_str(Registry.passive("clover").text).not_contains("fourth")
-	var fortune: TalentDef = Registry.talents.get("fortune")
-	assert_str(str((fortune.forms[0] as Dictionary).get("text", ""))).not_contains("fourth")
+	assert_str(str(Trail.upgrade("luck").get("text", ""))).not_contains("fourth")
 
 
 # ---------------------------------------------------------------- five and five

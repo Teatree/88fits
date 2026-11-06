@@ -93,7 +93,7 @@ var timeline: RunTimeline = RunTimeline.new()
 
 var player_sheet: StatSheet = StatSheet.new()
 ## The hero's numbers as the run began (pass 76, lane UI: the pause Stats tab marks every stat that moved since): stat ->
-## value for every stat on the sheet start() built (level 1, the Upgrade board, nothing taken yet), and the hero they were
+## value for every stat on the sheet start() built (level 1, the Trail's upgrades, nothing taken yet), and the hero they were
 ## taken for (start_stat reads a fresh level-1 sheet when the arena swapped heroes since).
 var start_stats: Dictionary = {}
 var start_stats_hero := ""
@@ -198,7 +198,7 @@ var chest_bank: Dictionary = {}
 ## The level-up's choices (pass 47, Garry: "only two skips per Stage, and those skips work for both Level Ups and
 ## Chests ... the same treatment for Banish, but initially Players only get 1 Banish"): skips and banishes are a stage's,
 ## refill_choices() puts them back to the sheet's `skips` (2) and `banishes` (1) at the run's start and at every stage,
-## the Mirror adding a rank each; rerolls stay the run's. use_skip / use_banish spend one.
+## the Trail's nodes adding one each; rerolls stay the run's. use_skip / use_banish spend one.
 var rerolls_left := 0
 var skips_left := 0
 var banishes_left := 0
@@ -537,18 +537,14 @@ func _build_player_sheet() -> void:
 
 
 ## A hero's own sheet at a level (pass 61): the defaults, his flat trait (the hidden heroes'), his signature stat at that
-## level and the Mirror's ranks; what every run starts from, and what the title's hero sheet (the CV) shows. Nothing in
-## the run's state is read or changed.
+## level and the Trail's bought upgrades; what every run starts from, and what the title's hero sheet (the CV) shows.
+## Nothing in the run's state is read or changed.
 func hero_sheet(c: CharacterDef, at_level: int = 1) -> StatSheet:
 	var sheet := StatSheet.new()
 	sheet.scope = "player"
 	sheet.set_bases(StatSheet.PLAYER_DEFAULTS)
 	if not base_crit:
 		sheet.set_bases({"crit_chance": 0.0})
-	# pass 115 (lane META): a talent may own a stat's starting value, rank or none (Nerve: the revive's 40% health)
-	for tb: TalentDef in Registry.talents.values():
-		if not tb.base_stats.is_empty():
-			sheet.set_bases(tb.base_stats)
 	if c:
 		sheet.add_effects(c.trait_effects, c.display_name, "hero:" + c.id)
 		# the signature stat (pass 61): one effect per stat worth the level's whole bonus, named with the level; under
@@ -558,13 +554,6 @@ func hero_sheet(c: CharacterDef, at_level: int = 1) -> StatSheet:
 			lv = lv.filter(func(e: Effect) -> bool: return e.stat != "crit_chance")
 		if not lv.is_empty():
 			sheet.add_effects(lv, trait_source(c, at_level), "trait:" + c.id)
-	# the Mirror: each talent's ranks by the form chosen for each (pass 63: a rank keeps its form; Padding x2 and Plate x1
-	# are two Padding ranks and one Plate rank, each form's ranks counted on their own)
-	for tdef: TalentDef in Registry.talents.values():
-		for form in range(2):
-			var n := Save.talent_count(tdef.id, form)
-			if n > 0:
-				sheet.add_effects(tdef.effects_for(form, n, Save.talent_top(tdef, form)), "%s: %s %d" % [tdef.display_name, tdef.form_name(form), n], "talent:%s:%d" % [tdef.id, form])
 	# pass 129 (lane TRAILCORE): the Trail's bought upgrades, one source per upgrade type ("trail:<type>", "The Trail:
 	# Might"), every bought node of the type summed (Trail.effects; none while the Trail has no nodes)
 	for te: Dictionary in Trail.effects():

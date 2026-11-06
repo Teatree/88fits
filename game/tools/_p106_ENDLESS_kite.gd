@@ -1,4 +1,4 @@
-## Pass 106, lane ENDLESS (scratch): the difficulty probe (tools/difficulty_probe.gd, its builds, Mirror and kiting
+## Pass 106, lane ENDLESS (scratch): the difficulty probe (tools/difficulty_probe.gd, its builds, its Trail argument and kiting
 ## autopilot) dropped into Endless at wave `wave` after stage `stage`'s window: Endless starts, its first wave is cleared,
 ## the clock set just before wave `wave`, then `secs` seconds of Endless are played and reported as the probe does, plus
 ## how fast the crowd walks against the hero (the share of the live crowd faster than him, its median and top speed).

@@ -5,8 +5,9 @@
 ## already filled in there, but I should be able to choose what I need before starting a run."). Every setting a run
 ## starts with, in the panel's dark tool style: the hero and his look, the map, the seed (random or a number), the speed,
 ## the time limit, Down!'s answer, the sound, the damage numbers, the unlocks; the bot's preset and each of its options;
-## the Upgrade board talent by talent (each rank bought in its form, A or B, as the board itself does) with the presets
-## none / a quarter / half / full (the Sim's, from watch.py's setup file) and the PC save's board. "Start Run" hands the
+## the Trail (pass 129; the Upgrade board talent by talent until then): the presets none / a quarter / half / full (the
+## Sim's shares of the Trail's levels), the PC save's own Trail (from watch.py's setup file), or any Trail Level, with
+## or without the optional nodes (tools/trail_arg.gd is the rule). "Start Run" hands the
 ## settings to Watch.gd (signal `started`), which starts the run the way the game does: the hero comes down in the spawn
 ## beam. Opened mid-run from the header's "Restart run", "Cancel" leaves the run as it was.
 ## Pass 87 (lane STOOLS; Garry: "Watch Tool should give me a choice to which Stage bot will be playing in"): the Stage
@@ -14,8 +15,9 @@
 ## stage may be chosen, off (the save's mode) only the stages the PC save has unlocked (watch.py's setup file:
 ## save_stages, the save's stages beaten); the row's note says which. The run starts that stage (the launch's `stage`).
 ## The settings (a Dictionary; defaults_from_args, collect): hero, look ("" = his own), map, stage (1-based), seed, seed_random, speed,
-## limit (play seconds, 0 none), death, sound, numbers, unlocks ("all" | "save"), talents (the command line's text,
-## "grit:AAB,drive:A" or "none"), board_label, bot ("auto" | "stub"), bot_opts ({preset, and every option that differs
+## limit (play seconds, 0 none), death, sound, numbers, unlocks ("all" | "save"), trail ("none", "quarter", "half",
+## "full", "save" or a level), trail_optional, trail_ids (the nodes of "save"), trail_label, bot ("auto" | "stub"),
+## bot_opts ({preset, and every option that differs
 ## from the preset's}). Tools only.
 extends Control
 
@@ -25,7 +27,7 @@ signal cancelled
 const PANEL := preload("res://tools/watch/WatchPanel.gd")
 const CLOCK := preload("res://tools/watch/WatchClock.gd")
 const BOT_PATH := "res://tools/bot/Bot.gd"
-const MAX_RANK := 6
+const TRAIL_ARG := preload("res://tools/trail_arg.gd")
 ## the bot's number options: [key, label, min, max, step, tip]
 const BOT_NUMBERS := [["skill", "Skill", 0.0, 1.0, 0.05, "how well he picks cards (1 = always the best score)"],
 	["reaction", "Reaction s", 0.0, 3.0, 0.1, "seconds before he answers a danger"],
@@ -44,18 +46,16 @@ const DEATHS := [["ask", "pause and ask: Revive (R) or End run (E), every fall"]
 	["end", "end the run at the first fall"], ["ad", "the ad revive once, then end"], ["keep", "the bot stands up at once, count every fall"]]
 const PRESET_ORDER := ["none", "quarter", "half", "full", "save"]
 const PRESET_WORDS := {"none": "None", "quarter": "A quarter", "half": "Half", "full": "Full", "save": "My save"}
-const FORM_COLS := [Color(0.43, 0.71, 1.0), Color(0.93, 0.66, 0.26)]
 
 var can_cancel := false
-## watch.py's setup file: {presets: {name: {id: letters} | null}, labels, save_note, refs}
+## watch.py's setup file: {trail: {levels, save: {ids, level} | null, save_note}, refs}
 var doc: Dictionary = {}
-## the board being made: talent id -> [form a rank]
-var picks: Dictionary = {}
+## the Trail being set: "none", "quarter", "half", "full", "save" or a level as text; and whether the optional nodes ride
+var trail := "none"
+var trail_optional := false
 
 var _reg: Node
 var _bot_consts: Dictionary = {}
-var _talent_ids: Array = []
-var _talent_defs: Dictionary = {}
 var _hero_ids: Array = []
 var _look_codes: Array = []
 var _map_ids: Array = []
@@ -80,7 +80,8 @@ var _unlocks: CheckBox
 var _bot_preset: OptionButton
 var _bot_preset_ids: Array = []
 var _bot_fields: Dictionary = {}
-var _slots: Dictionary = {}
+var _trail_level: SpinBox
+var _trail_opt: CheckBox
 var _board_sum: Label
 var _preset_btns: Dictionary = {}
 var _cancel_btn: Button
@@ -97,7 +98,8 @@ static func defaults_from_args(args: Dictionary) -> Dictionary:
 		"seed": maxi(int(args.get("seed", "1")), 1), "seed_random": str(args.get("seed_random", "0")) == "1",
 		"speed": CLOCK.nearest(float(args.get("speed", "1"))), "limit": maxf(float(args.get("limit", "0")), 0.0),
 		"death": str(args.get("death", "ask")), "sound": str(args.get("sound", "0")) == "1", "numbers": str(args.get("numbers", "1")) != "0",
-		"unlocks": str(args.get("unlocks", "all")), "talents": str(args.get("talents", "none")), "board_label": str(args.get("board_label", "")),
+		"unlocks": str(args.get("unlocks", "all")), "trail": str(args.get("trail", "none")), "trail_optional": str(args.get("trail_optional", "0")) == "1",
+		"trail_ids": ids_from(str(args.get("trail_ids", ""))), "trail_label": str(args.get("trail_label", "")),
 		"bot": "stub" if str(args.get("bot", "auto")) == "stub" else "auto", "bot_opts": {}}
 	var o := {}
 	for k in args:
@@ -123,111 +125,36 @@ static func typed(v: String) -> Variant:
 	return s
 
 
-## The board from the command line's text ("grit:AAB,drive:A", "none") or a {id: letters} dictionary: {id: [0|1 a rank]}
-## (A = 0, the first form; B = 1). Ranks past MAX_RANK and anything unreadable are left out.
-static func picks_from(src) -> Dictionary:
-	var out := {}
-	var pairs: Array = []
-	if src is Dictionary:
-		for k in src:
-			pairs.append([str(k), str(src[k])])
-	else:
-		var txt := str(src).strip_edges()
-		if txt == "" or txt.to_lower() == "none":
-			return out
-		for part in txt.split(",", false):
-			var bits := part.strip_edges().split(":")
-			if bits.size() == 2:
-				pairs.append([bits[0].strip_edges(), bits[1].strip_edges()])
-	for pr in pairs:
-		var arr: Array = []
-		for ch in str(pr[1]).to_upper():
-			if ch == "A" or ch == "0":
-				arr.append(0)
-			elif ch == "B" or ch == "1":
-				arr.append(1)
-		if not arr.is_empty():
-			out[str(pr[0])] = arr.slice(0, MAX_RANK)
+## trail_ids= as a list: "n001,n002" -> ["n001", "n002"].
+static func ids_from(txt: String) -> Array:
+	var out: Array = []
+	for part in txt.split(",", false):
+		if part.strip_edges() != "":
+			out.append(part.strip_edges())
 	return out
 
 
-## The board as the command line's text, talents in `order` (others after, by id): "grit:AAB,drive:A", "none" when empty.
-static func letters_of(p: Dictionary, order: Array = []) -> String:
-	var ids: Array = []
-	for id in order:
-		if p.has(id) and not (p[id] as Array).is_empty():
-			ids.append(str(id))
-	var rest: Array = []
-	for id in p:
-		if not ids.has(str(id)) and not (p[id] as Array).is_empty():
-			rest.append(str(id))
-	rest.sort()
-	ids.append_array(rest)
-	var parts := PackedStringArray()
-	for id in ids:
-		var s := ""
-		for f in p[id]:
-			s += "B" if int(f) == 1 else "A"
-		parts.append("%s:%s" % [id, s])
-	return ",".join(parts) if not parts.is_empty() else "none"
+## One Trail setting as a key two runs can be compared by: "none", "quarter", "36", "save"; "+opt" with the optional
+## nodes. A name and the level it comes to are different keys (the Sim tab and watch.py write the names).
+static func trail_key(p_trail: String, optional: bool) -> String:
+	var t := p_trail.strip_edges().to_lower()
+	if t == "" or t == "0":
+		t = "none"
+	return t + ("+opt" if optional and t != "none" and t != "save" else "")
 
 
-## Ranks bought on a board.
-static func ranks_of(p: Dictionary) -> int:
-	var n := 0
-	for id in p:
-		n += (p[id] as Array).size()
-	return n
-
-
-## Whether two boards are the same (same ranks in the same forms).
-static func same_board(a: Dictionary, b: Dictionary) -> bool:
-	var ka: Array = []
-	for k in a:
-		if not (a[k] as Array).is_empty():
-			ka.append(str(k))
-	var kb: Array = []
-	for k in b:
-		if not (b[k] as Array).is_empty():
-			kb.append(str(k))
-	ka.sort()
-	kb.sort()
-	if ka != kb:
-		return false
-	for k in ka:
-		if (a[k] as Array) != (b[k] as Array):
-			return false
-	return true
-
-
-## The preset a board is ("none", "quarter", ..., "save"; "" for a board of its own), from the setup file's presets.
-static func preset_of(p: Dictionary, presets: Dictionary) -> String:
-	for name in PRESET_ORDER:
-		var b = presets.get(name)
-		if b is Dictionary and same_board(p, picks_from(b)):
-			return name
-	return ""
-
-
-## The board in words for the header: "a quarter (12 of 48 ranks)", "custom (7 of 48 ranks)".
-static func board_words(p: Dictionary, presets: Dictionary, labels: Dictionary, n_talents: int) -> String:
-	var pre := preset_of(p, presets)
-	var name := str(labels.get(pre, PRESET_WORDS.get(pre, pre))) if pre != "" else "custom"
-	return "%s (%d of %d ranks)" % [name, ranks_of(p), MAX_RANK * maxi(n_talents, 1)]
-
-
-## A slot's click on a talent's ranks `arr` (0-based slot `k`): a slot past the ranks bought buys up to it in form A; a
-## bought one in A turns to B; one in B is sold with every rank above it. The new ranks.
-static func click_slot(arr: Array, k: int) -> Array:
-	var out := arr.duplicate()
-	if k >= out.size():
-		while out.size() <= k:
-			out.append(0)
-		return out
-	if int(out[k]) == 0:
-		out[k] = 1
-		return out
-	return out.slice(0, k)
+## The Trail in words for the header: "a quarter (Trail Level 18 of 70)", "Trail Level 36 of 70, optional nodes too",
+## "my save (Trail Level 12 of 70)", "none". `save_level` is the PC save's Trail Level (-1 unknown).
+static func trail_words(p_trail: String, optional: bool, levels: int, save_level: int = -1) -> String:
+	var t := p_trail.strip_edges().to_lower()
+	if t == "save":
+		return "my save" + (" (Trail Level %d of %d)" % [save_level, levels] if save_level >= 0 else "")
+	var lv := TRAIL_ARG.level_of(t, levels)
+	if lv <= 0:
+		return "none"
+	var where := "Trail Level %d of %d" % [lv, levels]
+	var words := "%s (%s)" % [str(TRAIL_ARG.WORDS[t]), where] if TRAIL_ARG.WORDS.has(t) else where
+	return words + (", optional nodes too" if optional else "")
 
 
 ## The time limit from the box: "5:00", "300", "1:02:00"; "" or anything unreadable is 0 (none).
@@ -270,8 +197,8 @@ static func bot_diff(preset: String, preset_vals: Dictionary, cur: Dictionary) -
 
 
 ## The Sim result for the charts' grey line: the first of the setup's refs (newest first) with the run's hero, map and
-## board. {path, label} or {}.
-static func ref_for(refs: Array, hero: String, map_id: String, p: Dictionary, stage: int = 1) -> Dictionary:
+## Trail (`key`: trail_key; a ref's own is its `trail_key`). {path, label} or {}.
+static func ref_for(refs: Array, hero: String, map_id: String, key: String, stage: int = 1) -> Dictionary:
 	for r in refs:
 		if not (r is Dictionary):
 			continue
@@ -279,7 +206,7 @@ static func ref_for(refs: Array, hero: String, map_id: String, p: Dictionary, st
 		var rs := int(r.get("stage", 0))
 		if not (rs == stage or (rs == 0 and stage == 1)):
 			continue
-		if str(r.get("hero", "")) == hero and str(r.get("map", "red_canyon")) == map_id and same_board(picks_from(str(r.get("talents", "none"))), p):
+		if str(r.get("hero", "")) == hero and str(r.get("map", "red_canyon")) == map_id and str(r.get("trail_key", "none")) == key:
 			return {"path": str(r.get("path", "")), "label": str(r.get("label", ""))}
 	return {}
 
@@ -623,11 +550,21 @@ func _bot_values() -> Dictionary:
 	return out
 
 
-# ---------------------------------------------------------------- the Upgrade board
+# ---------------------------------------------------------------- the Trail
+
+## The setup file's Trail block ({levels, save: {ids, level} | null, save_note}); the levels fall back to the game's.
+func _trail_doc() -> Dictionary:
+	return doc.get("trail", {}) if doc.get("trail") is Dictionary else {}
+
+
+func _trail_levels() -> int:
+	var n := int(_trail_doc().get("levels", 0))
+	return n if n > 0 else Trail.levels()
+
 
 func _build_board(parent: Control) -> void:
 	var h := HBoxContainer.new()
-	h.add_child(_section("The Upgrade board"))
+	h.add_child(_section("The Trail"))
 	var sp := Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(sp)
@@ -644,105 +581,63 @@ func _build_board(parent: Control) -> void:
 		b.toggle_mode = true
 		_preset_btns[nm] = b
 		pr.add_child(b)
+	var g := GridContainer.new()
+	g.columns = 2
+	g.add_theme_constant_override("h_separation", 10)
+	parent.add_child(g)
+	_trail_level = SpinBox.new()
+	_trail_level.min_value = 0
+	_trail_level.max_value = _trail_levels()
+	_trail_level.step = 1
+	_trail_level.value_changed.connect(func(v: float) -> void: _level_typed(int(v)))
+	_row(g, "Trail Level", _trail_level, "every required node up to this level is bought (the choices taken in turn: the first group its first member, the second its second, ...)")
+	_trail_opt = CheckBox.new()
+	_trail_opt.text = "the optional nodes too"
+	_trail_opt.toggled.connect(func(on: bool) -> void:
+		trail_optional = on
+		_show_board())
+	_row(g, "Optional", _trail_opt, "the Stakes, the Grubstake and Spirit up to that level (a player may skip them)")
 	var help := Label.new()
-	help.text = "Each slot is a rank: click a free one to buy up to it (form A), click A for B, click B to sell it and the ranks above."
+	help.text = "The outlaws, items and stages a node gives come with it: the run's pool is what a player at that Trail Level has."
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.add_theme_color_override("font_color", PANEL.DIM)
 	help.add_theme_font_size_override("font_size", 12)
 	parent.add_child(help)
-	_talent_ids.clear()
-	_talent_defs.clear()
-	var list: Array = _reg.talents_list() if _reg != null and _reg.has_method("talents_list") else []
-	for td in list:
-		_talent_ids.append(str(td.id))
-		_talent_defs[str(td.id)] = td
-	for id in _talent_ids:
-		var td = _talent_defs[id]
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 4)
-		parent.add_child(row)
-		var ic := TextureRect.new()
-		ic.custom_minimum_size = Vector2(26, 26)
-		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		ic.texture = td.form_icon(0) if td.form_icon(0) != null else td.icon
-		row.add_child(ic)
-		var nm := VBoxContainer.new()
-		nm.add_theme_constant_override("separation", -2)
-		nm.custom_minimum_size = Vector2(190, 0)
-		row.add_child(nm)
-		var l := Label.new()
-		l.text = str(td.display_name)
-		nm.add_child(l)
-		var f := Label.new()
-		f.text = "A %s · B %s" % [td.form_name(0), td.form_name(1)]
-		f.add_theme_color_override("font_color", PANEL.DIM)
-		f.add_theme_font_size_override("font_size", 11)
-		f.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		f.custom_minimum_size = Vector2(190, 0)
-		nm.add_child(f)
-		var slots: Array = []
-		for k in range(maxi(int(td.max_rank()), 1)):
-			var tid := str(id)
-			var kk := k
-			var b := _button("", "", func() -> void: _slot_clicked(tid, kk))
-			b.custom_minimum_size = Vector2(38, 30)
-			slots.append(b)
-			row.add_child(b)
-		_slots[id] = slots
-
-
-func _slot_clicked(id: String, k: int) -> void:
-	picks[id] = click_slot(picks.get(id, []), k)
-	if (picks[id] as Array).is_empty():
-		picks.erase(id)
-	_show_board()
 
 
 func _use_preset(name: String) -> void:
-	var b = (doc.get("presets", {}) as Dictionary).get(name) if doc.get("presets") is Dictionary else null
-	if b is Dictionary:
-		picks = picks_from(b)
-	elif name == "none":
-		picks = {}
+	if name == "save" and not (_trail_doc().get("save") is Dictionary):
+		return
+	trail = name
+	_show_board()
+
+
+## A level typed into the box: that level by its number (a preset's own level keeps the preset's name).
+func _level_typed(lv: int) -> void:
+	if trail != "save" and TRAIL_ARG.level_of(trail, _trail_levels()) == lv:
+		return
+	trail = "none" if lv <= 0 else str(lv)
 	_show_board()
 
 
 func _show_board() -> void:
-	for id in _slots:
-		var arr: Array = picks.get(id, [])
-		var td = _talent_defs.get(id)
-		var slots: Array = _slots[id]
-		for k in range(slots.size()):
-			var b: Button = slots[k]
-			if k < arr.size():
-				var f := int(arr[k])
-				b.text = "B" if f == 1 else "A"
-				b.tooltip_text = "rank %d: %s (click: %s)" % [k + 1, td.form_name(f) if td else "", "sell it and the ranks above" if f == 1 else "the other form"]
-				b.add_theme_stylebox_override("normal", _sbox(Color(FORM_COLS[f], 0.85), 4, 4, FORM_COLS[f]))
-				b.add_theme_stylebox_override("hover", _sbox(Color(FORM_COLS[f], 1.0), 4, 4, Color.WHITE))
-				b.add_theme_color_override("font_color", Color(0.08, 0.08, 0.1))
-				b.add_theme_color_override("font_hover_color", Color(0.08, 0.08, 0.1))
-			else:
-				b.text = "·"
-				b.tooltip_text = "rank %d: buy up to here (form A)" % (k + 1)
-				b.remove_theme_stylebox_override("normal")
-				b.remove_theme_stylebox_override("hover")
-				b.remove_theme_color_override("font_color")
-				b.remove_theme_color_override("font_hover_color")
-	var presets: Dictionary = doc.get("presets", {}) if doc.get("presets") is Dictionary else {}
-	var labels: Dictionary = doc.get("labels", {}) if doc.get("labels") is Dictionary else {}
-	_board_sum.text = board_words(picks, presets, labels, _talent_ids.size())
-	var pre := preset_of(picks, presets)
+	var levels := _trail_levels()
+	var sv = _trail_doc().get("save")
+	var save_level := int((sv as Dictionary).get("level", -1)) if sv is Dictionary else -1
+	var lv := save_level if trail == "save" else TRAIL_ARG.level_of(trail, levels)
+	_trail_level.set_value_no_signal(maxi(lv, 0))
+	_trail_level.editable = trail != "save"
+	_trail_opt.set_pressed_no_signal(trail_optional)
+	_trail_opt.disabled = trail == "save" or trail == "none"
+	_board_sum.text = trail_words(trail, trail_optional, levels, save_level)
 	for name in _preset_btns:
 		var b: Button = _preset_btns[name]
-		b.set_pressed_no_signal(name == pre)
-		var have = presets.get(name)
-		b.disabled = name != "none" and not (have is Dictionary)
+		b.set_pressed_no_signal(name == trail)
 		if name == "save":
-			b.tooltip_text = "the PC save's Upgrade board (read only)" if have is Dictionary else "no PC save to read: %s" % str(doc.get("save_note", "not given"))
+			b.disabled = not (sv is Dictionary)
+			b.tooltip_text = "the PC save's own Trail, node for node (read only)" if sv is Dictionary else "no PC save to read: %s" % str(_trail_doc().get("save_note", "not given"))
 		else:
-			b.tooltip_text = "the Sim's %s board" % str(labels.get(name, PRESET_WORDS[name])).to_lower()
+			b.tooltip_text = "Trail Level %d of %d" % [TRAIL_ARG.level_of(str(name), levels), levels]
 
 
 # ---------------------------------------------------------------- filling and reading
@@ -796,7 +691,10 @@ func _fill(s: Dictionary) -> void:
 		if str(k) != "preset":
 			over[k] = opts[k]
 	_set_bot_fields(over)
-	picks = picks_from(str(s.get("talents", "none")))
+	trail = str(s.get("trail", "none")).strip_edges().to_lower()
+	if trail == "" or (trail != "save" and TRAIL_ARG.level_of(trail, _trail_levels()) < 0):
+		trail = "none"
+	trail_optional = bool(s.get("trail_optional", false))
 	_show_board()
 
 
@@ -849,8 +747,8 @@ func collect() -> Dictionary:
 	var li := _look.selected
 	var bi := _bot_preset.selected
 	var preset: String = _bot_preset_ids[bi] if bi >= 0 and bi < _bot_preset_ids.size() else "explorer"
-	var presets: Dictionary = doc.get("presets", {}) if doc.get("presets") is Dictionary else {}
-	var labels: Dictionary = doc.get("labels", {}) if doc.get("labels") is Dictionary else {}
+	var sv = _trail_doc().get("save")
+	var save_ids: Array = (sv as Dictionary).get("ids", []) if sv is Dictionary and trail == "save" else []
 	var s := {"hero": _hero_ids[hi] if hi >= 0 and hi < _hero_ids.size() else "drifter",
 		"look": _look_codes[li] if li >= 0 and li < _look_codes.size() else "",
 		"map": _map_ids[_map.selected] if _map.selected >= 0 and _map.selected < _map_ids.size() else "red_canyon",
@@ -858,8 +756,9 @@ func collect() -> Dictionary:
 		"seed": int(_seed.value), "seed_random": _seed_random.button_pressed,
 		"speed": float(CLOCK.SPEEDS[maxi(_speed.selected, 0)]), "limit": limit_secs(_limit.text),
 		"death": str(DEATHS[maxi(_death.selected, 0)][0]), "sound": _sound.button_pressed, "numbers": _numbers.button_pressed,
-		"unlocks": "all" if _unlocks.button_pressed else "save", "talents": letters_of(picks, _talent_ids),
-		"board_label": board_words(picks, presets, labels, _talent_ids.size()),
+		"unlocks": "all" if _unlocks.button_pressed else "save", "trail": trail, "trail_optional": trail_optional and trail != "save" and trail != "none",
+		"trail_ids": save_ids,
+		"trail_label": trail_words(trail, trail_optional, _trail_levels(), int((sv as Dictionary).get("level", -1)) if sv is Dictionary else -1),
 		"bot": "stub" if preset == "stub" else "auto"}
 	s["bot_opts"] = {} if preset == "stub" else bot_diff(preset, _bot_presets().get(preset, {}), _bot_values())
 	# pass 90 (lane BOT's note): the safety style brings the ring breakout unless it is given (Bot.resolve_opts), so with

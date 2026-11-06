@@ -2,10 +2,10 @@
 ## since the start of the game. Provide some minimal info on which items are doing the stat changes underneath
 ## somewhere"): which stats the grid lists, which moved since the run began (Run.start_stat) and whether for the better,
 ## and the open stat's sources in two groups: "At the start" (the base, the hero, his signature stat at level 1, the
-## Upgrade board) and "This run" (the signature stat's growth with his level, cards and passive items, perks, mutations,
+## Trail's bought upgrades) and "This run" (the signature stat's growth with his level, cards and passive items, perks, mutations,
 ## Totem gifts, the Stranger's cut, running bonuses, timed buffs with their seconds left). Each source is one row, its
 ## amounts summed (a "mul" compounded as the sheet folds it), named and drawn by its source id (StatSheet's `sid`), so
-## three ranks of one talent or two gifts of one spirit are one row. Effects aimed at weapons are not in the hero's
+## every Trail node of one upgrade type or two gifts of one spirit are one row. Effects aimed at weapons are not in the hero's
 ## numbers, so not among his rows. Reads only.
 class_name StatSources
 extends RefCounted
@@ -17,7 +17,7 @@ const RUN := "run"
 const RUN_ORDER := {"trait": 0, "passive": 1, "favourite": 1, "chest": 1, "perk": 2, "mutation": 2, "totem": 3,
 	"stranger": 3, "momentum": 4, "buff": 6}
 ## The source ids whose rows belong to the start (a "trait:" one splits: its level-1 step is the start's).
-const START_KINDS := ["base", "hero", "talent", "trail"]
+const START_KINDS := ["base", "hero", "trail"]
 ## The structures whose icons stand for the map's gifts on a row.
 const TOTEM_STRUCTURE := "totem_pole"
 const STRANGER_STRUCTURE := "hooded_figure"
@@ -217,13 +217,6 @@ static func describe_source(sid: String, source: String = "", count: int = 1) ->
 					out["name"] = c.display_name
 				elif kind == "trait":
 					out["name"] = c.trait_name if c.trait_name != "" else c.display_name
-		"talent":
-			var parts := id.split(":")
-			var t: TalentDef = Registry.talent(parts[0])
-			if t:
-				var form := int(parts[1]) if parts.size() > 1 else 0
-				out["name"] = "%s · %s rank %d" % [t.display_name, t.form_name(form), Save.talent_count(t.id, form)]
-				out["icon"] = t.form_icon(form) if t.form_icon(form) != null else t.icon
 		"trail":
 			# pass 129 (lane TRAILCORE): the Trail's bought upgrades of one type ("trail:might"): "The Trail: Might", its icon
 			var tu := Trail.upgrade(id)

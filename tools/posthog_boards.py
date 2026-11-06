@@ -166,12 +166,13 @@ BOARDS = [
         ("Runs a day, by stage", trend("run_end", "ActionsBar", breakdown="stage_id")),
         ("Where heroes fall (stage)", trend("player_died", "ActionsBarValue", breakdown="stage")),
         ("Survey answers this week", trend("survey sent", "BoldNumber", date_from="-7d")),
-        ("Gold today: earned, spent, banked, lost, on talents", table(
+        # pass 129: the Upgrade board left the game; the bank's sink is the Trail (gold_meta reason 'trail')
+        ("Gold today: earned, spent, banked, lost, on the Trail", table(
             "SELECT round(coalesce(sumIf(" + num("gold_earned") + ", event = 'run_end' AND " + NO_DEBUG_GOLD + "), 0)) AS earned, "
             "round(coalesce(sumIf(" + num("gold_spent") + ", event = 'run_end' AND " + NO_DEBUG_GOLD + "), 0)) AS spent_in_runs, "
             "round(coalesce(sumIf(" + num("gold_banked") + ", event = 'run_end' AND " + NO_DEBUG_GOLD + "), 0)) AS banked, "
             "round(coalesce(sumIf(" + num("gold_lost") + ", event = 'run_end' AND " + NO_DEBUG_GOLD + "), 0)) AS lost, "
-            "round(coalesce(-sumIf(" + num("delta") + ", event = 'gold_meta' AND properties.reason = 'talent'), 0)) AS on_talents "
+            "round(coalesce(-sumIf(" + num("delta") + ", event = 'gold_meta' AND properties.reason = 'trail'), 0)) AS on_the_trail "
             "FROM events WHERE event IN ('run_end', 'gold_meta') AND timestamp >= toStartOfDay(now())")),
     ]),
     ("88fits · Players", "Each player by the name the game gave them (Settings shows it by the version). Filter any board by a cohort of your friends.", [
@@ -186,6 +187,11 @@ BOARDS = [
             "round(properties.t / 60, 1) AS minutes, properties.stage AS stage, " + STAGE + " AS stage_id, properties.outcome AS outcome, "
             "properties.level AS level, properties.kills AS kills "
             "FROM events WHERE event = 'run_end' AND " + RECENT + " ORDER BY timestamp DESC LIMIT 50")),
+        # pass 129: where the players stand on the Trail (run_start carries trail_level, trail_nodes, trail_spent)
+        ("Trail Level as runs begin", table(
+            "SELECT toInt(properties.trail_level) AS trail_level, count() AS runs, count(DISTINCT " + PLAYER + ") AS players "
+            "FROM events WHERE event = 'run_start' AND isNotNull(properties.trail_level) AND " + RECENT +
+            " GROUP BY trail_level ORDER BY trail_level")),
         ("Opens a day, by player", trend("app_open", "ActionsBar", breakdown="player_name", breakdown_type="person")),
         ("Phones: frame rate", table(
             "SELECT properties.device AS device, properties.os AS os, count() AS runs, round(median(properties.fps_avg), 1) AS fps, "
@@ -308,7 +314,7 @@ BOARDS = [
     ]),
     ("88fits · Stages", "Each stage as its own run (pass 87): how its runs end (extracted, fell before the boss, after it, in Endless), how often "
      "the boss falls, how long heroes last in Endless, by hero and by player, and when each player first beat each stage. Every other board "
-     "filters by stage too: add a dashboard filter on the event property stage_id (s1, s2, dust, s3: the Blood Moon stays s3; "stage" counts places in the list, and it is 4 for the Blood Moon from pass 126).", [
+     "filters by stage too: add a dashboard filter on the event property stage_id (s1, s2, dust, s3: the Blood Moon stays s3; 'stage' counts places in the list, and it is 4 for the Blood Moon from pass 126).", [
         ("Stage runs: how they end", table(
             "SELECT " + STAGE + " AS stage_id, any(properties.stage_name) AS name, count() AS runs, "
             "round(100 * countIf(properties.boss_killed = true) / count(), 1) AS boss_down_pct, "
@@ -343,7 +349,7 @@ BOARDS = [
         ("Endless waves reached a day", trend("endless_wave", "ActionsBar", breakdown="stage_id")),
     ]),
     ("88fits · Coins", "Where the gold comes from and where it goes (pass 61): in a run by source and by sink, minute by minute, "
-     "what each run banked (every end banks since pass 70; only a quit loses it), and outside the runs the bank: Upgrade ranks bought and refunded, the balance "
+     "what each run banked (every end banks since pass 70; only a quit loses it), and outside the runs the bank: the Trail's nodes bought (pass 129; the old Upgrade board paid back once), the balance "
      "over time. The developer's +gold buttons are left out of the by-source tiles, and runs that used them are left out of the "
      "run totals.", [
         ("Gold earned in runs, by source", by_key("gold_by_source", "source")),
@@ -371,20 +377,25 @@ BOARDS = [
             "round(" + num("gold_spent") + ") AS spent, round(" + num("gold_strongbox") + ") AS strongbox, round(" + num("gold_banked") + ") AS banked, "
             "round(" + num("gold_lost") + ") AS lost, round(" + num("gold_before") + ") AS bank_before, round(" + num("gold_after") + ") AS bank_after "
             "FROM events WHERE " + GOLD_ENDS + " ORDER BY timestamp DESC LIMIT 30")),
-        ("The bank a day: in from runs, out to Upgrade, refunds", line(
+        # pass 129: out to the Trail (reason 'trail': a node bought); 'talent_refund' is the old Upgrade board paid back
+        ("The bank a day: in from runs, out to the Trail, the old board paid back", line(
             "SELECT toDate(timestamp) AS day, round(sumIf(" + num("delta") + ", properties.reason = 'run_bank')) AS from_extractions, "
             "round(sumIf(" + num("delta") + ", properties.reason = 'strongbox')) AS from_strongboxes, "
-            "round(-sumIf(" + num("delta") + ", properties.reason = 'talent')) AS on_upgrades, "
-            "round(sumIf(" + num("delta") + ", properties.reason = 'talent_refund')) AS refunded "
+            "round(-sumIf(" + num("delta") + ", properties.reason = 'trail')) AS on_the_trail, "
+            "round(sumIf(" + num("delta") + ", properties.reason = 'talent_refund')) AS old_board_paid_back "
             "FROM events WHERE event = 'gold_meta' AND " + RECENT + " GROUP BY day ORDER BY day",
-            "day", ["from_extractions", "from_strongboxes", "on_upgrades", "refunded"], display="ActionsBar")),
-        ("Upgrade: gold by talent", table(
-            "SELECT properties.talent AS talent, count() AS ranks_bought, round(-sum(" + num("delta") + ")) AS gold, "
-            "max(toInt(properties.rank)) AS highest_rank, max(timestamp) AS last_bought FROM events "
-            "WHERE event = 'gold_meta' AND properties.reason = 'talent' AND " + RECENT + " GROUP BY talent ORDER BY gold DESC")),
-        ("Upgrade: Take it all back", table(
+            "day", ["from_extractions", "from_strongboxes", "on_the_trail", "old_board_paid_back"], display="ActionsBar")),
+        # a Trail node bought: `type` what it gives (upgrade, outlaw, weapon, passive, stage, ...), `what` the upgrade
+        # type or the gift's id, `level` the node's Trail Level (Trail.buy)
+        ("The Trail: gold by what was bought", table(
+            "SELECT properties.type AS type, properties.what AS what, count() AS nodes_bought, round(-sum(" + num("delta") + ")) AS gold, "
+            "max(toInt(properties.level)) AS highest_level, max(timestamp) AS last_bought FROM events "
+            "WHERE event = 'gold_meta' AND properties.reason = 'trail' AND " + RECENT + " GROUP BY type, what ORDER BY gold DESC")),
+        # the one-time refund of the old board by the Trail's migration (why trail_v129); a "Take it all back" from before
+        # the Trail carries the same reason without a `why`
+        ("The Trail: the old Upgrade board paid back", table(
             "SELECT timestamp, " + PLAYER + " AS player, round(" + num("delta") + ") AS gold_back, toInt(properties.ranks) AS ranks, "
-            "round(" + num("spent") + ") AS had_cost, round(" + num("balance_after") + ") AS bank_after FROM events "
+            "round(" + num("spent") + ") AS had_cost, properties.why AS why, round(" + num("balance_after") + ") AS bank_after FROM events "
             "WHERE event = 'gold_meta' AND properties.reason = 'talent_refund' AND " + RECENT + " ORDER BY timestamp DESC LIMIT 30")),
         ("The bank's every move, by reason", table(
             "SELECT properties.reason AS reason, count() AS moves, round(sumIf(" + num("delta") + ", " + num("delta") + " > 0)) AS gold_in, "

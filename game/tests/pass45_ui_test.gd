@@ -94,43 +94,6 @@ func test_the_settings_wipe_asks_first() -> void:
 
 # ---------------------------------------------------------------- the Upgrade sheet
 
-func test_the_sheet_sums_the_ranks_for_reading() -> void:
-	# pass 88 (lane MIRROR, re-pinned on purpose): Grit by name (the board's first talent is the cheapest since pass 88,
-	# Stakes, whose forms read three stats)
-	var def: TalentDef = Registry.talent("grit")
-	# the plain ranks (six; pass 123's seventh is dearer and stronger, see pass123_LEAD), each the same step
-	var full := def.max_rank() - 1
-	assert_int(full).is_equal(6)
-	var base: Array = def.effects_for(0, 1)
-	assert_int(def.effects_for(0, full).size()).is_equal(base.size() * full)
-	var summed: Array = def.summed_effects(0, full)
-	assert_int(summed.size()).is_equal(base.size())
-	for i in base.size():
-		var e: Effect = base[i]
-		var s: Effect = summed[i]
-		assert_str(s.stat).is_equal(e.stat)
-		assert_str(s.op).is_equal(e.op)
-		assert_float(s.value).is_equal_approx(e.value * full, 0.0001)
-	# one effect reads once: no ", +" between three copies
-	var text := TextGen.describe_effects(summed)
-	assert_str(text).not_contains(", +")
-	assert_int(def.summed_effects(0, 0).size()).is_equal(0)
-	assert_int(def.summed_effects(5, 1).size()).is_equal(0)
-
-
-func test_grit_at_full_reads_as_one_line() -> void:
-	var grit := Registry.talent("grit")
-	if grit == null:
-		return
-	assert_str(TextGen.describe_effects(grit.summed_effects(0, 3))).is_equal("+30% max HP")
-	assert_str(TextGen.describe_effects(grit.summed_effects(1, 3))).is_equal("+18% damage reduction")
-	# and at all six (pass 46)
-	assert_str(TextGen.describe_effects(grit.summed_effects(0, 6))).is_equal("+60% max HP")
-	assert_str(TextGen.describe_effects(grit.summed_effects(1, 6))).is_equal("+36% damage reduction")
-
-
-# ---------------------------------------------------------------- the title plaque
-
 func test_a_debuff_on_the_plaque_is_not_good() -> void:
 	assert_bool(W.BAD_DARK != W.SAGE).is_true()
 	var t = load("res://ui/TitleScreen.gd").new()

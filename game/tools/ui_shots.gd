@@ -1,5 +1,5 @@
 ## The screens screenshot_run.gd does not reach (pass 34, for the UI review pack): the pause menu's Options tab, the
-## portal dialog, the results screen after a run, the collection's hidden part and the bottoms of the Mirror and Settings. Windowed at the phone's 1080x1920:
+## portal dialog, the results screen after a run, the collection's hidden part and the bottoms of the Trail and Settings. Windowed at the phone's 1080x1920:
 ## godot --audio-driver Dummy --resolution 1080x1920 --path game --script res://tools/ui_shots.gd -- out=<dir>
 extends SceneTree
 
@@ -100,7 +100,7 @@ func _tick() -> void:
 		7:
 			if _t - _t0 > 0.5:
 				_shot("collection_hidden")
-				change_scene_to_file("res://ui/HomesteadScreen.tscn")
+				change_scene_to_file("res://ui/TrailScreen.tscn")
 				_step = 8
 				_t0 = _t
 		8:

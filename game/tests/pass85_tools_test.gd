@@ -46,7 +46,7 @@ func after_test() -> void:
 
 func test_the_command_line_fills_the_pop_up() -> void:
 	var s := SETUP.defaults_from_args({"hero": "calavera", "seed": "77", "seed_random": "1", "speed": "3", "limit": "300", "death": "keep",
-		"talents": "grit:AB", "board_label": "custom", "bot.preset": "expert", "bot.skill": "0.6", "bot.totems": "off"})
+		"trail": "36", "trail_optional": "1", "trail_ids": "n001,n002", "bot.preset": "expert", "bot.skill": "0.6", "bot.totems": "off"})
 	assert_str(str(s["hero"])).is_equal("calavera")
 	assert_int(int(s["seed"])).is_equal(77)
 	assert_bool(bool(s["seed_random"])).is_true()
@@ -57,29 +57,28 @@ func test_the_command_line_fills_the_pop_up() -> void:
 	assert_bool(bool(s["sound"])).is_false()
 	assert_bool(bool(SETUP.defaults_from_args({"sound": "1"})["sound"])).is_true()
 	assert_dict(s["bot_opts"]).is_equal({"preset": "expert", "skill": 0.6, "totems": false})
-	assert_str(str(s["talents"])).is_equal("grit:AB")
+	# pass 129: the Trail (the Upgrade board's talents= until the board went)
+	assert_str(str(s["trail"])).is_equal("36")
+	assert_bool(bool(s["trail_optional"])).is_true()
+	assert_array(s["trail_ids"]).is_equal(["n001", "n002"])
+	assert_str(str(SETUP.defaults_from_args({})["trail"])).is_equal("none")
 
 
-func test_the_board_letters_and_the_slots() -> void:
-	var p := SETUP.picks_from("grit:AAB,drive:A")
-	assert_dict(p).is_equal({"grit": [0, 0, 1], "drive": [0]})
-	assert_dict(SETUP.picks_from({"nerve": "BB"})).is_equal({"nerve": [1, 1]})
-	assert_dict(SETUP.picks_from("none")).is_empty()
-	assert_str(SETUP.letters_of(p, ["drive", "grit"])).is_equal("drive:A,grit:AAB")
-	assert_str(SETUP.letters_of({}, [])).is_equal("none")
-	assert_int(SETUP.ranks_of(p)).is_equal(4)
-	# a free slot buys up to it in A; A turns to B; B sells it and every rank above
-	assert_array(SETUP.click_slot([], 2)).is_equal([0, 0, 0])
-	assert_array(SETUP.click_slot([0, 0, 0], 1)).is_equal([0, 1, 0])
-	assert_array(SETUP.click_slot([0, 1, 0], 1)).is_equal([0])
-	assert_array(SETUP.click_slot([0], 0)).is_equal([1])
-	assert_array(SETUP.click_slot([1], 0)).is_equal([])
-	var presets := {"none": {}, "quarter": {"grit": "AA", "nerve": "B"}, "save": null}
-	assert_str(SETUP.preset_of({}, presets)).is_equal("none")
-	assert_str(SETUP.preset_of({"nerve": [1], "grit": [0, 0]}, presets)).is_equal("quarter")
-	assert_str(SETUP.preset_of({"grit": [0]}, presets)).is_equal("")
-	assert_str(SETUP.board_words({"grit": [0]}, presets, {}, 8)).is_equal("custom (1 of 48 ranks)")
-	assert_str(SETUP.board_words({"nerve": [1], "grit": [0, 0]}, presets, {"quarter": "a quarter"}, 8)).is_equal("a quarter (3 of 48 ranks)")
+## Pass 129 (the Upgrade board's letters and slots until the board went): the Trail setting's key and words.
+func test_the_trail_setting_its_key_and_its_words() -> void:
+	assert_str(SETUP.trail_key("quarter", false)).is_equal("quarter")
+	assert_str(SETUP.trail_key("36", true)).is_equal("36+opt")
+	assert_str(SETUP.trail_key("", false)).is_equal("none")
+	assert_str(SETUP.trail_key("0", true)).is_equal("none")
+	assert_str(SETUP.trail_key("save", true)).is_equal("save")
+	assert_str(SETUP.trail_words("none", false, 70)).is_equal("none")
+	assert_str(SETUP.trail_words("quarter", false, 70)).is_equal("a quarter (Trail Level 18 of 70)")
+	assert_str(SETUP.trail_words("half", true, 70)).is_equal("half (Trail Level 35 of 70), optional nodes too")
+	assert_str(SETUP.trail_words("36", false, 70)).is_equal("Trail Level 36 of 70")
+	assert_str(SETUP.trail_words("save", false, 70, 12)).is_equal("my save (Trail Level 12 of 70)")
+	assert_str(SETUP.trail_words("save", false, 70)).is_equal("my save")
+	assert_array(SETUP.ids_from("n001, n002,,")).is_equal(["n001", "n002"])
+	assert_array(SETUP.ids_from("")).is_empty()
 
 
 func test_the_limit_the_bot_options_and_the_grey_line() -> void:
@@ -96,11 +95,12 @@ func test_the_limit_the_bot_options_and_the_grey_line() -> void:
 	cur["totems"] = false
 	assert_dict(SETUP.bot_diff("explorer", pre, cur)).is_equal({"preset": "explorer", "skill": 0.5, "totems": false})
 	assert_dict(SETUP.bot_diff("explorer", pre, pre.duplicate())).is_equal({"preset": "explorer"})
-	var refs := [{"hero": "drifter", "map": "red_canyon", "talents": "grit:AA", "path": "a/result.json", "label": "a"},
-		{"hero": "drifter", "map": "red_canyon", "talents": "none", "path": "b/result.json", "label": "b"}]
-	assert_dict(SETUP.ref_for(refs, "drifter", "red_canyon", {})).is_equal({"path": "b/result.json", "label": "b"})
-	assert_dict(SETUP.ref_for(refs, "drifter", "red_canyon", {"grit": [0, 0]})).is_equal({"path": "a/result.json", "label": "a"})
-	assert_dict(SETUP.ref_for(refs, "calavera", "red_canyon", {})).is_empty()
+	var refs := [{"hero": "drifter", "map": "red_canyon", "trail_key": "quarter", "path": "a/result.json", "label": "a"},
+		{"hero": "drifter", "map": "red_canyon", "trail_key": "none", "path": "b/result.json", "label": "b"}]
+	assert_dict(SETUP.ref_for(refs, "drifter", "red_canyon", "none")).is_equal({"path": "b/result.json", "label": "b"})
+	assert_dict(SETUP.ref_for(refs, "drifter", "red_canyon", "quarter")).is_equal({"path": "a/result.json", "label": "a"})
+	assert_dict(SETUP.ref_for(refs, "drifter", "red_canyon", "36+opt")).is_empty()
+	assert_dict(SETUP.ref_for(refs, "calavera", "red_canyon", "none")).is_empty()
 
 
 # ---------------------------------------------------------------- the pop-up's fields map to the run's start
@@ -109,18 +109,22 @@ func test_the_pop_ups_fields_map_to_the_runs_start() -> void:
 	var st = auto_free(SETUP.new())
 	st.size = Vector2(1600, 1000)
 	add_child(st)
-	var doc := {"presets": {"none": {}, "quarter": {"grit": "AA"}, "half": {"grit": "AAAA", "nerve": "BB"}, "full": {"grit": "AAAAAA"}, "save": null},
-		"labels": {"quarter": "a quarter", "half": "half"}, "refs": []}
-	st.open(SETUP.defaults_from_args({"hero": "drifter", "seed": "5", "talents": "none", "bot.preset": "explorer"}), doc, false)
+	var doc := {"trail": {"levels": 70, "save": null, "save_note": "no save"}, "refs": []}
+	st.open(SETUP.defaults_from_args({"hero": "drifter", "seed": "5", "trail": "none", "bot.preset": "explorer"}), doc, false)
 	assert_bool(st.visible).is_true()
 	# the initial pop-up has no Cancel (no run to go back to)
 	assert_bool(st._cancel_btn.visible).is_false()
-	# the save's board is disabled without a PC save
+	# the save's Trail is disabled without a PC save, and a tap on it changes nothing
 	assert_bool((st._preset_btns["save"] as Button).disabled).is_true()
+	st._use_preset("save")
+	assert_str(st.trail).is_equal("none")
 	st._hero.select(st._hero_ids.find("calavera"))
 	st._hero_changed("")
 	st._use_preset("half")
-	st._slot_clicked("grit", 4)
+	assert_str(st.trail).is_equal("half")
+	assert_float(st._trail_level.value).is_equal(35.0)
+	st._level_typed(36)
+	st._trail_opt.button_pressed = true
 	st._seed_random.button_pressed = false
 	st._seed.value = 42
 	st._speed.select(4)
@@ -140,13 +144,13 @@ func test_the_pop_ups_fields_map_to_the_runs_start() -> void:
 	assert_float(float(s["speed"])).is_equal(4.0)
 	assert_float(float(s["limit"])).is_equal(150.0)
 	assert_bool(bool(s["sound"])).is_true()
-	# half, then the 5th grit rank bought (A): the board as the command line writes it, a custom one
-	var picks := SETUP.picks_from(str(s["talents"]))
-	assert_array(picks["grit"]).is_equal([0, 0, 0, 0, 0])
-	assert_array(picks["nerve"]).is_equal([1, 1])
-	assert_str(str(s["board_label"])).starts_with("custom")
+	# half, then Trail Level 36 typed and the optional nodes ticked: a level of its own
+	assert_str(str(s["trail"])).is_equal("36")
+	assert_bool(bool(s["trail_optional"])).is_true()
+	assert_array(s["trail_ids"]).is_empty()
+	assert_str(str(s["trail_label"])).is_equal("Trail Level 36 of 70, optional nodes too")
 	assert_dict(s["bot_opts"]).is_equal({"preset": "expert", "skill": 0.55})
-	# the Watch takes them: the hero, the seed, the board (as Save.data.talents), the speed; the launch comes down the beam
+	# the Watch takes them: the hero, the seed, the Trail, the speed; the launch comes down the beam
 	var w = auto_free(WATCH.new())
 	w.take_settings(s)
 	assert_str(w.hero).is_equal("calavera")
@@ -155,9 +159,9 @@ func test_the_pop_ups_fields_map_to_the_runs_start() -> void:
 	assert_float(w.limit).is_equal(150.0)
 	assert_bool(w.sound_on).is_true()
 	assert_dict(w.bot_opts).is_equal({"preset": "expert", "skill": 0.55})
-	var tal := WATCH.talents_from(w.talents_text, Registry.talents.keys())
-	assert_int(int((tal["grit"] as Dictionary)["rank"])).is_equal(5)
-	assert_int(int((tal["nerve"] as Dictionary)["form"])).is_equal(1)
+	assert_str(w.trail_text).is_equal("36")
+	assert_bool(w.trail_optional).is_true()
+	assert_str(w.trail_words()).is_equal("Trail Level 36 of 70, optional nodes too")
 	var lo := WATCH.launch_of("calavera", "red_canyon", 42, true)
 	assert_bool(bool(lo["spawn"])).is_true()
 	assert_str(str(lo["character"])).is_equal("calavera")
@@ -170,10 +174,10 @@ func test_the_pop_ups_fields_map_to_the_runs_start() -> void:
 
 
 ## Start Run, then Restart run mid-run: the run ends (recorded), the chosen one starts down the spawn beam with its
-## hero and board.
+## hero and Trail.
 func test_start_and_restart_a_run() -> void:
 	var w = WATCH.new()
-	w.set("args", {"hero": "drifter", "seed": "11", "talents": "none", "analytics": "memory", "repo": "user://p85_no_such_dir",
+	w.set("args", {"hero": "drifter", "seed": "11", "trail": "none", "analytics": "memory", "repo": "user://p85_no_such_dir",
 		"speed": "1"})
 	add_child(w)
 	await get_tree().process_frame
@@ -181,7 +185,7 @@ func test_start_and_restart_a_run() -> void:
 	assert_bool(w.setup_open()).is_true()
 	assert_object(w.game).is_null()
 	assert_str(str(w.plaque_words()["text"])).is_equal("Waiting for Start Run")
-	var s := SETUP.defaults_from_args({"hero": "drifter", "seed": "11", "talents": "grit:AA"})
+	var s := SETUP.defaults_from_args({"hero": "drifter", "seed": "11", "trail": "5"})
 	w.setup.visible = false
 	w._on_setup_started(s)
 	assert_object(w.game).is_not_null()
@@ -191,14 +195,17 @@ func test_start_and_restart_a_run() -> void:
 	# down the spawn beam, as the game starts
 	assert_bool(bool(w.game.spawning)).is_true()
 	assert_str(str(w.plaque_words()["text"])).is_equal("Coming down")
-	assert_int(int((Save.data["talents"]["grit"] as Dictionary)["rank"])).is_equal(2)
+	# the run's save holds the Trail asked for: every required node up to level 5
+	assert_int(Trail.level()).is_equal(5)
+	assert_int(int(w.trail_info["level"])).is_equal(5)
+	assert_bool(Save.trail_bought().is_empty()).is_false()
 	var first = w.game
 	# Restart run: the pop-up over the run (paused behind it), with Cancel
 	w.open_setup(true)
 	assert_bool(w.setup.visible).is_true()
 	assert_bool(w.setup.can_cancel).is_true()
 	assert_bool(w.clock.paused).is_true()
-	var s2 := SETUP.defaults_from_args({"hero": "calavera", "seed": "12", "talents": "nerve:B"})
+	var s2 := SETUP.defaults_from_args({"hero": "calavera", "seed": "12", "trail": "none"})
 	w.setup.visible = false
 	w._on_setup_started(s2)
 	var waited := 0
@@ -213,8 +220,9 @@ func test_start_and_restart_a_run() -> void:
 	assert_object(w.game).is_not_null()
 	await get_tree().process_frame
 	assert_bool(bool(w.game.spawning)).is_true()
-	assert_int(int((Save.data["talents"]["nerve"] as Dictionary)["form"])).is_equal(1)
-	assert_bool(Save.data["talents"].has("grit")).is_false()
+	# the second run's own Trail: none
+	assert_bool(Save.trail_bought().is_empty()).is_true()
+	assert_int(Trail.level()).is_equal(0)
 	# the sound stays off unless asked
 	assert_bool(w.sound_on).is_false()
 	w.queue_free()

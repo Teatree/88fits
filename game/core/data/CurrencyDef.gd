@@ -2,7 +2,7 @@
 ## selection functionality in every place where it matters. We aren't adding new currency yet, but we might
 ## eventually"): content/currencies/<id>/<id>.json. Only "gold" exists. Its balance lives in the save: gold under the
 ## save's old "gold" key, any other currency under "wallets"[id] (Save.currency_balance). Every price on the title, the
-## hero sheet, the drawer and the Upgrade board is shown with the currency's own icon (WCoin.currency) and paid through
+## hero sheet, the drawer and the Trail is shown with the currency's own icon (WCoin.currency) and paid through
 ## core/systems/Currency.gd. Adding a currency is one folder (docs/assets_schema.md "Pass 111").
 class_name CurrencyDef
 extends ContentDef

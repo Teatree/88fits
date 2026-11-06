@@ -65,37 +65,6 @@ func test_stranger_replaced_the_dice_shrine() -> void:
 	assert_bool(ResourceLoader.exists("res://art/sprites/props/st_hooded_figure_off.png")).is_true()
 
 
-func test_the_mirror_buys_forms_and_gives_it_all_back() -> void:
-	# pass 32: the farm is gone; the meta is eight talents, two forms each, bought with gold and refundable
-	Save.wipe()
-	assert_int(Registry.talents.size()).is_equal(8)
-	var grit: TalentDef = Registry.talent("grit")
-	assert_int(grit.forms.size()).is_equal(2)
-	# seven ranks since pass 123 (six since pass 46, three before)
-	assert_int(grit.ranks).is_equal(7)
-	assert_int(grit.max_rank()).is_equal(7)
-	Save.add_gold(100000)
-	var before := Save.gold()
-	assert_bool(Save.buy_talent(grit)).is_true()
-	assert_int(Save.talent_rank("grit")).is_equal(1)
-	assert_int(Save.gold()).is_equal(before - grit.cost_of_rank(0))
-	# pass 63: every rank is a choice that stays; the second rank bought as Plate, the first stays Padding
-	assert_bool(Save.buy_talent(grit, 1)).is_true()
-	assert_int(Save.talent_rank("grit")).is_equal(2)
-	assert_array(Save.talent_picks("grit")).is_equal([0, 1])
-	assert_int(Save.talent_count("grit", 0)).is_equal(1)
-	assert_int(Save.talent_count("grit", 1)).is_equal(1)
-	# and it folds into the hero's sheet
-	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
-	assert_float(Run.player_sheet.get_stat("damage_reduction", 0.0)).is_greater_equal(0.05)
-	# everything back, for half the coins (pass 44)
-	var spent := Save.talent_spent()
-	var back := Save.talent_refund_all()
-	assert_int(back).is_equal(int(floor(spent * Save.REFUND_FRAC)))
-	assert_int(Save.talent_rank("grit")).is_equal(0)
-
-
-
 func test_materials_bank_from_the_run() -> void:
 	_start()
 	Run.add_material("bones", 2)

@@ -669,7 +669,7 @@ func _pstats() -> void:
 	_ll_longer = 1.0 + maxf(Run.perk_param("lingering_light", "longer", 0.3), 0.0) if ll else 1.0
 	# pass 70 (lane LINES): Bucking Bronco's chance, Prairie Fire's jumps
 	_pstats_lines(s)
-	# pass 88 (lane MIRROR): the Upgrade board's Stakes
+	# pass 88 (lane MIRROR): the Stakes (the Trail's Stakes nodes since pass 129)
 	_pstats_mirror()
 	# pass 119 (lane LEGEND_B): Lightning in a Bottle's arcs
 	_pstats_arcs(s)
@@ -8738,7 +8738,7 @@ func _throw_frame(i: int, t: int, strip: int = A_ATTACK) -> int:
 	return off + (int(anim_t[i]) % q)
 
 
-# ---------------------------------------------------------------- pass 88 (lane MIRROR): the Upgrade board's Stakes
+# ---------------------------------------------------------------- pass 88 (lane MIRROR): the Stakes (the Trail's Stakes nodes since pass 129)
 
 ## The Stakes' factors as the hero's numbers stood at the last _pstats (MirrorDanger.factors: {"hp": [regular, big],
 ## "attack", "speed", "bounty"}); empty until read.

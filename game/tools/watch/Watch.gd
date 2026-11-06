@@ -3,9 +3,9 @@
 ## (tools/bot/Bot.gd, lane BOT; BotStub.gd with bot=stub), and on the right a panel of numbers, charts and the bot's
 ## decisions (WatchPanel.gd), with a speed control (WatchClock.gd). Started by tools/watch.py on its own snapshot of
 ## game/ (tools/dl/watch/snap, user folder 88fits_watch) through watch_main.gd:
-##   Godot --fixed-fps 60 --path <snapshot> --script res://tools/watch/watch_main.gd -- hero=drifter talents=... seed=7
+##   Godot --fixed-fps 60 --path <snapshot> --script res://tools/watch/watch_main.gd -- hero=drifter trail=quarter seed=7
 ##       [map=red_canyon] [limit=0] [speed=1] [paused=0] [death=end] [unlocks=all] [ref=<sim result.json>] [repo=<repo>]
-##       [lock=<lock dir>] [bot=auto|stub] [bot.<key>=<value> ...] [board_label=...] [ref_label=...] [sound=1]
+##       [lock=<lock dir>] [bot=auto|stub] [bot.<key>=<value> ...] [trail_optional=1] [trail_ids=n001,...] [trail_label=...] [ref_label=...] [sound=1]
 ##       [numbers=1] [autoquit=0] [wall=0] [shots=<dir> shots_at=30,120] [log_speed=30] [w=1920 h=1080]
 ## (tools/dl/p80/keys_WATCH.md lists them). How it lives with the game:
 ## - The Game scene sits in a SubViewport (own World3D, size_2d_override = the phone's canvas, 1080 wide), drawn through
@@ -31,6 +31,7 @@ const RING := preload("res://tools/watch/WatchRing.gd")
 const STUB := preload("res://tools/watch/BotStub.gd")
 ## pass 85 (lane TOOLS): the Hero Settings pop-up and the bot's goal plaque
 const SETUP := preload("res://tools/watch/WatchSetup.gd")
+const TRAIL_ARG := preload("res://tools/trail_arg.gd")
 const PLAQUE := preload("res://tools/watch/WatchPlaque.gd")
 const BOT_PATH := "res://tools/bot/Bot.gd"
 const GAME_SCENE := "res://game/Game.tscn"
@@ -130,15 +131,20 @@ var _limit_called := false
 var _was_paused := false
 
 ## Pass 85 (lane TOOLS): the run's settings (WatchSetup's shape: the command line's at first, then the pop-up's), the
-## setup file watch.py wrote (the board presets, the Sim results), the pop-up and the plaque; a restart waiting for the
+## setup file watch.py wrote (the Trail's levels, the PC save's Trail, the Sim results), the pop-up and the plaque; a restart waiting for the
 ## run it ends to be gone; how many runs this window has started.
 var run_settings: Dictionary = {}
 var setup_doc: Dictionary = {}
 var setup
 var plaque
 var look := ""
-var talents_text := "none"
-var board_label := ""
+## pass 129: the Trail the run's save holds (tools/trail_arg.gd): "none", "quarter", "half", "full", a level, or "save"
+## with trail_ids (the PC save's own nodes, from watch.py); trail_label = it in words; trail_info = what came of it
+var trail_text := "none"
+var trail_optional := false
+var trail_ids: Array = []
+var trail_label := ""
+var trail_info: Dictionary = {}
 var unlocks := "all"
 var runs := 0
 var _pending: Dictionary = {}
@@ -244,8 +250,10 @@ func _read_args() -> void:
 	_shots.sort()
 	_read_actions()
 	run_settings = SETUP.defaults_from_args(args)
-	talents_text = str(run_settings["talents"])
-	board_label = str(run_settings["board_label"])
+	trail_text = str(run_settings["trail"])
+	trail_optional = bool(run_settings["trail_optional"])
+	trail_ids = run_settings["trail_ids"]
+	trail_label = str(run_settings["trail_label"])
 	unlocks = str(run_settings["unlocks"])
 
 
@@ -262,35 +270,6 @@ static func typed_value(v: String) -> Variant:
 	if s.is_valid_float():
 		return float(s)
 	return s
-
-
-## talents=grit:AAB,drive:A (one letter a rank bought, A the first form, B the second; "none" = an empty board) as
-## Save.data.talents writes it ({id: {picks, rank, form}}), only the talents in `known`. {"error": text} when it cannot.
-static func talents_from(arg: String, known: Array) -> Dictionary:
-	var out := {}
-	var txt := arg.strip_edges()
-	if txt == "" or txt.to_lower() == "none":
-		return out
-	for part in txt.split(",", false):
-		var bits := part.strip_edges().split(":")
-		if bits.size() != 2:
-			return {"error": "talents: '%s' is not <id>:<letters>" % part}
-		var id := bits[0].strip_edges()
-		if not known.has(id):
-			return {"error": "talents: no talent '%s'" % id}
-		var picks: Array = []
-		for ch in bits[1].strip_edges().to_upper():
-			if ch == "A" or ch == "0":
-				picks.append(0)
-			elif ch == "B" or ch == "1":
-				picks.append(1)
-			else:
-				return {"error": "talents: '%s' picks are A or B, one a rank" % part}
-		if picks.size() > 6:
-			return {"error": "talents: '%s' has more than 6 ranks" % part}
-		if not picks.is_empty():
-			out[id] = {"picks": picks, "rank": picks.size(), "form": int(picks[picks.size() - 1])}
-	return out
 
 
 func _setup_window() -> void:
@@ -327,22 +306,24 @@ func _setup_save() -> void:
 		settings.show_hints = false
 		settings.damage_numbers = numbers_on
 		settings.debug_mode = false
-	# (pass 85: the board, the unlocks and the look are each run's own: _apply_save)
+	# (pass 85: the Trail, the unlocks and the look are each run's own: _apply_save)
 	if reg == null:
 		problems.append("no Registry")
 
 
-## Pass 85: what the save holds for this run (in the sandbox; nothing reaches the disk): the Upgrade board talent by
-## talent, the unlocks (every quest done, or the Watch save's), the hero's look, the damage numbers.
+## Pass 85: what the save holds for this run (in the sandbox; nothing reaches the disk): the Trail (pass 129: every
+## required node up to the level asked, or the PC save's own nodes; tools/trail_arg.gd), the unlocks (every quest done,
+## or the Watch save's), the hero's look, the damage numbers.
 func _apply_save() -> void:
 	var save := get_node("/root/Save")
 	var reg := get_node("/root/Registry")
 	var gs := get_node_or_null("/root/Settings")
-	var tal := talents_from(talents_text, (reg.get("talents") as Dictionary).keys())
-	if tal.has("error"):
-		problems.append(str(tal["error"]) + ": the board is empty")
-		tal = {}
-	save.data["talents"] = tal
+	trail_info = TRAIL_ARG.apply(save, "none" if trail_text == "save" else trail_text, trail_optional, trail_ids if trail_text == "save" else [])
+	if trail_info.has("error"):
+		problems.append(str(trail_info["error"]) + ": no Trail node is bought")
+		trail_info = TRAIL_ARG.apply(save, "none")
+	elif trail_text == "save" and trail_ids.is_empty():
+		problems.append("trail: the PC save's Trail was not given (trail_ids): no Trail node is bought")
 	if unlocks == "all":
 		var done: Array = []
 		for qid in (reg.get("quests") as Dictionary).keys():
@@ -483,17 +464,17 @@ func _place_badge() -> void:
 
 
 ## Pass 85: the charts' grey line for this run: the command line's Sim result while the run is the one it was found for
-## (the same hero, board and map), else the newest of the setup file's Sim results that matches, else none.
+## (the same hero, Trail and map), else the newest of the setup file's Sim results that matches, else none.
 func _pick_ref() -> void:
 	ref = {}
 	ref_label = ""
 	var same := hero == str(args.get("hero", "drifter")) and map_id == str(args.get("map", "red_canyon")) \
-		and SETUP.same_board(SETUP.picks_from(talents_text), SETUP.picks_from(str(args.get("talents", "none")))) \
+		and SETUP.trail_key(trail_text, trail_optional) == SETUP.trail_key(str(args.get("trail", "none")), str(args.get("trail_optional", "0")) == "1") \
 		and stage == maxi(int(args.get("stage", "1")), 1)
 	if same:
 		_load_ref(str(args.get("ref", "")), str(args.get("ref_label", "")))
 		return
-	var r := SETUP.ref_for(setup_doc.get("refs", []) if setup_doc.get("refs") is Array else [], hero, map_id, SETUP.picks_from(talents_text), stage)
+	var r := SETUP.ref_for(setup_doc.get("refs", []) if setup_doc.get("refs") is Array else [], hero, map_id, SETUP.trail_key(trail_text, trail_optional), stage)
 	if not r.is_empty():
 		_load_ref(str(r["path"]), str(r["label"]))
 
@@ -515,7 +496,7 @@ static func stages_beaten_for(mode: String, p_map: String, mdef, doc: Dictionary
 	return {}
 
 
-## The setup file watch.py wrote (setup=): the board presets and the Sim results; {} without one.
+## The setup file watch.py wrote (setup=): the Trail's levels, the PC save's Trail and the Sim results; {} without one.
 func _load_setup_doc() -> void:
 	var p := str(args.get("setup", ""))
 	if p == "" or not FileAccess.file_exists(p):
@@ -590,13 +571,13 @@ func _begin_run(s: Dictionary, spawn: bool) -> void:
 		DisplayServer.window_set_title("88fits Watch: %s, seed %d" % [hero, run_seed])
 	_start_game(spawn)
 	_refresh_left = 0.0
-	print("watch: %s seed %d map %s board %s limit %s speed %s bot %s ref %s%s" % [hero, run_seed, map_id, board_label if board_label != "" else talents_text,
+	print("watch: %s seed %d map %s trail %s limit %s speed %s bot %s ref %s%s" % [hero, run_seed, map_id, trail_words(),
 		DATA.mmss(limit) if limit > 0.0 else "none", CLOCK.label(clock.speed), str(args.get("bot", "auto")), ref_label if ref_label != "" else "none",
 		" (run %d of this window, the spawn beam)" % runs if spawn else ""])
 
 
 ## The Watch's fields from settings `s`: the hero, his look, the map, the seed (a new one when random), the limit, Down!,
-## the sound, the numbers, the unlocks, the board, the bot and its options, the speed.
+## the sound, the numbers, the unlocks, the Trail, the bot and its options, the speed.
 func take_settings(s: Dictionary) -> void:
 	hero = str(s.get("hero", hero))
 	look = str(s.get("look", ""))
@@ -612,8 +593,10 @@ func take_settings(s: Dictionary) -> void:
 	sound_on = bool(s.get("sound", false))
 	numbers_on = bool(s.get("numbers", true))
 	unlocks = str(s.get("unlocks", "all"))
-	talents_text = str(s.get("talents", "none"))
-	board_label = str(s.get("board_label", ""))
+	trail_text = str(s.get("trail", "none"))
+	trail_optional = bool(s.get("trail_optional", false))
+	trail_ids = s.get("trail_ids", []) if s.get("trail_ids") is Array else []
+	trail_label = str(s.get("trail_label", ""))
 	args["bot"] = str(s.get("bot", "auto"))
 	bot_opts = (s.get("bot_opts", {}) as Dictionary).duplicate()
 	clock = CLOCK.new()
@@ -831,7 +814,7 @@ func _attach() -> void:
 		ra.set("mirror_root", repo.path_join("analytics"))
 	var hdr = ra.get("header")
 	if hdr is Dictionary:
-		hdr["watch"] = {"bot": "", "board": board_label, "talents": talents_text, "ref": ref_label, "look": look, "run": runs}
+		hdr["watch"] = {"bot": "", "trail": trail_text, "trail_optional": trail_optional, "trail_label": trail_words(), "ref": ref_label, "look": look, "run": runs}
 	if game.get("damage_numbers") != null and game.damage_numbers and not numbers_on:
 		game.damage_numbers.suppressed = true
 	_make_bot()
@@ -1646,8 +1629,9 @@ static func is_setup_action(what: String) -> bool:
 	return what in ["setup", "start", "cancel", "say", "quit"] or what.begins_with("setup.") or what.begins_with("shot=")
 
 
-## Pass 85: a check's hand on the pop-up: `hero=<id>`, `look=<code>`, `board=<preset>` (none, quarter, half, full,
-## save), `seed=<n>`, `speed=<x>`, `limit=<m:ss>`, `bot=<preset>`, `sound=<0|1>`, `slot=<talent>/<rank 1..6>` (a click).
+## Pass 85: a check's hand on the pop-up: `hero=<id>`, `look=<code>`, `trail=<preset>` (none, quarter, half, full,
+## save; `board=` is its old name), `trail_level=<n>`, `trail_optional=<0|1>`, `seed=<n>`, `speed=<x>`, `limit=<m:ss>`,
+## `bot=<preset>`, `sound=<0|1>`.
 func setup_action(what: String) -> void:
 	var i := what.find("=")
 	if i <= 0:
@@ -1665,8 +1649,13 @@ func setup_action(what: String) -> void:
 			if li >= 0:
 				setup._look.select(li)
 				setup._show_hero()
-		"board":
+		"trail", "board":
 			setup._use_preset(v)
+		"trail_level":
+			setup._level_typed(int(v))
+		"trail_optional":
+			setup.trail_optional = v == "1"
+			setup._show_board()
 		"seed":
 			setup._seed_random.button_pressed = false
 			setup._seed.value = float(int(v))
@@ -1688,10 +1677,6 @@ func setup_action(what: String) -> void:
 				setup._stage.select(si)
 		"unlocks":
 			setup._unlocks.button_pressed = v == "all" or v == "1"
-		"slot":
-			var bits := v.split("/")
-			if bits.size() == 2:
-				setup._slot_clicked(bits[0], int(bits[1]) - 1)
 
 
 # ---------------------------------------------------------------- words for the panel
@@ -1740,9 +1725,16 @@ func hero_name() -> String:
 	return name_of(hero)
 
 
+## The run's Trail in words: the label given, else what the save came to (TRAIL_ARG.apply), else the argument.
+func trail_words() -> String:
+	if trail_label != "":
+		return trail_label
+	return str(trail_info.get("label", trail_text))
+
+
 func header_words() -> String:
 	var parts := PackedStringArray()
-	parts.append("board %s" % (board_label if board_label != "" else talents_text))
+	parts.append("trail %s" % trail_words())
 	if look != "":
 		parts.append("look %s" % look)
 	parts.append("seed %d" % run_seed)

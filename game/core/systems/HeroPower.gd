@@ -22,7 +22,7 @@
 class_name HeroPower
 extends RefCounted
 
-## A fresh level-1 Drifter's full DPS (the Revolver at level 1, no talents) and effective HP (100 max HP): power 1.0.
+## A fresh level-1 Drifter's full DPS (the Revolver at level 1, no Trail node bought) and effective HP (100 max HP): power 1.0.
 ## Measured with game/tools/_p83_SCALE_boss_probe.gd mode=base (pass 83).
 const BASE_DPS := 20.4
 const BASE_EHP := 100.0

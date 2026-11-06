@@ -48,12 +48,13 @@ and `tools\replay.cmd` finds it without any download. A run from the editor bina
   as a ghost under the thumb (the base and the knob).
 - **The screens** (cards, chests, the shop, the Stranger, totems, the portal, Down!) appear as they did, and the choice
   is made by name, never by screen position: the log on the right says what was picked (`2:41  Picked Mule Kick`).
-- **The Upgrade board** (pass 115, under the numbers): the board the player had when the run began, every talent with a
-  dot a rank (blue its first form, amber its second, hollow not bought) and the forms by name, its ranks of the board's
-  most and the gold they cost. `B` (or a click on its title) folds it to one line. The header names the hero's look.
-  Only a build from 0.98 on shows it in its window; for **any** recording, `python tools/replay.py` prints the board in
-  the terminal before the window opens, and `python tools/replay.py --board <file>` (or `--board --latest`) prints only
-  the board.
+- **The Trail** (pass 129, under the numbers; it was the Upgrade board from pass 115 until the board left the game):
+  the Trail the player had when the run began: the Trail Level, the nodes bought, the gold they cost and every upgrade
+  type's sum. `B` (or a click on its title) folds it to one line. The header names the outlaw's look.
+  For **any** recording, `python tools/replay.py` prints the Trail in the terminal before the window opens (the nodes
+  paid for and their gold, the upgrades summed by type, the outlaws, weapons, cards and stages unlocked), and `python
+  tools/replay.py --trail <file>` (or `--trail --latest`) prints only that (`--board` is the old name and still
+  works). A recording from before the Trail says in one line what its Upgrade board held.
 - **The chart**: the recorded HP (red) and level (gold) over the whole run, with a white line where the replay is.
 - **The reel** (bottom): the whole run, left to right. Gold marks: level-ups and picks; red: bosses and big hits; white:
   going down; blue: revives, power-ups, the portal. Hover a mark to read it, **click anywhere to jump there**.
@@ -70,7 +71,7 @@ and `tools\replay.cmd` finds it without any download. A run from the editor bina
 | Home | | back to the start |
 | click the reel | | jump to that moment |
 | A | | the safety net on / off |
-| B | | the Upgrade board open / folded (pass 115) |
+| B | | the Trail open / folded (pass 129; the Upgrade board before it) |
 | M | | sound on / off (off at the start) |
 | Esc | | close |
 
@@ -108,7 +109,7 @@ A recording plays exactly only on the build that recorded it, so every PC build 
 ## Good to know
 
 - **What is recorded** (the rules: BALANCING.md 57.REPLAY; the file: analytics/SCHEMA.md *The replay file*): the run's
-  seed, the build, the hero, look, stage and map, the save as the run began (the Upgrade board, what is owned and
+  seed, the build, the hero, look, stage and map, the save as the run began (the Trail, what is owned and
   unlocked, quests), the settings, the stick a frame, every tap's place, every choice by name, the frame timing, and the
   checks. Nothing from outside the game; no screen pictures.
 - **When it is sent:** at the run's end, with the run record, only when play data is on, never from the arena, a tool, a

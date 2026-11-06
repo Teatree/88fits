@@ -2,7 +2,7 @@
 ## now considerably more expensive. Make Elites and Bosses give much more Coins. Remove the Balloon Chest thing now." and
 ## "The new Collection button is wrong: make it the same height as the Hero plaque while maintaining square aspect
 ## ratio ... It should just be a matrix of squares. The 3x3 was the last one at the bottom, missing."): every end of a
-## run banks the purse once (Game.bank_run_end); every talent rank and hero price is x2.5 of pass 69's; an Elite's and a
+## run banks the purse once (Game.bank_run_end); every hero price is x2.5 of pass 69's (the Upgrade board's ranks too, until the board left in pass 129); an Elite's and a
 ## boss's gold x5 (Game.ELITE_PURSE / BOSS_PURSE, the bosses' drops.coins, PickupManager.BIG_COIN_MULT); the Strongbox
 ## (gold_bank) is hidden and never stands on a map; the title's Hero Collections button is a square as tall as the
 ## plaque with eight squares of a 3 x 3 grid for its glyph.
@@ -11,12 +11,6 @@ extends GdUnitTestSuite
 const Stage := preload("res://ui/TitleStage.gd")
 const Title := preload("res://ui/TitleScreen.gd")
 
-## Pass 69's talent prices, before x2.5 (pass 46's curve: x1, x1.8, x3, x4.5, x6.5, x9 of the first rank).
-const TALENTS_69 := {
-	"choice": [180, 324, 540, 810, 1170, 1620], "drive": [160, 288, 480, 720, 1040, 1440],
-	"fortune": [150, 270, 450, 675, 975, 1350], "grit": [140, 252, 420, 630, 910, 1260],
-	"nerve": [220, 396, 660, 990, 1430, 1980], "spite": [200, 360, 600, 900, 1300, 1800],
-	"stride": [120, 216, 360, 540, 780, 1080], "study": [170, 306, 510, 765, 1105, 1530]}
 ## The heroes' prices (INTERFACES: x2.5 of pass 69's, Fadeaway's 50 a stand-in raised to 1,000; Mira stays 9,999).
 const HERO_PRICES := {"calavera": 750, "ironwood": 1000, "solenne": 1500, "buck": 1250, "may": 1750, "fadeaway": 1000,
 	"mira": 9999}
@@ -151,31 +145,13 @@ func test_the_results_after_a_death_show_the_gold_banked() -> void:
 
 func test_no_text_says_the_gold_stays_in_the_sand() -> void:
 	for path in ["res://ui/ResultsScreen.gd", "res://ui/PortalDialog.gd", "res://ui/ReviveScreen.gd", "res://ui/PauseScreen.gd",
-			"res://ui/Hints.gd", "res://ui/HomesteadScreen.gd", "res://ui/HUD.gd"]:
+			"res://ui/Hints.gd", "res://ui/TrailScreen.gd", "res://ui/HUD.gd"]:
 		var src := FileAccess.get_file_as_string(path).to_lower()
 		for said in ["stays in the sand", "left in the sand", "only an extraction brings", "is lost · asks", "the strongbox keeps"]:
 			assert_int(src.find(said)).override_failure_message("%s still says '%s'" % [path, said]).is_equal(-1)
 
 
 # ---------------------------------------------------------------- 2. prices x2.5
-
-## Pass 88 (lane MIRROR, re-pinned on purpose): the talents were priced again by their measured impact (balancing §35,
-## game/tests/pass88_mirror_test.gd); what stays from pass 70 is the scale: every talent on the same ladder, the board's
-## priced ranks between half and the whole of pass 70's x2.5 total (Spite's Thorns and Thirst went; Stakes is cheap).
-func test_the_board_keeps_pass_70s_scale() -> void:
-	assert_int(Registry.talents_list().size()).is_equal(TALENTS_69.size())
-	var was := 0
-	var now := 0
-	for td: TalentDef in Registry.talents_list():
-		assert_bool(TALENTS_69.has(td.id)).override_failure_message(td.id).is_true()
-		for k in (TALENTS_69[td.id] as Array).size():
-			was += int(5 * round(float(TALENTS_69[td.id][k]) * 2.5 / 5.0))
-			now += td.cost_of_rank(k)
-	# (pass 110, lane ECON, re-pinned: Garry's "Mirror costs should be more exponential (Polynomial)": rank k costs k x k
-	# times rank 1, so the whole board is dearer than pass 70's x2.5 one, about three times it; rank 1 is pass 88's)
-	assert_int(now).is_greater(was)
-	assert_int(now).is_less_equal(4 * was)
-
 
 func test_every_hero_on_sale_costs_his_new_price() -> void:
 	# pass 72, lane INTEG (re-pinned): pass 70 set HERO_PRICES (x2.5); Garry prices heroes in the Level Editor since
@@ -283,7 +259,3 @@ func _title(style: String) -> Control:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	return t
-
-
-
-

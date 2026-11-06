@@ -1,7 +1,7 @@
 ## The meta game's money (pass 111, lane SKINS; Garry: "get everything ready for the currency selection functionality
 ## in every place where it matters. We aren't adding new currency yet, but we might eventually"). Every price that is
-## shown and paid outside a run goes through here: a hero on sale (CharacterDef.currency_type), an Upgrade board rank
-## (TalentDef.currency_type), a look sold as a skin (`skin.currency_type`); anything that pays out (a run's purse, a
+## shown and paid outside a run goes through here: a hero on sale (CharacterDef.currency_type), a Trail node
+## (the Trail's `currency`), a look sold as a skin (`skin.currency_type`); anything that pays out (a run's purse, a
 ## refund, a contract's reward) can call add(). The currencies are content (content/currencies/<id>, CurrencyDef,
 ## Registry.currencies); only "gold" exists. Gold is the save's old "gold" key (Save.gold / add_gold / spend_gold, so
 ## every gold_moved event and the analytics stay as they were); any other currency lives in the save's "wallets".
@@ -130,7 +130,7 @@ static func add(id: String, n: int, source: String = "other", extra: Dictionary 
 	return balance(id)
 
 
-## `n` of `id` out of the save for `reason` (hero, talent, skin, ...): true when paid, false (nothing spent) when short.
+## `n` of `id` out of the save for `reason` (hero, trail, skin, ...): true when paid, false (nothing spent) when short.
 static func spend(id: String, n: int, reason: String = "other", extra: Dictionary = {}) -> bool:
 	var sv := _save()
 	if sv == null:

@@ -1,6 +1,6 @@
 ## Down! (Wanted screen 14): a rock dim; "★ 1 CHANCE LEFT ★ / DOWN!"; a paper disc with the count running out and "get
 ## up"; who put the hero down; then GET UP · WATCH AN AD (a stand-in: no ads yet) and STAY DOWN (a pop-up asks first,
-## the count held meanwhile); pass 77 took "GET UP for 150 gold" off (Garry: "Remove the 'Get up with gold' option"). One chance per run plus the Upgrade board's; the hero comes back with
+## the count held meanwhile); pass 77 took "GET UP for 150 gold" off (Garry: "Remove the 'Get up with gold' option"). One chance per run plus the Trail's Extra Life nodes; the hero comes back with
 ## the revive_hp share of his health (half, more with Second Wind). Under the developer menu's hit log or the player's
 ## debug mode (pass 46: the Results screen no longer shows it) the last 30 seconds are listed under the count, newest
 ## first: a row a hit or a pickup heal, with its time before the fall, the badge of what did it (a skull for a boss, a

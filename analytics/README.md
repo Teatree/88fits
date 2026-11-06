@@ -16,7 +16,7 @@ the crowd's pressure, plus every build change and notable moment as an event. `d
 | Put the **bot's sim beside real players** | `dashboard.html`, **Compare with a sim**, then a sim's `result.json` from `tools/dl/sim/runs/<sim>/` |
 | Get **Excel / Google Sheets** files | the dashboard's **Download CSV** buttons, or `python tools/analytics_csv.py` for every run at once (below: *The dashboard*) |
 | See **chests, power-ups and totems** through a run | the dashboard's card *Chests, power-ups and totems* (one run) and the Sim's chart of the same name (one run, averages, the Level Editor's Sim tab); what counts is in [SCHEMA.md](SCHEMA.md), *Chests, power-ups and totems* |
-| See **each weapon's real damage over the run** and what shaped it (the items, the Upgrade board, the gifts), the **hero's level and items held**, his **health 5 seconds at a time**, the **Upgrade board** the run began with | `dashboard.html`, the cards *Each weapon's real DPS*, *Hero level and items held*, *Health, 5 seconds at a time*, *Upgrade board* (pass 115, below: *The dashboard*) |
+| See **each weapon's real damage over the run** and what shaped it (the items, the Trail, the gifts), the **hero's level and items held**, his **health 5 seconds at a time**, **the Trail** the run began with (pass 129; an older run's Upgrade board) | `dashboard.html`, the cards *Each weapon's real DPS*, *Hero level and items held*, *Health, 5 seconds at a time*, *The Trail* (pass 115 and 129, below: *The dashboard*) |
 | Know **what a key in a run file means** | [SCHEMA.md](SCHEMA.md) |
 
 ## Where the runs land
@@ -42,7 +42,7 @@ run from the PC exe: `%APPDATA%\Godot\app_userdata\88fits\analytics\runs`); a se
 curves (dashed) over the first for an A/B. "Where the runs come from" on the page says the same.
 
 The cards (pass 74, record schema 2; a card hides itself when its run has no data for it, so schema 1 files still
-open): the run (hero and the look played, trait, map and its settings, version, seed, result, talents, switches),
+open): the run (hero and the look played, trait, map and its settings, version, seed, result, the Trail (an older run's talents), switches),
 was the build strong enough, crowd pressure, when did the crowd outgrow me, health, what hurt me, the last 30
 seconds, how hard did each boss scale, specials and Elites, which weapon carried, estimate against real, how did the
 build grow (the lines, i.e. the fortune cards, apart), the picks, how did I choose (decision time, skips, rerolls,
@@ -52,10 +52,13 @@ progression, gold, quest progress and the history. Every card has a table view.
 
 Pass 115 (record schema 5, version 0.98; Garry: "Hero Level ... Individual Weapon Real DPS ... Show Current HP with bars
 ... what level of Mirror Upgrade Player was"): four cards more.
-- **Upgrade board** (after the run's facts): every talent of the board the run began with, a square a rank (blue its
-  first form, amber its second, its picture inside; hover one for its line), the forms by name and the gold the ranks cost
-  at the build's prices (and what the save says was paid). The Remote runs list and the averages' runs list say the
-  board in short (`12 / 48`: ranks bought of the board's most).
+- **The Trail** (after the run's facts; pass 129, record schema 6: the Upgrade board left the game): the Trail the run
+  began with: its Trail Level of the Trail's top level, the nodes bought of all its nodes and how many were paid for,
+  the gold they cost, then every upgrade type bought with its icon and its sum ("+12%", "+2", "+1"). The Remote runs
+  list and the averages' runs list say it in short in their `trail` column (`level 12`).
+  A run recorded before the Trail shows its **Upgrade board (before the Trail)** instead: every talent of the board it
+  began with, a square a rank (blue its first form, amber its second; hover one for its line), the forms by name and
+  the gold the ranks cost (`board 12 / 48` in the lists: ranks bought of the board's most); a run with neither says so.
 - **Hero level and items held** (after Hero power): his level each second beside the items he holds, stacked: weapons
   (an evolution counts as its weapon), cards (the lines) and passive items; perks dashed apart (the hero's own, not items).
 - **Each weapon's real DPS**: the damage each weapon really dealt, a rolling mean of 5, 10 or 30 s (buttons on the card),
@@ -73,7 +76,7 @@ Pass 115 (record schema 5, version 0.98; Garry: "Hero Level ... Individual Weapo
   Level Editor's Sim tab too), for one run and averaged over runs.
 
 A record from before 0.98 has no board prices, no weapon sources and no lowest health inside a second: each card says
-"not in this run's record (recorded before 0.98)" where that is missing and draws the rest (the board from the talents
+"not in this run's record (recorded before 0.98)" where that is missing and draws the rest (the old board from the talents
 the record names, the bars from his health once a second, every pick marked under the weapons).
 
 **CSV downloads** (pass 74): the buttons at the top save this run second by second (`88fits_<stamp>_rows.csv`: one

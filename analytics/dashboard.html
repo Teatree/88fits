@@ -203,6 +203,7 @@
   .brow .pip .ico { width: 20px !important; height: 20px !important; }
   .brow .bforms { color: var(--ink-2); min-width: 0; }
   .brow .bgold { color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+  .brow .tamt { font-weight: 600; min-width: 64px; font-variant-numeric: tabular-nums; }
   .brow.empty0 { opacity: 0.55; }
   .oldnote { color: var(--muted); font-size: 0.8rem; font-style: italic; }
   .seg.small button { padding: 2px 8px; font-size: 0.76rem; }
@@ -310,7 +311,7 @@
   const HISTORY_FIRST = ['file', 'stamp', 'started', 'version', 'schema', 'tool', 'headless', 'hero', 'hero_name', 'hero_look',
     'map', 'map_rev', 'seed', 'result', 'length', 'clock', 'stage', 'endless_wave', 'level', 'kills', 'gold', 'strongbox',
     'revives', 'gold_before', 'damage', 'top_source', 'dps_end', 'hp_lost', 'hits_taken', 'bosses', 'specials_killed',
-    'elites_killed', 'killer', 'totems', 'talents', 'build'];
+    'elites_killed', 'killer', 'totems', 'trail_level', 'trail_bought', 'trail_spent', 'talents', 'build'];
 
   const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
@@ -857,9 +858,9 @@
     renderSummary($main, S);
     renderSim($main, S);
     const grid = el('div', 'grid'); $main.appendChild(grid);
-    // pass 115 (lane DASH): the Upgrade board after the run's facts; level and items, then each weapon's real DPS, after the
+    // pass 115 (lane DASH): the Upgrade board (pass 129: the Trail; renderTrail) after the run's facts; level and items, then each weapon's real DPS, after the
     // hero's power; health in 5 s bars after the health line
-    const steps = [renderFacts, renderBoard, renderPower, renderHeroPower, renderLevelItems, renderWeaponDps, renderPressure, renderRatio, renderHealth, renderHealth5, renderEnemies, renderHitLog, renderBosses, renderSpecials,
+    const steps = [renderFacts, renderTrail, renderPower, renderHeroPower, renderLevelItems, renderWeaponDps, renderPressure, renderRatio, renderHealth, renderHealth5, renderEnemies, renderHitLog, renderBosses, renderSpecials,
       renderShare, renderEstVsReal, renderBuild, renderItems, renderOffers, renderPickups, renderTotems, renderHealing, renderSurvival, renderStats,
       renderMults, renderStacks, renderCrowd, renderFrames, renderRates, renderProgress, renderGold, renderQuests];
     for (const f of steps) {
@@ -927,9 +928,11 @@
     add('Reached', 'stage ' + (r.stage || 1) + (r.endless_wave ? ', endless wave ' + r.endless_wave : '') + ' · level ' + (r.level || 1) + ' · ' + fmtN(r.kills || 0) + ' kills');
     add('Played on', (r.tool ? 'a tool (' + (r.headless ? 'headless' : 'windowed') + ')' : (r.headless ? 'a headless tool' : 'played')) + ' · ' + (r.platform || '?') + (r.device ? ' · ' + r.device : ''));
     if (r.launch) add('Launch file', Object.entries(r.launch).map(([k, v]) => k.replace(/_/g, ' ') + ' ' + v).join(' · ') + ' (a tool\'s or the editor\'s test launch)');
+    // pass 129 (schema 6): the Trail the run began with; an older record's Upgrade board stays readable below
+    { const tr = trailOf(r); if (tr) add('The Trail', trailWords(tr)); }
     if (r.talents) {
       const ids = Object.keys(r.talents);
-      add('Upgrade board', ids.length ? ids.map((id) => { const p = r.talents[id] || []; const f = (r.talent_forms || {})[id] || ['first form', 'second form']; const n0 = p.filter((x) => +x === 0).length, n1 = p.length - n0; return S.name(id) + ': ' + [n0 ? f[0] + ' ×' + n0 : '', n1 ? f[1] + ' ×' + n1 : ''].filter(Boolean).join(', '); }).join(' · ') : 'no ranks bought');
+      add('Upgrade board (before the Trail)', ids.length ? ids.map((id) => { const p = r.talents[id] || []; const f = (r.talent_forms || {})[id] || ['first form', 'second form']; const n0 = p.filter((x) => +x === 0).length, n1 = p.length - n0; return S.name(id) + ': ' + [n0 ? f[0] + ' ×' + n0 : '', n1 ? f[1] + ' ×' + n1 : ''].filter(Boolean).join(', '); }).join(' · ') : 'no ranks bought');
     }
     if (r.settings) add('Switches', 'pierce drop-off ' + (r.settings.pierce_falloff ? 'on' : 'off') + ' · debug mode ' + (r.settings.debug_mode ? 'on' : 'off') + ' · ' + (r.settings.dev ? 'a developer run' : 'a player\'s run'));
     const ms = r.map_settings;
@@ -1575,6 +1578,7 @@
   // has no board prices, no weapon sources and no lowest HP inside a second: each card says so and draws what it can.
   const OLD_WORDS = 'not in this run\'s record (recorded before 0.98)';
   const BOARD_MAX_OLD = 48;   // eight talents of six ranks: an older record's board (it names only the talents with a rank)
+  const TRAIL_OLD_WORDS = 'not in this run\'s record (written before schema 6)';   // pass 129: a `trail` without levels, nodes, types
   const HP_BUCKET = 5;        // the health bars' seconds
   const DPS_WINDOWS = [5, 10, 30];
   // the hero's stats every weapon folds in or its hits read (RunAnalytics.WEAPON_FEED): a Totem gift of one shaped them
@@ -1582,17 +1586,19 @@
   const ICON_DIRS = { weapon: ['weapons', 'evolutions'], evolution: ['evolutions', 'weapons'], passive: ['passives'], passive_evolution: ['passives'], line: ['passives'], line_evolution: ['passives'], mutation: ['mutations'], perk: ['perks'], pickup: ['pickups'], structure: ['structures'] };
   const ALL_DIRS = ['weapons', 'evolutions', 'passives', 'mutations', 'perks', 'pickups', 'structures'];
   const VIA_WORDS = { starter: 'the starting weapon', card: 'a level-up card', path: 'a mutation level-up', chest: 'a chest', boss_chest: 'the boss chest', stranger: 'the Stranger', shop: 'bought at the shop', debug: 'the debug hand' };
-  const SRC_KIND_WORDS = { passive: 'passive item or card', favourite: 'the hero\'s favourite', perk: 'perk', mutation: 'mutation', talent: 'Upgrade board', trait: 'the hero\'s trait', hero: 'the hero', momentum: 'the hero\'s momentum', totem: 'Totem gift', stranger: 'the Stranger', buff: 'a boost running at the end', weapon: 'a weapon', bonus: 'the hero\'s favourite' };
+  const SRC_KIND_WORDS = { passive: 'passive item or card', favourite: 'the hero\'s favourite', perk: 'perk', mutation: 'mutation', trail: 'The Trail', talent: 'Upgrade board', trait: 'the hero\'s trait', hero: 'the hero', momentum: 'the hero\'s momentum', totem: 'Totem gift', stranger: 'the Stranger', buff: 'a boost running at the end', weapon: 'a weapon', bonus: 'the hero\'s favourite' };
 
   /** Where an id's icon may be, in order: the record's own path (schema 5: `icons`, the look the run played), then the
    *  content folders an id of that kind lives in (an older record: the base look's icon); relative to this page
-   *  (../game/ is res://). `key` "talent:<id>[:<form>]", "hero:<id>", a totem gift's id with kind "totem", else an id. */
+   *  (../game/ is res://). `key` "trail:<type>" (pass 129: a Trail upgrade type), "talent:<id>[:<form>]" (until schema
+   *  5), "hero:<id>", a totem gift's id with kind "totem", else an id. */
   function iconCands(S, key, kind) {
     const out = [];
     const ic = (S && S.run && S.run.icons) || {};
     const add = (p) => { if (p && !out.includes(p)) out.push(p); };
     const k = String(key || '');
     if (ic[k]) add('../game/' + ic[k]);
+    if (k.startsWith('trail:')) { add('../game/art/ui/trail/' + k.slice(6) + '.png'); return out; }
     if (k.startsWith('talent:')) { const p = k.split(':'); add('../game/content/talents/' + p[1] + '/' + p[1] + (p.length > 2 ? '_' + p[2] : '') + '_icon.png'); return out; }
     if (k.startsWith('hero:')) { const id = k.slice(5); add('../game/content/characters/' + id + '/' + id + '_icon.png'); return out; }
     if (kind === 'totem') { add('../game/art/ui/totem/spirit_' + k + '.png'); return out; }
@@ -1638,7 +1644,83 @@
   }
   const verb = (k) => (SRC_KIND_WORDS[k] || k || 'a source');
 
-  // ---- the Upgrade board
+  // ---- the Trail (pass 129, schema 6: the player's only permanent progress; the Upgrade board under it is an older record's)
+  /** A sum as its upgrade kind writes it (Trail.amount_text): "+3%", "+2.5%", "+2", "+1", "+2 s"; "" for a word. */
+  function trailAmount(kind, v) {
+    const sg = v >= 0 ? '+' : '−', a = Math.abs(v);
+    const plain = (x) => (Math.abs(x - Math.round(x)) < 0.001 ? String(Math.round(x)) : (Math.abs(x * 10 - Math.round(x * 10)) < 0.001 ? x.toFixed(1) : x.toFixed(2)));
+    if (kind === 'percent') return sg + plain(a * 100) + '%';
+    if (kind === 'count') return sg + Math.round(a);
+    if (kind === 'seconds') return sg + plain(a) + ' s';
+    if (kind === 'word') return '';
+    return sg + plain(a);
+  }
+  /** A record's Trail from the header's `trail`: {level, levels, bought, nodes, paid, spent, rows: [{type, name, kind,
+   *  text, value, amount}], full}; a record written before schema 6 has no `levels`, `nodes`, `types` (0, 0, each type
+   *  under its id with its plain sum: full false); null without a `trail` (a record from before the Trail). */
+  function trailOf(run) {
+    const t = run && run.trail;
+    if (!t || typeof t !== 'object' || Array.isArray(t)) return null;
+    const isMap = (o) => !!o && typeof o === 'object' && !Array.isArray(o);
+    const ups = isMap(t.upgrades) ? t.upgrades : {}, types = isMap(t.types) ? t.types : {};
+    const rows = Object.keys(ups).map((type) => {
+      const d = isMap(types[type]) ? types[type] : null; const kind = d ? String(d.kind || 'flat') : ''; const value = +ups[type] || 0;
+      return { type, name: (d && d.name) || type, kind, text: (d && d.text) || '', value, amount: trailAmount(kind, value) };
+    });
+    return { level: +t.level || 0, levels: +t.levels || 0, bought: Array.isArray(t.bought) ? t.bought.length : 0, nodes: +t.nodes || 0,
+      paid: t.paid != null ? +t.paid : null, spent: t.spent != null ? +t.spent : null, rows, full: isMap(t.types) };
+  }
+  /** "Trail Level 12 of 60 · 14 of 100 nodes bought (11 paid for) · 3,450 gold spent". */
+  function trailWords(t) {
+    return 'Trail Level ' + t.level + (t.levels ? ' of ' + t.levels : '') + ' · ' + t.bought + (t.nodes ? ' of ' + t.nodes : '') + ' nodes bought'
+      + (t.paid != null ? ' (' + t.paid + ' paid for)' : '') + (t.spent != null ? ' · ' + fmtI(t.spent) + ' gold spent' : '');
+  }
+  /** A run's permanent progress in short, from a record or an index row: "level 12" (the Trail Level it began at); a
+   *  record from before the Trail: its Upgrade board as "board 12 / 48"; "–" with neither. */
+  function trailShort(r) {
+    if (!r) return '–';
+    if (typeof r.trail_level === 'number') return 'level ' + r.trail_level;
+    const t = trailOf(r);
+    if (t) return 'level ' + t.level;
+    const b = boardShort(r);
+    return b === '–' ? b : 'board ' + b;
+  }
+  /** The run's step: the Trail card; a record that also has (or only has) an older Upgrade board shows that board after
+   *  it; a record with neither says so in one line. */
+  function renderTrail(grid, S) {
+    const r = S.run, t = trailOf(r), hasBoard = !!boardOf(r);
+    if (!t) {
+      if (hasBoard) { renderBoard(grid, S); return; }
+      const c0 = card('The Trail', 'The Trail as this run began: the player\'s permanent progress.', { wide: true, slug: 'trail' });
+      c0.appendChild(el('p', 'oldnote', 'Neither the Trail nor the older Upgrade board is in this run\'s record (recorded before 0.60).'));
+      grid.appendChild(c0); return;
+    }
+    const c = card('The Trail', 'The Trail as this run began (the player\'s permanent progress): the Trail Level, the nodes that count as bought and how many of them were paid for, the gold they cost, and what the bought upgrades add up to by type.', { wide: true, slug: 'trail' });
+    const tiles = el('div', 'tiles');
+    tileIn(tiles, 'Trail Level', t.level + (t.levels ? ' of ' + t.levels : ''), t.levels ? 'the Trail\'s top level is ' + t.levels : 'the Trail\'s top level is ' + TRAIL_OLD_WORDS);
+    const free = t.paid != null ? t.bought - t.paid : 0;
+    tileIn(tiles, 'Nodes bought', t.bought + (t.nodes ? ' of ' + t.nodes : ''), (t.paid != null ? t.paid + ' paid for' + (free > 0 ? ' · ' + free + ' at no cost (the save already had what they give)' : '') : 'how many were paid for is not in this record')
+      + (t.nodes ? '' : ' · how many nodes the Trail has is ' + TRAIL_OLD_WORDS));
+    tileIn(tiles, 'Gold spent', t.spent != null ? fmtI(t.spent) : '–', 'what the paid nodes cost');
+    c.appendChild(tiles);
+    const box = el('div', 'board');
+    for (const u of t.rows) {
+      const row = el('div', 'brow');
+      const nm = el('div', 'bname'); nm.appendChild(iconEl(S, 'trail:' + u.type, 'trail', 26, u.name)); nm.appendChild(el('b', null, u.name)); row.appendChild(nm);
+      row.appendChild(el('div', 'tamt', u.amount || 'bought'));
+      row.appendChild(el('div', 'bforms', u.text));
+      box.appendChild(row);
+    }
+    if (!t.rows.length) box.appendChild(el('p', 'oldnote', 'No upgrade bought on the Trail when this run began.'));
+    else if (!t.full) box.appendChild(el('p', 'oldnote', 'Each upgrade type is under its id with its plain sum: the types\' names and how each sum is written are ' + TRAIL_OLD_WORDS + '.'));
+    c.appendChild(box);
+    tableView(c, [{ label: 'upgrade' }, { label: 'id' }, { label: 'kind' }, { label: 'total', num: true, d: 4 }, { label: 'written' }, { label: 'what it adds to' }],
+      t.rows.map((u) => [u.name, u.type, u.kind, u.value, u.amount, u.text]));
+    grid.appendChild(c);
+    if (hasBoard) renderBoard(grid, S);
+  }
+
+  // ---- the Upgrade board (until schema 5: removed from the game in pass 129; drawn only for a record that still has one)
   /** A record's board: {rows: [{id, name, max, picks, forms, texts, gold}], ranks, max, gold, spent, full} from schema
    *  5's `board`; from an older record's `talents` / `talent_forms` (only the talents with a rank, no most and no prices:
    *  full false); null without either (a record from before 0.60). */
@@ -1665,7 +1747,7 @@
   }
   function renderBoard(grid, S) {
     const r = S.run, b = boardOf(r);
-    const c = card('Upgrade board', 'The Upgrade board (the Mirror) as this run began: every talent, its ranks bought and the form of each rank (blue: its first form, amber: its second; hover a rank for its line), and the gold those ranks cost.', { wide: true, slug: 'upgrade-board' });
+    const c = card('Upgrade board (before the Trail)', 'The old Upgrade board (the Mirror; the Trail replaced it in pass 129) as this run began: every talent, its ranks bought and the form of each rank (blue: its first form, amber: its second; hover a rank for its line), and the gold those ranks cost.', { wide: true, slug: 'upgrade-board' });
     if (!b) { c.appendChild(el('p', 'oldnote', 'The Upgrade board is not in this run\'s record (recorded before 0.60).')); grid.appendChild(c); return; }
     const tiles = el('div', 'tiles');
     const withRank = b.rows.filter((t) => t.picks.length).length;
@@ -1764,7 +1846,7 @@
     return out;
   }
   /** The moments a source joined or grew (its pick events): a passive's or card's levels, a perk, a mutation, a Totem
-   *  gift, the Stranger's deal; [] for what was there from the start (the board, the hero, his trait). */
+   *  gift, the Stranger's deal; [] for what was there from the start (the Trail, an older record's board, the hero, his trait). */
   function sourceTimes(S, sid) {
     const i = sid.indexOf(':'); const kind = i > 0 ? sid.slice(0, i) : sid; const id = i > 0 ? sid.slice(i + 1).split(':')[0] : '';
     const kinds = { passive: ['passive', 'passive_evolution', 'line', 'line_evolution'], favourite: ['passive'], perk: ['perk'], mutation: ['mutation'], totem: ['totem'], weapon: ['weapon', 'evolution'] }[kind];
@@ -1938,8 +2020,8 @@
           for (const x of list) {
             const sid = String(x.s || ''); const ts = sourceTimes(S, sid);
             const key = sid.includes(':') ? sid.slice(sid.indexOf(':') + 1) : sid;
-            const ic = iconEl(S, sid.startsWith('talent:') ? sid : (sid.startsWith('trait:') || sid.startsWith('hero:') || sid.startsWith('momentum:') ? 'hero:' + key : key), null, 24, x.n, x.i);
-            const when = ts.length ? 'taken at ' + ts.map(fmtT).join(', ') : (['talent', 'hero', 'trait', 'bonus'].includes(x.k) ? 'there from the start' : '');
+            const ic = iconEl(S, sid.startsWith('talent:') || sid.startsWith('trail:') ? sid : (sid.startsWith('trait:') || sid.startsWith('hero:') || sid.startsWith('momentum:') ? 'hero:' + key : key), null, 24, x.n, x.i);
+            const when = ts.length ? 'taken at ' + ts.map(fmtT).join(', ') : (['trail', 'talent', 'hero', 'trait', 'bonus'].includes(x.k) ? 'there from the start' : '');
             // a passive source is a card (a line) or a passive item: its pick events and the build say which
             const kw = x.k === 'passive' ? (S.events.some((e) => String(e.id) === key && (e.line || String(e.kind).startsWith('line'))) || ((S.run.build || {}).lines || {})[key] != null ? 'card' : 'passive item') : verb(x.k);
             hoverTip(ic, [x.n || sid, kw + ': ' + (x.w || ''), when], (on) => hl(on ? ts : []));
@@ -2121,9 +2203,10 @@
     facts.push(['Runs', entries.length + (devs ? ' (' + devs + ' developer run' + (devs > 1 ? 's' : '') + ')' : '')]);
     facts.push(['Players', players.join(', ')]);
     facts.push(['Heroes', heroes.join(', ')]);
-    // pass 115 (lane DASH): the Upgrade boards the runs began with (ranks bought / the most), each with how many runs had it
-    const boards = {}; for (const e of entries) { const k = boardShort(e.run); boards[k] = (boards[k] || 0) + 1; }
-    facts.push(['Upgrade boards', Object.entries(boards).sort((a, b) => b[1] - a[1]).map(([k, v]) => k + ' ranks' + (entries.length > 1 ? ' (' + v + ' run' + (v > 1 ? 's' : '') + ')' : '')).join(' · ')]);
+    // pass 129: the Trail Level each run began at (a record from before the Trail: pass 115's Upgrade board, ranks bought /
+    // the most), each with how many runs had it
+    const boards = {}; for (const e of entries) { const k = trailShort(e.run); boards[k] = (boards[k] || 0) + 1; }
+    facts.push(['The Trail', Object.entries(boards).sort((a, b) => b[1] - a[1]).map(([k, v]) => k + (k.startsWith('board ') ? ' ranks' : '') + (entries.length > 1 ? ' (' + v + ' run' + (v > 1 ? 's' : '') + ')' : '')).join(' · ')]);
     if (starts.length) facts.push(['Played', starts[0].replace('T', ' ') + (starts.length > 1 ? ' to ' + starts[starts.length - 1].replace('T', ' ') : '')]);
     facts.push(['Game versions', versions.map((v) => 'v' + v).join(', ') || '?']);
     facts.push(['How they ended', Object.entries(results).map(([k, v]) => v + ' ' + k.toLowerCase()).join(' · ')]);
@@ -2140,12 +2223,12 @@
     // the runs one by one (each opens with every card)
     const c = card(entries.length === 1 ? 'The run' : 'The ' + entries.length + ' runs one by one', 'Each run as the average counted it: its end, its level, kills, coins, chests, power-ups and totems at its own end. Open shows it alone with every card.', { wide: true, slug: 'average-runs' });
     const tb = document.createElement('table'); const thead = document.createElement('thead'); const tr = document.createElement('tr');
-    // pass 115 (lane DASH): the Upgrade board each run began with (ranks bought / the most)
-    for (const h of ['player', 'started', 'hero', 'ended', 'at', 'deaths', 'level', 'board', 'kills', 'coins', 'chests · power-ups · totems', 'build', '']) tr.appendChild(el('th', null, h));
+    // pass 129: the Trail Level each run began at (a record from before the Trail: its Upgrade board, "board 12 / 48")
+    for (const h of ['player', 'started', 'hero', 'ended', 'at', 'deaths', 'level', 'trail', 'kills', 'coins', 'chests · power-ups · totems', 'build', '']) tr.appendChild(el('th', null, h));
     thead.appendChild(tr); tb.appendChild(thead); const body = document.createElement('tbody');
     res.players.forEach((p, i) => {
       const e = entries[i]; const r = e.run; const row = document.createElement('tr');
-      const cells = [whose(r), (r.started || '').replace('T', ' '), r.hero_name || r.hero, RESULT_WORDS[p.end_reason] || p.end_reason, fmtT(p.end_t), p.deaths == null ? '–' : String(p.deaths), p.level == null ? '–' : String(p.level), boardShort(r), fmtN(p.kills), fmtN(p.gold),
+      const cells = [whose(r), (r.started || '').replace('T', ' '), r.hero_name || r.hero, RESULT_WORDS[p.end_reason] || p.end_reason, fmtT(p.end_t), p.deaths == null ? '–' : String(p.deaths), p.level == null ? '–' : String(p.level), trailShort(r), fmtN(p.kills), fmtN(p.gold),
         p.chests == null ? '–' : p.chests + ' · ' + p.powerups + ' · ' + p.totems, r.build_text || ''];
       cells.forEach((v, j) => row.appendChild(el('td', j === 11 ? 'wrap' : (j >= 5 && j <= 10 ? 'num' : null), v)));
       const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button'; b.disabled = !Array.isArray(r.samples); b.onclick = () => openRun(r); td.appendChild(b); row.appendChild(td);
@@ -2315,8 +2398,8 @@
     c.appendChild(acts);
     const list = el('div', 'plist'); const t = document.createElement('table');
     const th = document.createElement('thead'); const htr = document.createElement('tr');
-    // pass 115 (lane DASH): the Upgrade board's ranks bought of its most
-    for (const h of ['', 'player', 'started', 'hero', 'ended', 'play', 'stage', 'level', 'board', 'kills', 'version', '']) { const th0 = el('th', null, h); if (h === 'board') th0.title = 'the Upgrade board as the run began: ranks bought / the most (48 for a record from before 0.98)'; htr.appendChild(th0); }
+    // pass 129: the Trail Level the run began at (a record from before the Trail: pass 115's board, ranks bought of its most)
+    for (const h of ['', 'player', 'started', 'hero', 'ended', 'play', 'stage', 'level', 'trail', 'kills', 'version', '']) { const th0 = el('th', null, h); if (h === 'trail') th0.title = 'the Trail Level the run began at; a record from before the Trail: the old Upgrade board as "board ranks bought / the most" (48 for a record from before 0.98)'; htr.appendChild(th0); }
     th.appendChild(htr); t.appendChild(th);
     const tb = document.createElement('tbody');
     for (const r of rows) {
@@ -2324,7 +2407,7 @@
       const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = PICK.has('r:' + r.file);
       cb.onchange = () => { if (cb.checked) PICK.add('r:' + r.file); else PICK.delete('r:' + r.file); render(); };
       const td0 = el('td'); td0.appendChild(cb); tr.appendChild(td0);
-      const cells = [r.player_label || r.player_name || r.player, (r.started || '').replace('T', ' '), (r.hero_name || r.hero || '') + (r.hero_look ? ' (' + r.hero_look + ')' : ''), (RESULT_WORDS[r.result] || r.result || '') + (r.outcome ? ' · ' + (OUTCOME_WORDS[r.outcome] || r.outcome) : '') + (isDevRow(r) ? ' · dev' : ''), fmtT(r.length || 0), stageWords(r), String(Math.round(r.level || 1)), boardShort(r), fmtN(r.kills || 0), 'v' + (r.version || '?')];
+      const cells = [r.player_label || r.player_name || r.player, (r.started || '').replace('T', ' '), (r.hero_name || r.hero || '') + (r.hero_look ? ' (' + r.hero_look + ')' : ''), (RESULT_WORDS[r.result] || r.result || '') + (r.outcome ? ' · ' + (OUTCOME_WORDS[r.outcome] || r.outcome) : '') + (isDevRow(r) ? ' · dev' : ''), fmtT(r.length || 0), stageWords(r), String(Math.round(r.level || 1)), trailShort(r), fmtN(r.kills || 0), 'v' + (r.version || '?')];
       cells.forEach((v, j) => tr.appendChild(el('td', j >= 4 && j <= 8 ? 'num' : null, v)));
       const td = el('td'); const b = el('button', 'btn small', 'Open'); b.type = 'button';
       b.onclick = async () => { b.disabled = true; const rec = await remoteRecord(r); b.disabled = false; if (rec && rec.samples) openRun(rec); else alert('Could not load ' + r.file + ' (download again with tools/posthog_runs.py).'); };

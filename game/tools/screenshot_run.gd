@@ -931,19 +931,14 @@ func _tick() -> void:
 	elif _step == 7003 and _t > _mark + 2.0:
 		_shot("65b_hero_sheet")
 		_t = 82.41
-		change_scene_to_file("res://ui/HomesteadScreen.tscn")
-		_step = 8
-	elif _step == 8 and _t > 83.2:
-		# the Mirror: a full purse and a couple of ranks bought, so the board shows a live build
+		# the Trail (pass 129; the Upgrade board until then): a full purse and its first levels bought, so the track shows
+		# bought, open and locked nodes (set before the screen is built)
 		var sv = root.get_node("Save")
 		sv.add_gold(4000, "debug")
-		for tid in ["grit", "drive"]:
-			var td = root.get_node("Registry").talent(tid)
-			if td:
-				sv.buy_talent(td, 1 if tid == "drive" else 0)
-		if current_scene and current_scene.has_method("_refresh"):
-			current_scene._refresh()
-		# the board rebuilds its rows next frame: the shot waits for them
+		load("res://tools/trail_arg.gd").apply(sv, "9")
+		change_scene_to_file("res://ui/TrailScreen.tscn")
+		_step = 8
+	elif _step == 8 and _t > 83.2:
 		_step = 801
 	elif _step == 801 and _t > 83.7:
 		_shot("07_homestead")

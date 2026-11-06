@@ -32,9 +32,11 @@ func before() -> void:
 	for f in DirAccess.get_files_at(dir):
 		DirAccess.remove_absolute(dir.path_join(f))
 	var out: Array = []
-	# Stage 3 with the Upgrade board's Stakes at 6 and a careless bot: he goes down several times in two minutes
+	# Blood Moon (stage 4) with the Trail's Stakes nodes and a careless bot: he goes down several times in two minutes.
+	# (Pass 129, re-pinned on purpose: until the Upgrade board left the game this was stage 3 with six ranks of the
+	# board's Stakes; the Trail has four Stakes nodes, which `stakes=` buys, and on stage 3 they no longer fell him.)
 	OS.execute(godot, ["--headless", "--fixed-fps", "47", "--path", root, "--script", "res://tools/_p114_REPLAY_proof.gd", "--",
-		"mode=record", "out=" + rec, "hero=drifter", "stage=3", "seed=5", "limit=150", "check=0.5", "wall=400",
+		"mode=record", "out=" + rec, "hero=drifter", "stage=4", "seed=5", "limit=150", "check=0.5", "wall=400",
 		"downs=debug,ad,debug,debug", "down_wait=1.0", "down_tap=1", "give=phoenix_feather", "preset=careless", "stakes=6"], out, true)
 	if not FileAccess.file_exists(rec):
 		return

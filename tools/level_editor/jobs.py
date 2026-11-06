@@ -365,10 +365,9 @@ SPECS = {
         "players": _f("int", 10, False, "how many runs are played and averaged (1-100)"),
         "workers": _f("int", 0, False, "how many runs play at once: 0 = as many as the runs, at most the PC's logical processors - 2"),
         "limit": _f("int", 1500, False, "play seconds each run stops at (1500 = 25:00; boss fights and portal waits count)"),
-        "board": _f("float", 1.5, False, "the Upgrade board preset: 0 none, 1.5 a quarter, 3 half, 6 full (talents wins when given)"),
-        "talents": _f("json", {}, False, "the Upgrade board talent by talent: {talent: picks}, one letter a rank, its form (A the first, "
-                                         "B the second), e.g. {\"grit\": \"AAB\"}; empty = the board preset"),
-        "board_label": _f("str", "", False, "the board's name in the sim's header (\"my save\"; empty = the preset's, or custom)"),
+        "trail": _f("str", "quarter", False, "pass 129: the Trail the players' saves hold: none, quarter, half, full (shares of the Trail's "
+                                             "levels) or a Trail Level; every required node up to it bought, the choices in turn"),
+        "trail_optional": _f("bool", False, False, "the optional nodes up to that level too (the Stakes, the Grubstake, Spirit)"),
         "death": _f("enum", "end", False, "end: the first death ends the run; ad: revive once with an ad, then end; keep: every death "
                                           "counted, the hero stood up again, played to the stop", ("end", "ad", "keep")),
         "fast": _f("bool", True, False, "the runner's sim mode (the purely visual work skipped, every rule kept) when it has one"),
@@ -5341,10 +5340,10 @@ def sim_plan(job):
     s, _ = sb.clean_settings(spec)
     out = sim_out_dir(job)
     tail = ["--hero", s["hero"], "--players", str(s["players"]), "--workers", str(s["workers"]), "--limit", str(s["limit"]),
-            "--board", "%g" % max(0.0, s["board"]), "--talents", sb.talents_arg(s.get("talents") or {}), "--death", s["death"],
+            "--trail", str(s.get("trail", "none")), "--death", s["death"],
             "--seed", str(s["seed"]), "--map", s["map"], "--stage", str(int(s.get("stage", 1) or 1)), "--fps", str(s["fps"]), "--job", str(job["id"])]
-    if s.get("board_label"):
-        tail += ["--board-label", s["board_label"]]
+    if s.get("trail_optional"):
+        tail.append("--trail-optional")
     if not s.get("fast", True):
         tail.append("--no-fast")
     if s.get("note"):
@@ -5384,7 +5383,7 @@ def sim_title(job):
     s, _ = sb.clean_settings(job.get("spec") or {}, legacy=True)
     name = (content_doc("hero", s["hero"]) or {}).get("name") or s["hero"]
     death = {"gold": "gold revives", "end": "no revive", "ad": "one ad revive", "keep": "every death counted"}.get(s["death"], s["death"])
-    return "Sim · %s × %d to %s · board %s · %s" % (name, s["players"], sb.fmt_t(s["limit"]), sb.board_text(s.get("talents"), s.get("board_label")), death)
+    return "Sim · %s × %d to %s · Trail %s · %s" % (name, s["players"], sb.fmt_t(s["limit"]), sb.settings_trail_words(s), death)
 
 
 def sim_parse(job, line):

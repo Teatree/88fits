@@ -3,8 +3,12 @@
 ## Level Editor's Sim tab (tools/sim_batch.py runs several side by side on a snapshot of game/ and averages them). Every
 ## multiplier, the cap, the timeline, specials, Elites, bosses and their HP pegging count because it is the game itself.
 ##   "$GODOT" --headless --fixed-fps 60 --path game --script res://tools/sim_run.gd -- out=<file> hero=drifter seed=1 \
-##       limit=1500 board=1.5 death=end [talents=grit:000,drive:1,...] [fast=1] [map=red_canyon] [progress=10] [wall=2700]
+##       limit=1500 trail=quarter death=end [trail_optional=1] [fast=1] [map=red_canyon] [progress=10] [wall=2700]
 ##       [res=504x1122] [unlocks=all]
+## trail= (pass 129, tools/trail_arg.gd; the Upgrade board's board= / talents= until then): none, quarter, half, full
+## or a Trail Level: the player's save holds every required node up to it (choices in turn; optional nodes only with
+## trail_optional=1), so his stats, outlaws, items and stages are a player's at that level. board=<ranks> is the old
+## name: it plays the same share of the Trail and says so in one line.
 ## Args, the output and the progress file: tools/dl/p77/keys_SIMRUN.md. Safe to run side by side: the launch is set in
 ## memory (Run.launch_override, never user://debug_launch.json), the Save is sandboxed before anything changes (nothing
 ## reaches the disk), and the run recorder keeps its rows in memory (RunAnalytics.memory_only: no analytics file).
@@ -22,7 +26,7 @@ extends SceneTree
 
 const BOT := preload("res://tools/bot/Bot.gd")
 const CARDS := preload("res://tools/bot/BotCards.gd")
-const PROBE := preload("res://tools/difficulty_probe.gd")
+const TRAIL_ARG := preload("res://tools/trail_arg.gd")
 const PERF := preload("res://core/systems/Perf.gd")
 const SCHEMA := 1
 ## a screen (or a pause with none) up longer than this many seconds of the frame clock is stuck
@@ -40,7 +44,12 @@ var _out := ""
 var _hero := "drifter"
 var _seed := 1
 var _limit := 1500.0
-var _board := 0.0
+## trail=none|quarter|half|full|<level> and trail_optional=1 (tools/trail_arg.gd); _trail_info is what came of it
+## ({arg, asked, level, bought, optional, label}); _old_board = a board= given (the old name, said once)
+var _trail := "none"
+var _trail_optional := false
+var _trail_info: Dictionary = {}
+var _old_board := ""
 var _death := "end"
 var _map := "red_canyon"
 ## pass 87 (lane SGAME): the stage the run plays, 1-based (stage=k; the launch's `stage`, Game._start_chosen_stage)
@@ -48,14 +57,8 @@ var _stage := 1
 var _progress := 10.0
 var _wall := 2700.0
 var _res := Vector2i(504, 1122)
-var _grit := 0
-## pass 88 (lane MIRROR): -1 (the default) leaves Spite (now Stakes: Difficulty 0 / Boss 1) out of a board= board
-var _spite := -1
 var _unlocks := "all"
 var _arg_error := ""
-## talents=<id>:<rank>:<form>,... (or <id>:<picks>): the Upgrade board talent by talent, {id: [form a rank]}; empty =
-## the board= ranks
-var _talent_arg := ""
 ## fast=1 (the default): the game's run sim mode (Run.sim_mode: nothing is drawn or played, about 30 % less wall time,
 ## and a seed replays exactly); fast=0 plays it all (a seed does not replay there: the sounds' gaps run on real time and
 ## each sound draws its pitch from the global dice). Measured against each other in pass 77 (tools/dl/p77/
@@ -78,8 +81,6 @@ var _t := 0.0
 var _boot_s := 0.0
 var _done := false
 var _next_progress := 0.0
-var _talents: Dictionary = {}
-var _talent_forms: Dictionary = {}
 var _start_weapon := ""
 var _screen := ""
 var _screen_t := 0.0
@@ -108,7 +109,9 @@ func _init() -> void:
 			"hero": _hero = v
 			"seed": _seed = int(v)
 			"limit": _limit = float(v)
-			"board": _board = float(v)
+			"trail": _trail = v
+			"trail_optional": _trail_optional = v == "1"
+			"board": _old_board = v
 			"death": _death = v
 			"map": _map = v
 			"stage": _stage = maxi(int(v), 1)
@@ -120,14 +123,11 @@ func _init() -> void:
 					_res = Vector2i(int(wh[0]), int(wh[1]))
 				else:
 					_arg_error = "res must be WxH"
-			"grit": _grit = int(v)
-			"spite": _spite = int(v)
 			"unlocks": _unlocks = v
 			"lure_r": _bot_raw["stray"] = maxf(float(v), 0.0)
 			"lure_w": _bot_raw["lure_w"] = maxf(float(v), 0.0)
 			"lure_close": _bot_raw["lure_close"] = clampf(float(v), 0.0, 1.0)
 			"profile": _profile = v == "1"
-			"talents": _talent_arg = v
 			"fast": _fast = v != "0"
 			"trace": _trace = int(v)
 			_:
@@ -180,48 +180,16 @@ func _start() -> void:
 	save.set("_dirty", false)
 	save.begin_sandbox()
 	save.data["runs_started"] = 1
-	# the Upgrade board as the difficulty probe writes it (its FORMS, a fraction by turns)
-	var talents := {}
-	if _board > 0.0:
-		var k := 0
-		for id: String in PROBE.FORMS.keys():
-			var form: int = PROBE.FORMS[id]
-			if id == "grit":
-				form = _grit
-			elif id == "spite":
-				form = _spite
-				if form < 0:
-					k += 1
-					continue
-			var rank: int = PROBE.rank_for(_board, k)
-			k += 1
-			if rank <= 0:
-				continue
-			var picks: Array = []
-			for _r in range(rank):
-				picks.append(form)
-			talents[id] = {"picks": picks, "rank": rank, "form": form}
-			_talents[id] = rank
-			_talent_forms[id] = ("B" if form == 1 else "A").repeat(rank)
-	# talents= (the lead, Garry: "we should be able to specify ... what upgrades they have"): the board talent by talent,
-	# every rank in the form given, as Save.talent_picks reads it (it replaces board=)
-	if _talent_arg != "":
-		var parsed := parse_talents(_talent_arg, (_reg.get("talents") as Dictionary).keys())
-		if parsed.has("error"):
-			printerr("sim: " + str(parsed["error"]))
-			quit(2)
-			return
-		talents = {}
-		_talents = {}
-		for id in parsed:
-			var picks: Array = parsed[id]
-			if picks.is_empty():
-				continue
-			talents[id] = {"picks": picks, "rank": picks.size(), "form": int(picks[picks.size() - 1])}
-			_talents[id] = picks.size()
-			_talent_forms[id] = "".join(PackedStringArray(picks.map(func(f): return "B" if int(f) == 1 else "A")))
-	save.data["talents"] = talents
-	# every unlock quest done (unlocks=all): the whole content as designed is in the card pool
+	# the Trail the player's upgrades, outlaws, items and stages come from (pass 129); board= is the old name
+	if _old_board != "":
+		_trail = TRAIL_ARG.board_to_trail(_old_board, Trail.levels())
+		_say("board= is the old name (the Upgrade board is gone): playing trail=%s" % _trail)
+	_trail_info = TRAIL_ARG.apply(save, _trail, _trail_optional)
+	if _trail_info.has("error"):
+		printerr("sim: " + str(_trail_info["error"]))
+		quit(2)
+		return
+	# every unlock quest done (unlocks=all): what no Trail node gives is in the card pool as designed
 	if _unlocks == "all":
 		var done: Array = []
 		for qid in (_reg.get("quests") as Dictionary).keys():
@@ -308,7 +276,7 @@ func _tick() -> void:
 		o["death"] = _death
 		o["t0"] = _t
 		_bot = BOT.new(_game, o)
-		_say("game up: hero %s seed %d board %.1f death %s limit %.0f map %s view %s (boot %.1f s) | bot %s" % [_hero, _seed, _board, _death,
+		_say("game up: hero %s seed %d trail %s death %s limit %.0f map %s view %s (boot %.1f s) | bot %s" % [_hero, _seed, str(_trail_info.get("label", _trail)), _death,
 			_limit, _map, str(root.get_visible_rect().size), _boot_s, str(_bot.opts["preset"])])
 		# pass 84 (lane SIMVIEW): the Timeline overlay's own sampler
 		_sv_start()
@@ -440,45 +408,6 @@ static func within_leash(at: Vector3, boss: Vector3) -> bool:
 
 # ---------------------------------------------------------------- the cards
 
-## talents=<list> (lane SIMUI's format): comma-separated `<id>:<picks>`, one form a rank (0 or A the first form, 1 or B
-## the second: exactly Save.data.talents[id].picks, e.g. grit:000,drive:1,nerve:11), or `<id>:<rank>:<form>` (every rank
-## in that form); a talent left out has no rank; `none` is an empty board. At most 6 ranks; `known` are the talent ids.
-## Returns {id: [form a rank]} or {"error": text}.
-static func parse_talents(arg: String, known: Array) -> Dictionary:
-	var out := {}
-	if arg.strip_edges() == "none":
-		return out
-	for part in arg.split(",", false):
-		var bits := part.strip_edges().split(":")
-		var id := bits[0].strip_edges()
-		if not known.has(id):
-			return {"error": "talents: no talent '%s' (%s)" % [id, ", ".join(PackedStringArray(known))]}
-		var picks: Array = []
-		if bits.size() == 2:
-			for ch in bits[1].strip_edges().to_upper():
-				if ch == "0" or ch == "A":
-					picks.append(0)
-				elif ch == "1" or ch == "B":
-					picks.append(1)
-				else:
-					return {"error": "talents: '%s' picks are 0/1 (or A/B), one a rank" % part}
-		elif bits.size() == 3:
-			if not bits[1].strip_edges().is_valid_int():
-				return {"error": "talents: '%s' rank must be a number" % part}
-			var rank := clampi(int(bits[1]), 0, 6)
-			var f := bits[2].strip_edges().to_upper()
-			if not f in ["0", "1", "A", "B"]:
-				return {"error": "talents: '%s' form must be 0, 1, A or B" % part}
-			for _r in range(rank):
-				picks.append(1 if f == "1" or f == "B" else 0)
-		else:
-			return {"error": "talents: '%s' is not <id>:<picks> or <id>:<rank>:<form>" % part}
-		if picks.size() > 6:
-			return {"error": "talents: '%s' has more than 6 ranks" % part}
-		out[id] = picks
-	return out
-
-
 ## A level-up card's tier for the bot (tools/bot/BotCards.gd since pass 80: pass 77's tiers).
 static func card_tier(card: Dictionary) -> int:
 	return CARDS.card_tier(card)
@@ -522,7 +451,8 @@ func _meta(ra: Node, reason: String) -> Dictionary:
 	if ra and ra.has_method("build_text") and ra.has_method("_build"):
 		build = str(ra.build_text(ra._build()))
 	return {"schema": SCHEMA, "hero": _hero, "hero_name": str(header.get("hero_name", "")), "start_weapon": _start_weapon,
-		"seed": _seed, "board": _board, "talents": _talents.duplicate(), "talent_forms": _talent_forms.duplicate(),
+		"seed": _seed, "trail": str(_trail_info.get("arg", _trail)), "trail_level": int(_trail_info.get("level", 0)),
+		"trail_nodes": int(_trail_info.get("bought", 0)), "trail_optional": _trail_optional,
 		"fast": _fast, "death": _death, "limit": _limit, "map": _map,
 		"unlocks": _unlocks, "map_rev": header.get("map_rev", ""), "version": str(ProjectSettings.get_setting("application/config/version", "")),
 		"fps": fps, "res": [_res.x, _res.y], "view": [int(root.get_visible_rect().size.x), int(root.get_visible_rect().size.y)],

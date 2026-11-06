@@ -59,7 +59,7 @@ const STATS := {
 	"bronco_chance": ["chance a knocked-back enemy is launched", "pct"], "debuff_jump": ["debuff jumps", "rule"],
 	"star_block_every": ["seconds between star blocks", "rule"], "gem_sweep_every": ["seconds between gem sweeps", "rule"],
 	"vein_chance": ["chance a kill bursts into 5 XP gems", "pct"], "gold_might": ["attack damage per 100 gold gained", "pct"],
-	# pass 88 (lane MIRROR), the Upgrade board's Stakes (MirrorDanger); "hidden": a stat never written anywhere (Garry: the
+	# pass 88 (lane MIRROR), the Stakes (MirrorDanger; the Trail's Stakes nodes since pass 129); "hidden": a stat never written anywhere (Garry: the
 	# coins and XP they pay more "we don't write that in the description")
 	"danger_hp": ["enemy HP", "pct"], "danger_attack": ["enemy attack", "pct"], "danger_speed": ["enemy speed", "pct"],
 	"danger_bounty": ["", "hidden"], "boss_danger_hp": ["boss and Elite HP", "pct"],
@@ -126,10 +126,6 @@ const PRIORITY_WHO := "the strongest enemy nearby"
 ## Words in front of a stat's amount (pass 46: Desperado's bonus is a ceiling, "up to +12% attack damage as health falls"
 ## a level, +60% at level 5; pass 48: Gas Mask's is too, one point a poisoned enemy).
 const PREFIX := {"desperado": "up to ", "gas_mask_cap": "up to "}
-## A stat's whole value said as a sentence (pass 115, lane META): a "set" effect of these stats reads "{v}" filled with its
-## value, the Upgrade board's Nerve line "revive with 60% health" (HomesteadScreen.held_effects folds the talent's own
-## base into its ranks for it).
-const SET_TEXT := {"revive_hp": "revive with {v} health"}
 
 const RARITY_NAMES := {"common": "Common", "uncommon": "Uncommon", "rare": "Rare", "epic": "Epic", "legendary": "Legendary"}
 
@@ -215,10 +211,7 @@ static func describe_effect(e: Effect, with_name: bool = true) -> String:
 				_:
 					out = _signed(e.value) + (" " + name if with_name else "")
 		"set":
-			if with_name and SET_TEXT.has(e.stat):
-				out = str(SET_TEXT[e.stat]).replace("{v}", format_value(e.stat, e.value))
-			else:
-				out = (name + " = " if with_name else "= ") + format_value(e.stat, e.value)
+			out = (name + " = " if with_name else "= ") + format_value(e.stat, e.value)
 	if e.op != "set" and PREFIX.has(e.stat):
 		out = str(PREFIX[e.stat]) + out
 	if e.target == "all_weapons":

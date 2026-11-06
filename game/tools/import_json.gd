@@ -34,22 +34,6 @@ func _only() -> Dictionary:
 	return want
 
 
-## A talent whose ranks and prices (or per-rank effect lists) differ in length: TalentDef.cost_of_rank stops at the
-## shorter of ranks and the price list, so say so here rather than let a rank go missing quietly. Read by name: naming
-## TalentDef here would compile Effect and TextGen, which names the Registry, before the autoloads exist.
-func _check_talent(t: Resource, json: String) -> void:
-	var id := str(t.get("id"))
-	var ranks := int(t.get("ranks"))
-	var cost: Array = t.get("cost")
-	var forms: Array = t.get("forms")
-	if cost.size() != ranks:
-		push_warning("import_json: talent %s has %d ranks but %d prices (%s)" % [id, ranks, cost.size(), json])
-	for f: int in range(forms.size()):
-		var rl = (forms[f] as Dictionary).get("rank_effects", []) if forms[f] is Dictionary else []
-		if rl is Array and not (rl as Array).is_empty() and (rl as Array).size() != ranks:
-			push_warning("import_json: talent %s form %d has %d rank_effects lists for %d ranks (%s)" % [id, f, (rl as Array).size(), ranks, json])
-
-
 func _run() -> void:
 	var count := 0
 	var errors := 0
@@ -80,8 +64,6 @@ func _run() -> void:
 			if res == null:
 				errors += 1
 				continue
-			if type == "talents":
-				_check_talent(res, json)
 			var out := folder + sub + ".tres"
 			var err := ResourceSaver.save(res, out)
 			if err != OK:

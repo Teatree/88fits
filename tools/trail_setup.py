@@ -375,7 +375,7 @@ BASE = {
     "l1": {"max_hp": 100.0, "regen": 0.0, "shield": 0.0, "dr": 0.0, "evade": 0.0, "crit_chance": 0.02, "crit_damage": 2.0, "amount_gain": 1.0, "tempo_eff": 1.0},
     "l30": {"max_hp": 125.97, "regen": 0.9, "shield": 0.0, "dr": 0.05, "evade": 0.0, "crit_chance": 0.31, "crit_damage": 2.0, "amount_gain": 0.252, "tempo_eff": 0.65},
 }
-BOARD_POWER = {"l1": 2.327, "l30": 2.195}   # the full board over a fresh save (power ratio), filled from the probe
+BOARD_POWER = {"l1": 2.327, "l30": 2.195}   # the full board over a fresh save (power ratio), from the probe while the board existed (it left in pass 129: this is its last measurement)
 SUSTAIN = 30.0   # HeroPower.SUSTAIN_SECONDS
 
 
@@ -603,9 +603,9 @@ def write(nodes, cfg, force):
 
 
 def probe_plan(nodes, cfg, out_dir):
-    """A candidate Trail file and the set-ups the power probe measures: a fresh save, the full board in its strongest
-    forms (measured: Muscle, Plate, Poultice; the other talents add no power), the Trail at every tenth level (both
-    even patterns), the two stage levels, and the amount node alone."""
+    """A candidate Trail file and the set-ups the power probe measures: a fresh save, the Trail at every tenth level
+    (both even patterns), the two stage levels, and the amount node alone. (Until the Upgrade board left the game, later
+    in pass 129, the plan also measured the full board in its strongest forms: BOARD_POWER keeps that last measurement.)"""
     import trail_io
     out_dir = os.path.abspath(out_dir)   # the game reads the candidate by its absolute path
     os.makedirs(out_dir, exist_ok=True)
@@ -616,8 +616,7 @@ def probe_plan(nodes, cfg, out_dir):
     with open(cand, "w", encoding="utf-8", newline="\n") as f:
         f.write(trail_io.dump(data))
     top = max(n["level"] for n in nodes)
-    strong = {"grit": [1] * 7, "drive": [0] * 7, "study": [1] * 7, "stride": [0] * 7, "fortune": [0] * 7, "choice": [0] * 7, "nerve": [1] * 7}
-    configs = [{"name": "fresh"}, {"name": "board_full_strongest", "talents": strong}]
+    configs = [{"name": "fresh"}]
     for l in sorted(set(list(range(10, top + 1, 10)) + [18, 36, top])):
         for p in (0, 1):
             configs.append({"name": "trail_L%d_%s" % (l, "ab"[p]), "bought": bought_upto(nodes, l, p)})

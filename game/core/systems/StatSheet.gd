@@ -10,7 +10,7 @@ const PLAYER_DEFAULTS := {
 	"area": 1.0, "projectile_speed": 1.0, "duration": 1.0, "amount": 0.0, "magnet": 1.5, "luck": 0.0, "freeze_chance": 0.0, "crit_heal_chance": 0.0, "gold_on_hit": 0.0,
 	"greed": 1.0, "lifesteal": 0.0, "revives": 0.0, "turn_rate": 180.0,
 	# the choices (pass 47, Garry: "only two skips per Stage ... initially 1 Banish"): skips and banishes are a stage's,
-	# refilled at the run's start and at every stage (Run.refill_choices), the Mirror's Skip and Banish a rank each more;
+	# refilled at the run's start and at every stage (Run.refill_choices), the Trail's Skip and Banish nodes one each more;
 	# rerolls stay a run's
 	"rerolls": 1.0, "skips": 2.0, "banishes": 1.0,
 	# passive mechanisms (pass 23): rolled or applied by the systems, never by the sheet itself
@@ -23,9 +23,10 @@ const PLAYER_DEFAULTS := {
 	"evade": 0.0, "evade_invuln": 0.0, "shield_max": 0.0, "shield_delay": 3.0, "shield_rate": 0.5,
 	# (pass 126, lane ITEMS: Garry: "Lifesteal stat - Reduce the Effectiveness ... about 25% less": the cap 4% -> 3%, Run.LIFESTEAL_CAP)
 	"regen_delay": 3.0, "lifesteal_cap": 0.03, "heal_drop": 0.0, "coin_drop": 0.0,
-	# pass 46: the untouchable seconds after a hit, the share of max HP a revive stands up with, and Desperado (up to
-	# this much more attack damage as health falls)
-	"hit_invuln": 0.25, "revive_hp": 0.5, "desperado": 0.0,
+	# pass 46: the untouchable seconds after a hit, the share of max HP a revive stands up with (pass 115: 40%, which the
+	# Upgrade board's Nerve talent owned until pass 129 took the board away; the Trail's Second Wind nodes add to it), and
+	# Desperado (up to this much more attack damage as health falls)
+	"hit_invuln": 0.25, "revive_hp": 0.4, "desperado": 0.0,
 	# pass 47, the new lines and passive items (each read by the system it names): Ducktape's longer burns, poison, slows,
 	# marks and pins (a multiplier); Hot Sauce's difficulty (coloured creatures more often, better paid); Siesta's regen
 	# and Steady Hand's attack damage a second while the hero stands still (Run.note_still); Barrel Rush's speed and its
@@ -61,13 +62,13 @@ const PLAYER_DEFAULTS := {
 	# (PickupManager.vein); Gold Rush's attack damage per Run.GOLD_RUSH_PER gold gained while held (Run.gold_rush_bonus)
 	"bronco_chance": 0.0, "debuff_jump": 0.0, "star_block_every": 0.0, "gem_sweep_every": 0.0, "vein_chance": 0.0,
 	"gold_might": 0.0,
-	# pass 88 (lane MIRROR), the Upgrade board's Stakes (core/systems/MirrorDanger.gd: EnemyManager.spawn and host_of,
+	# pass 88 (lane MIRROR), the Stakes (the Trail's optional Stakes nodes since pass 129; core/systems/MirrorDanger.gd: EnemyManager.spawn and host_of,
 	# PickupManager.drop_from, Game._kill_effects): regular creatures' and bosses' / Elites' HP, attack, speed and bounty
 	# (their XP and coins), each a share on top of 1
 	"danger_hp": 0.0, "danger_attack": 0.0, "danger_speed": 0.0, "danger_bounty": 0.0,
 	"boss_danger_hp": 0.0, "boss_danger_attack": 0.0, "boss_danger_speed": 0.0, "boss_danger_bounty": 0.0,
 	# pass 115 (lane META): the least health share a Phoenix Feather revive stands him up with (the feather's own 50%, now
-	# that a plain revive starts at Nerve's 40%; Player.revive_share takes the larger of it and revive_hp)
+	# that a plain revive starts at 40%; Player.revive_share takes the larger of it and revive_hp)
 	"phoenix_hp": 0.0,
 	# pass 118 (lane ITEMS): the Jade Key's luck and the Ruby Key's attack damage banked at every chest opened
 	# (Run.chest_opened: the `chest_` prefix names the stat banked); pass 119 (lane LEGEND_B): the Grindstone's levels
@@ -104,7 +105,7 @@ const STAT_FLOORS := {"regen_delay": 0.5}
 var scope := ""
 var base: Dictionary = {}
 ## Array of {"effect": Effect, "source": String, "sid": String}. Pass 76 (lane UI): `sid` is the source's stable id beside
-## its words ("talent:grit:0", "totem:wolf", "passive:brawn", "trait:solenne"), what the pause Stats tab groups, names and
+## its words ("trail:might", "totem:wolf", "passive:brawn", "trait:solenne"), what the pause Stats tab groups, names and
 ## draws a source by; the source's words when none is given (remove_source still goes by the words).
 var entries: Array = []
 ## Pass 102 (lane HITS): one more on every change made through the functions below (a reader that keeps a number it read,

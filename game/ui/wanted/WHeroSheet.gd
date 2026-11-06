@@ -4,7 +4,7 @@
 ## badge as the portrait in a frame (pass 68: the badge of the look he is played in, Registry.played_look), beside it the
 ## name, the slogan and the trait's name; the SIGNATURE STAT (the rule in
 ## TextGen.hero_trait's words, its step a level in big numbers, and what it comes to at levels 1, 10, 20 and 40); the
-## STATS a run starts with (Run.hero_sheet at level 1, the Upgrade ranks in, TextGen's names, his signature stats in
+## STATS a run starts with (Run.hero_sheet at level 1, the Trail's bought upgrades in, TextGen's names, his signature stats in
 ## sage); the ITEMS (the weapon he lands with, his favourite and what finding it gives, any other weapon only he finds,
 ## his hero mutation and his perks), each on its plate with its name and the words the level-up card shows for it. A
 ## hero still locked shows the same under the quest that unlocks him and how far along it is.
@@ -197,12 +197,9 @@ static func stat_value(st: String, val: float) -> String:
 	return TextGen.format_value(st, val)
 
 
-## Whether the Upgrade board (the Mirror) holds any rank: the stats then say they include them.
+## Whether any upgrade node of the Trail is bought: the stats then say they include them.
 func _has_upgrades() -> bool:
-	for tdef: TalentDef in Registry.talents.values():
-		if Save.talent_rank(tdef.id) > 0:
-			return true
-	return false
+	return not Trail.effects().is_empty()
 
 
 ## ITEMS: the weapon he lands with, his favourite (and what finding it gives), any other weapon only he finds, his hero
@@ -637,7 +634,7 @@ func _stats_royale() -> void:
 		grid.add_child(_stat_cell_royale(st, "?" if locked else stat_value(st, sheet.get_stat(st)), st in mine and not locked))
 	v.add_child(grid)
 	var words := "Every number is unknown until this outlaw is yours." if locked else ("Signature stat in green. " + (
-		"Your Upgrade board ranks are counted in." if ups else "Ranks on the Upgrade board add to these."))
+		"Your Trail upgrades are counted in." if ups else "Upgrades on the Trail add to these."))
 	var note := W.serif_text(words, R_NOTE_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
 	note.name = "Note"
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL

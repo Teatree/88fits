@@ -45,7 +45,7 @@ var numbers: Label
 var light: Label
 var light_dot: ColorRect
 var log_box: RichTextLabel
-## pass 115 (lane DASH; Garry: "I need to know Player Mirror Upgrades while watching the replay"): the Upgrade board the
+## pass 115 (lane DASH; Garry: "I need to know Player Mirror Upgrades while watching the replay"; the Trail since pass 129): the Trail the
 ## run began with (the recording's save), under the numbers; B or a click on its title folds it
 var board_label: RichTextLabel
 var _board_open := true
@@ -842,14 +842,14 @@ func _build_ui() -> void:
 	log_box = RichTextLabel.new()
 	log_box.bbcode_enabled = true
 	log_box.scroll_following = true
-	# pass 115 (lane DASH): 110 (was 220): the Upgrade board above it takes its room, the log still fills what is left
+	# pass 115 (lane DASH): 110 (was 220): the Trail's panel above it takes its room, the log still fills what is left
 	log_box.custom_minimum_size = Vector2(PANEL_W - 20, 110)
 	log_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	log_box.add_theme_font_size_override("normal_font_size", 14)
 	log_box.add_theme_color_override("default_color", INK)
 	panel.add_child(log_box)
 	var keys := Label.new()
-	keys.text = "Keys: Space pause · . one frame · 1-7 speed 0.1x-8x · +/- faster/slower · ←/→ 5 s (Shift 30 s) · Home start · A safety net · B Upgrade board · M sound · Esc quit. Click the reel to jump."
+	keys.text = "Keys: Space pause · . one frame · 1-7 speed 0.1x-8x · +/- faster/slower · ←/→ 5 s (Shift 30 s) · Home start · A safety net · B the Trail · M sound · Esc quit. Click the reel to jump."
 	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	keys.custom_minimum_size = Vector2(PANEL_W - 20, 0)
 	keys.add_theme_color_override("font_color", DIM)
@@ -963,42 +963,38 @@ func _refresh_ui(f: int) -> void:
 	_refresh_buttons()
 
 
-## Pass 115 (lane DASH): the Upgrade board as the recorded run began (its save's talents, RunAnalytics.board on this
-## build's talents): every talent's ranks as dots (blue its first form, amber its second, hollow not bought) and its forms
-## by name, two talents a row; folded to its one title line by B or a click on it.
+## Pass 115 (lane DASH), pass 129: the Trail as the recorded run began (its save's `trail` block read by this build's
+## Trail, RunAnalytics.trail_block; the Upgrade board's panel until the board went): its level, how many nodes count as
+## bought and what they cost on the title line, then every upgrade type's sum, three a row; folded to the title line
+## by B or a click on it. A recording from before the Trail (its save has no `trail`) says so.
 func _refresh_board() -> void:
 	if board_label == null:
 		return
 	var sv = plan.get("save", {})
-	if not (sv is Dictionary) or not ((sv as Dictionary).get("talents") is Dictionary):
-		board_label.text = "[color=#9a9a9e]Upgrade board: not in this recording.[/color]" if not plan.is_empty() else ""
+	if not (sv is Dictionary) or not ((sv as Dictionary).get("trail") is Dictionary):
+		board_label.text = "[color=#9a9a9e]The Trail: not in this recording.[/color]" if not plan.is_empty() else ""
 		return
-	var b := RunAnalytics.board((sv as Dictionary)["talents"], int((sv as Dictionary).get("talent_spent", -1)))
-	var head := "[url=board][b]Upgrade board[/b][/url]  %d of %d ranks · %s gold  [url=board][color=#9a9a9e](%s)[/color][/url]" % [int(b["ranks"]),
-		int(b["max"]), TextGen.grouped(int(b["gold"])), "B: fold" if _board_open else "B: open"]
-	if not _board_open:
-		board_label.text = head
-		return
+	board_label.text = trail_text(RunAnalytics.trail_block(sv), _board_open)
+
+
+## The Trail panel's words from a record's `trail` block (RunAnalytics.trail_block).
+static func trail_text(b: Dictionary, open: bool) -> String:
+	var bought: Array = b.get("bought", []) if b.get("bought") is Array else []
+	var head := "[url=board][b]The Trail[/b][/url]  level %d of %d · %d of %d nodes · %s gold  [url=board][color=#9a9a9e](%s)[/color][/url]" % [
+		int(b.get("level", 0)), int(b.get("levels", 0)), bought.size(), int(b.get("nodes", 0)),
+		TextGen.grouped(int(b.get("spent", 0))), "B: fold" if open else "B: open"]
+	if not open:
+		return head
+	var ups: Dictionary = b.get("upgrades", {}) if b.get("upgrades") is Dictionary else {}
+	var types: Dictionary = b.get("types", {}) if b.get("types") is Dictionary else {}
+	if ups.is_empty():
+		return head + "\n[color=#9a9a9e]no upgrade bought[/color]"
 	var cells := PackedStringArray()
-	for t in b["talents"]:
-		var picks: Array = t["picks"]
-		var forms: Array = t["forms"]
-		var dots := ""
-		for k in range(maxi(int(t["max"]), picks.size())):
-			if k < picks.size():
-				dots += "[color=%s]●[/color]" % ("#5aa0ff" if int(picks[k]) == 0 else "#f0a830")
-			else:
-				dots += "[color=#55555a]○[/color]"
-		var n0 := picks.count(0)
-		var n1 := picks.size() - n0
-		var words := PackedStringArray()
-		if n0 > 0:
-			words.append("%s ×%d" % [str(forms[0]), n0])
-		if n1 > 0:
-			words.append("%s ×%d" % [str(forms[1]), n1])
-		var w := " · ".join(words) if not words.is_empty() else "[color=#9a9a9e]none[/color]"
-		cells.append("[cell][b]%s[/b] [font_size=19]%s[/font_size]  %s     [/cell]" % [str(t["name"]), dots, w])
-	board_label.text = head + "\n[table=2]" + "".join(cells) + "[/table]"
+	for t: Variant in ups.keys():
+		var info: Dictionary = types.get(t, {}) if types.get(t) is Dictionary else {}
+		var amount := Trail.amount_text(str(info.get("kind", "flat")), float(ups[t]))
+		cells.append("[cell][b]%s[/b] %s     [/cell]" % [str(info.get("name", t)), amount])
+	return head + "\n[table=3]" + "".join(cells) + "[/table]"
 
 
 func toggle_board() -> void:

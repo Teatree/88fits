@@ -11,7 +11,6 @@ var perks: Dictionary = {}       # one per hero
 var enemies: Dictionary = {}     # includes bosses
 var elites: Dictionary = {}
 var characters: Dictionary = {}
-var talents: Dictionary = {}
 var quests: Dictionary = {}
 var maps: Dictionary = {}
 var pickups: Dictionary = {}
@@ -33,7 +32,7 @@ func _ready() -> void:
 
 func scan() -> void:
 	weapons.clear(); passives.clear(); mutations.clear(); perks.clear(); enemies.clear(); elites.clear()
-	characters.clear(); talents.clear(); quests.clear(); maps.clear(); pickups.clear(); structures.clear()
+	characters.clear(); quests.clear(); maps.clear(); pickups.clear(); structures.clear()
 	missing_icons.clear(); problems.clear(); _enemy_cache.clear()
 	boss_attacks.clear()
 	currencies.clear()
@@ -44,8 +43,8 @@ func scan() -> void:
 	# pass 76 (lane LOOKS): every weapon family in the look it plays (the JSON's until the save is read)
 	apply_item_looks()
 	scanned = true
-	print("Registry: %d weapons, %d passives, %d enemies, %d elites, %d characters, %d talents, %d quests, %d maps, %d sounds" % [
-		weapons.size(), passives.size(), enemies.size(), elites.size(), characters.size(), talents.size(), quests.size(), maps.size(), soundmap.entries.size()])
+	print("Registry: %d weapons, %d passives, %d enemies, %d elites, %d characters, %d quests, %d maps, %d sounds" % [
+		weapons.size(), passives.size(), enemies.size(), elites.size(), characters.size(), quests.size(), maps.size(), soundmap.entries.size()])
 
 
 func _scan_type(type: String) -> void:
@@ -103,8 +102,6 @@ func _store(type: String, res: ContentDef) -> void:
 			elites[res.id] = res
 		"characters":
 			characters[res.id] = res
-		"talents":
-			talents[res.id] = res
 		"quests":
 			quests[res.id] = res
 		"maps":
@@ -500,12 +497,6 @@ func unlocked_passives() -> Array:
 	return base_passives().filter(func(p: PassiveDef) -> bool: return is_unlocked("passive", p.id))
 
 
-func sorted_shop() -> Array:
-	var out: Array = talents.values()
-	out.sort_custom(func(a, b): return a.order < b.order if a.order != b.order else a.id < b.id)
-	return out
-
-
 func sorted_buildings() -> Array:
 	var out: Array = buildings.values()
 	out.sort_custom(func(a, b): return a.order < b.order if a.order != b.order else a.id < b.id)
@@ -745,17 +736,6 @@ func elites_list() -> Array:
 	return out
 
 
-## The Mirror's talents in board order.
-func talent(id: String) -> TalentDef:
-	return talents.get(id)
-
-
-func talents_list() -> Array:
-	var out: Array = talents.values()
-	# pass 88 (lane MIRROR; Garry: "the ones who's first upgrade is the cheapest go on top and the most expensive on the
-	# bottom"): by the first rank's price, then `order`
-	out.sort_custom(func(a, b): return TalentDef.board_before(a, b))
-	return out
 
 
 # ---------------------------------------------------------------- pass 73 (lane CARDS): the cards' looks

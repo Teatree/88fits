@@ -576,7 +576,7 @@ func frame_look() -> Dictionary:
 	return out
 
 
-## A frame triplet for a colour of a screen's own (the HUD's buff plates on sage and rock, a talent form on paper), the
+## A frame triplet for a colour of a screen's own (the HUD's buff plates on sage and rock, a picture on paper), the
 ## way R derives uncommon: the light at .58 of the saturation and 1.12 of the value, the dark at 1.1 and .74, the rim at
 ## .32 of the saturation at full value. Paper and aged (and any pale, barely saturated colour) read as the common grey;
 ## the ink (every creature's plate) the kit's slate (FRAME_INK).

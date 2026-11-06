@@ -1,8 +1,7 @@
 extends GdUnitTestSuite
 
 ## Pass 46, phase 0: the schema the lanes code against. The timeline's new numbers (colour_after_kills, creature_hp_mult,
-## contact_cap, passive_cap and passive_cap_at), a hero's favourite passive, the line fields on every passive, a talent's
-## per-rank effects and its rank and price limits, a variant's own facing, the new player stats and their names, the
+## contact_cap, passive_cap and passive_cap_at), a hero's favourite passive, the line fields on every passive, a variant's own facing, the new player stats and their names, the
 ## stubs' signatures, and EnemyManager.bounce(): straight up and down on the spot, no harm, no spin, never a boss or an
 ## Elite, while the tornado's toss stays what it was.
 
@@ -213,99 +212,6 @@ func test_every_passive_carries_the_line_fields() -> void:
 	assert_int(traded).is_greater(0)
 
 
-# ---------------------------------------------------------------- the talents
-
-func _talent_json() -> Dictionary:
-	return {"id": "t46_talent", "ranks": 3, "cost": [100, 200, 300], "forms": [
-		{"name": "Steps", "text": "Bigger steps.", "rank_effects": [
-			[{"stat": "max_hp", "op": "mul", "value": 0.05}],
-			[{"stat": "max_hp", "op": "mul", "value": 0.10}],
-			[{"stat": "max_hp", "op": "mul", "value": 0.15}, {"stat": "regen", "op": "add", "value": 0.5}]]},
-		{"name": "Flat", "text": "The same step.", "effects": [{"stat": "might", "op": "mul", "value": 0.06}]}]}
-
-
-func test_a_talent_may_give_each_rank_its_own_effects() -> void:
-	var t: TalentDef = JsonContent.build("talents", _talent_json(), "res://content/talents/drive/")
-	assert_int(t.max_rank()).is_equal(3)
-	# rank 2 is the first two lists
-	var r2 := t.effects_for(0, 2)
-	assert_int(r2.size()).is_equal(2)
-	assert_float((r2[0] as Effect).value).is_equal_approx(0.05, 0.0001)
-	assert_float((r2[1] as Effect).value).is_equal_approx(0.10, 0.0001)
-	assert_str((r2[0] as Effect).target).is_equal("player")
-	assert_int(t.effects_for(0, 3).size()).is_equal(4)
-	# past the lists it stops at the last
-	assert_int(t.effects_for(0, 9).size()).is_equal(4)
-	# summed for reading: one per stat, the ranks added up
-	var s3 := t.summed_effects(0, 3)
-	assert_int(s3.size()).is_equal(2)
-	assert_str((s3[0] as Effect).stat).is_equal("max_hp")
-	assert_float((s3[0] as Effect).value).is_equal_approx(0.30, 0.0001)
-	assert_str((s3[1] as Effect).stat).is_equal("regen")
-	assert_float((s3[1] as Effect).value).is_equal_approx(0.5, 0.0001)
-	# the sum never touches the form's own Effects
-	assert_float((t.effects_for(0, 1)[0] as Effect).value).is_equal_approx(0.05, 0.0001)
-	assert_float((t.summed_effects(0, 1)[0] as Effect).value).is_equal_approx(0.05, 0.0001)
-	# without rank lists the form's effect repeats a rank
-	assert_int(t.effects_for(1, 3).size()).is_equal(3)
-	assert_float((t.summed_effects(1, 3)[0] as Effect).value).is_equal_approx(0.18, 0.0001)
-	# nothing at rank 0 or for a form that is not there
-	assert_array(t.effects_for(0, 0)).is_empty()
-	assert_array(t.effects_for(5, 1)).is_empty()
-	assert_array(t.summed_effects(-1, 2)).is_empty()
-	# a .tres round trip keeps the lists
-	var path := "user://pass46_talent.tres"
-	assert_int(ResourceSaver.save(t, path)).is_equal(OK)
-	var back: TalentDef = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE)
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-	assert_int(back.effects_for(0, 3).size()).is_equal(4)
-	assert_float((back.summed_effects(0, 3)[0] as Effect).value).is_equal_approx(0.30, 0.0001)
-	assert_float((back.summed_effects(1, 2)[0] as Effect).value).is_equal_approx(0.12, 0.0001)
-
-
-func test_a_rank_has_a_price_only_inside_both_the_ranks_and_the_price_list() -> void:
-	var t := TalentDef.new()
-	t.ranks = 3
-	t.cost = [100, 200, 300]
-	assert_int(t.cost_of_rank(0)).is_equal(100)
-	assert_int(t.cost_of_rank(2)).is_equal(300)
-	assert_int(t.cost_of_rank(3)).is_equal(-1)
-	assert_int(t.cost_of_rank(-1)).is_equal(-1)
-	# more prices than ranks: full at the ranks
-	t.cost = [100, 200, 300, 400]
-	assert_int(t.cost_of_rank(3)).is_equal(-1)
-	# more ranks than prices: full at the prices
-	t.ranks = 5
-	assert_int(t.cost_of_rank(3)).is_equal(400)
-	assert_int(t.cost_of_rank(4)).is_equal(-1)
-	# every talent on the board agrees with itself
-	for td: TalentDef in Registry.talents_list():
-		assert_int(td.cost.size()).override_failure_message(td.id + " prices").is_equal(td.ranks)
-		assert_int(td.cost_of_rank(td.max_rank())).is_equal(-1)
-		assert_int(td.cost_of_rank(td.max_rank() - 1)).is_greater(0)
-	# buying stops at the shorter of the two
-	Save.data = Save._default()
-	Save.add_gold(1000)
-	var short := TalentDef.new()
-	short.id = "t46_short"
-	short.ranks = 2
-	short.cost = [10, 20, 30]
-	assert_bool(Save.buy_talent(short)).is_true()
-	assert_bool(Save.buy_talent(short)).is_true()
-	assert_bool(Save.buy_talent(short)).is_false()
-	assert_int(Save.talent_rank("t46_short")).is_equal(2)
-	assert_int(Save.gold()).is_equal(970)
-	short.id = "t46_cheap"
-	short.ranks = 3
-	short.cost = [10]
-	assert_bool(Save.buy_talent(short)).is_true()
-	assert_bool(Save.buy_talent(short)).is_false()
-	assert_int(Save.talent_rank("t46_cheap")).is_equal(1)
-	Save.data = Save._default()
-
-
-# ---------------------------------------------------------------- a variant's facing
-
 func test_a_variant_may_turn_its_own_way() -> void:
 	var dir := "res://content/enemies/blue_slime/"
 	var d := JsonContent.load_json(dir + "blue_slime.json")
@@ -365,7 +271,9 @@ func test_a_variant_may_turn_its_own_way() -> void:
 
 func test_the_new_player_stats_have_defaults_and_names() -> void:
 	assert_float(float(StatSheet.PLAYER_DEFAULTS["hit_invuln"])).is_equal_approx(0.25, 0.0001)  # pass 83: halved
-	assert_float(float(StatSheet.PLAYER_DEFAULTS["revive_hp"])).is_equal_approx(0.5, 0.0001)
+	# pass 129 (re-pinned on purpose): 0.4 (pass 115's 40%, which the Upgrade board's Nerve talent owned as a base until the
+	# board left the game; 0.5 before that)
+	assert_float(float(StatSheet.PLAYER_DEFAULTS["revive_hp"])).is_equal_approx(0.4, 0.0001)
 	assert_float(float(StatSheet.PLAYER_DEFAULTS["desperado"])).is_equal(0.0)
 	var sheet := StatSheet.new()
 	sheet.set_bases(StatSheet.PLAYER_DEFAULTS)

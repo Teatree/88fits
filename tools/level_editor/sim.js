@@ -3,7 +3,7 @@
 // (composition of enemy HP and atk, which are likely to be alive at that point), Coins (total gains), Total Damage Dealt
 // (different sources breakdown as well), Kills (different enemies breakdown), hero level, total exp gained ... the sim
 // requires a manual button press". Round 2 (his notes on the first version): the tab right after Timeline; the hero and
-// his Upgrade board talent by talent (presets none / a quarter / half / full / my save); an honest ETA and why it takes
+// the Trail his save holds (pass 129: none / a quarter / half / full or a Trail Level, with or without the optional nodes); an honest ETA and why it takes
 // what it takes; crowd HP and attack replaced by Danger (health lost a second), Keeping up (seconds of his DPS to clear
 // the crowd, the boss apart) and Close crowd; what the run dashboard knows that helps judge a timeline; one page that
 // scrolls as a whole, so no chart is ever cut off.
@@ -65,7 +65,9 @@ const Sim = (() => {
       if (!S.form) {
         let draft = null;
         try { draft = JSON.parse(localStorage.getItem(LS_FORM) || 'null'); } catch (_) { draft = null; }
-        S.form = Object.assign({}, M.DEFAULTS, S.meta.defaults || {}, S.meta.saved || {}, draft || {});
+        // settings kept from the Upgrade board's days name `board`, never `trail`: the defaults' own `trail` must not
+        // hide that, so each such record is given its share of the Trail before the three are laid over each other
+        S.form = Object.assign({}, M.DEFAULTS, S.meta.defaults || {}, M.trailOfOld(S.meta.saved) || {}, M.trailOfOld(draft) || {});
       }
       normalizeForm();
     } catch (e) {
@@ -75,16 +77,18 @@ const Sim = (() => {
     }
   }
 
-  /** The form made whole against what the server offers: a board talent by talent (from its preset when a draft has
-   *  none), a death policy the runner knows, at once 0 = auto. */
+  /** The form made whole against what the server offers: a Trail (a draft from the Upgrade board's days has `board`:
+   *  the same share of the Trail), a death policy the runner knows, at once 0 = auto. */
   function normalizeForm() {
     const f = S.form;
     const meta = S.meta || {};
-    if (!f.talents || typeof f.talents !== 'object') {
-      const pre = (meta.presets || []).find((p) => Math.abs(Number(p.board) - Number(f.board)) < 1e-6 && p.key !== 'save') || (meta.presets || [])[1];
-      f.talents = pre ? Object.assign({}, pre.talents) : {};
-      f.board_label = pre ? pre.label : '';
+    const levels = (meta.trail || {}).levels || 0;
+    if (f.trail == null || M.trailLevelOf(f.trail, levels || 1000) == null) {
+      const old = { 0: 'none', 1.5: 'quarter', 3: 'half', 6: 'full' }[Number(f.board)];
+      f.trail = old || M.DEFAULTS.trail;
     }
+    f.trail_optional = f.trail_optional === true;
+    delete f.board; delete f.talents; delete f.board_label;
     const deaths = (meta.deaths || []).map((d) => d.value);
     if (deaths.length && !deaths.includes(f.death)) f.death = deaths.includes('end') ? 'end' : deaths[0];
     if (!(Number(f.workers) >= 0)) f.workers = 0;
@@ -209,8 +213,8 @@ const Sim = (() => {
 
   function formSettings() {
     const f = S.form;
-    return { hero: f.hero, players: f.players, workers: Number(f.workers) > 0 ? f.workers : 0, limit: f.limit, board: f.board, talents: f.talents || {},
-      board_label: f.board_label || '', death: f.death, seed: f.seed, map: App.S.mapId || f.map, fps: f.fps || 60, note: f.note || '',
+    return { hero: f.hero, players: f.players, workers: Number(f.workers) > 0 ? f.workers : 0, limit: f.limit, trail: f.trail, trail_optional: !!f.trail_optional,
+      death: f.death, seed: f.seed, map: App.S.mapId || f.map, fps: f.fps || 60, note: f.note || '',
       bot: f.bot || {}, stage: Math.max(1, Math.min(Number(f.stage) || 1, App.stages())) };
   }
 
@@ -239,7 +243,7 @@ const Sim = (() => {
     schedule();
   }
 
-  // pass 80 (lane WATCH): the Watch button: tools/watch.py with the tab's hero, board, seed and bot (POST /api/sim/watch)
+  // pass 80 (lane WATCH): the Watch button: tools/watch.py with the tab's hero, Trail, seed and bot (POST /api/sim/watch)
   async function watchRun() {
     S.watching = true; draw();
     const res = await post('/api/sim/watch', { settings: formSettings() });
@@ -335,7 +339,7 @@ const Sim = (() => {
     panel.scrollTop = keepScroll;
   }
 
-  // -- the settings card: the head row (Run sim, Hide settings), the ETA and why, the fields, the board
+  // -- the settings card: the head row (Run sim, Hide settings), the ETA and why, the fields, the Trail
 
   function field(label, input, help, cls) {
     return el('label', { class: 'sim-field' + (cls ? ' ' + cls : '') }, el('span', { class: 'sim-label', text: label }), input, help ? el('span', { class: 'sim-help', text: help }) : null);
@@ -356,12 +360,12 @@ const Sim = (() => {
       onclick: () => { if (App.dirty()) { S.confirm = true; draw(); } else runSim(false); } });
     const head = el('div', { class: 'sim-run-head' },
       el('h2', { text: 'Run a sim' }),
-      S.collapsed ? el('span', { class: 'sim-summary', text: `${heroName(f.hero)} · ${f.players} runs, ${workersOf(f)} at once · to ${M.fmtT(f.limit)} · board ${M.boardWords(f)} · ${M.DEATHS[f.death] || f.death} · seed ${f.seed} · bot ${botWords(f.bot)}` }) : null,
+      S.collapsed ? el('span', { class: 'sim-summary', text: `${heroName(f.hero)} · ${f.players} runs, ${workersOf(f)} at once · to ${M.fmtT(f.limit)} · Trail ${M.trailWords(f, ((S.meta || {}).trail || {}).levels)} · ${M.DEATHS[f.death] || f.death} · seed ${f.seed} · bot ${botWords(f.bot)}` }) : null,
       el('span', { class: 'spacer' }),
       btn,
-      // pass 80 (lane WATCH): one run of this hero, board, seed and bot played in a PC window (tools/watch.py)
+      // pass 80 (lane WATCH): one run of this hero, Trail, seed and bot played in a PC window (tools/watch.py)
       el('button', { type: 'button', class: 'btn small', text: S.watching ? 'Opening…' : 'Watch', disabled: !!S.watching,
-        title: 'watch one run of this outlaw, board, seed and bot in a game window: the phone view on the left, the numbers, charts and decisions of the bot on the right (one Watch at a time)',
+        title: 'watch one run of this outlaw, Trail, seed and bot in a game window: the phone view on the left, the numbers, charts and decisions of the bot on the right (one Watch at a time)',
         onclick: watchRun }),
       el('button', { type: 'button', class: 'btn small ghost', text: S.collapsed ? 'Show settings' : 'Hide settings', onclick: () => { S.collapsed = !S.collapsed; saveFold(); draw(); } }));
     card.appendChild(head);
@@ -527,54 +531,43 @@ const Sim = (() => {
     return box;
   }
 
-  /** The Upgrade board talent by talent: the presets, then each talent's rank (0-6) and form. */
+  /** The Trail the players' saves hold (pass 129; the Upgrade board talent by talent until then): the presets, a
+   *  Trail Level, and whether the optional nodes ride along. */
   function boardEditor(f, meta, caps) {
     const box = el('div', { class: 'sim-board' });
-    const t = f.talents || {};
-    const pre = M.presetOf(t, meta.presets);
-    const label = f.board_label || (pre ? pre.label : 'custom');
-    const setBoard = (talents, lab, board) => {
-      S.form = Object.assign({}, S.form, { talents, board_label: lab, board });
+    const tm = meta.trail || {};
+    const levels = tm.levels || 0;
+    const lv = M.trailLevelOf(f.trail, levels || 1000) || 0;
+    const setTrail = (patch) => {
+      S.form = Object.assign({}, S.form, patch);
       saveDraft();
       draw();
     };
-    const edited = (talents) => {
-      const p = M.presetOf(talents, meta.presets);
-      setBoard(talents, p ? p.label : 'custom', p && p.key !== 'save' ? p.board : -1);
-    };
-    const head = el('div', { class: 'sim-board-head' }, el('span', { class: 'sim-label', text: 'Upgrade board' }));
-    for (const p of meta.presets || []) {
-      head.appendChild(el('button', { type: 'button', class: 'btn small' + (pre && pre.key === p.key ? ' on' : ''), text: p.label,
-        title: p.key === 'save' ? `the talents bought in your save on this PC (${meta.save_note || ''})` : `difficulty_probe's ${p.label} board: ${M.boardRanks(p.talents)} ranks, each talent in its usual form`,
-        onclick: () => setBoard(Object.assign({}, p.talents), p.label, p.key === 'save' ? -1 : p.board) }));
+    const head = el('div', { class: 'sim-board-head' }, el('span', { class: 'sim-label', text: 'The Trail' }));
+    for (const p of tm.presets || M.TRAIL_PRESETS.map((x) => ({ key: x[0], label: x[2], level: null }))) {
+      head.appendChild(el('button', { type: 'button', class: 'btn small' + (String(f.trail) === p.key ? ' on' : ''), text: p.label,
+        title: `every required node up to Trail Level ${p.level == null ? '?' : p.level}${levels ? ' of ' + levels : ''} is bought (the choices taken in turn)`,
+        onclick: () => setTrail({ trail: p.key }) }));
     }
-    head.appendChild(el('span', { class: 'sim-board-total', text: `${label} · ${M.boardRanks(t)} of ${M.MAX_RANK * (meta.talents || []).length || 48} ranks` }));
+    const level = el('input', { type: 'number', class: 'sim-input tiny', min: 0, max: levels || 999, step: 1, value: lv,
+      title: 'a Trail Level of your own: every required node up to it is bought, the choices taken in turn (the first group its first member, the second its second, ...)',
+      onchange: (e) => {
+        const n = Math.max(0, Math.min(levels || 999, Math.round(Number(e.target.value) || 0)));
+        const pre = (tm.presets || []).find((p) => p.level === n && p.key === String(f.trail));
+        setTrail({ trail: pre ? pre.key : (n <= 0 ? 'none' : String(n)) });
+      } });
+    head.appendChild(el('label', { class: 'sim-inline', title: level.title }, el('span', { class: 'muted small', text: ' level ' }), level));
+    const opt = el('input', { type: 'checkbox', checked: !!f.trail_optional, disabled: lv <= 0,
+      onchange: (e) => setTrail({ trail_optional: !!e.target.checked }) });
+    head.appendChild(el('label', { class: 'sim-inline', title: 'the optional nodes up to that level too: the Stakes (creatures tougher for more XP and coins), the Grubstake, Spirit; a player may skip them' },
+      opt, el('span', { class: 'small', text: ' optional nodes too' })));
+    head.appendChild(el('span', { class: 'sim-board-total', text: M.trailWords(f, levels) }));
     box.appendChild(head);
-    if (!caps.talents && !(pre && pre.key !== 'save')) {
-      box.appendChild(el('p', { class: 'sim-warn small', text: 'This runner plays only the presets none, a quarter, half and full until lane SIMRUN\'s talents= lands: a custom board or your save would not be played as set, so Run sim refuses it.' }));
+    box.appendChild(el('p', { class: 'muted small', text: 'The outlaws, items and stages a node gives come with it, so the card pool is what a player at that Trail Level has. ' +
+      (tm.save ? `Your own save on this PC stands at Trail Level ${tm.save.level}.` : '') }));
+    if (!caps.trail && lv > 0) {
+      box.appendChild(el('p', { class: 'sim-warn small', text: 'This runner (game/tools/sim_run.gd) does not read trail= yet: it would play no Trail node, so Run sim refuses a Trail above none.' }));
     }
-    const grid = el('div', { class: 'sim-talents' });
-    for (const def of meta.talents || []) {
-      const picks = String(t[def.id] || '');
-      const rank = el('select', { class: 'sim-input tiny', title: 'ranks bought (0-6)', onchange: (e) => {
-        const form = picks ? (picks.slice(-1) === 'B' ? 1 : 0) : def.preset_form;
-        const next = Object.assign({}, t, { [def.id]: M.setRank(picks, Number(e.target.value), picks ? undefined : form) });
-        if (!next[def.id]) delete next[def.id];
-        edited(next);
-      } });
-      for (let r = 0; r <= (def.ranks || M.MAX_RANK); r++) rank.appendChild(el('option', { value: r, text: String(r), selected: r === picks.length }));
-      const form = el('select', { class: 'sim-input', disabled: !picks, title: 'the form every rank is bought in', onchange: (e) => {
-        if (e.target.value === 'mixed') return;
-        edited(Object.assign({}, t, { [def.id]: (e.target.value === '1' ? 'B' : 'A').repeat(picks.length) }));
-      } });
-      const mixed = /A/.test(picks) && /B/.test(picks);
-      if (mixed) form.appendChild(el('option', { value: 'mixed', text: M.picksWords(picks, def.forms), selected: true }));
-      def.forms.forEach((fm, i) => form.appendChild(el('option', { value: i, text: fm.name, selected: !mixed && picks.length > 0 && picks[0] === 'AB'[i], title: fm.text })));
-      if (!picks) form.appendChild(el('option', { value: '', text: '—', selected: true }));
-      grid.appendChild(el('div', { class: 'sim-talent' + (picks ? '' : ' none'), title: `${def.name}: ${def.flavour}\n${def.forms.map((fm) => `${fm.name}: ${fm.text}`).join('\n')}` },
-        el('b', { text: def.name }), rank, form));
-    }
-    box.appendChild(grid);
     return box;
   }
 
@@ -671,7 +664,7 @@ const Sim = (() => {
         el('div', { class: 'sim-hist-main' },
           el('b', { text: simLabel(h) }), badge, h.synthetic ? el('span', { class: 'sim-badge synthetic', text: 'made up', title: 'made-up runs (a test of the page), not the game' }) : null,
           h.kept ? el('span', { class: 'sim-badge kept', text: 'kept' }) : null,
-          el('span', { class: 'muted small', text: ` board ${h.board_words || M.boardLabel(st.board)} · ${h.death_words || st.death} · seed ${st.seed}${h.bot_words ? ' · bot ' + h.bot_words : ''}${h.drawn ? ' · everything drawn' : ''}${h.map_rev && h.map_rev.sha ? ' · map ' + h.map_rev.sha.slice(0, 7) : ''}${st.note ? ' · “' + st.note + '”' : ''}` })),
+          el('span', { class: 'muted small', text: ` Trail ${h.trail_words || M.trailWords(st)} · ${h.death_words || st.death} · seed ${st.seed}${h.bot_words ? ' · bot ' + h.bot_words : ''}${h.drawn ? ' · everything drawn' : ''}${h.map_rev && h.map_rev.sha ? ' · map ' + h.map_rev.sha.slice(0, 7) : ''}${st.note ? ' · “' + st.note + '”' : ''}` })),
         el('div', { class: 'sim-btns' },
           el('button', { type: 'button', class: 'btn small' + (cur ? ' primary' : ''), text: cur ? 'Shown' : 'Show', disabled: !h.has_result || cur, onclick: async () => { await show(h.id); draw(); } }),
           el('button', { type: 'button', class: 'btn small' + (cmp ? ' on' : ''), text: cmp ? 'Compared' : 'Compare', disabled: !h.has_result || cur, title: 'its lines dashed grey on the charts of the sim shown', onclick: () => setCompare(cmp ? '' : h.id) }),
@@ -719,12 +712,9 @@ const Sim = (() => {
     if (meta.assists) bits.push(`the bot was put on the portal or the boss chest ${meta.assists} time${meta.assists === 1 ? '' : 's'}`);
     if (st.note) bits.push('“' + st.note + '”');
     card.appendChild(el('div', { class: 'muted small', text: bits.join(' · ') }));
-    if (st.talents && Object.keys(st.talents).length) {
-      const defs = (S.meta || {}).talents || [];
-      const words = defs.filter((d) => st.talents[d.id]).map((d) => `${d.name} ${st.talents[d.id].length} ${M.picksWords(st.talents[d.id], d.forms)}`);
-      card.appendChild(el('div', { class: 'muted small', text: 'Board: ' + (words.join(' · ') || 'none') }));
-    }
-    if ((meta.board_differs || []).length) card.appendChild(el('div', { class: 'sim-warn small', text: `Some runs played another board than asked (an older runner?): ${meta.board_differs.join('; ')}` }));
+    card.appendChild(el('div', { class: 'muted small', text: 'The Trail: ' + M.trailWords(st, ((S.meta || {}).trail || {}).levels) }));
+    const differs = meta.trail_differs || meta.board_differs || [];
+    if (differs.length) card.appendChild(el('div', { class: 'sim-warn small', text: `Some runs played another Trail than asked (an older runner?): ${differs.join('; ')}` }));
     // pass 80 (lane BOT): the bot and what it did with the map, the means over the runs
     const sb = (r.bot || {}).summary;
     if (sb || st.bot) {

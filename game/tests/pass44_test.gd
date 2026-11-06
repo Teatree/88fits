@@ -150,19 +150,6 @@ func test_gold_earned_is_counted_outside_the_arena() -> void:
 	Run.end()
 
 
-func test_the_refund_is_half() -> void:
-	Save.add_gold(1000)
-	var grit: TalentDef = Registry.talents_list()[0]
-	assert_bool(Save.buy_talent(grit)).is_true()
-	var spent := Save.talent_spent()
-	assert_int(spent).is_greater(0)
-	assert_int(Save.talent_refund()).is_equal(int(floor(spent * 0.5)))
-	var purse := Save.gold()
-	var back := Save.talent_refund_all()
-	assert_int(back).is_equal(int(floor(spent * 0.5)))
-	assert_int(Save.gold()).is_equal(purse + back)
-
-
 func test_cake_replaced_the_cheese_that_replaced_the_jerky() -> void:
 	# pass 44: Cheese for Beef Jerky; pass 46: Cake for Cheese, the same numbers
 	assert_object(Registry.passive("cake")).is_not_null()

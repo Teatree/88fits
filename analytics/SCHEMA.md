@@ -1,4 +1,4 @@
-# Run record schema (pass 45, the Game Analytics Watch; schema 2 since pass 74, schema 3 since pass 101, schema 4 since pass 102, schema 5 since pass 115)
+# Run record schema (pass 45, the Game Analytics Watch; schema 2 since pass 74, schema 3 since pass 101, schema 4 since pass 102, schema 5 since pass 115, schema 6 since pass 129)
 
 One JSON file per run, written by `game/core/systems/RunAnalytics.gd` (a Game child created for every real run; the
 arena never records, and a launch file saying `"analytics": false` skips it). It is written when the run ends; a
@@ -30,6 +30,21 @@ time*. An older file lacks them: those cards say "not in this run's record (reco
 and draw what the older keys give (the board from `talents` / `talent_forms`, the health bars from `hp` once a second,
 every pick marked under the weapons); its CSV has no `hp_min` column.
 
+**Schema 6** (pass 129, lane TRAIL-REMOVE) takes the Upgrade board out: the Trail (`docs/trail_schema.md`,
+`core/systems/Trail.gd`) is the whole of the player's permanent progress. Gone from the header: `talents`,
+`talent_forms` and `board` (marked *until 5* below); gone from `icons`: `talent:<id>` and `talent:<id>:<form>`; gone
+from the index: `talents`, `talents.<id>`, `board_max`, `board_gold`; a `weapon_sources` entry is never of kind
+`talent`. The header's `trail` (there since the Trail arrived, earlier in pass 129) gains `levels`, `nodes` and
+`types`; `icons` holds each bought upgrade type's icon as `trail:<type>`; a `weapon_sources` entry may be of kind
+`trail` (`s: "trail:<type>"`, `n: "The Trail: Might"`); the index has `trail_level`, `trail_bought`, `trail_spent`.
+The dashboard's *Upgrade board* card is *The Trail* now (Trail Level N of `levels`, nodes bought of `nodes` and how
+many were paid for, gold spent, the upgrades summed by type, each written by its kind); the Remote runs list and the
+average's runs have a `trail` column ("level 12"). An older file still opens: one with a `board` (schema 5) or only
+`talents` shows it as *Upgrade board (before the Trail)* and reads "board 12 / 48" in that column, one with neither
+says so in one line. A record written between the Trail's arrival and schema 6 is schema 5 with its `board` and a
+`trail` that lacks `levels`, `nodes` and `types`: both cards show, the Trail's naming each upgrade type by its id
+with its plain sum. `tools/analytics_csv.py` writes the board's columns only for a record from before schema 6.
+
 ## Where the files go
 
 - Always `user://analytics/runs/<stamp>.json`: on the PC that is `%APPDATA%\Godot\app_userdata\88fits\analytics\runs\`
@@ -46,13 +61,13 @@ every pick marked under the weapons); its CSV has no `hp_min` column.
 - The dashboard opens from `file://` and reads the `.js` files with script tags; a file input or a drop opens any run
   file. Its *Tool runs* switch loads `runs/tools/`.
 
-`schema` is 5 (1 before pass 74, 2 from pass 74, 3 from pass 101, 4 from pass 102). Numbers are snapped to 0.1 (stats to 0.001, multipliers and the boss bar to 0.01).
+`schema` is 6 (1 before pass 74, 2 from pass 74, 3 from pass 101, 4 from pass 102, 5 from pass 115). Numbers are snapped to 0.1 (stats to 0.001, multipliers and the boss bar to 0.01).
 
 ## Header
 
 | key | meaning |
 |---|---|
-| `schema` | 5 (see the schema notes above) |
+| `schema` | 6 (see the schema notes above) |
 | `version` | `application/config/version` |
 | `hero`, `hero_name` | the character id and name |
 | `hero_look` *(2)* | the art look he was played in (`Registry.played_look`, e.g. `SOL-B`; "" for his own) |
@@ -74,10 +89,10 @@ every pick marked under the weapons); its CSV has no `hp_min` column.
 | `outcome`, `boss_killed`, `stage_clock`, `endless_s`, `run_time` | (pass 87) how the stage run ended: `outcome` = `extracted` (through the portal), `died_endless` (fell in Endless), `died_after_boss` (fell between the boss and Endless), `died` (fell before the boss), `quit` (left from the pause menu or the app); `boss_killed` (the stage's boss fell: the next stage unlocked), `stage_clock` (seconds into the stage: its length once the boss came), `endless_s` (seconds survived in Endless), `run_time` (every second played: the stage, its boss, the portal's countdown and Endless) |
 | `gold_before` | (pass 61) the saved gold (`Save.gold()`) as the run began |
 | `gold_end` *(2)* | the run's gold as PostHog's `run_end` has it: `gold_earned`, `gold_spent`, `gold_greed`, `gold_debug`, `gold_strongbox`, `gold_purse`, `gold_banked`, `gold_lost`, `gold_before`, `gold_after` (see *Gold*) |
-| `talents` *(2)* | the Upgrade board as the run began: `{talent id: [the form of each rank, in order]}` (0 its first form, 1 its second; only talents with a rank) |
-| `talent_forms` *(2)* | `{talent id: [first form's name, second form's name]}` for those talents |
-| `board` *(5)* | the whole Upgrade board as the run began (`RunAnalytics.board`), in the board's order (`Registry.talents_list`): `talents: [{id, name, max (the most ranks it takes), picks ([0, 1, ...]: each rank's form, 0 its first), forms ([first form's name, second's]), texts (their lines), gold (what its ranks cost at this build's prices: TalentDef.cost_of_rank)}]` (every talent, a rank or not), `ranks` (bought), `max` (the board's most), `gold` (summed), `spent` (`Save.talent_spent`: what the save says was paid; a price changed since, a board set by a tool or the developer menu (0) make it differ) |
-| `trail` *(pass 129)* | the Trail as the run began (`Trail.record`): `level` (the Trail Level), `bought` (the ids of the nodes that count as bought, in the file's order: the ones paid for and the ones whose gift the save already had), `paid` (how many of them were paid for), `spent` (`Save.trail_spent`: what they cost), `upgrades` (`{upgrade type: the summed value of its bought nodes}`: `might: 0.09` = +9%). Absent in a record from before pass 129; `bought` is empty while the Trail has no nodes |
+| `talents` *(2, until 5)* | the Upgrade board (removed in pass 129) as the run began: `{talent id: [the form of each rank, in order]}` (0 its first form, 1 its second; only talents with a rank) |
+| `talent_forms` *(2, until 5)* | `{talent id: [first form's name, second form's name]}` for those talents |
+| `board` *(5 only)* | the whole Upgrade board (removed in pass 129) as the run began (`RunAnalytics.board`), in the board's order (`Registry.talents_list`): `talents: [{id, name, max (the most ranks it takes), picks ([0, 1, ...]: each rank's form, 0 its first), forms ([first form's name, second's]), texts (their lines), gold (what its ranks cost at this build's prices: TalentDef.cost_of_rank)}]` (every talent, a rank or not), `ranks` (bought), `max` (the board's most), `gold` (summed), `spent` (`Save.talent_spent`: what the save says was paid; a price changed since, a board set by a tool or the developer menu (0) make it differ) |
+| `trail` *(pass 129; 6)* | the Trail as the run began (`RunAnalytics.trail_block`: `Trail.record` plus `levels`, `nodes`, `types`): `level` (the Trail Level), `bought` (the ids of the nodes that count as bought, in the file's order: the ones paid for and the ones whose gift the save already had), `paid` (how many of them were paid for), `spent` (`Save.trail_spent`: what they cost), `upgrades` (`{upgrade type: the summed value of its bought nodes}`: `might: 0.09` = +9%); *(6)* `levels` (the Trail's top level), `nodes` (how many nodes the Trail has) and `types` (`{upgrade type: {name, kind, text}}` for every type in `upgrades`: its name, what it adds to, and `kind`, how its sum is written: `percent` (0.03 = "+3%"), `flat` ("+2"), `count` ("+1"), `seconds` ("+2 s"), `word` (no amount; `Trail.amount_text`)), so a reader needs no content folder. A schema 5 record with a `trail` has none of the three (show the type's id). Absent in a record from before pass 129; `bought` is empty while the Trail has no nodes |
 | `settings` *(2)* | `{pierce_falloff, debug_mode, dev}`: pierce drop-off, the player's debug mode, and whether the run counts as a developer's (`Analytics.is_dev`) |
 | `map_settings` *(2)* | the map's numbers as the run played them, the game's defaults filled in where the map leaves a key out: `hero_knockback_mult`, `special_defaults` (size, hp, damage, xp, tint_strength, glow, chest_chance, `max_alive`: -1 = no limit), `boss_hp_scaling` (enabled, exponent, window, min, max, `ref_dps` {boss: DPS}), `target_priority` (enabled, reach), `spawn_rise` (seconds, big_seconds, targetable, dust), `creature_hp_mult`, `creature_damage_mult`, `creature_speed_mult`, `move_pace`, `xp_need_mult`, `water_slow` and `oases` (min, max, extra_chance, gap; pass 80), `xp_curve` (the growth type played and its numbers, defaults filled in; pass 82), and since pass 83 `boss_hp_scaling.mode` ("seconds" or "dps") and `boss_hp_scaling.seconds` {boss: seconds of full DPS}, `power_hp_scaling` (1 = off) and `power_hp_max`; since pass 89 `hero_special_knock` (the share of a special attack's push that reaches the hero) |
 | `stat_names` *(2)* | `{stat: the pause screen's words}` (TextGen) for every stat a snapshot carries |
@@ -96,10 +111,10 @@ every pick marked under the weapons); its CSV has no `hp_min` column.
 | `frame_timing` *(3)* | what the rows' frame times mean: `valid` (false when the wall clock is not a player's frame rate), `why` (`headless`: nothing was drawn; `fixed_fps`: run under `--fixed-fps`, the game stepped a fixed time a frame however long it took; `""` when valid), `max_fps` (`Engine.max_fps` as the run began; 0 = no cap but vsync's), `frame_cap` (`Settings.frame_cap`: 60 or 0 = the screen's max; pass 101: 60 by default on a phone), `vsync` (`DisplayServer.VSyncMode`: 0 off, 1 on, 2 adaptive, 3 mailbox), `refresh_hz` (the screen's refresh rate; -1 unknown), `physics_hz` (the world's ticks a second, 60); *(4)* `max_steps` (`Engine.max_physics_steps_per_frame` as the run began, 2 = `Game.CATCH_UP_STEPS`: the most world steps a drawn frame runs) |
 | `work` *(4)* | `{frames, steps, lost_s}`: the frames WorkClock counted, the world steps they ran and the world seconds the cap dropped over the run (absent without a counted frame) |
 | `heat` *(4)* | the same crowd's cost minute by minute: `{band (50), bucket_s (60), minutes, frame_ms: {band floor: [each minute's mean frame ms with that many creatures alive, or null]}, work_ms: {the same for the frame's CPU work: its world steps' time + its process time}}`; a cell needs 5 s of its minute in the band (`RunAnalytics.HEAT_BAND`, `HEAT_MIN_SECS`). Work rising along a band's row is the device heating up (or a heavier build: the build snapshots say which). Absent without schema 4 rows |
-| `weapon_sources` *(5)* | `{weapon id: [source]}` for every weapon held at the end (`RunAnalytics.weapon_sources_of`): each source that changed its numbers: on the hero's sheet an effect aimed at it (every weapon, this one, one of its tags) or one of the hero's stats every weapon folds in or its hits read (`RunAnalytics.WEAPON_FEED`: attack damage, cooldown, Berserk's weapon speed, area, projectile speed, duration, extra projectiles, crit chance and damage, damage to Elites and bosses, ricochet, overkill, execute, debuff duration), its mutations and the favourite's bonus (its own level is the weapon itself, left out). A source: `{s` (its stable id, StatSheet's `sid`: `passive:<id>`, `perk:<id>`, `mutation:<id>`, `talent:<id>:<form>`, `trait:<hero>`, `hero:<hero>`, `totem:<gift>`, `stranger`, `buff:<id>`, `bonus`), `n` (its name as the pause Stats tab says it), `k` (its kind), `w` (what it did, its amounts summed per stat: "+30% attack damage, −12% cooldown"), `i` (its icon, as in `icons`)`}` |
+| `weapon_sources` *(5)* | `{weapon id: [source]}` for every weapon held at the end (`RunAnalytics.weapon_sources_of`): each source that changed its numbers: on the hero's sheet an effect aimed at it (every weapon, this one, one of its tags) or one of the hero's stats every weapon folds in or its hits read (`RunAnalytics.WEAPON_FEED`: attack damage, cooldown, Berserk's weapon speed, area, projectile speed, duration, extra projectiles, crit chance and damage, damage to Elites and bosses, ricochet, overkill, execute, debuff duration), its mutations and the favourite's bonus (its own level is the weapon itself, left out). A source: `{s` (its stable id, StatSheet's `sid`: `passive:<id>`, `perk:<id>`, `mutation:<id>`, *(6)* `trail:<type>` (every bought Trail node of one upgrade type is one source; until schema 5 `talent:<id>:<form>`), `trait:<hero>`, `hero:<hero>`, `totem:<gift>`, `stranger`, `buff:<id>`, `bonus`), `n` (its name as the pause Stats tab says it), `k` (its kind), `w` (what it did, its amounts summed per stat: "+30% attack damage, −12% cooldown"), `i` (its icon, as in `icons`)`}` |
 | `weapon_family` *(5)* | `{evolution id: its base weapon's id}` for every evolution the run dealt damage with or held (the dashboard draws an evolution on its weapon's line) |
-| `icons` *(5)* | `{key: icon file}` as res:// paths without "res://" (`content/weapons/revolver/revolver_icon.png`; the dashboard reads `../game/<path>`): every id in `names` that is a weapon, passive item, card, perk, mutation, power-up or structure (the look the run played: the Dynamite Stick's for `lob_grenade`), a Totem gift's carved face (`art/ui/totem/spirit_<id>.png`), `talent:<id>` and `talent:<id>:<form>` (the board's pictures), `hero:<id>` (his badge in the look he played); an icon made in memory is left out |
-| `names` | `{id: display name}` for every id the file mentions (weapons, passives, perks, mutations, creatures, pickups, structures; *(2)* Elite modifiers, talents, the totem gifts, the cards an offer showed) |
+| `icons` *(5)* | `{key: icon file}` as res:// paths without "res://" (`content/weapons/revolver/revolver_icon.png`; the dashboard reads `../game/<path>`): every id in `names` that is a weapon, passive item, card, perk, mutation, power-up or structure (the look the run played: the Dynamite Stick's for `lob_grenade`), a Totem gift's carved face (`art/ui/totem/spirit_<id>.png`), *(6)* `trail:<type>` (a bought Trail upgrade type's icon, `art/ui/trail/<icon>.png`; until schema 5 `talent:<id>` and `talent:<id>:<form>`, the board's pictures), `hero:<id>` (his badge in the look he played); an icon made in memory is left out |
+| `names` | `{id: display name}` for every id the file mentions (weapons, passives, perks, mutations, creatures, pickups, structures; *(2)* Elite modifiers, talents (until schema 5), the totem gifts, the cards an offer showed) |
 | `hit_log` | the hero's last 30 s of hits as the Down! screen shows them: `{t (the stage clock), by, id (the creature), kind (melee/ranged/boss/heal), role, colour, fx, raw, dealt, shield, note (evaded, shield, broke, star, ...), hp, fatal}`; a named heal has `kind: heal` and `amount`; only on a finished run |
 | `samples` | the rows below |
 | `events` | the events below |
@@ -278,8 +293,9 @@ The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row
 |---|---|
 | `run_bank` | the purse a run's end brings home: since pass 70 every end (an extraction, a death, an abandon, a plain end); only a quit (the app gone mid-run) loses it |
 | `strongbox` | a Strongbox banking the purse mid-run |
-| `talent_refund` | Take it all back (half of what the ranks cost) |
-| `talent` | an Upgrade rank bought (a spend) |
+| `talent_refund` | since pass 129 only the one-time refund of the old Upgrade board by the Trail's migration (`ranks`, `spent`, `why: trail_v129`); before it Take it all back (half of what the ranks cost) |
+| `talent` | (until pass 129, no longer sent) an Upgrade rank bought (a spend) |
+| `trail` | (pass 129) a Trail node bought (a spend; `node`, `level`, `type`, `what`, `price`, and `value` for an upgrade, ride along) |
 | `hero` | a hero bought on the title (a spend, pass 69; `hero`, `price` ride along) |
 | `wipe` | the progress wiped (the balance to 0) |
 | `debug` | a tool's gold (never sent) |
@@ -306,7 +322,8 @@ The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row
   keeps the same block as `gold_end`.
 - `gold_meta` (one for every move of the saved gold, `Save.gold_moved` -> `Analytics.meta_gold`): `delta` (signed),
   `reason` (the table above), `balance_after`, `in_run` (true for the Strongbox and the banking at a run's end, which
-  also carry the run's ids); a talent buy adds `talent`, `rank` (the rank reached) and `form`; a refund `ranks` (how many
+  also carry the run's ids); a Trail node bought adds `node`, `level`, `type`, `what`, `price` and an upgrade's `value`
+  (until pass 129 a talent buy added `talent`, `rank` and `form`); the old board's refund `ranks` (how many
   went back) and `spent` (what they had cost). None from the arena's sandbox, a tool or the test runner. With
   `app_open.gold` (the balance at every launch) it draws the bank's balance over time.
 - `hero_bought` (pass 69: a hero bought with BUY on the title): `hero` (his id), `price`, `currency` (gold), `gold_after`;
@@ -319,7 +336,12 @@ The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row
   the id of the thing unlocked), `value` (an upgrade's amount), `price`; its spend is also a `gold_meta` with reason
   `trail` carrying the same keys. The migration's refund of the Upgrade board is a `gold_meta` with reason
   `talent_refund` and `why: trail_v129`.
-- The boards: **88fits · Coins** (`tools/posthog_boards.py`) and a "Gold today" tile on Pulse.
+- `run_start` (pass 129) carries `trail_level`, `trail_nodes` (how many nodes count as bought) and `trail_spent` in
+  place of `talents` / `talent_forms`.
+- The boards: **88fits · Coins** (`tools/posthog_boards.py`) and a "Gold today" tile on Pulse. Pass 129: their
+  Upgrade tiles read the Trail ("Gold today ... on the Trail", "The bank a day: in from runs, out to the Trail, the
+  old board paid back", "The Trail: gold by what was bought", "The Trail: the old Upgrade board paid back") and
+  **88fits · Players** has "Trail Level as runs begin" (level, runs, players).
 
 ## What reaches PostHog
 
@@ -392,7 +414,7 @@ binary also mirrors it to the repo's `analytics/runs/replays/`). `tools/replay.p
 | `player`, `platform`, `device`, `mobile` | the save's player name, OS name and model, whether a phone |
 | `hero`, `look`, `stage`, `map`, `map_seed`, `run_seed` | the run: hero id, the hero's look code from the save (`hero_look`), 1-based stage, map id, the map's layout seed, the run's seed (every rule's dice: Dice) |
 | `launch` | what the game started from: character, map, map_seed, stage, spawn (the beam), plus a tool's own plain keys |
-| `save` | the whole save as the run began (the Upgrade board, owned heroes and looks, quests, wanted board, skins, ...), `install_id` and `survey` blanked |
+| `save` | the whole save as the run began (the Trail: `trail: {bought: [the ids paid for], spent, had: ["<type>:<id>", ...: the gifts the save already had]}`; until pass 129 the Upgrade board's `talents`; owned heroes and looks, quests, wanted board, skins, ...), `install_id` and `survey` blanked |
 | `settings` | `Settings.to_dict()` as the run began (camera, shake, frame cap, hero_knockback, fire_forward, native_crowd, pierce_falloff, ...) |
 | `canvas`, `vp_px`, `safe_top` | the game's canvas in design pixels, its viewport in real pixels, the camera cutout's inset: a replay draws the same view (what is on screen is a rule: weapons and the crowd read it) |
 | `d_ready`, `hz`, `check_every`, `track_every` | the delta of the frame the game was made in, the physics rate, the seconds between checks (5) and track points (0.5) |
@@ -407,10 +429,13 @@ binary also mirrors it to the repo's `analytics/runs/replays/`). `tools/replay.p
 | `marks` | the run's events for the reel: `[frame, play clock, kind, id, level]` (RunAnalytics.event's) |
 | `result`, `end_reason`, `play_s`, `wall_s`, `level`, `kills`, `gold` | how and when it ended |
 
-**The Upgrade board in the viewer** (pass 115): the viewer reads the board from `save.talents` (and `save.talent_spent`)
-with this build's talents (`RunAnalytics.board`) and shows it under its numbers (B folds it); the header names the look
-(`look`). Only builds from 0.98 on show it; `python tools/replay.py` prints the board in the terminal for any recording
-(`--board <file>` prints only that).
+**The Trail in the viewer** (pass 129; pass 115's Upgrade board until then): the viewer reads the Trail from
+`save.trail` with this build's Trail (`RunAnalytics.trail_block`) and shows it under its numbers (B folds it): the
+Trail Level, the nodes, the gold, the upgrades summed by type; the header names the look (`look`). `python
+tools/replay.py` prints the Trail in the terminal for any recording, from `save.trail` and
+`game/content/trail/trail.json` as the repo has it now: how many nodes were paid for and their gold, the upgrades
+summed by type (each written by its kind), the unlocks bought by type (`--trail <file>` prints only that; `--board`
+is its old name). A recording from before the Trail says in one line what its save's Upgrade board held.
 
 **In PostHog** (`run_replay`, `Analytics.run_replay`): the same JSON gzipped, base64, cut into parts of at most 100,000
 characters, one event a part, `format` "replay", `part`/`parts`/`raw_bytes`/`gz_bytes`/`md5` as run_record's, plus
@@ -447,14 +472,17 @@ counted run on a new install). The record on the phone is the save's `survey` ke
   (`names`, `hit_log`, `samples`, `events`, `build`, `totals`, `timeline`, `quests`, `talents`, `talent_forms`,
   `totems`, `stat_names`, `build_text`, `heat`, `tasks`), the small blocks flattened as `block.key` (`gold_end.gold_banked`, `fps.avg`,
   `settings.dev`, `launch.weapon`, `trait.stats.might`, `map_settings.boss_hp_scaling.ref_dps.brander`, ...), and:
-  `talents` (ranks bought, all talents) and `talents.<id>` (each), `totems` (gifts taken), `damage` (all damage dealt),
+  `talents` (ranks bought, all talents) and `talents.<id>` (each; both until schema 5), `totems` (gifts taken), `damage` (all damage dealt),
   `top_source` (the source that dealt the most), `dps_end` (the build's estimate at the end), `build` (`build_text`),
   `hp_lost`, `hits_taken`, `bosses` (killed), `specials_killed`, `elites_killed`, `killer` (what put him down last).
-- *(5)* `board_max` (the board's most ranks) and `board_gold` (what its ranks cost) from the header's `board`; `board`,
+- *(5 only)* `board_max` (the board's most ranks) and `board_gold` (what its ranks cost) from the header's `board`; `board`,
   `weapon_sources`, `weapon_family` and `icons` stay out of the index (and `tasks`, as the game's index always left it
   out; `tools/analytics_csv.py` leaves it out too since pass 115).
 - *(pass 129)* `trail_level`, `trail_bought` (how many nodes count as bought) and `trail_spent` from the header's `trail`;
   the block itself stays out of the index.
+- *(6)* no `talents`, `talents.<id>`, `board_max` or `board_gold` (the Upgrade board left the game); `chest_banks`
+  stays out as well. `tools/analytics_csv.py` makes the same row from a run file, and still writes the board's columns
+  for a file from before schema 6 (`talents` 0 when it had no rank), so an old file converts as it always did.
 
 ## CSV (pass 74)
 

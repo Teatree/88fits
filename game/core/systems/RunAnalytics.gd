@@ -37,20 +37,24 @@
 ## (every item, talent, gift or bonus that changed each held weapon's numbers at the end, in words, with its icon),
 ## `weapon_family` (an evolution's base weapon) and `icons` (every id's icon as a res:// path without the prefix), so
 ## the dashboard can draw each weapon's real DPS with what shaped it.
+## Pass 129 (lane TRAIL-REMOVE), schema 6: the Upgrade board is gone, so the header no longer carries `talents`,
+## `talent_forms` or `board`; `trail` (there since the Trail arrived) is the whole of the player's permanent progress:
+## Trail.record() plus `levels`, `nodes` and `types` (trail_block), and `icons` holds a bought upgrade type's icon as
+## "trail:<type>". The dashboard still reads an older record's `board`.
 class_name RunAnalytics
 extends Node
 
 static var I: RunAnalytics = null
 
-const SCHEMA := 5
+const SCHEMA := 6
 ## Pass 74: the run files a phone keeps in user://analytics/runs (the newest by name: a name is the run's start stamp);
 ## the PC keeps every one (prunes_here).
 const KEEP_FILES := 50
 ## Pass 74: RunTimeline's marker kinds by name (its KIND_* order: a special, an Elite or a boss killed, the hero down).
 const MARKER_NAMES := ["plain", "special", "elite", "boss", "down"]
 ## Pass 74: the header blocks the index leaves out (big, or the run file's own business); the rest goes in flattened.
-const INDEX_SKIP := ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents",
-	"talent_forms", "totems", "stat_names", "build_text", "heat", "tasks", "board", "weapon_sources", "weapon_family", "icons",
+const INDEX_SKIP := ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests",
+	"totems", "stat_names", "build_text", "heat", "tasks", "weapon_sources", "weapon_family", "icons",
 	"chest_banks", "trail"]
 ## Pass 115 (lane DASH): the hero's stats every weapon's numbers fold in (WeaponInstance.rebuild: attack damage, cooldown,
 ## Berserk's weapon speed, area, projectile speed, duration, extra projectiles) and the ones its hits read (crits, damage
@@ -102,11 +106,11 @@ const GOLD_SOURCES := ["coins", "loose_change", "gold_dust", "boss_coins", "loot
 ## spend: it banks the purse (run_end's gold_banked, the save's gold_meta "strongbox").
 const GOLD_SINKS := ["shop", "revive", "other"]
 ## The saved gold's reasons (Save.add_gold / spend_gold, sent as gold_meta): in from run_bank (the purse an extraction
-## brings home), strongbox (banked mid-run), talent_refund (Take it all back); out to talent (an Upgrade rank), hero (pass 69:
-## a hero bought on the title, Save.buy_hero) and wipe.
-const META_REASONS := ["run_bank", "strongbox", "talent_refund", "talent", "hero", "wipe", "debug", "other",
-	# pass 129 (lane TRAILCORE): trail = a Trail node bought (Trail.buy; the event carries the node, its level and what it gives)
-	"trail"]
+## brings home), strongbox (banked mid-run), talent_refund (the old Upgrade board's coins paid back once by
+## Save._migrate_trail; "talent", a rank bought on that board, left with it in pass 129); out to trail (a Trail node
+## bought: Trail.buy; the event carries the node, its level and what it gives), hero (pass 69: a hero bought on the
+## title, Save.buy_hero) and wipe.
+const META_REASONS := ["run_bank", "strongbox", "talent_refund", "trail", "hero", "wipe", "debug", "other"]
 
 var game: Node
 var play_t := 0.0            # unpaused play seconds: the x axis (Run.elapsed is the stage clock and freezes in boss and portal phases)
@@ -253,16 +257,13 @@ func begin(p_game: Node) -> void:
 	header["steer_every"] = int(em_n.get("steer_every")) if em_n != null and em_n.has_method("native_on") else 2
 	# the saved gold as the run began (pass 61: run_end's gold_before; gold_after - gold_before = what the run banked)
 	header["gold_before"] = Save.gold()
-	# pass 74 (schema 2): a tool's run or a played one, the look he wears, the Upgrade board, the switches, the map's numbers
+	# pass 74 (schema 2): a tool's run or a played one, the look he wears, the switches, the map's numbers
 	header["tool"] = RunAnalytics.is_tool_process()
 	header["hero_look"] = Analytics.hero_look_of(hero)
-	header["talents"] = _talents()
-	header["talent_forms"] = _talent_forms()
-	# pass 115 (lane DASH): the whole board, every talent with its ranks, forms and price (schema 5)
-	header["board"] = RunAnalytics.board()
 	# pass 129 (lane TRAILCORE): the Trail as the run began (Trail.record: its level, the nodes bought, what they cost,
-	# every upgrade type's summed value), and the coins its Grubstake put in the purse (Run.start), booked as a source
-	header["trail"] = Trail.record()
+	# every upgrade type's summed value; schema 6, trail_block: how long the Trail is and each bought type's words), and
+	# the coins its Grubstake put in the purse (Run.start), booked as a source
+	header["trail"] = RunAnalytics.trail_block()
 	var grub: int = mini(Run.player_sheet.get_int("start_gold"), Run.run_gold) if Run.player_sheet else 0
 	if grub > 0:
 		gold_in("start_gold", grub)
@@ -1775,76 +1776,32 @@ func _crowd() -> Dictionary:
 	return out
 
 
-## The Upgrade board as the run began: {talent id: the form of each rank bought, in order} (Save.talent_picks: 0 its
-## first form, 1 its second), only the talents with a rank.
-func _talents() -> Dictionary:
-	var out := {}
-	for t in Registry.talents.values():
-		var tdef := t as TalentDef
-		if tdef == null:
-			continue
-		var picks := Save.talent_picks(tdef.id)
-		if not picks.is_empty():
-			out[tdef.id] = picks
-	return out
-
-
-## The two forms' names of every talent the run had a rank of: {talent id: [first form, second form]}.
-func _talent_forms() -> Dictionary:
-	var out := {}
-	for t in Registry.talents.values():
-		var tdef := t as TalentDef
-		if tdef == null or Save.talent_picks(tdef.id).is_empty():
-			continue
-		out[tdef.id] = [tdef.form_name(0), tdef.form_name(1)]
-	return out
-
-
-## Pass 115 (lane DASH; Garry: "There should be info about what level of Mirror Upgrade Player was when they played"):
-## the whole Upgrade board, in the board's order (Registry.talents_list): every talent with its name, the most ranks it
-## takes (`max`), the form of each rank bought (`picks`: 0 its first form, 1 its second), both forms' names and lines,
-## and the gold those ranks cost at the prices of this build (TalentDef.cost_of_rank); then the board's ranks bought, its
-## most, that gold summed and what the save says was paid for them (`spent`: Save.talent_spent; a price changed since
-## makes the two differ). `save_talents` reads another save's "talents" block ({id: {picks, rank, form}}: the replay's
-## save, ReplayViewer) instead of this phone's; `spent` is then that save's talent_spent (pass it in, -1 = unknown).
-static func board(save_talents: Variant = null, spent: int = -1) -> Dictionary:
-	var rows: Array = []
-	var ranks := 0
-	var most := 0
-	var gold := 0
-	for t in Registry.talents_list():
-		var d := t as TalentDef
-		if d == null:
-			continue
-		var picks: Array = Save.talent_picks(d.id) if save_talents == null else RunAnalytics.picks_in(save_talents, d.id)
-		var g := 0
-		for k in picks.size():
-			g += maxi(d.cost_of_rank(k), 0)
-		rows.append({"id": d.id, "name": d.display_name, "max": d.max_rank(), "picks": picks, "gold": g,
-			"forms": [d.form_name(0), d.form_name(1)], "texts": [d.form_text(0), d.form_text(1)]})
-		ranks += picks.size()
-		most += d.max_rank()
-		gold += g
-	return {"talents": rows, "ranks": ranks, "max": most, "gold": gold,
-		"spent": Save.talent_spent() if save_talents == null else spent}
-
-
-## A save's talent block read the way Save.talent_picks reads its own: the form of each rank ([0, 1, 0]); an old
-## {form, rank} as that form `rank` times; [] for none.
-static func picks_in(save_talents: Variant, id: String) -> Array:
-	var out: Array = []
-	if not (save_talents is Dictionary):
-		return out
-	var t = (save_talents as Dictionary).get(id, {})
-	if not (t is Dictionary):
-		return out
-	var p = (t as Dictionary).get("picks")
-	if p is Array:
-		for f in p:
-			out.append(clampi(int(f), 0, 1))
-		return out
-	for k in range(int((t as Dictionary).get("rank", 0))):
-		out.append(clampi(int((t as Dictionary).get("form", 0)), 0, 1))
+## Pass 129 (schema 6; Garry in pass 115: "There should be info about what level of Mirror Upgrade Player was when they
+## played"; the Trail is that now): the header's `trail`: Trail.record() ({level, bought: [node ids], paid, spent,
+## upgrades: {type: summed value}}) plus what a reader needs to show it without the content folder: `levels` (the
+## Trail's top level), `nodes` (how many nodes it has) and `types` ({type: {name, kind, text}} for every upgrade type
+## with a bought node; kind says how the sum is written: percent, flat, count, seconds, word).
+## `save_data` reads another save's whole data (the replay's recorded save, ReplayViewer) instead of this one: the
+## save's data is swapped for the length of the call and put back, nothing is written.
+static func trail_block(save_data: Variant = null) -> Dictionary:
+	var keep: Variant = null
+	if save_data is Dictionary:
+		keep = Save.data
+		Save.data = (save_data as Dictionary).duplicate(true)
+		Trail.refresh()
+	var out: Dictionary = Trail.record()
+	out["levels"] = Trail.levels()
+	out["nodes"] = Trail.nodes().size()
+	var types := {}
+	var ups = out.get("upgrades", {})
+	if ups is Dictionary:
+		for t: Variant in (ups as Dictionary).keys():
+			var u: Dictionary = Trail.upgrade(str(t))
+			types[str(t)] = {"name": str(u.get("name", t)), "kind": str(u.get("kind", "flat")), "text": str(u.get("text", ""))}
+	out["types"] = types
+	if keep != null:
+		Save.data = keep
+		Trail.refresh()
 	return out
 
 
@@ -1865,8 +1822,8 @@ func _weapon_sources() -> Dictionary:
 ## What shaped one weapon's numbers: every source on the hero's sheet aimed at it (all weapons, this weapon, one of its
 ## tags), every source of a hero stat it folds in or its hits read (WEAPON_FEED: attack damage, cooldown, area, crits...),
 ## its own mutations and the favourite's bonus; its level is the weapon itself and left out. One entry a source id
-## (StatSheet's `sid`: three ranks of one talent are one), its amounts summed per stat (a "mul" compounded):
-## {s: the source id, n: its name (StatSources.describe_source), k: its kind (passive, perk, mutation, talent, trait,
+## (StatSheet's `sid`: every Trail node of one upgrade type is one), its amounts summed per stat (a "mul" compounded):
+## {s: the source id, n: its name (StatSources.describe_source), k: its kind (passive, perk, mutation, trail, trait,
 ## hero, totem, stranger, buff, bonus, ...), w: what it did in words ("+30% attack damage, −12% cooldown"), i: its icon
 ## (a res:// path without the prefix; "" without one)}. Sources that word to nothing (hidden stats) are left out.
 static func weapon_sources_of(w: WeaponInstance, player: StatSheet) -> Array:
@@ -1956,8 +1913,8 @@ func _weapon_family() -> Dictionary:
 	return out
 
 
-## {id: icon path} for every item, power-up, structure and talent the record names (the header's names, the talents'
-## forms as "talent:<id>:<form>", the hero as "hero:<id>" in the look he played), as res:// paths without "res://"
+## {id: icon path} for every item, power-up and structure the record names (the header's names), the Trail's bought
+## upgrade types as "trail:<type>" and the hero as "hero:<id>" in the look he played, as res:// paths without "res://"
 ## (analytics/dashboard.html reads them from ../game/); an icon made in memory (no file) is left out.
 func _icons() -> Dictionary:
 	var out := {}
@@ -1970,17 +1927,12 @@ func _icons() -> Dictionary:
 		elif RunAnalytics.spirit_path(str(id)) != "":
 			# a Totem gift's spirit (art/ui/totem, the Spirit Pole's carved faces)
 			out[str(id)] = RunAnalytics.spirit_path(str(id))
-	for t in Registry.talents_list():
-		var td := t as TalentDef
-		if td == null:
-			continue
-		var p0 := RunAnalytics.icon_path(td.icon)
-		if p0 != "":
-			out["talent:" + td.id] = p0
-		for f in 2:
-			var pf := RunAnalytics.icon_path(td.form_icon(f))
-			if pf != "":
-				out["talent:%s:%d" % [td.id, f]] = pf
+	var trl = header.get("trail")
+	if trl is Dictionary and (trl as Dictionary).get("upgrades") is Dictionary:
+		for t: Variant in ((trl as Dictionary)["upgrades"] as Dictionary).keys():
+			var pt := RunAnalytics.icon_path(Trail.icon(str(t)))
+			if pt != "":
+				out["trail:" + str(t)] = pt
 	var c: CharacterDef = Run.character
 	if c != null:
 		var look: CharacterDef = Registry.played_look(c)
@@ -2107,8 +2059,6 @@ func _names() -> Dictionary:
 			if e.get(k) is Array:
 				for c in e[k]:
 					ids[str(c)] = true
-	for k in header.get("talents", {}):
-		ids[str(k)] = true
 	for w in Run.weapons:
 		ids[w.def.id] = true
 		for m in w.mutations:
@@ -2148,11 +2098,9 @@ func _name_of(id: String) -> String:
 		d = Registry.pickup(id)
 	if d == null:
 		d = Registry.structure(id)
-	# pass 74: an Elite modifier, a talent of the Upgrade board
+	# pass 74: an Elite modifier
 	if d == null:
 		d = Registry.elites.get(id) as ContentDef
-	if d == null:
-		d = Registry.talents.get(id) as ContentDef
 	if d == null:
 		return str(SOURCE_NAMES.get(id, ""))
 	return d.display_name
@@ -2256,8 +2204,8 @@ func _update_index(dir: String) -> void:
 
 ## One run in the index (index.json / index.js: the dashboard's history and its CSV; pass 74, schema 2): the file, every
 ## header field but the big blocks (INDEX_SKIP) with the small blocks flattened as "block.key" (gold_end.gold_banked,
-## fps.avg, settings.dev, map_settings.boss_hp_scaling.exponent, trait.stats.might, launch.weapon, ...), the Upgrade
-## board as ranks (talents = all of them, talents.<id> each), the totems taken, and the sums the history draws: the
+## fps.avg, settings.dev, map_settings.boss_hp_scaling.exponent, trait.stats.might, launch.weapon, ...), the Trail
+## (trail_level, trail_bought, trail_spent), the totems taken, and the sums the history draws: the
 ## damage dealt and the source that dealt the most, the build's estimate at the end, the build in one line, the HP lost
 ## and the hits taken, the bosses, specials and Elites killed, and what put the hero down last. tools/analytics_csv.py
 ## makes the same row from a run file.
@@ -2266,20 +2214,8 @@ func index_row() -> Dictionary:
 	for k in header:
 		if not INDEX_SKIP.has(str(k)):
 			RunAnalytics.flatten_into(row, str(k), header[k])
-	var ranks := 0
-	var tal = header.get("talents", {})
-	if tal is Dictionary:
-		for id in tal:
-			var n: int = (tal[id] as Array).size() if tal[id] is Array else 0
-			row["talents." + str(id)] = n
-			ranks += n
-	row["talents"] = ranks
-	# pass 115 (lane DASH): the board's most ranks and what its ranks cost (schema 5's board; absent before it)
-	var bd = header.get("board")
-	if bd is Dictionary:
-		row["board_max"] = int((bd as Dictionary).get("max", 0))
-		row["board_gold"] = int((bd as Dictionary).get("gold", 0))
-	# pass 129 (lane TRAILCORE): the Trail's level, how many nodes count as bought and what they cost (absent before it)
+	# pass 129 (lane TRAILCORE): the Trail's level, how many nodes count as bought and what they cost (absent before it;
+	# the Upgrade board's talents, board_max and board_gold columns left with the board, schema 6)
 	var trl = header.get("trail")
 	if trl is Dictionary:
 		row["trail_level"] = int((trl as Dictionary).get("level", 0))

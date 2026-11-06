@@ -405,15 +405,25 @@ func test_skips_and_banishes_refill_every_stage_and_rerolls_do_not() -> void:
 	assert_int(Run.rerolls_left).is_equal(0)
 	# a skip pays nothing now (the gold for skipping is gone)
 	assert_bool(Run.has_method("skip_gold")).is_false()
-	# the Mirror: Skip and Banish ranks
-	Save.data["talents"] = {"nerve": {"form": 0, "rank": 2}, "choice": {"form": 1, "rank": 1}}
+	# the Trail's Skip and Banish nodes (pass 129; the Upgrade board's ranks until then): each one more, a stage
+	var ids: Array = []
+	for nd: Dictionary in Trail.nodes():
+		if str((nd["gives"] as Dictionary).get("upgrade", "")) in ["skip", "banish"]:
+			ids.append(str(nd["id"]))
+	Save.data["trail"] = {"bought": ids, "spent": 0, "had": []}
+	Trail.refresh()
+	var more_skips := int(round(Trail.total("skip")))
+	var more_banishes := int(round(Trail.total("banish")))
+	assert_int(more_skips).is_greater(0)
+	assert_int(more_banishes).is_greater(0)
 	_start()
-	assert_int(Run.skips_left).is_equal(4)
-	assert_int(Run.banishes_left).is_equal(2)
+	assert_int(Run.skips_left).is_equal(2 + more_skips)
+	assert_int(Run.banishes_left).is_equal(1 + more_banishes)
 	Run.use_skip()
 	Run.stage = 1
-	assert_int(Run.skips_left).is_equal(4)
-	Save.data["talents"] = {}
+	assert_int(Run.skips_left).is_equal(2 + more_skips)
+	Save.data["trail"] = {"bought": [], "spent": 0, "had": []}
+	Trail.refresh()
 
 
 func test_a_chest_takes_a_skip_or_a_banish() -> void:
@@ -478,16 +488,13 @@ func test_a_chest_takes_a_skip_or_a_banish() -> void:
 	assert_bool(Run.evolution_ready(w)).is_true()
 
 
-func test_the_mirror_says_skip_and_banish_a_stage() -> void:
-	var nerve: TalentDef = Registry.talent("nerve")
-	var choice: TalentDef = Registry.talent("choice")
-	assert_str(nerve.form_name(0)).is_equal("Skip")
-	assert_str(nerve.form_text(0)).is_equal("+1 skip a stage, a rank; +2 at rank 7.")
-	assert_str(choice.form_name(1)).is_equal("Banish")
-	assert_str(choice.form_text(1)).is_equal("+1 banish a stage, a rank; +2 at rank 7.")
-	assert_str(choice.form_text(0)).is_equal("+1 reroll a run, a rank; +2 at rank 7.")
-	assert_str((nerve.effects_for(0, 1)[0] as Effect).stat).is_equal("skips")
-	assert_str((choice.effects_for(1, 1)[0] as Effect).stat).is_equal("banishes")
+func test_the_trail_says_skip_and_banish_a_stage() -> void:
+	# pass 129 (re-pinned to the Trail; the Upgrade board's Nerve and Choice forms until then)
+	assert_str(str(Trail.upgrade("skip")["text"])).is_equal("Skip a stage")
+	assert_str(str(Trail.upgrade("banish")["text"])).is_equal("Banish a stage")
+	assert_str(str(Trail.upgrade("reroll")["text"])).is_equal("Reroll a run")
+	assert_str(str((Trail.upgrade("skip")["effects"] as Array)[0]["stat"])).is_equal("skips")
+	assert_str(str((Trail.upgrade("banish")["effects"] as Array)[0]["stat"])).is_equal("banishes")
 	assert_str(TextGen.describe_effect(Effect.make("skips", "add", 1.0, "player"))).is_equal("+1 skip")
 	assert_str(TextGen.describe_effect(Effect.make("banishes", "add", 3.0, "player"))).is_equal("+3 banishes")
 

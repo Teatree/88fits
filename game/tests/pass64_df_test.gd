@@ -111,14 +111,41 @@ func test_the_elite_events_are_softer_than_pass_62() -> void:
 	assert_int(seen).is_greater_equal(2)
 
 
-func test_the_probe_plays_a_quarter_board() -> void:
-	var probe = load("res://tools/difficulty_probe.gd")
-	var total := 0
-	for k in range(8):
-		total += int(probe.rank_for(1.5, k))
-	assert_int(total).is_equal(12)
-	assert_int(int(probe.rank_for(1.5, 0))).is_equal(2)
-	assert_int(int(probe.rank_for(1.5, 1))).is_equal(1)
-	assert_int(int(probe.rank_for(3.0, 5))).is_equal(3)
-	assert_int(int(probe.rank_for(0.0, 0))).is_equal(0)
-	assert_int(int(probe.rank_for(6.0, 7))).is_equal(6)
+## Pass 129 (re-pinned: the probe's `mirror=` ranks of the Upgrade board are a Trail Level now, tools/trail_arg.gd): the
+## named shares of the Trail's levels, the old board values read as the same shares, and the nodes a level holds.
+func test_the_probe_plays_a_quarter_of_the_trail() -> void:
+	var arg = load("res://tools/trail_arg.gd")
+	assert_int(int(arg.level_of("none", 70))).is_equal(0)
+	assert_int(int(arg.level_of("quarter", 70))).is_equal(18)
+	assert_int(int(arg.level_of("half", 70))).is_equal(35)
+	assert_int(int(arg.level_of("full", 70))).is_equal(70)
+	assert_int(int(arg.level_of("36", 70))).is_equal(36)
+	assert_int(int(arg.level_of("999", 70))).is_equal(70)
+	assert_int(int(arg.level_of("zz", 70))).is_equal(-1)
+	# the old names: 0, 1.5, 3 and 6 ranks a talent were none, a quarter, half and full
+	assert_str(str(arg.board_to_trail("0", 70))).is_equal("none")
+	assert_str(str(arg.board_to_trail("1.5", 70))).is_equal("quarter")
+	assert_str(str(arg.board_to_trail("3", 70))).is_equal("half")
+	assert_str(str(arg.board_to_trail("6", 70))).is_equal("full")
+	assert_str(str(arg.board_to_trail("2", 70))).is_equal("23")
+	# on the game's Trail: every plain node up to the level, one member of each choice group in turn, no optional node
+	# unless asked; the Trail Level that comes of it is the level asked
+	Trail.load_from()
+	var keep: Dictionary = Save.data.duplicate(true)
+	var info: Dictionary = arg.apply(Save, "quarter")
+	assert_int(int(info["asked"])).is_equal(arg.level_of("quarter", Trail.levels()))
+	assert_int(int(info["level"])).is_equal(int(info["asked"]))
+	var picked := {}
+	for id: String in Save.trail_bought():
+		var nd: Dictionary = Trail.node(id)
+		assert_bool(int(nd["level"]) <= int(info["asked"])).is_true()
+		assert_str(str(nd["kind"])).is_not_equal("optional")
+		if str(nd["kind"]) == "choice":
+			var key := "%d|%s" % [int(nd["level"]), str(nd["group"])]
+			assert_bool(picked.has(key)).override_failure_message("two members of " + key).is_false()
+			picked[key] = id
+	var with_opt: Dictionary = arg.apply(Save, "quarter", true)
+	assert_int(int(with_opt["bought"])).is_greater(int(info["bought"]))
+	assert_bool(arg.apply(Save, "zz").has("error")).is_true()
+	Save.data = keep
+	Trail.refresh()

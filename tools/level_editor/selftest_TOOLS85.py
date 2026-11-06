@@ -1,6 +1,6 @@
 """Pass 85, lane TOOLS: the Timeline's right-button pan in the Spawn rows (timeline.js onPanDown / panTo), and the Watch's
-launcher (tools/watch.py): sound off by default, the Hero Settings pop-up's setup file (the board presets, the PC save's
-board, the Sim results for the grey line) and `--go`. selftest.py discovers this file (`extra_checks`). Nothing here
+launcher (tools/watch.py): sound off by default, the Hero Settings pop-up's setup file (the Trail's levels, the PC save's
+own Trail, the Sim results for the grey line) and `--go`. selftest.py discovers this file (`extra_checks`). Nothing here
 starts Godot or a window.
 """
 import argparse
@@ -54,40 +54,39 @@ def _watch_checks(check):
     a = argparse.Namespace(hero="drifter", seed=5, map="red_canyon", limit="0", speed="1", death="end", unlocks="all", mute=False,
                            no_numbers=False, log_speed="30", paused=False, stub=False, bot_preset="", bot=[], autoquit=False, wall=0,
                            shots="", shots_at="", size="", profile=False, actions="", skip_draw="1")
-    args = W.build_args(a, {}, "none", None, "", "C:/locks/watch.lock")
+    args = W.build_args(a, ("none", False, [], "none"), None, "", "C:/locks/watch.lock")
     check("sound=0" in args, "tools85: the sound is off by default (%s)" % [x for x in args if x.startswith("sound=")])
     a.sound = True
-    check("sound=1" in W.build_args(a, {}, "none", None, "", "C:/l"), "tools85: --sound turns it on")
+    check("sound=1" in W.build_args(a, ("none", False, [], "none"), None, "", "C:/l"), "tools85: --sound turns it on")
     a.sound = False
     a.mute = True
-    check("sound=0" in W.build_args(a, {}, "none", None, "", "C:/l"), "tools85: --mute still means off")
+    check("sound=0" in W.build_args(a, ("none", False, [], "none"), None, "", "C:/l"), "tools85: --mute still means off")
     a.mute = False
     # the pop-up opens unless --go (or a check that closes itself: --autoquit)
-    check(not any(x.startswith("go=") for x in W.build_args(a, {}, "none", None, "", "C:/l")), "tools85: the pop-up opens by default")
+    check(not any(x.startswith("go=") for x in W.build_args(a, ("none", False, [], "none"), None, "", "C:/l")), "tools85: the pop-up opens by default")
     a.go = True
-    check("go=1" in W.build_args(a, {}, "none", None, "", "C:/l"), "tools85: --go starts the run at once")
+    check("go=1" in W.build_args(a, ("none", False, [], "none"), None, "", "C:/l"), "tools85: --go starts the run at once")
     a.go = False
     a.autoquit = True
-    check("go=1" in W.build_args(a, {}, "none", None, "", "C:/l"), "tools85: --autoquit starts the run at once too")
+    check("go=1" in W.build_args(a, ("none", False, [], "none"), None, "", "C:/l"), "tools85: --autoquit starts the run at once too")
     a.autoquit = False
-    # the setup file: the presets talent by talent, the PC save's board (or why not), the Sim results for the grey line
+    # the setup file: the Trail's levels, the PC save's own Trail (or why not), the Sim results for the grey line
     tmp = tempfile.mkdtemp(prefix="le_tools85_")
     try:
         p = os.path.join(tmp, "setup.json")
-        keep = W.SB.save_board, W.SB.list_sims
-        W.SB.save_board = lambda: ({"grit": "AB"}, "")
+        keep = W.SB.save_trail, W.SB.list_sims
+        W.SB.save_trail = lambda: ({"ids": ["n001"], "level": 1}, "")
         W.SB.list_sims = lambda: []
         try:
             W.write_setup(p)
         finally:
-            W.SB.save_board, W.SB.list_sims = keep
+            W.SB.save_trail, W.SB.list_sims = keep
         d = json.load(open(p, encoding="utf-8"))
-        pre = d.get("presets", {})
-        check(pre.get("none") == {} and pre.get("quarter") == SB.board_talents(1.5) and pre.get("half") == SB.board_talents(3.0)
-              and pre.get("full") == SB.board_talents(6.0) and pre.get("save") == {"grit": "AB"},
-              "tools85: the setup's presets: none, quarter, half, full and the PC save's (%s)" % sorted(pre))
+        tr = d.get("trail", {})
+        check(tr.get("levels") == SB.trail_levels() and tr.get("save") == {"ids": ["n001"], "level": 1} and "presets" not in d and "labels" not in d,
+              "tools85: the setup's Trail: its levels and the PC save's own nodes (%s)" % sorted(tr))
         check(isinstance(d.get("refs"), list), "tools85: the setup lists the Sim results")
-        check(any(x.startswith("setup=") for x in W.build_args(a, {}, "none", None, "", "C:/l", setup=p)), "tools85: the setup file goes along")
+        check(any(x.startswith("setup=") for x in W.build_args(a, ("none", False, [], "none"), None, "", "C:/l", setup=p)), "tools85: the setup file goes along")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

@@ -3,7 +3,7 @@
 ## godot --audio-driver Dummy --resolution 1080x1920 --path game --script res://tools/wanted_shots.gd -- out=<dir> [only=hud,levelup] [white=1]
 ## white=1 hides the world behind a white sheet, as the mocks were drawn (they are transparent where the world is).
 ## inset=N puts the top inset the UI keeps clear of a camera cutout at N design px (pass 43), as a notched phone would.
-## Pass 45 states beyond the mocks: 03c-mirror-talent-full (a FULL sheet, its summed status line), 05b-settings-wipe-confirm
+## Pass 45 states beyond the mocks: 05b-settings-wipe-confirm
 ## and 13d-pause-abandon-confirm (the WConfirm pop-ups), 14b-down-hits (pass 46: the last 30 seconds of hits and heals on Down!, under the player's debug mode).
 ## Pass 47: 02c-title-ironwood (his favourite line on the plaque), 04f/04g/04h the Collection's Lines, Passives and
 ## Enemies tabs (the danger badges), 06 with the gold popup, 07 with a line, a passive item and a weapon on the cards,
@@ -105,7 +105,7 @@ func _main() -> void:
 			any_run = true
 	if any_run:
 		await _in_run()
-	var menus := ["title", "mirror", "collection", "collection_inset", "settings", "dev", "consent", "survey", "stages", "heroes", "collection_more", "mirror_more", "kit2"]
+	var menus := ["title", "trail", "collection", "collection_inset", "settings", "dev", "consent", "survey", "stages", "heroes", "collection_more", "kit2"]
 	var any_menu := false
 	for n in menus:
 		if _want(n):
@@ -277,28 +277,14 @@ func _menus() -> void:
 		await _cards60()
 	if _want("stages"):
 		await _stages()
-	if _want("mirror"):
-		# the mock's board: Grit and Drive at rank 1, the rest untouched; 108,411 in the purse
+	if _want("trail"):
+		# the Trail a quarter of the way along, 108,411 in the purse (pass 129; the Upgrade board's 03-mirror states until
+		# then; the Trail's own states: tools/_p129_TRAIL_shots.gd)
 		_save.data["gold"] = 108411
-		_save.data["talents"] = {"grit": {"form": 0, "rank": 1}, "drive": {"form": 1, "rank": 1}}
-		_save.data["talent_spent"] = 300
 		_save.data["last_character"] = "drifter"
-		await _scene("res://ui/HomesteadScreen.tscn")
-		await _shot("03-mirror")
-		current_scene._open(_reg.talent("grit"))
-		await _wait(0.5)
-		await _shot("03b-mirror-talent-open")
-		# 03c (pass 45): a talent at FULL, its status line the ranks summed on one line, the sheet still 960 wide
-		# (pass 63: a rank keeps its form, so a bar can hold both icons)
-		_save.data["talents"]["grit"] = {"picks": [1, 0, 1]}
-		_save.data["talent_spent"] = 900
-		current_scene._refresh()
-		current_scene._open(_reg.talent("grit"))
-		await _wait(0.5)
-		await _shot("03c-mirror-talent-full")
-		var sheet: Control = current_scene._sheet_root.find_child("Sheet", true, false)
-		print("wanted_shots: 03c the sheet is %d px wide" % int(sheet.size.x))
-		current_scene._close(false)
+		load("res://tools/trail_arg.gd").apply(_save, "quarter")
+		await _scene("res://ui/TrailScreen.tscn")
+		await _shot("03-trail")
 	if _want("collection"):
 		_save.data["totals"]["kills"] = 12480
 		# a save part of the way through: the unlocks not yet earned show as the mock's locked tiles
@@ -400,8 +386,6 @@ func _menus() -> void:
 		await _kit2()
 	if _want("heroes"):
 		await _heroes_shots()
-	if _want("mirror_more"):
-		await _mirror_more()
 
 
 func _in_run() -> void:
@@ -1202,8 +1186,8 @@ func _sample_hits() -> Array:
 ## Upgrade tab open in the docked tab bar, the wallet, and a solid sheet holding pills, price buttons and solid cells
 ## (k2a); then the modal shell (WConfirm.shell) as the survey (k2b: a star line with its corner word, a left title, a
 ## rating row, NOT NOW and a blue NEXT, the link under the card), the Hero details (k2c: a tall card, the corner word,
-## CLOSE), the play-data card (k2d: the game's own words, NO THANKS and a gold OK) and the Upgrade board's choice (k2e:
-## a talent's two forms from its data, each with a green price, NOT NOW). Every word and number is the game's.
+## CLOSE) and the play-data card (k2d: the game's own words, NO THANKS and a gold OK). Every word and number is the
+## game's (k2e, the Upgrade board's choice, left with the board in pass 129).
 func _kit2() -> void:
 	_save.data["gold"] = 108411
 	_save.data["last_character"] = "drifter"
@@ -1227,7 +1211,7 @@ func tab_bar() -> String:
 	var hub = current_scene
 	var W_: GDScript = load("res://ui/wanted/W.gd")
 	var R_: GDScript = load("res://ui/wanted/R.gd")
-	hub.set_title("Upgrade")
+	hub.set_title("Trail")
 	var sheet: PanelContainer = hub.solid_sheet(Vector2(24, 24))
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 22)
@@ -1243,8 +1227,7 @@ func tab_bar() -> String:
 	pills.add_child(W_.pill(drifter.display_name if drifter else "The Drifter"))
 	v.add_child(pills)
 	v.add_child(W_.label("Prices", 18, W_.INK_SOFT))
-	var grit = _reg.talent("grit")
-	var cost: int = grit.cost_of_rank(0) if grit else 100
+	var cost := 100
 	var prices := HBoxContainer.new()
 	prices.add_theme_constant_override("separation", 20)
 	prices.add_child(W_.price_row(cost, "CHOOSE", "blue"))
@@ -1310,32 +1293,6 @@ func tab_bar() -> String:
 	await _shot("k2d-shell-consent")
 	cd.cancel()
 	await _wait(0.4)
-	# k2e: the Upgrade board's choice: Grit's two forms from its data, each a green price
-	if grit:
-		var ch = WConfirm_.shell(hub, {"star": "Rank %d of %d" % [1, int(grit.ranks)], "title": grit.display_name,
-			"buttons": [{"id": "cancel", "text": "Not now", "role": "slate"}]})
-		for fi in (grit.forms as Array).size():
-			var form: Dictionary = grit.forms[fi]
-			var row := HBoxContainer.new()
-			row.add_theme_constant_override("separation", 18)
-			var WPlate_: GDScript = load("res://ui/wanted/WPlate.gd")
-			var plate = WPlate_.new()
-			plate.side = 96.0
-			plate.tex = grit.form_icon(fi)
-			row.add_child(plate)
-			var col := VBoxContainer.new()
-			col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			col.add_child(W_.slab_text(str(form.get("name", "")), 40, W_.INK))
-			col.add_child(W_.serif_text(str(form.get("text", "")), 26, W_.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, -1.0, true))
-			row.add_child(col)
-			var pr = W_.price_row(cost, "BUY", "green")
-			pr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			row.add_child(pr)
-			ch.body_box.add_child(row)
-		await _wait(0.6)
-		await _shot("k2e-shell-choice")
-		ch.cancel()
-		await _wait(0.4)
 	print("wanted_shots: kit2 theme ", "royale", " tab bar ", hub.tab_bar_node != null, " R ", R_ != null)
 
 
@@ -1712,48 +1669,3 @@ func _collection_more() -> void:
 	await _shot("04q-collection-hidden")
 	cs.set("hidden_only", false)
 	_save.data["seen"] = keep_seen
-
-
-## Pass 123 (lane UPGRADE), only=mirror_more: the Upgrade board's other states (under theme=royale the mock 5_Upgrade's
-## board, its CHOOSE pop-up and the reset's red confirm; under wanted the same saves on the Wanted board):
-## 03d-mirror-many-held (every talent holding both options: YOU HOLD's sixteen frames, Stride at six ranks, a 2,000 purse so
-## most CHOOSE are short), 03e-mirror-choose-short (Grit's pop-up with that purse: both BUYs short), 03f-mirror-choose-maxed
-## (Stride's at six ranks), 03g-mirror-reset-confirm (RESET UPGRADES asks), 03h-mirror-empty (nothing held, nothing to
-## take back).
-func _mirror_more() -> void:
-	var held := {"spite": [0, 1], "nerve": [1, 0, 1], "fortune": [0, 1], "choice": [1, 0], "drive": [0, 1, 1, 0],
-		"study": [1, 0], "stride": [0, 1, 0, 1, 0, 1], "grit": [0, 0, 1]}
-	var talents := {}
-	var spent := 0
-	for id in held.keys():
-		var picks: Array = held[id]
-		talents[id] = {"picks": picks, "rank": picks.size(), "form": int(picks.back())}
-		var def = _reg.talent(str(id))
-		for k in picks.size():
-			spent += maxi(int(def.cost_of_rank(k)), 0) if def else 0
-	_save.data["talents"] = talents
-	_save.data["talent_spent"] = spent
-	_save.data["gold"] = 2000
-	_save.data["last_character"] = "drifter"
-	await _scene("res://ui/HomesteadScreen.tscn")
-	await _shot("03d-mirror-many-held")
-	current_scene._open(_reg.talent("grit"))
-	await _wait(0.6)
-	await _shot("03e-mirror-choose-short")
-	current_scene._close(false)
-	await _wait(0.3)
-	current_scene._open(_reg.talent("stride"))
-	await _wait(0.6)
-	await _shot("03f-mirror-choose-maxed")
-	current_scene._close(false)
-	await _wait(0.3)
-	current_scene._take_back()
-	await _wait(0.6)
-	await _shot("03g-mirror-reset-confirm")
-	_cancel_confirm(current_scene)
-	await _wait(0.3)
-	_save.data["talents"] = {}
-	_save.data["talent_spent"] = 0
-	_save.data["gold"] = 108411
-	await _scene("res://ui/HomesteadScreen.tscn")
-	await _shot("03h-mirror-empty")

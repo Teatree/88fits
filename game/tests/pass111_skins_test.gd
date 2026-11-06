@@ -3,7 +3,7 @@
 ## look marked `skin.purchasable` is locked until its goal (a quest whose unlocks is {type skin, id hero:CODE}) is done,
 ## then bought for its price in its currency (Save.buy_skin through Currency), then worn (Save.set_skin_worn), which is
 ## the look he is played in (Registry.played_look) unless the arena keeps another; the look the game plays is every
-## player's; old saves read as having bought none; every meta price (heroes, talents, skins) is paid through Currency and
+## player's; old saves read as having bought none; every meta price (heroes, the Trail's nodes, skins) is paid through Currency and
 ## shows its currency's icon; the new goal beat_stage {map, stage, hero}; the hero sheet's Looks tiles.
 extends GdUnitTestSuite
 
@@ -36,6 +36,8 @@ func after_test() -> void:
 	Run.end()
 	Run.stage_beaten = false
 	Save.data = Save._default()
+	Trail.load_from()
+	Trail.refresh()
 	Save._dirty = false
 
 
@@ -237,25 +239,30 @@ func test_an_old_save_reads_as_no_skins_and_bad_values_fall_back() -> void:
 
 # ---------------------------------------------------------------- every meta price through Currency
 
-func test_heroes_and_talents_are_paid_through_their_currency() -> void:
+func test_heroes_and_the_trail_are_paid_through_their_currency() -> void:
 	_gems()
-	# a talent priced in gems spends gems and comes back half in gems
-	var t: TalentDef = Registry.talents_list()[0]
-	var was := t.currency_type
-	t.currency_type = "gems"
-	var cost := t.cost_of_rank(0)
+	# pass 129 (the Upgrade board's ranks until then): a Trail priced in gems spends gems, never gold
+	var doc: Dictionary = Trail.read_file("res://tests/fixtures/trail_rules.json")
+	doc["currency"] = "gems"
+	Trail.load_data(doc)
+	Save.data["trail"] = {"bought": [], "spent": 0, "had": []}
+	Trail.refresh()
+	assert_str(Trail.currency()).is_equal("gems")
+	var first := str(Trail.nodes()[0]["id"])
+	var cost := Trail.price(first)
+	assert_int(cost).is_greater(0)
 	Save.data["gold"] = cost * 4
+	assert_bool(Trail.can_buy(first)).is_false()
 	Currency.add("gems", cost, "test")
-	assert_bool(Save.buy_talent(t, 0)).is_true()
+	assert_bool(Trail.buy(first)).is_true()
 	assert_int(Currency.balance("gems")).is_equal(0)
 	assert_int(Save.gold()).is_equal(cost * 4)
-	assert_int(Save.talent_spent_in("gems")).is_equal(cost)
-	Save.talent_refund_all()
-	assert_int(Currency.balance("gems")).is_equal(int(floor(cost * Save.REFUND_FRAC)))
-	t.currency_type = was
-	# by default every talent is in gold
-	for td: TalentDef in Registry.talents_list():
-		assert_str(Currency.of(td.currency_type)).is_equal("gold")
+	assert_int(Save.trail_spent()).is_equal(cost)
+	# the game's own Trail is in gold
+	Trail.load_from()
+	Save.data["trail"] = {"bought": [], "spent": 0, "had": []}
+	Trail.refresh()
+	assert_str(Trail.currency()).is_equal("gold")
 	# a hero on sale is paid in his currency_type (gold), through Currency
 	var h: CharacterDef = null
 	for c: CharacterDef in Registry.sorted_characters():

@@ -9742,3 +9742,191 @@ weapon-card share (pass 118 measured 5 to 10% with all of them in).
 The player, the arena, the Watch and the Level Editor read "Outlaw(s)" wherever they read "Hero(es)" (Garry: "every
 mention of heroes should be, from now on, outlaws"). No rule or number changed; code names, ids and save keys keep
 `hero`.
+
+## 71. Pass 129: the Trail replaces the Upgrade board
+
+Garry: the Upgrade board becomes "The whole tree" of the ideas book, "more elaborate" and in the mould of Survivor.io:
+up to 500 levels, nodes that are permanent upgrades or unlocks, up to four at a time, edited in the Level Editor. His
+answers (2026-11-06): a node gives its gift outright; the Trail takes every outlaw but the Drifter and Ironwood and
+some of the quest-locked items; level by level; choices for good; Stakes as optional nodes; only The Dust Bowl and
+Blood Moon newly locked; about 100 runs for the first 100 nodes with prices growing as a polynomial; node 100 stronger
+than the full board. Where it lives: `game/content/trail/trail.json` (his to edit in the Level Editor's Trail tab),
+rules `core/systems/Trail.gd`, screen `ui/TrailScreen.gd`, the contract `docs/trail_schema.md`.
+
+### 71.TRAIL The Trail's rules
+
+- **Price.** A node costs its own `price`, else `round_to(base + k x level ^ power, round) x price_mult`, from the
+  file's `price` block (today 40 + 7.2 x level^1.95 to the nearest 10; see 71.TRAILSET).
+- **States.** Bought; open (not bought, not closed, on a level no higher than Trail Level + 1, its `from` met); closed
+  for good (a sibling of its choice group bought, or what it names in `from` closed: any of them with `all`, every one
+  with `any`); locked otherwise. A level is done when every node on it that is neither optional nor closed is bought;
+  the Trail Level is the highest level with every level up to it done. An optional node never holds a level and stays
+  open on done levels. A choice group is its level and its name. There is no refund and no swap; the developer menu's
+  two reset rows are for tests.
+- **Upgrades.** Every bought node of one type adds up into one effect per stat (value x the type's `per`), on the
+  outlaw's sheet from the start of every run as the source "The Trail: <name>". The amount is free per node.
+  Two things to know when reading totals: **Tempo** reads "Attack speed +3%" and is cooldown x (1 - the sum), so the
+  set's sum of about 0.30 is 39% to 45% more attacks, not 30%; **longer and more power-ups** multiply with the Pocket
+  Watch's own bonus.
+- **Gates.** A thing a node gives is locked until that node is bought, whatever its quest or price says; a thing no
+  node names keeps its rule. An outlaw or a skin a node gives is owned once the node is bought, with nothing more to
+  pay, and is never on sale anywhere else. A stage needs both the boss before it beaten and its node. The system can
+  also gate a structure (it never stands on a map), a power-up (it never drops: kills, a timed roster, barrels, a
+  creature's own drop, the Supply Drop, the Cake and Pickpocket drops), a map and the Bounty Board; the first set
+  gates none of those.
+- **Rules Garry did not ask for in these words (his to confirm):**
+  1. A quest whose thing a node gives is neither shown nor tracked (it would announce an unlock that did not happen).
+  2. A gift the save already has counts as bought at no cost. For a save from before the Trail that is everything it
+     could use then: outlaws and skins owned, every weapon, card and item that was not locked, stages open. **A save
+     that has never started a run is a new save and keeps nothing**; a wiped save likewise.
+  3. An outlaw whose unlock quest was done but who was not yet bought is locked again until his node (the migration
+     keeps what is owned, not quests done; an item whose quest was done is kept).
+  4. The migration (`Save._migrate_trail`, once) pays back every coin the Upgrade board cost, **in full**, and erases
+     its ranks: "The Upgrade board is now the Trail. Your <n> coins are back."
+
+### 71.STATS Three stats for the Trail (default 0, read once each)
+
+- `start_gold` (Grubstake): that many coins in the purse as a run starts, a stage's fresh run too. Coin gain does not
+  multiply them, they are not counted as gold earned, and the run record books them as the source `start_gold`.
+- `totem_boost` (Spirit Guide): every Totem Pole gift's amount x (1 + it), the ends of its range with it.
+- `boss_purse` (Bounty): a boss chest's coins and XP x (1 + it), on top of the speed bonus and coin gain; applied
+  where the chest opens, so the counters and what CLAIM pays are the same numbers.
+
+### 71.TRAILSET The first 100 nodes
+
+The design as written is `tools/trail_setup.py` (`DESIGN`, one row a level; `--tables` prints every table below;
+`--write` never overwrites nodes Garry has edited without `--force`). Every number below is the file's, none is code.
+
+**Shape.** 100 nodes on 70 levels, "To be continued" above them.
+- **Levels 1 to 8**: one plain node each, each a different upgrade a new player feels at once (attack damage 6%, max
+  health 10%, move speed 3%, pickup reach 12%, attack speed 4%, XP 5%, health a second 0.4, coins 6%).
+- **Choices** (one of a group, for good): none before level 10; 2 in levels 1-23, 4 in levels 24-47, 6 in levels 48-70
+  (two of them three-way, one four-way). Each is two ways to play, never an unlock: attack size or attack speed, health
+  or evade, damage or crits, boots or reach, shield or regen, crit chance or crit damage, size or duration; late: damage
+  / crits / Big Game, boots or evade, health / plate / regen, coins / luck / more power-ups / longer power-ups, and the
+  last one damage or attack speed.
+- **Optional nodes** (10, outside the budget): Grubstake +25 coins at a run's start (level 12), Spirit Guide +10% Totem
+  gifts (level 27), and the Stakes.
+- **Stakes**: four Stakes (levels 14, 26, 38, 50) and four Boss Stakes (levels 20, 32, 44, 56), 0.10 each: the old
+  board's rank (creatures, or bosses and Elites, +10% HP and attack, +4% speed; a hidden +5% XP and coins). Never two
+  on one level. Each costs a quarter of its level's price (`price_mult` 0.25): a challenge is not sold as power.
+- **Rails meeting** (a node that needs the two or three below it): Boot Hill Pass (level 52), Pass the Bottle (level
+  59), Extra Barrel (level 64).
+- **Count milestones**, each named and dearer than its level: A Second Look (+1 reroll, level 29, x2), Not This One (+1
+  banish, level 43, x2), Boot Hill Pass (+1 revive a run, level 52, x2.5), Pass the Bottle (+1 skip, level 59, x2),
+  Extra Barrel (+1 projectile, level 64, x3). Level 70 is Iron Hide (damage reduction 6%, x2).
+- **No upgrade type twice within five levels**; all 35 types are used.
+- **Outlaws**, plain nodes in title order at their own prices: Astro level 9 (1,500), Calavera 16 (2,000), Solenne 23
+  (2,500), Fadeaway 30 (3,000), Jeżyk 38 (3,500), May 45 (4,000). Their unlock quests are retired. Ironwood stays on
+  the Outlaws screen for 1,000 coins. Astro stands at level 9, not 5: levels 1 to 8 are the cheap opening.
+- **Stages**: The Dust Bowl at level 20, Blood Moon at level 36 (the boss before each still has to be beaten).
+- **Eight items** moved off their unlock quests onto plain nodes (the quests are retired; a save that had done one
+  keeps the item):
+
+  | level | item | the deed it had | why |
+  |---|---|---|---|
+  | 11 | Tumbleweed | kill 150 Skeletons | a long count of one creature |
+  | 21 | Killer Bees | kill 40 Armadillos | the Armadillo is on no row: it could not be done |
+  | 28 | Death (card) | evolve The Lovers | tied to one card's evolution; Calavera's skin CAL-B needs it |
+  | 34 | Turret Buddy | open 10 chests | about ten runs of luck since chests became rare |
+  | 41 | The Ghost (card) | reach stage 4 in one run | a deed from before stages were their own runs |
+  | 48 | Land Mine | evolve the Salt | needs another outlaw's favourite evolved |
+  | 54 | Ricochet | all three Revolver mutations in one run | one weapon's whole path |
+  | 60 | Overkill | a passive item raised to Legendary | a long climb on luck |
+
+  The Dynamite keeps its quest (the first-run offer depends on it), and so do the twelve others.
+
+**Fit 1: power** (`core/systems/HeroPower.gd`, probe `game/tools/_p129_SETUP_power.gd`; the Drifter at level 1 with the
+Revolver, and at level 30 with a plain build of five weapons and five cards). The old full board in its strongest forms
+(Muscle, Plate, Poultice at rank 7) was x2.33 a fresh save at level 1 and x2.19 at level 30. The Trail with every
+required node bought and choices taken evenly:
+
+| Trail level | level 1 | of the board's gain | level 30 | of the board's gain |
+|---|---|---|---|---|
+| 10 | x1.17 | 13% | x1.13 | 11% |
+| 20 (the Dust Bowl opens) | x1.40 | 30% | x1.31 | 26% |
+| 30 | x1.52 | 39% | x1.43 | 36% |
+| 36 (Blood Moon opens) | x1.66 | 50% | x1.55 | 46% |
+| 40 | x1.81 | 61% | x1.66 | 55% |
+| 50 | x1.90 | 68% | x1.75 | 63% |
+| 60 | x2.30 | 98% | x2.07 | 90% |
+| 70 (node 100) | x4.14 | 237% | x2.92 | 161% |
+
+Node 100 is **x1.33 the full board at level 30** (the lead's target was 1.25 to 1.4) and x1.78 at level 1: Extra
+Barrel's +1 projectile doubles a lone Revolver and adds a quarter to a level-30 build (x1.26 without it).
+
+**Fit 2: prices.** `price` = {base 40, k 7.2, power 1.95, round 10}; node 1 costs 10; an outlaw his own price. Fitted
+to a plain model of what a run banks (`trail_setup.py` `STAGES`): the best-paying stage open at the player's Trail
+level, a share of its cleared purse that rises from the level the stage opens to the level a run clears it (Sundown
+1,200 cleared from level 8; Nightfall 4,000 from 18; the Dust Bowl 5,300 from 27; Blood Moon 12,000 from 55), the
+Trail's own Greed on top, the first four runs 0.1 / 0.4 / 0.7 / 0.9 of it.
+
+| by | asked | the model gives |
+|---|---|---|
+| run 1 | the first node | yes (10 coins) |
+| run 5 | two or three nodes a run | 8 nodes; then Astro at run 6 |
+| run 20 | about 35 nodes | 38 (Trail Level 30) |
+| run 50 | about 65 nodes | 66 (Trail Level 50) |
+| run 100 | every required node and outlaw | run 100 |
+
+A node costs 70 at level 2, 460 at level 8, 2,520 at level 20, 7,840 at level 36, 14,840 at level 50 and 28,570 at
+level 70; every required node together 897,810 coins (the old board cost 353,500 in all), the ten optional nodes
+22,413 more.
+
+**The purse model is the weak part.** Measured again once the sim could play a Trail Level (6 players each, the
+Drifter, `--death end`; the prices were not changed):
+
+| stage | Trail Level | the bot banked (mean) | the six runs | boss beaten | the model |
+|---|---|---|---|---|---|
+| Sundown | 0 | 72 | 1, 3, 13, 57, 2, 358 | 0 of 6 | 338 |
+| Nightfall | 18 | 272 | 610, 10, 985, 0, 10, 14 | 0 of 6 | 4,390 |
+| The Dust Bowl | 36 | 4,174 | 2,954, 2,847, 4,839, 6,559, 6,569, 1,276 | 5 of 6 | 5,818 |
+| Blood Moon | 70 | 10,866 | 9,727, 6,536, 25,977, 6,415, 9,586, 6,956 | 0 of 6 | 12,970 |
+
+On the first two stages the bot falls in the first minutes, so those rows measure the bot (the model's numbers there
+come from 20 real runs of two players). The Dust Bowl is the one row where the bot clears: 72% of the model. If real
+purses run low late on, the last third takes longer than 100 runs; `STAGES` is the table to correct, then
+`python tools/trail_setup.py --fit`, and `k` is the number to lower.
+
+### 71.UI The Trail screen and the way back
+
+- The fourth tab reads **TRAIL** and opens the Trail; the Results button too.
+- The screen opens centred on the node bought last (a new save: level 1) with **the next node to buy already chosen**
+  (the open required node on the lowest level; with none, the lowest open optional one), so the dock's BUY is ready.
+  BUY buys at once, except that **a choice with a sibling still open and a node whose upgrade has a `warn` ask once
+  more**. The dock's line: "Finish level N first", "Take X first", "Closed by your choice", "Yours"; an open choice
+  reads "Taking this closes X, Y and Z for good."; the `warn` line is red.
+- Finishing a level slides the line up and shows "TRAIL LEVEL N". The purchase's toast: an upgrade its give text, "X
+  rides with you" (outlaw), "X is yours" (skin), "X joins the offers" (weapon, card, item), "X is open" (stage).
+- **The tab's red crumb keeps pass 123's rule** (red until shown, back when a node newly becomes affordable), not
+  "red whenever anything is affordable": with gold in the purse and a node open that crumb would never leave the tab.
+- **The way back** (`core/systems/Nav.gd`): a "Reach Trail Level N" line (Outlaws, the title's requirement card, the
+  outlaw sheet's locked box and skin tiles, the Collection's locked page, a Stages card) opens the Trail on that
+  thing's node, chosen and ringed; the Trail's Back returns to that screen as it was. Opening the Trail by its tab
+  forgets the way back (Back is the title).
+- Layout numbers and the four drawing rules the screen added (the OR pill that becomes a padlock, an optional node
+  hanging on its own level, the lifted small diamond on a crowded row, rails as elbows): `docs/trail_schema.md`
+  "Layout". The section name plates and some optional nodes stand in the right quarter Garry wanted kept free.
+
+### 71.GONE What left with the board
+
+Eight talents in two forms and seven ranks, rank k at k x k times rank 1, the dearer seventh rank, Take it all back
+for half the gold, Spite's and Nerve's one-time refunds. Nothing about a run changed with the removal:
+
+- **A revive stands up with 40% health** as since pass 115. The number lived in the Nerve talent; it is
+  `StatSheet.PLAYER_DEFAULTS.revive_hp` 0.4 now. The Trail's Second Wind node adds to it, a Phoenix Feather still
+  never stands him up with less than its 50%, and health past 100% still buys untouchable time.
+- **The Stakes** are the Trail's optional nodes only; the stats and `MirrorDanger.gd` are the same.
+- Older sections of this file that describe the board (53.ECON's rank prices, 65's seventh rank, pass 88's Stakes
+  forms) are history.
+
+### 71.TOOLS The tools play a Trail Level (no rule of the game)
+
+`trail=none|quarter|half|full|<level>` (`game/tools/trail_arg.gd`; `--trail` on `tools/sim_batch.py` and
+`tools/watch.py`, which also takes `save`) gives the tool's save every required node of levels 1..N at no cost, the
+choices in turn (the first choice group its first member, the second its second, ...), optional nodes (the Stakes, the
+Grubstake, Spirit Guide) only with `trail_optional=1` / `--trail-optional`; the names are shares of the Trail's levels
+rounded half up (18, 35, 70 of 70). Outlaws, items and stages come with their nodes, so **a sim at `--trail none`
+plays without the Trail's four weapons and four cards**, which no sim before this pass did. `board=` / `mirror=` /
+`--board` still read as the same shares and say they are the old name. The run record is schema 6 (`trail` in place
+of `talents`, `talent_forms`, `board`).

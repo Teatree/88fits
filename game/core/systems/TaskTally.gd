@@ -75,7 +75,7 @@ static func _credit_stat(stat: String, got: float) -> void:
 
 ## The items (by their family's base id) that put `stat` on the hero's sheet now, each with its share of the stat: its own
 ## adds over everything that adds to it (the sheet's base and the other sources too, which get no credit: Ironwood's
-## trait, a talent, a totem gift). Only a card's or a passive item's effects count (sources "passive:<id>", "favourite:<id>"),
+## trait, a Trail upgrade, a totem gift). Only a card's or a passive item's effects count (sources "passive:<id>", "favourite:<id>"),
 ## its evolved form for its family. Cached until the sheet changes (StatSheet.version).
 static func shares_of(stat: String) -> Dictionary:
 	var sheet: StatSheet = Run.player_sheet

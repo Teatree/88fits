@@ -63,6 +63,10 @@ process.stdin.on('end', () => {
     const defs2 = M.charts(res2, null, {});
     out.two = { ids: defs2.map((c) => c.id), bands: defs2.reduce((a, c) => a + c.bands.length, 0) };
   }
+  // pass 129: a record's Trail Level in fromRecord's meta and on the average's row for that run (no key without a Trail)
+  if (q.trail) out.trail = q.trail.map((rec) => { const p = A.fromRecord(rec); const res = A.aggregate([{ k: 1, d: p, rec: {} }], { limit: 100000, hero: p.meta.hero }, {}, {});
+    return { has: Object.prototype.hasOwnProperty.call(p.meta, 'trail_level'), level: p.meta.trail_level, talents: p.meta.talents, forms: p.meta.talent_forms,
+      rowHas: Object.prototype.hasOwnProperty.call(res.players[0], 'trail_level'), row: res.players[0].trail_level }; });
   process.stdout.write(JSON.stringify(out));
 });
 """
@@ -378,6 +382,16 @@ def checks(check, run_node, server):
     old["schema"] = 1
     q = {"round": rq, "agg": [{"players": [{"k": k, "d": d, "rec": r} for k, d, r in ps], "settings": st} for _, ps, st in cases],
          "series": fixture_in, "records": [rec, old], "one": rec}
+    # pass 129 (schema 6): a record with the Trail and no talents; an older one with talents and no Trail
+    rec6 = json.loads(json.dumps(rec))
+    for k in ("talents", "talent_forms", "board"):
+        rec6.pop(k, None)
+    rec6.update({"schema": 6, "trail": {"level": 9, "bought": ["n001", "n002"], "paid": 2, "spent": 50, "upgrades": {"might": 0.06}, "levels": 60, "nodes": 100,
+                                        "types": {"might": {"name": "Might", "kind": "percent", "text": "Attack damage"}}}})
+    rec5 = json.loads(json.dumps(rec))
+    rec5.pop("trail", None)
+    rec5.update({"schema": 5, "talents": {"grit": [0, 1]}, "talent_forms": {"grit": ["Thick Hide", "Second Skin"]}})
+    q["trail"] = [rec6, rec5]
     out = run_node(q, RUNNER)
     if out is None:
         print("DASH78: node is not here: the page maths checks are skipped")
@@ -405,6 +419,11 @@ def checks(check, run_node, server):
         check(one["playing"] and one["bands"] == 0 and "playing" not in one["ids"] and "this run" in one["how"] and "band" not in one["how"],
               "series: one run averages to itself: no bands, no runs-playing chart, 'this run' in the words: %s" % one["how"])
         check(two["bands"] > 0 and "playing" in two["ids"], "series: two runs draw the bands and the runs playing")
+        t6, t5 = out["trail"]
+        check(t6["has"] and t6["level"] == 9 and t6["talents"] == {} and t6["rowHas"] and t6["row"] == 9,
+              "series: fromRecord carries a schema 6 record's Trail Level into its meta and the average's row for it: %s" % t6)
+        check(not t5["has"] and not t5["rowHas"] and t5["talents"] == {"grit": 2} and t5["forms"] == {"grit": "AB"},
+              "series: an older record's talents are read as before, no Trail Level key without a Trail: %s" % t5)
     _parts_checks(check, P)
     tmp = tempfile.mkdtemp(prefix="le_dash78_")
     try:

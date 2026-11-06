@@ -6,7 +6,7 @@
 ##  - every map; every hero not hidden (available or on sale) and what he brings: his start weapon (start_weapon_for),
 ##    his favourite weapon and passive, his perks (perks_of) and hero mutations (hero_mutations);
 ##  - every base weapon not hidden, with its evolution (evolves_into), the passive it evolves with and its path
-##    (mutations_of); every base passive not hidden (lines and passive items) with its evolution; every talent, Elite
+##    (mutations_of); every base passive not hidden (lines and passive items) with its evolution; every Elite
 ##    modifier, pickup and structure not hidden;
 ##  - every creature or boss the map's JSON names anywhere (roster rows, waves, events, specials, Elites, bosses, the
 ##    portal, hell...), the map's skins and boss, and every creature, boss, custom boss attack, pickup or structure that
@@ -27,7 +27,7 @@ const CODE_DIRS := ["res://core", "res://game", "res://ui", "res://player", "res
 ## Registry getter -> the Registry dictionary it reads
 const GETTERS := {"weapon": "weapons", "passive": "passives", "enemy": "enemies", "enemy_with": "enemies",
 	"character": "characters", "playable_character": "characters", "pickup": "pickups", "structure": "structures",
-	"perk": "perks", "mutation": "mutations", "map": "maps", "talent": "talents", "boss_attack": "boss_attacks"}
+	"perk": "perks", "mutation": "mutations", "map": "maps", "boss_attack": "boss_attacks"}
 ## The content types whose ids a raw JSON walk may name: creatures, boss attacks, pickups and structures (never weapons,
 ## passives, mutations or perks, whose ids are also stats' and kinds' words: "haste", "swarm", "strike")
 const WALK_DICTS := ["enemies", "boss_attacks", "pickups", "structures"]
@@ -50,7 +50,7 @@ static func plan(reg: Node) -> Dictionary:
 	for p in reg.base_passives():
 		_add(st, p, "a %s in play" % ("card" if p.is_line() else "passive item"), true)
 	# pass 111 (lane SKINS): and every currency
-	for dict_name in ["talents", "elites", "pickups", "structures", "currencies"]:
+	for dict_name in ["elites", "pickups", "structures", "currencies"]:
 		for d in (reg.get(dict_name) as Dictionary).values():
 			if not d.hidden:
 				_add(st, d, "not hidden (%s)" % dict_name, true)
@@ -232,7 +232,7 @@ static func content_dirs() -> Array:
 static func code_pins(reg: Node) -> Array:
 	var out: Array = []
 	var rx := RegEx.new()
-	rx.compile("(?<![A-Za-z0-9_])(weapon|passive|enemy_with|enemy|character|playable_character|pickup|structure|perk|mutation|map|talent|boss_attack)\\(\\s*\"([a-z0-9_]+)\"")
+	rx.compile("(?<![A-Za-z0-9_])(weapon|passive|enemy_with|enemy|character|playable_character|pickup|structure|perk|mutation|map|boss_attack)\\(\\s*\"([a-z0-9_]+)\"")
 	for path: String in game_scripts():
 		if DEBUG_SCRIPTS.has(path):
 			continue

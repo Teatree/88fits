@@ -2363,7 +2363,7 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 		hud.toast("GRAND FINALE", Color(1.0, 0.82, 0.35))
 		camera.shake(1.2)
 	# materials for the homestead: bones from every Elite, relics from every boss; deeper stages and Mira's trait add one
-	# the Mirror spends gold, so what the deep parts of a run used to pay in bones and relics they pay in coin:
+	# the permanent upgrades (the Trail) spend gold, so what the deep parts of a run used to pay in bones and relics they pay in coin:
 	# an Elite is worth a purse, a boss a chest of them (Mira's Motherlode adds a half). A training dummy pays nothing
 	# (pass 49: the arena's Elite dummy and Boss dummy are Elites by their kind)
 	var lode: float = 1.5 if (Run.character and Run.character.specials.has("motherlode")) else 1.0
@@ -2482,7 +2482,7 @@ const THORNS_COOLDOWN := 0.5
 var _thorns_last := -1000.0
 
 
-## Thorns (Bristle, Cactus Hide, the Upgrade board's Spite/Thorns): a hit on the hero strikes everything within
+## Thorns (Bristle, Cactus Hide): a hit on the hero strikes everything within
 ## THORNS_RADIUS for his `thorns`, at most once every THORNS_COOLDOWN seconds of the run's clock. What it takes off them
 ## is recorded as the damage id "thorns" (pass 83: the Results' Thorns row, the run record, the DPS window), never
 ## through Run.add_damage, so no life steal comes of it (as before).

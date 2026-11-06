@@ -193,7 +193,9 @@ func test_events_carry_the_super_properties_and_the_run_ids() -> void:
 	var start: Dictionary = a.queue[1]
 	assert_str(str(start["event"])).is_equal("run_start")
 	assert_str(str(start["properties"]["start_weapon"])).is_equal(Registry.start_weapon_for(Run.character).id)
-	assert_bool(start["properties"].has("talents")).is_true()
+	# pass 129: the Trail as the run begins (the Upgrade board's `talents` until the board went)
+	assert_bool(start["properties"].has("trail_level")).is_true()
+	assert_bool(start["properties"].has("talents")).is_false()
 	var boss: Dictionary = a.queue[2]
 	assert_str(str(boss["event"])).is_equal("boss_started")
 	var bp: Dictionary = boss["properties"]

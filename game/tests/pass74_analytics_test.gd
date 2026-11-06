@@ -154,14 +154,16 @@ func test_the_header_carries_the_run_its_settings_and_the_map_as_played() -> voi
 	# pass 101 (lane FPS): schema 3 (the rows' frame times, pass101_fps_test); pass 102 (lane STEADY): schema 4 (the
 	# rows' work times, pass102_steady_test), re-pinned on purpose
 	# pass 115 (lane DASH): schema 5 (pass115_DASH_test), re-pinned on purpose
-	assert_int(int(h["schema"])).is_equal(5)
-	assert_int(RunAnalytics.SCHEMA).is_equal(5)
+	# pass 129: schema 6 (the Upgrade board's blocks gone, the Trail's block whole), re-pinned on purpose
+	assert_int(int(h["schema"])).is_equal(6)
+	assert_int(RunAnalytics.SCHEMA).is_equal(6)
 	# the test runner is a tool's process (headless, started with -s)
 	assert_bool(bool(h["tool"])).is_true()
 	assert_bool(RunAnalytics.is_tool_process()).is_true()
 	assert_str(str(h["hero_look"])).is_equal(Analytics.hero_look_of(Registry.character("astro")))
-	assert_bool(h["talents"] is Dictionary).is_true()
-	assert_bool(h["talent_forms"] is Dictionary).is_true()
+	# pass 129 (schema 6): the Upgrade board's blocks are gone; the Trail's block stands in their place
+	assert_bool(h.has("talents") or h.has("talent_forms") or h.has("board")).is_false()
+	assert_bool(h["trail"] is Dictionary and (h["trail"] as Dictionary).has("level")).is_true()
 	assert_dict(h["settings"]).contains_keys(["pierce_falloff", "debug_mode", "dev"])
 	assert_bool(bool(h["settings"]["pierce_falloff"])).is_equal(bool(Settings.pierce_falloff))
 	# the launch file's plain values only
@@ -387,10 +389,10 @@ func test_a_tools_run_mirrors_into_its_own_folder_and_the_index_row_flattens_the
 		assert_bool(idx is Array).is_true()
 		var row: Dictionary = (idx as Array).back()
 		assert_str(str(row["file"])).is_equal(fname)
-		assert_int(int(row["schema"])).is_equal(5)   # pass 101 (lane FPS): schema 3; pass 102 (lane STEADY): 4; pass 115 (lane DASH): 5, re-pinned on purpose
+		assert_int(int(row["schema"])).is_equal(6)   # pass 101 (lane FPS): schema 3; pass 102 (lane STEADY): 4; pass 115 (lane DASH): 5; pass 129: 6 (the Upgrade board gone), re-pinned on purpose
 		assert_bool(bool(row["tool"])).is_equal(tool_run)
 		for k in ["hero_look", "gold_end.gold_banked", "settings.dev", "map_settings.hero_knockback_mult",
-				"map_settings.boss_hp_scaling.ref_dps.tumbleweed_king", "trait.name", "talents", "totems", "damage",
+				"map_settings.boss_hp_scaling.ref_dps.tumbleweed_king", "trait.name", "trail_level", "totems", "damage",
 				"top_source", "dps_end", "build", "hp_lost", "hits_taken", "bosses", "specials_killed", "elites_killed", "killer"]:
 			assert_bool(row.has(k)).override_failure_message("index row lacks " + k).is_true()
 		assert_float(float(row["damage"])).is_equal(12.0)
