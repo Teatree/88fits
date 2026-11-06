@@ -349,10 +349,12 @@ static func river_distance(p: Vector2, pts: Array) -> float:
 ## The structures that may stand on a map (pass 70, Garry: "Remove the Balloon Chest thing now"): every one but a
 ## `hidden` one (the retired Strongbox, gold_bank), whether the map names a roster or takes them all. A hidden structure
 ## keeps its content folder and its effect's code; it never spawns, so it never returns either.
+## Pass 129 (lane TRAILCORE): nor one a Trail node gives, until that node is bought (Trail.has; true for a structure no
+## node names).
 static func in_play(defs: Array) -> Array:
 	var out: Array = []
 	for d: StructureDef in defs:
-		if d != null and not d.hidden:
+		if d != null and not d.hidden and Trail.has("structure", d.id):
 			out.append(d)
 	return out
 

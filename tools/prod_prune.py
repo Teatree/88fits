@@ -361,6 +361,11 @@ def selftest():
         put("content/sounds/soundmap.json", {"sounds": {"a": {"file": "real/a.wav"}}})
         put("content/sounds/real/a.wav")
         put("content/sounds/placeholder/a.wav")
+        # pass 129 (lane TRAILCORE): the Trail's data and icons are no Registry content, so no plan names them: they stay
+        put("content/trail/trail.json", {"version": 1, "nodes": [{"id": "n1", "level": 1, "gives": {"type": "weapon", "id": "gone"}}]})
+        put("content/trail/quests_before.json", {"weapon:gone": "unlock_gone"})
+        put("art/ui/trail/might.png")
+        put("art/ui/trail/might.png.import", "[remap]\n")
         plan = {"drop": {"weapons/gone": "hidden", "weapons/gone2": "hidden"},
                 "looks": {"characters/hero1": {"kind": "hero", "play": "H-B", "base": "H-A", "keep": ["H-B"], "drop": ["H-A", "H-C"],
                                                "promote": True},
@@ -391,6 +396,8 @@ def selftest():
             (exists(h2 + "hero2_icon.png") and not exists(h2 + "hero2_sprite.png")
              and _load(os.path.join(game, *(h2 + "hero2.json").split("/")))["icon"] == "hero2_icon.png",
              "a played look without its own icon keeps the base's badge, named outright"),
+            (exists("content/trail/trail.json") and exists("content/trail/quests_before.json") and exists("art/ui/trail/might.png")
+             and exists("art/ui/trail/might.png.import"), "the Trail's data and icons stay"),
         ]
         fails = [msg for ok, msg in checks if not ok]
     except Exception as e:  # noqa: BLE001 - the self-test reports anything

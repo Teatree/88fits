@@ -86,6 +86,9 @@ const STATS := {
 	"skip_coins": ["coins a skip pays", "num"], "skip_xp": ["next level's XP a skip pays", "pct"],
 	"water_walk": ["water no longer slows you", "word"], "leave_water_regen": ["HP a second after leaving water", "num"],
 	"leave_water_seconds": ["healing after leaving water", "sec"], "water_damage": ["damage to enemies in water", "pct"],
+	# pass 129 (lane TRAILCORE): the Trail's own stats (Run.start, TotemBoons.boosted, BossChest.net)
+	"start_gold": ["coins at the start of a run", "num"], "totem_boost": ["bigger Totem gifts", "pct"],
+	"boss_purse": ["boss chest pay", "pct"],
 }
 ## A count stat's name for exactly one (pass 118: _singular cuts only a last "s", and a name with its plural inside says
 ## its singular here; pass 119: the Grindstone's levels).

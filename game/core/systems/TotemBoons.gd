@@ -99,6 +99,23 @@ static func quality(v: float, lo: float, hi: float) -> int:
 	return clampi(int(floor(t * 3.0)) + 1, 1, 3)
 
 
+## Pass 129 (lane TRAILCORE; the Trail's Spirit Guide, the hero's `totem_boost`): an offer with every gift's amount
+## x (1 + boost), its range's ends with it (so the gauge's thirds and its end marks stay true). The same list for a
+## boost of 0.
+static func boosted(offer_list: Array, boost: float) -> Array:
+	if absf(boost) < 0.000001:
+		return offer_list
+	var f := maxf(1.0 + boost, 0.0)
+	var out: Array = []
+	for b: Dictionary in offer_list:
+		var c := b.duplicate()
+		for k: String in ["value", "min", "max"]:
+			if c.has(k):
+				c[k] = float(c[k]) * f
+		out.append(c)
+	return out
+
+
 ## The boon as an Effect on the hero.
 static func effect_of(boon: Dictionary) -> Effect:
 	return Effect.make(str(boon.get("stat", "")), str(boon.get("op", "add")), float(boon.get("value", 0.0)), "player")

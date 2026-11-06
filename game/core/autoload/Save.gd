@@ -120,6 +120,10 @@ func _default() -> Dictionary:
 		# pass 111 (lane SKINS): what the Upgrade board cost in a currency other than gold (gold's total stays in
 		# "talent_spent"): currency id -> spent; Take it all back pays half of each back
 		"talent_spent_in": {},
+		# pass 129 (lane TRAILCORE): the Trail (core/systems/Trail.gd): the node ids bought (trail_buy), what they cost in
+		# the Trail's currency, and the gifts this save had before the Trail ("<type>:<id>", _migrate_trail: a node that
+		# gives one counts as bought at no cost)
+		"trail": {"bought": [], "spent": 0, "had": []},
 	}
 
 
@@ -180,6 +184,8 @@ func load_save() -> void:
 	_migrate_stakes()
 	# pass 115 (lane META): Nerve's ranks cost less now; what an older save paid over the new price comes back, once
 	_migrate_nerve()
+	# pass 129 (lane TRAILCORE): the Upgrade board's coins back and what this save already has kept, once the Trail has nodes
+	_migrate_trail()
 	# pass 119 (lane LOADUI): the painted title, once
 	_migrate_painted()
 	_survey_counted_from_runs()
@@ -611,6 +617,10 @@ func wipe() -> void:
 			keep[k] = data[k]
 	data = _default()
 	data.merge(keep, true)
+	# pass 129 (lane TRAILCORE): a wiped save is a new one to the Trail: nothing is kept from before it (_migrate_trail
+	# would otherwise take its first runs for a save older than the Trail at the next launch)
+	if Trail.has_nodes():
+		data["once"].append(Trail.ONCE)
 	save_now()
 	# pass 76 (lane LOOKS): the weapon looks kept here went with the progress: every family plays its JSON's look again
 	Registry.apply_item_looks()
@@ -1064,6 +1074,107 @@ func clear_board_note() -> void:
 		request_save()
 
 
+# ---------------------------------------------------------------- the Trail (pass 129, lane TRAILCORE)
+
+## The Trail's block of the save, every key there: {bought: [node id], spent: what they cost, had: ["<type>:<id>"]}.
+## The rules are core/systems/Trail.gd's; this only keeps what was bought. It is plain data, so the arena's sandbox and
+## a wipe treat it like the rest.
+func _trail() -> Dictionary:
+	if not (data.get("trail") is Dictionary):
+		data["trail"] = {}
+	var t: Dictionary = data["trail"]
+	for k: String in ["bought", "had"]:
+		if not (t.get(k) is Array):
+			t[k] = []
+	if not (t.get("spent") is float or t.get("spent") is int):
+		t["spent"] = 0
+	return t
+
+
+## The ids of the Trail nodes paid for, in the order they were bought (a node whose gift the save already had is not
+## listed: Trail.state still calls it bought).
+func trail_bought() -> Array:
+	return _trail()["bought"]
+
+
+## What the bought nodes cost, in the Trail's currency.
+func trail_spent() -> int:
+	return int(_trail()["spent"])
+
+
+## The gifts this save had before the Trail ("outlaw:astro", "weapon:tommy_gun", "stage:red_canyon:s2"...; _migrate_trail).
+func trail_had() -> Array:
+	return _trail()["had"]
+
+
+## Records Trail node `id` as bought for `cost` (Trail.buy calls it once the price has left the purse; it spends nothing).
+func trail_buy(id: String, cost: int) -> void:
+	var t := _trail()
+	if id == "" or (t["bought"] as Array).has(id):
+		return
+	(t["bought"] as Array).append(id)
+	t["spent"] = int(t["spent"]) + maxi(cost, 0)
+	Trail.refresh()
+	request_save()
+
+
+## The developer menu's "The Trail · reset" (testing only: a player's choices are for good): every bought node
+## forgotten and what they cost back in the purse; `forget_had` also forgets what the save had before the Trail, so every
+## gate locks as on a new save. Returns the coins paid back.
+func trail_reset(forget_had: bool = false) -> int:
+	var t := _trail()
+	var back := int(t["spent"])
+	t["bought"] = []
+	t["spent"] = 0
+	if forget_had:
+		t["had"] = []
+	if back > 0:
+		add_currency(Trail.currency(), back, "debug", {"why": "trail_reset"})
+	Trail.refresh()
+	request_save()
+	return back
+
+
+## Once per save (the once-flag Trail.ONCE, "trail_v129"), and only once the Trail has nodes (an empty Trail changes
+## nothing, so it waits): the Upgrade board is the Trail now. Every coin the board cost (talent_spent, and what it cost
+## in any other currency) goes back to the purse in full and its ranks are cleared, with a note for the toast
+## (board_note, kind "trail_refund": Trail.note_text says "The Upgrade board is now the Trail. Your <n> coins are back.").
+## And every gift the save already has by the rules as they were (Trail.had_before: outlaws and skins owned, items and
+## maps not locked, stages open, structures, power-ups, the Bounty Board) is remembered in `trail.had`, so a node that
+## gives one counts as bought at no cost. A save that has never started a run is a new one: it keeps nothing and meets
+## every gate. Returns the gold paid back.
+func _migrate_trail() -> int:
+	if once(Trail.ONCE) or not Trail.has_nodes():
+		return 0
+	var back := talent_spent()
+	var ranks := 0
+	var all = data.get("talents", {})
+	if all is Dictionary:
+		for id in (all as Dictionary).keys():
+			ranks += talent_rank(str(id))
+	var other = data.get("talent_spent_in")
+	data["talents"] = {}
+	data["talent_spent"] = 0
+	data["talent_spent_in"] = {}
+	if back > 0:
+		add_gold(back, "talent_refund", {"ranks": ranks, "spent": back, "why": Trail.ONCE})
+	if other is Dictionary:
+		for cur in (other as Dictionary).keys():
+			if int(other[cur]) > 0:
+				add_currency(str(cur), int(other[cur]), "talent_refund", {"spent": int(other[cur]), "why": Trail.ONCE})
+	if back > 0 or ranks > 0:
+		data["board_note"] = {"kind": "trail_refund", "gold": back, "ranks": ranks}
+	if int(data.get("runs_started", 0)) > 0 or total("runs") > 0:
+		var had := trail_had()
+		for k in Trail.had_before():
+			if not had.has(k):
+				had.append(k)
+	mark_once(Trail.ONCE)
+	Trail.refresh()
+	request_save()
+	return back
+
+
 
 # ---------------------------------------------------------------- the homestead
 
@@ -1179,8 +1290,10 @@ func stage_beaten(map_id: String, i: int) -> bool:
 
 
 ## Whether stage `i` (0-based) of map `map_id` may be played: stage 1 always, a later one once the one before is beaten.
+## Pass 129 (lane TRAILCORE): and, for a stage a Trail node gives, once that node is bought (Trail.stage_open; true for
+## a stage no node names).
 func stage_unlocked(map_id: String, i: int) -> bool:
-	return i <= 0 or stage_beaten(map_id, i - 1)
+	return (i <= 0 or stage_beaten(map_id, i - 1)) and Trail.stage_open(map_id, i)
 
 
 ## Whether Play opens the Stages menu for map `map_id` (Garry: "opens on every Play" once stage 1 is beaten).

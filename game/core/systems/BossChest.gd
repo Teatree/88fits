@@ -74,10 +74,15 @@ static func make_pack(boss_id: String, gold: float, xp: float, fight_s: float, s
 
 
 ## The pack's net amounts at the opening (what the counters show and the pickups pay): gold x `greed`, XP x `xp_gain`.
-static func net(pack: Dictionary, greed: float, xp_gain: float) -> Dictionary:
+## Pass 129 (lane TRAILCORE; the Trail's Bounty, the hero's `boss_purse`): both x (1 + `purse`) as well, so the counters
+## and the payout carry it alike.
+static func net(pack: Dictionary, greed: float, xp_gain: float, purse: float = 0.0) -> Dictionary:
 	var out := pack.duplicate()
-	out["gold_net"] = int(round(float(pack.get("gold", 0)) * greed))
-	out["xp_net"] = float(pack.get("xp", 0.0)) * xp_gain
+	var more := maxf(1.0 + purse, 0.0)
+	if purse != 0.0:
+		out["purse"] = purse
+	out["gold_net"] = int(round(float(pack.get("gold", 0)) * greed * more))
+	out["xp_net"] = float(pack.get("xp", 0.0)) * xp_gain * more
 	return out
 
 

@@ -192,7 +192,7 @@
       "name": "Plate",
       "icon": "plate",
       "kind": "percent",
-      "text": "Damage taken",
+      "text": "Damage reduction",
       "effects": [
         {
           "stat": "damage_reduction",

@@ -77,6 +77,7 @@ every pick marked under the weapons); its CSV has no `hp_min` column.
 | `talents` *(2)* | the Upgrade board as the run began: `{talent id: [the form of each rank, in order]}` (0 its first form, 1 its second; only talents with a rank) |
 | `talent_forms` *(2)* | `{talent id: [first form's name, second form's name]}` for those talents |
 | `board` *(5)* | the whole Upgrade board as the run began (`RunAnalytics.board`), in the board's order (`Registry.talents_list`): `talents: [{id, name, max (the most ranks it takes), picks ([0, 1, ...]: each rank's form, 0 its first), forms ([first form's name, second's]), texts (their lines), gold (what its ranks cost at this build's prices: TalentDef.cost_of_rank)}]` (every talent, a rank or not), `ranks` (bought), `max` (the board's most), `gold` (summed), `spent` (`Save.talent_spent`: what the save says was paid; a price changed since, a board set by a tool or the developer menu (0) make it differ) |
+| `trail` *(pass 129)* | the Trail as the run began (`Trail.record`): `level` (the Trail Level), `bought` (the ids of the nodes that count as bought, in the file's order: the ones paid for and the ones whose gift the save already had), `paid` (how many of them were paid for), `spent` (`Save.trail_spent`: what they cost), `upgrades` (`{upgrade type: the summed value of its bought nodes}`: `might: 0.09` = +9%). Absent in a record from before pass 129; `bought` is empty while the Trail has no nodes |
 | `settings` *(2)* | `{pierce_falloff, debug_mode, dev}`: pierce drop-off, the player's debug mode, and whether the run counts as a developer's (`Analytics.is_dev`) |
 | `map_settings` *(2)* | the map's numbers as the run played them, the game's defaults filled in where the map leaves a key out: `hero_knockback_mult`, `special_defaults` (size, hp, damage, xp, tint_strength, glow, chest_chance, `max_alive`: -1 = no limit), `boss_hp_scaling` (enabled, exponent, window, min, max, `ref_dps` {boss: DPS}), `target_priority` (enabled, reach), `spawn_rise` (seconds, big_seconds, targetable, dust), `creature_hp_mult`, `creature_damage_mult`, `creature_speed_mult`, `move_pace`, `xp_need_mult`, `water_slow` and `oases` (min, max, extra_chance, gap; pass 80), `xp_curve` (the growth type played and its numbers, defaults filled in; pass 82), and since pass 83 `boss_hp_scaling.mode` ("seconds" or "dps") and `boss_hp_scaling.seconds` {boss: seconds of full DPS}, `power_hp_scaling` (1 = off) and `power_hp_max`; since pass 89 `hero_special_knock` (the share of a special attack's push that reaches the hero) |
 | `stat_names` *(2)* | `{stat: the pause screen's words}` (TextGen) for every stat a snapshot carries |
@@ -263,6 +264,7 @@ Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)". Eve
 | `hush_money`, `bounty`, `dice` | Hush Money's pay for a hit, Bounty Hunter's bounty, the dice shrine |
 | `empty_offer`, `stranger_empty`, `shop_empty` | gold instead of a level-up, a Stranger or a shop with nothing left to offer |
 | `skip_pay` | pass 126: the Assayer's Scale's coins for a spent skip (a level-up's, a mutation offer's or a chest's) |
+| `start_gold` | pass 129: the coins the Trail's Grubstake (`start_gold`) put in the purse as the run began (booked when the recorder begins; no greed, not counted as gold earned) |
 | `debug` | the developer's +gold buttons (the boards leave it out) |
 
 | in a run: sink | where it went |
@@ -312,6 +314,11 @@ The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row
 - `skin_bought` (pass 111: a look bought on the hero sheet): `hero`, `look` (the look code), `price`, `currency`,
   `balance_after` (that currency's); its spend is also a `gold_meta` with reason `skin` (extra `hero`, `look`, `price`,
   `currency`). `skin_worn` (a look worn from the sheet): `hero`, `look`. The run's `hero_look` is the worn look.
+- `trail_buy` (pass 129: a Trail node bought, `Trail.buy`): `node` (its id), `level` (the node's level), `type` (what it
+  gives: upgrade, outlaw, skin, weapon, passive, stage, map, structure, powerup, feature), `what` (the upgrade type, or
+  the id of the thing unlocked), `value` (an upgrade's amount), `price`; its spend is also a `gold_meta` with reason
+  `trail` carrying the same keys. The migration's refund of the Upgrade board is a `gold_meta` with reason
+  `talent_refund` and `why: trail_v129`.
 - The boards: **88fits · Coins** (`tools/posthog_boards.py`) and a "Gold today" tile on Pulse.
 
 ## What reaches PostHog
@@ -446,6 +453,8 @@ counted run on a new install). The record on the phone is the save's `survey` ke
 - *(5)* `board_max` (the board's most ranks) and `board_gold` (what its ranks cost) from the header's `board`; `board`,
   `weapon_sources`, `weapon_family` and `icons` stay out of the index (and `tasks`, as the game's index always left it
   out; `tools/analytics_csv.py` leaves it out too since pass 115).
+- *(pass 129)* `trail_level`, `trail_bought` (how many nodes count as bought) and `trail_spent` from the header's `trail`;
+  the block itself stays out of the index.
 
 ## CSV (pass 74)
 

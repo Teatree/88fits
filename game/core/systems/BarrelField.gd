@@ -555,6 +555,9 @@ func _throw_powerup(cc: Dictionary, at: Vector3, pk) -> Powerup:
 		var tl := _timeline()
 		if tl != null:
 			list = BarrelSpawns.weight_list(tl.pickups.get("roster", []))
+	# pass 129 (lane TRAILCORE): a power-up a Trail node gives is not thrown until that node is bought (the same list when
+	# no node names one; a list left empty throws nothing, as an empty roster always did)
+	list = Trail.rows_open("powerup", list)
 	var def: PickupDef = Registry.pickup(BarrelSpawns.pick_weighted(list, _dice))
 	if def == null:
 		return null

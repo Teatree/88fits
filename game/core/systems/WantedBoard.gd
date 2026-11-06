@@ -133,6 +133,10 @@ static func unlocked(cfg: Dictionary = {}) -> bool:
 	var c := cfg if not cfg.is_empty() else config()
 	if not bool(c.get("enabled", true)):
 		return false
+	# pass 129 (lane TRAILCORE): once a Trail node gives the Bounty Board ({type: "feature", id: "wanted"}), buying that
+	# node is what opens it; while no node names it, the runs rule below
+	if Trail.gated("feature", "wanted"):
+		return Trail.has("feature", "wanted")
 	var need := maxi(int((c.get("unlock", {}) as Dictionary).get("runs", 1)), 1)
 	return Save.total("runs") >= need
 

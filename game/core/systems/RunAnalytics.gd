@@ -51,7 +51,7 @@ const MARKER_NAMES := ["plain", "special", "elite", "boss", "down"]
 ## Pass 74: the header blocks the index leaves out (big, or the run file's own business); the rest goes in flattened.
 const INDEX_SKIP := ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents",
 	"talent_forms", "totems", "stat_names", "build_text", "heat", "tasks", "board", "weapon_sources", "weapon_family", "icons",
-	"chest_banks"]
+	"chest_banks", "trail"]
 ## Pass 115 (lane DASH): the hero's stats every weapon's numbers fold in (WeaponInstance.rebuild: attack damage, cooldown,
 ## Berserk's weapon speed, area, projectile speed, duration, extra projectiles) and the ones its hits read (crits, damage
 ## to Elites and bosses, ricochet, overkill, execute, debuff duration): a source of one of these shaped every weapon.
@@ -95,14 +95,18 @@ const HEAT_MIN_SECS := 5
 ## Pass 126 (lane ITEMS): skip_pay = the Assayer's Scale's coins for a spent skip (Run._pay_skip).
 const GOLD_SOURCES := ["coins", "loose_change", "gold_dust", "boss_coins", "loot_cache", "blasting_cap", "barrel", "elite_purse",
 	"boss_purse", "chest", "coin_bag", "hush_money", "bounty", "dice", "empty_offer", "stranger_empty", "shop_empty",
-	"debug", "other", "boss_chest", "skip_pay"]
+	"debug", "other", "boss_chest", "skip_pay",
+	# pass 129 (lane TRAILCORE): start_gold = the coins the Trail's Grubstake put in the purse as the run began (Run.start)
+	"start_gold"]
 ## Where a run's gold goes (Run.spend_gold's `sink`): the shop structure, the Down! revive. The Strongbox is not a
 ## spend: it banks the purse (run_end's gold_banked, the save's gold_meta "strongbox").
 const GOLD_SINKS := ["shop", "revive", "other"]
 ## The saved gold's reasons (Save.add_gold / spend_gold, sent as gold_meta): in from run_bank (the purse an extraction
 ## brings home), strongbox (banked mid-run), talent_refund (Take it all back); out to talent (an Upgrade rank), hero (pass 69:
 ## a hero bought on the title, Save.buy_hero) and wipe.
-const META_REASONS := ["run_bank", "strongbox", "talent_refund", "talent", "hero", "wipe", "debug", "other"]
+const META_REASONS := ["run_bank", "strongbox", "talent_refund", "talent", "hero", "wipe", "debug", "other",
+	# pass 129 (lane TRAILCORE): trail = a Trail node bought (Trail.buy; the event carries the node, its level and what it gives)
+	"trail"]
 
 var game: Node
 var play_t := 0.0            # unpaused play seconds: the x axis (Run.elapsed is the stage clock and freezes in boss and portal phases)
@@ -256,6 +260,12 @@ func begin(p_game: Node) -> void:
 	header["talent_forms"] = _talent_forms()
 	# pass 115 (lane DASH): the whole board, every talent with its ranks, forms and price (schema 5)
 	header["board"] = RunAnalytics.board()
+	# pass 129 (lane TRAILCORE): the Trail as the run began (Trail.record: its level, the nodes bought, what they cost,
+	# every upgrade type's summed value), and the coins its Grubstake put in the purse (Run.start), booked as a source
+	header["trail"] = Trail.record()
+	var grub: int = mini(Run.player_sheet.get_int("start_gold"), Run.run_gold) if Run.player_sheet else 0
+	if grub > 0:
+		gold_in("start_gold", grub)
 	header["settings"] = _settings()
 	header["map_settings"] = RunAnalytics.map_settings(mapdef.timeline if mapdef else null)
 	header["stat_names"] = RunAnalytics.stat_names()
@@ -2269,6 +2279,12 @@ func index_row() -> Dictionary:
 	if bd is Dictionary:
 		row["board_max"] = int((bd as Dictionary).get("max", 0))
 		row["board_gold"] = int((bd as Dictionary).get("gold", 0))
+	# pass 129 (lane TRAILCORE): the Trail's level, how many nodes count as bought and what they cost (absent before it)
+	var trl = header.get("trail")
+	if trl is Dictionary:
+		row["trail_level"] = int((trl as Dictionary).get("level", 0))
+		row["trail_bought"] = ((trl as Dictionary)["bought"] as Array).size() if (trl as Dictionary).get("bought") is Array else 0
+		row["trail_spent"] = int((trl as Dictionary).get("spent", 0))
 	row["totems"] = (header["totems"] as Array).size() if header.get("totems") is Array else 0
 	var dmg := 0.0
 	var top := ""

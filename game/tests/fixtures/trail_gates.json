@@ -1,0 +1,28 @@
+{
+  "_doc": "pass129_trail_test's gates fixture (never the game's file): one node for every kind of unlock, on real content ids.",
+  "version": 1,
+  "currency": "gold",
+  "price": {"base": 40, "k": 1.5, "power": 2.0, "round": 10},
+  "sections": [{"from": 1, "name": "Gates", "top": "f7b24a", "bottom": "ef7d22", "motif": "cactus"}],
+  "upgrades": {
+    "might": {"name": "Might", "icon": "might", "kind": "percent", "text": "Attack damage",
+      "effects": [{"stat": "might", "op": "mul", "per": 1.0}]}
+  },
+  "nodes": [
+    {"id": "g_outlaw", "level": 1, "kind": "node", "gives": {"type": "outlaw", "id": "calavera"}},
+    {"id": "g_skin", "level": 1, "kind": "node", "gives": {"type": "skin", "id": "drifter:DRI-B"}},
+    {"id": "g_weapon", "level": 1, "kind": "node", "gives": {"type": "weapon", "id": "hammer"}},
+    {"id": "g_free", "level": 1, "kind": "node", "gives": {"type": "weapon", "id": "molotov"}},
+
+    {"id": "g_passive", "level": 2, "kind": "node", "gives": {"type": "passive", "id": "deadeye"}},
+    {"id": "g_stage", "level": 2, "kind": "node", "gives": {"type": "stage", "map": "red_canyon", "stage": "s2"}},
+    {"id": "g_map", "level": 2, "kind": "node", "gives": {"type": "map", "id": "red_canyon"}},
+
+    {"id": "g_structure", "level": 3, "kind": "node", "gives": {"type": "structure", "id": "totem_pole"}},
+    {"id": "g_powerup", "level": 3, "kind": "node", "gives": {"type": "powerup", "id": "rage"}},
+    {"id": "g_feature", "level": 3, "kind": "node", "gives": {"type": "feature", "id": "wanted"}},
+
+    {"id": "g_up", "level": 4, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.1}}
+  ],
+  "end": {"text": "The end"}
+}

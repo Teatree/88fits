@@ -384,6 +384,10 @@ func quest_for(type: String, id: String) -> QuestDef:
 
 
 func is_unlocked(type: String, id: String) -> bool:
+	# pass 129 (lane TRAILCORE): a thing a Trail node gives (a weapon, a card or item, a map) is locked until that node is
+	# bought, whatever its quest says; a thing no node names keeps the rule below
+	if Trail.gated(type, id):
+		return Trail.has(type, id)
 	var q := quest_for(type, id)
 	if q == null:
 		return true
@@ -558,6 +562,10 @@ func playable_character(id: String) -> CharacterDef:
 func hero_state(c: CharacterDef) -> String:
 	if c == null or c.hidden:
 		return "hidden"
+	# pass 129 (lane TRAILCORE): an outlaw a Trail node gives is locked until that node is bought and owned from then on,
+	# with nothing more to pay (never "buyable"); one no node names keeps the rule below
+	if Trail.gated("outlaw", c.id):
+		return "owned" if Trail.has("outlaw", c.id) else "locked"
 	var q := quest_for("character", c.id)
 	var met := q == null or Save.quest_done(q.id)
 	if c.availability != "purchase":
@@ -574,6 +582,9 @@ func hero_owned(c: CharacterDef) -> bool:
 
 ## What it takes to unlock hero `c` in the words the items' unlock quests use (TextGen.quest_text); "" with no quest.
 func hero_requirement_text(c: CharacterDef) -> String:
+	# pass 129 (lane TRAILCORE): an outlaw a Trail node gives reads "Reach Trail Level N"
+	if c and Trail.gated("outlaw", c.id):
+		return Trail.requirement_text("outlaw", c.id)
 	var q := quest_for("character", c.id) if c else null
 	return TextGen.quest_text(q) if q else ""
 
@@ -625,6 +636,10 @@ func skin_state(c: CharacterDef, code: String) -> String:
 		return "hidden"
 	if code == c.home_look() or Save.owns_skin(skin_key(c.id, code)):
 		return "owned"
+	# pass 129 (lane TRAILCORE): a skin a Trail node gives is locked until that node is bought and owned from then on
+	# (never "buyable", sold or not); one no node names keeps the rule below
+	if Trail.gated("skin", skin_key(c.id, code)):
+		return "owned" if Trail.has("skin", skin_key(c.id, code)) else "locked"
 	if not c.sells_skin(code):
 		return "hidden"
 	var q := skin_quest(c, code)
@@ -660,6 +675,9 @@ func worn_skin(c: CharacterDef) -> String:
 
 ## What it takes to unlock look `code` in the quests' words ("" with no goal).
 func skin_requirement_text(c: CharacterDef, code: String) -> String:
+	# pass 129 (lane TRAILCORE): a skin a Trail node gives reads "Reach Trail Level N"
+	if c and Trail.gated("skin", skin_key(c.id, code)):
+		return Trail.requirement_text("skin", skin_key(c.id, code))
 	var q := skin_quest(c, code)
 	return TextGen.quest_text(q) if q else ""
 
@@ -667,6 +685,11 @@ func skin_requirement_text(c: CharacterDef, code: String) -> String:
 ## Whether a quest is shown and tracked: not when what it unlocks is hidden (a hero, a weapon, a passive).
 func quest_visible(q: QuestDef) -> bool:
 	var what := str(q.unlocks.get("id", ""))
+	# pass 129 (lane TRAILCORE): a quest whose thing a Trail node gives unlocks nothing any more (the node does): it is
+	# neither shown nor tracked, so it never announces an unlock that did not happen
+	var gift := str(q.unlocks.get("type", ""))
+	if Trail.gated("outlaw" if gift == "character" else gift, what):
+		return false
 	match str(q.unlocks.get("type", "")):
 		"skin":
 			# pass 111 (lane SKINS): a skin's goal while its hero is in play and the look is sold

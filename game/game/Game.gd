@@ -1883,7 +1883,8 @@ func _supply_land(at: Vector3, r: float, pod: MeshInstance3D) -> void:
 	Audio.play("en_rocket_boom", at)
 	var id := supply_drop_pick(player.hp if player else 1.0, player.max_hp if player else 1.0)
 	var pd: PickupDef = Registry.pickup(id)
-	if pd:
+	# pass 129 (lane TRAILCORE): never a power-up a Trail node gives and the save has not bought
+	if pd and Trail.has("powerup", id):
 		pickups.spawn_special(pd, at)
 	var tw := create_tween()
 	tw.tween_interval(1.2)
@@ -2272,7 +2273,8 @@ func _drop_from_kill(def: EnemyDef, at: Vector3, elite: EliteModDef) -> void:
 		var chance: float = Run.player_sheet.get_stat(str(pair[0]), 0.0)
 		if chance > 0.0 and Dice.r.randf() < chance:
 			var pd: PickupDef = Registry.pickup(str(pair[1]))
-			if pd:
+			# pass 129 (lane TRAILCORE): never a pickup a Trail node gives and the save has not bought
+			if pd and Trail.has("powerup", pd.id):
 				pickups.spawn_special(pd, at + Vector3(Dice.r.randf_range(-0.4, 0.4), 0, Dice.r.randf_range(-0.4, 0.4)), true)
 	# chests: every elite variant and the mini-boss, the odd regular creature (drops.chest in its JSON). Pass 118 (Garry:
 	# "Elites Should drop the `Purple Chest` now. I mean the enemies with crowns over their heads. These chests function
@@ -2285,7 +2287,8 @@ func _drop_from_kill(def: EnemyDef, at: Vector3, elite: EliteModDef) -> void:
 	var own = def.drops.get("pickup", {})
 	if own is Dictionary and Dice.r.randf() < float(own.get("chance", 0.0)):
 		var od: PickupDef = Registry.pickup(str(own.get("id", "")))
-		if od:
+		# pass 129 (lane TRAILCORE): never a power-up a Trail node gives and the save has not bought
+		if od and Trail.has("powerup", od.id):
 			pickups.spawn_special(od, at + Vector3(Dice.r.randf_range(-0.6, 0.6), 0, Dice.r.randf_range(-0.6, 0.6)))
 
 
@@ -2696,6 +2699,8 @@ func _use_totem(def: StructureDef, at: Vector3 = Vector3.INF) -> void:
 	_request_modal(Modal.TOTEM, func() -> bool:
 		# (pass 77, lane SIMRUN: a run sim's own dice for the gifts, Run.totem_rng; null in play: random as ever)
 		var offer: Array = TOTEM_SCREEN.BOONS.offer(def, Run.totem_rng)
+		# pass 129 (lane TRAILCORE): the Trail's Spirit Guide (`totem_boost`): every gift's amount x (1 + it)
+		offer = TOTEM_SCREEN.BOONS.boosted(offer, Run.player_sheet.get_stat("totem_boost", 0.0))
 		if offer.is_empty():
 			hud.toast(def.display_name, def.color)
 			_totem_spend(at, 0.0)
@@ -2980,7 +2985,9 @@ func open_boss_chest(at: Vector3, boss_id: String, pack: Dictionary) -> void:
 func _open_boss_chest_now(at: Vector3, boss_id: String, pack: Dictionary) -> bool:
 	var greed: float = Run.player_sheet.get_stat("greed", 1.0)
 	var gain: float = Run.player_sheet.get_stat("xp_gain", 1.0)
-	var p := BossChest.net(pack, greed, gain)
+	# pass 129 (lane TRAILCORE): the Trail's Bounty (`boss_purse`): the chest's coins and XP x (1 + it), in the counters
+	# and in what CLAIM pays alike
+	var p := BossChest.net(pack, greed, gain, Run.player_sheet.get_stat("boss_purse", 0.0))
 	_boss_chest_open = {"at": at, "pack": p, "boss": boss_id}
 	_modal = Modal.BOSSCHEST
 	set_paused(true)

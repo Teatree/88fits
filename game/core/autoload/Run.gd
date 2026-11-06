@@ -407,6 +407,12 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	heat = 0
 	overdrive = 0
 	_build_player_sheet()
+	# pass 129 (lane TRAILCORE): the Trail's Grubstake (`start_gold`): that many coins in the purse as the run starts (a
+	# stage's fresh run too: start_stage follows this), as they are (no greed, not counted as gold earned; the recorder
+	# books them as the source "start_gold" when it begins)
+	run_gold = maxi(player_sheet.get_int("start_gold"), 0)
+	if run_gold > 0:
+		gold_changed.emit(run_gold)
 	# pass 76 (lane UI): the stats as the run began, and no unlock of an earlier run (or of the title's quiet check) is
 	# this run's
 	_take_start_stats()
@@ -559,6 +565,10 @@ func hero_sheet(c: CharacterDef, at_level: int = 1) -> StatSheet:
 			var n := Save.talent_count(tdef.id, form)
 			if n > 0:
 				sheet.add_effects(tdef.effects_for(form, n, Save.talent_top(tdef, form)), "%s: %s %d" % [tdef.display_name, tdef.form_name(form), n], "talent:%s:%d" % [tdef.id, form])
+	# pass 129 (lane TRAILCORE): the Trail's bought upgrades, one source per upgrade type ("trail:<type>", "The Trail:
+	# Might"), every bought node of the type summed (Trail.effects; none while the Trail has no nodes)
+	for te: Dictionary in Trail.effects():
+		sheet.add_effects(te["effects"], str(te["name"]), str(te["source"]))
 	return sheet
 
 

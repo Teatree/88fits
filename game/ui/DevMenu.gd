@@ -290,6 +290,19 @@ func _surveys_block() -> void:
 		_refresh())
 	forget_skins.name = "ForgetSkins"
 	_list.add_child(forget_skins)
+	# pass 129 (lane TRAILCORE), last so no row above moves: the Trail's reset, for tests only (a player's choices are for
+	# good): every bought node forgotten and its coins back; the second row also forgets what the save had before the
+	# Trail, so every gate locks as on a new save
+	var trail_row := _row("The Trail · reset (coins back)", "Lv %d · %d bought · %d spent" % [Trail.level(), Save.trail_bought().size(), Save.trail_spent()], func():
+		Save.trail_reset()
+		_refresh())
+	trail_row.name = "TrailReset"
+	_list.add_child(trail_row)
+	var trail_new := _row("The Trail · reset as a new save (kept gifts forgotten)", "%d kept" % Save.trail_had().size(), func():
+		Save.trail_reset(true)
+		_refresh())
+	trail_new.name = "TrailResetNew"
+	_list.add_child(trail_new)
 
 
 func _ask_reset_surveys() -> void:

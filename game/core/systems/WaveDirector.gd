@@ -1938,6 +1938,9 @@ func drop_pickup_from(def: EnemyDef, at: Vector3, elite: bool, luck: float = 1.0
 		roster = []
 		for id in def.pickup_weights.keys():
 			roster.append({"id": str(id), "weight": float(def.pickup_weights[id])})
+	# pass 129 (lane TRAILCORE): a power-up a Trail node gives is out of the roster until that node is bought (the same
+	# list when no node names a power-up)
+	roster = Trail.rows_open("powerup", roster)
 	# pass 62: the Pocket Watch's powerup_chance on the hero's sheet (x1.12 at level 5)
 	var per_kill := float(pk.get("per_kill", 0.0)) * def.pickup_chance_mult * powerup_chance_mult() * maxf(luck, 0.0)
 	if roster.is_empty() or per_kill <= 0.0:
@@ -1977,7 +1980,8 @@ func powerup_chance_mult() -> float:
 ## One pickup from the map's roster, a short run away from the hero, then the next one is scheduled.
 func _spawn_pickup() -> void:
 	var pk: Dictionary = timeline.pickups
-	var roster: Array = pk.get("roster", [])
+	# pass 129 (lane TRAILCORE): without the power-ups a Trail node gives and the save has not bought (Trail.rows_open)
+	var roster: Array = Trail.rows_open("powerup", pk.get("roster", []))
 	# pass 62: the Pocket Watch brings a timed roster's power-ups round sooner (a map with an `interval`; none on Red Canyon)
 	var interval := float(pk.get("interval", 75.0)) / maxf(powerup_chance_mult(), 0.01)
 	var jitter := float(pk.get("jitter", 0.0))

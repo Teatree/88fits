@@ -1,0 +1,13 @@
+{
+  "_doc": "pass129_trail_test's empty Trail (never the game's file): upgrade types and no nodes, as the game's file was when the Trail's code landed.",
+  "version": 1,
+  "currency": "gold",
+  "price": {"base": 40, "k": 1.5, "power": 2.0, "round": 10},
+  "sections": [{"from": 1, "name": "Sundown", "top": "f7b24a", "bottom": "ef7d22", "motif": "cactus"}],
+  "upgrades": {
+    "might": {"name": "Might", "icon": "might", "kind": "percent", "text": "Attack damage",
+      "effects": [{"stat": "might", "op": "mul", "per": 1.0}]}
+  },
+  "nodes": [],
+  "end": {"text": "To be continued"}
+}

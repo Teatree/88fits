@@ -2385,3 +2385,81 @@ the game will play and, beside it, where that comes from: "on: the default for a
 for a squad creature" (tick it to switch that row's Monks on), "on / off: this row says so" in bold, or, greyed and
 locked, "off: an Elite row never relocates" (the same for a special row, a boss, an Elite by its kind, a special type and
 a dummy). The file stores the box only where it differs from the row's default, so a map full of defaults stays clean.
+
+## Pass 129: the Trail tab (lane TRAIL-EDITOR)
+
+The Trail (the game's permanent progression, `game/content/trail/trail.json`; the file and its rules are in
+`docs/trail_schema.md`) is edited on its own tab, beside the Mirror. Saving writes the JSON only: the game reads it
+when it starts, there is no import. The tab is split in two and each side scrolls on its own.
+
+**Left, the Trail as the game lays it out** (about a third of the width, design width 1080 scaled to the pane): the
+section colours of the level in the middle of the view with the section's faint sign tiled over them, the rails, every
+tile with its icon (an upgrade's icon, an outlaw's badge, an item's icon, a stage's picture; a grey tile with two
+letters when a picture is missing), the level numbers in their diamonds, a choice's bar with its lock marks, an optional
+node round and dashed beside its node, a named node in a second frame, the section plates in the free right quarter,
+the end plate above the last level. Under each tile: what it gives and (the **prices** box) its price.
+**Shown at Trail Level N** (the number or the slider) draws the picture a player at that level sees: every required
+node up to it bought and lit, the line just above the next level, everything over it in the dark band, the nodes not
+taken struck through. Of a choice the first member counts as taken; **Alt+click** another member to see that road.
+A click on a tile selects its row on the right and scrolls to it; a click on a diamond scrolls to the level; the
+selected node is ringed; a node with an error or a warning carries a red or yellow mark.
+
+**Right, the editor.** Above the levels, five folds: **Prices** (the curve's base, k, power and rounding, a chart of
+the price by level with the nodes that leave the curve as rings, and the totals: all nodes' gold, every required node
+with a choice counted once at its dearest member, "about N runs" at the coins a run you type in: a page setting, never
+written to the file), **What it adds up to** (each upgrade type over all its nodes: "Attack damage +42% over 14
+nodes", hover for sure / optional / choices; then every stat), **Sections and the end plate**, **Upgrade types**
+(name, icon, how the amount is written, the line after it, the effects, the red warning) and **Checks**.
+
+Each level is a block (highest first or lowest first: the switch beside the filter), each node one row:
+
+| cell | what it is |
+|---|---|
+| box | select the row (Shift+click: every row from the last one selected to here) |
+| id | the node's id; a rename follows into every `from`. Saves hold ids: rename only what no build has shipped |
+| kind | plain, choice, optional. A choice joins the choice already on its level, or starts a group named `c<level>` |
+| gives | the type, then the thing from a pick list with its icon (type to filter, arrows, Enter). A thing another node already gives says so in the list |
+| amount | written as the player reads it: type `3` or `+3%` for three percent; a count or a flat amount as it is |
+| price | empty = the curve's price, shown grey; type a number for an own price |
+| ×  | a multiplier on the curve (ignored once the node has an own price) |
+| from | "auto" = the node hangs on the level below (it opens when that level is done). Type ids into **+id** to connect it from chosen nodes instead, × on a chip to drop one, or press ⌖ and click the nodes on the left (Esc ends) |
+| all / any | whether it needs all of those nodes or any one |
+| group, x | the choice group; the place across the screen (0 to 1, empty = spread by the rule) |
+| name, note | a milestone's name the player reads; a note the game never shows |
+| ▲ ▼ ⧉ ✕ | a level up, a level down, duplicate, delete |
+
+**Adding levels fast.** The box beside **+** at the top right adds that many levels on top of the Trail, each with one
+plain node; then walk the column: pick what the first gives, type its amount, **Enter** drops into the same cell of
+the next row (Shift+Enter goes back), **Tab** walks along a row. On a level: **+ node** adds one like the level's last
+(on a choice level it joins the choice), **+ level above / below** opens a level there and moves everything above
+one up (the sections move with it), **✕ level** removes the level and closes the gap. On a row: **Ctrl+D**
+duplicates, **Alt+Up / Alt+Down** moves it a level, **Ctrl+Delete** deletes. Tick several rows and the blue bar sets
+one field for all of them (an amount, an upgrade type, a price, a multiplier, the level...), moves, duplicates or
+deletes them. The filter takes words (`might`, `choice`, `outlaw`, an id) and levels (`10-25`); **only rows with
+issues** shows what the checks name. **Undo / Redo** (Ctrl+Z / Ctrl+Y on this tab) cover every edit since the page
+loaded; **Revert** goes back to the file; **JSON** opens the whole file as text.
+
+**Checks.** Errors block Save; warnings do not. Errors: an unknown outlaw, skin, item, stage, map, structure,
+power-up, feature, upgrade type or `from` id; an id used twice; a thing given by two nodes; a level with no required
+node (only optional ones, or none); a `from` that names a level not below (an optional node may name its own level);
+a choice group of one or of more than four, a choice without a group; a node nobody can reach (it needs two members
+of one choice, or a node that is itself out of reach); a bad price, x, kind, level, section colour or effect.
+Warnings: an unlock inside a choice (the player who takes another member loses it for good); a required node that
+depends on an optional one; an upgrade type with no icon file or with a stat the game does not know; a choice group's
+name used on two levels (the game reads two separate choices); more than four nodes on a level; an x in the free right
+quarter. The same checks from a shell: `python tools/level_editor/trail_io.py --check` (exit 1 on an error).
+
+**CSV.** **Export CSV** downloads `trail.csv`, one row per node in level order: `id, level, kind, group, from` (ids
+with spaces between), `need, gives_type, gives_what` (the upgrade type, the id, or `map/stage`), `value` (the number
+in the file: 0.03), `price, price_mult, x, name, note`, then two read-only columns, `resolved_price` and `cumulative`.
+**Import CSV** reads the same table back (commas, or a spreadsheet's semicolons with decimal commas; `6%` reads 0.06;
+a row without an id gets the next free one; the read-only columns and unknown columns are ignored), runs the checks
+on the result and shows what would change (added, removed, changed, with the fields) before **Apply**. Nothing is
+written until Save, and Ctrl+Z undoes the import.
+
+**Save** (the button, or Ctrl+S on this tab) writes `trail.json` with one backup in `tools/level_editor/backups/`:
+LF, keys in their order, the file's own floats kept, one node, one section and one upgrade type a line (the first
+save of a file laid out differently rewrites its layout once). If the file changed on disk since the page read it the
+save is refused: Reload (export the CSV first to keep your edits). The server needs a restart once for this pass (new
+routes `/api/trail`, `/api/trail/save`, `/api/trail/icon/<name>`). A reload of the page now comes back to the Trail,
+the Wanted and the Mirror tab (their names were missing from the hash routes).

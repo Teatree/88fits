@@ -55,7 +55,9 @@ HISTORY_FIRST = ["file", "stamp", "started", "version", "schema", "tool", "headl
 INDEX_SKIP = ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents", "talent_forms",
               "totems", "stat_names", "build_text", "heat", "tasks",
               # pass 115 (lane DASH): schema 5's big blocks (the board goes in as board_max / board_gold below)
-              "board", "weapon_sources", "weapon_family", "icons"]
+              "board", "weapon_sources", "weapon_family", "icons",
+              # pass 129 (lane TRAILCORE): the Trail's block (it goes in as trail_level / trail_bought / trail_spent below)
+              "trail"]
 # pass 82 (lane STATS): chests, power-ups and totems picked up so far, three columns after the row's own; the rule is
 # game/tools/sim_run.gd pickup_kind() and tools/level_editor/sim_model.js pickupKind() (the page's csv-lib counts with it)
 PICKUP_KEYS = ["chests", "powerups", "totems"]
@@ -398,6 +400,12 @@ def index_row(d, fname):
     if isinstance(bd, dict):
         row["board_max"] = int(bd.get("max", 0) or 0)
         row["board_gold"] = int(bd.get("gold", 0) or 0)
+    # pass 129 (lane TRAILCORE): the Trail's level, nodes counted as bought and what they cost (RunAnalytics.index_row the same)
+    trl = d.get("trail")
+    if isinstance(trl, dict):
+        row["trail_level"] = int(trl.get("level", 0) or 0)
+        row["trail_bought"] = len(trl["bought"]) if isinstance(trl.get("bought"), list) else 0
+        row["trail_spent"] = int(trl.get("spent", 0) or 0)
     row["totems"] = len(d["totems"]) if isinstance(d.get("totems"), list) else 0
     dbw = (d.get("totals") or {}).get("damage_by_weapon") or {}
     dmg, top, top_v = 0.0, "", -1.0

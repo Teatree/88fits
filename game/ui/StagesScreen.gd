@@ -743,7 +743,13 @@ static func beaten(p_map_id: String, i: int) -> bool:
 
 ## What opens stage `i`: beating the stage before it ("Beat the Tumbleweed King" once he has been met; pass 88: "Beat
 ## Stage 1" while he has not, or with no boss).
+## Pass 129 (lane TRAILCORE): when the stage before it is beaten (or it is the first) and a Trail node is what still
+## locks it, the Trail's line: "Reach Trail Level N".
 static func requirement(_m: MapDef, list: Array, i: int) -> String:
+	if _m != null and i >= 0 and i < list.size() and (i == 0 or Save.stage_beaten(_m.id, i - 1)):
+		var tkey := "%s:%s" % [_m.id, str((list[i] as Dictionary).get("id", ""))]
+		if not Trail.has("stage", tkey):
+			return Trail.requirement_text("stage", tkey)
 	if i <= 0 or i - 1 >= list.size():
 		return ""
 	var prev: Dictionary = list[i - 1]

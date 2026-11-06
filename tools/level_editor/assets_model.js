@@ -42,6 +42,8 @@ const AssetsModel = (() => {
     purse_might_per: 0, purse_might_cap: 0, purse_hp_per: 0, purse_hp_cap: 0, hit_cap_pct: 0, boss_hit_cap_pct: 0, hit_block_every: 0,
     // pass 126 (lane ITEMS): the Assayer's Scale's pay for a spent skip; the Canteen
     skip_coins: 0, skip_xp: 0, water_walk: 0, leave_water_regen: 0, leave_water_seconds: 0, water_damage: 0,
+    // pass 129 (lane TRAILCORE): the Trail's own stats (Grubstake, Spirit Guide, Bounty)
+    start_gold: 0, totem_boost: 0, boss_purse: 0,
   };
   // player stats the systems read that are not in PLAYER_DEFAULTS (default 0): Game.gd brand_chance, EnemyManager fire_vuln / poison_slow / poison_pass
   const PLAYER_EXTRA = ['brand_chance', 'fire_vuln', 'poison_slow', 'poison_pass'];
@@ -106,6 +108,9 @@ const AssetsModel = (() => {
     skip_coins: ['coins a skip pays', 'num'], skip_xp: ["next level's XP a skip pays", 'pct'],
     water_walk: ['water no longer slows you', 'word'], leave_water_regen: ['HP a second after leaving water', 'num'],
     leave_water_seconds: ['healing after leaving water', 'sec'], water_damage: ['damage to enemies in water', 'pct'],
+    // pass 129 (lane TRAILCORE)
+    start_gold: ['coins at the start of a run', 'num'], totem_boost: ['bigger Totem gifts', 'pct'],
+    boss_purse: ['boss chest pay', 'pct'],
   };
   // pass 69: what a new stat does, in a line (the effect picker's hover and the line under an effect); vocab.py STAT_HELP
   const STAT_HELP = {
@@ -133,6 +138,10 @@ const AssetsModel = (() => {
     leave_water_regen: 'Canteen: HP a second while the heal after leaving water runs (through Player.heal, credited to the item); nothing while he is in water',
     leave_water_seconds: 'Canteen: how long the heal runs after he walks out of a lake (Buff duration stretches it); walking out again starts it anew, it never stacks; 0 = no heal',
     water_damage: 'Canteen (Evolved): extra damage on a creature standing in water, from everything the outlaw sends (0.25 = +25%)',
+    // pass 129 (lane TRAILCORE; the Trail's own stats)
+    start_gold: 'The Trail\'s Grubstake: this many coins in the run\'s purse as a run starts (a stage\'s fresh run too), as they are: no coin gain on them, not counted as gold earned',
+    totem_boost: 'The Trail\'s Spirit Guide: every Totem Pole gift\'s amount is 1 + this times as big (0.2 = +20%), the ends of its range with it',
+    boss_purse: 'The Trail\'s Bounty: a boss chest\'s coins and XP are 1 + this times as much (0.5 = +50%), on top of coin gain, Field Notes and the speed bonus; the counters and CLAIM pay the same',
     // pass 118 (lane ITEMS): any stat named chest_<stat> banks <stat> at every chest opened (Run.chest_opened)
     chest_luck: 'Jade Key: every chest opened while it is held banks this much luck (0.01 = +1%) for the rest of the run; a later level raises only the chests after it',
     chest_might: 'Ruby Key: every chest opened while it is held banks this much attack damage (0.02 = +2%, the chests summed) for the rest of the run; a later level raises only the chests after it',

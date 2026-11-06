@@ -17,7 +17,7 @@ const RUN := "run"
 const RUN_ORDER := {"trait": 0, "passive": 1, "favourite": 1, "chest": 1, "perk": 2, "mutation": 2, "totem": 3,
 	"stranger": 3, "momentum": 4, "buff": 6}
 ## The source ids whose rows belong to the start (a "trait:" one splits: its level-1 step is the start's).
-const START_KINDS := ["base", "hero", "talent"]
+const START_KINDS := ["base", "hero", "talent", "trail"]
 ## The structures whose icons stand for the map's gifts on a row.
 const TOTEM_STRUCTURE := "totem_pole"
 const STRANGER_STRUCTURE := "hooded_figure"
@@ -224,6 +224,12 @@ static func describe_source(sid: String, source: String = "", count: int = 1) ->
 				var form := int(parts[1]) if parts.size() > 1 else 0
 				out["name"] = "%s · %s rank %d" % [t.display_name, t.form_name(form), Save.talent_count(t.id, form)]
 				out["icon"] = t.form_icon(form) if t.form_icon(form) != null else t.icon
+		"trail":
+			# pass 129 (lane TRAILCORE): the Trail's bought upgrades of one type ("trail:might"): "The Trail: Might", its icon
+			var tu := Trail.upgrade(id)
+			if not tu.is_empty():
+				out["name"] = Trail.SOURCE % str(tu.get("name", id))
+				out["icon"] = Trail.icon(id)
 		"passive", "favourite":
 			var p: PassiveDef = Registry.passive(id)
 			if p:

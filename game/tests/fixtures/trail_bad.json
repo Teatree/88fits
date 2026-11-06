@@ -1,0 +1,36 @@
+{
+  "_doc": "pass129_trail_test's faulty Trail (never the game's file): one of every fault Trail.check names.",
+  "version": 1,
+  "currency": "doubloons",
+  "price": {"base": 40, "k": "lots", "power": 2.0},
+  "sections": [
+    {"from": 3, "name": "Late", "top": "f7b24a", "bottom": "zzzzzz", "motif": "cactus"},
+    {"from": 2, "name": "Back", "top": "f7b24a", "bottom": "ef7d22", "motif": "anvil"}
+  ],
+  "upgrades": {
+    "might": {"name": "Might", "icon": "might", "kind": "percent", "text": "Attack damage",
+      "effects": [{"stat": "might", "op": "mul", "per": 1.0}]},
+    "ghost": {"name": "", "icon": "no_such_icon_p129", "kind": "bananas", "text": "Nothing",
+      "effects": [{"stat": "no_such_stat", "op": "set", "per": 0}]},
+    "hollow": {"name": "Hollow", "icon": "", "kind": "flat", "text": "Nothing", "effects": []}
+  },
+  "nodes": [
+    {"id": "a", "level": 1, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.03}},
+    {"id": "a", "level": 1, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.03}},
+    {"level": 1, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.03}},
+    {"id": "b", "level": 0, "kind": "weird", "group": "gx", "need": "some", "from": ["b", "nobody", "h"], "price": -5, "price_mult": 0, "x": 0.9,
+      "gives": {"type": "upgrade", "upgrade": "mite", "value": 0}},
+    {"id": "c", "level": 2, "kind": "choice", "group": "solo", "gives": {"type": "outlaw", "id": "nobody_p129"}},
+    {"id": "d", "level": 2, "kind": "choice", "gives": {"type": "weapon", "id": "peashooter"}},
+    {"id": "e", "level": 2, "kind": "node", "from": ["f"], "gives": {"type": "weapon", "id": "hammer"}},
+    {"id": "f", "level": 2, "kind": "node", "gives": {"type": "weapon", "id": "hammer"}},
+    {"id": "g", "level": 2, "kind": "node", "gives": {"type": "stage", "map": "red_canyon", "stage": "s1"}},
+    {"id": "h", "level": 4, "kind": "node", "gives": {"type": "feature", "id": "casino"}},
+    {"id": "i", "level": 4, "kind": "node", "gives": {"type": "teleporter", "id": "x"}},
+    {"id": "j", "level": 4, "kind": "node", "gives": {"type": "skin", "id": "drifter:NOPE"}},
+    {"id": "k", "level": 4, "kind": "node"},
+    {"id": "l", "level": 4, "kind": "node", "gives": {"type": "stage", "map": "red_canyon", "stage": "s9"}},
+    {"id": "m", "level": 4, "kind": "node", "gives": {"type": "powerup"}}
+  ],
+  "end": {"text": "?"}
+}

@@ -88,6 +88,10 @@ const PLAYER_DEFAULTS := {
 	# water and its seconds (Player._wade_mult, _tick_canteen), the Evolved rung's damage to creatures in water
 	# (EnemyManager.damage)
 	"skip_coins": 0.0, "skip_xp": 0.0, "water_walk": 0.0, "leave_water_regen": 0.0, "leave_water_seconds": 0.0, "water_damage": 0.0,
+	# pass 129 (lane TRAILCORE), the Trail's own (each read once, 0 = none): the coins a run's purse starts with
+	# (Run.start), how much bigger every Totem Pole gift is, a share on top of 1 (Game._open_totem: TotemBoons.boosted),
+	# and how much more a boss chest pays in coins and XP, a share on top of 1 (Game._open_boss_chest_now: BossChest.net)
+	"start_gold": 0.0, "totem_boost": 0.0, "boss_purse": 0.0,
 }
 
 ## The least a hero's stat can come to, however many sources pull it down (pass 61: Ironwood's regen delay shrinks every

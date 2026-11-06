@@ -1,0 +1,55 @@
+{
+  "_doc": "pass129_trail_test's rules fixture (never the game's file): six levels with a choice, what hangs under each side, optional nodes, an `any` and an `all` link, own prices.",
+  "version": 1,
+  "currency": "gold",
+  "price": {"base": 40, "k": 1.5, "power": 2.0, "round": 10},
+  "sections": [
+    {"from": 1, "name": "First", "top": "f7b24a", "bottom": "ef7d22", "motif": "cactus"},
+    {"from": 4, "name": "Second", "top": "4a5fc4", "bottom": "27307a", "motif": "star"}
+  ],
+  "upgrades": {
+    "might": {"name": "Might", "icon": "might", "kind": "percent", "text": "Attack damage",
+      "effects": [{"stat": "might", "op": "mul", "per": 1.0}]},
+    "tempo": {"name": "Tempo", "icon": "tempo", "kind": "percent", "text": "Attack speed",
+      "effects": [{"stat": "cooldown", "op": "mul", "per": -1.0}]},
+    "regen": {"name": "Poultice", "icon": "regen", "kind": "flat", "text": "Health a second",
+      "effects": [{"stat": "regen", "op": "add", "per": 1.0}]},
+    "reroll": {"name": "Reroll", "icon": "reroll", "kind": "count", "text": "Reroll a run",
+      "effects": [{"stat": "rerolls", "op": "add", "per": 1.0}]},
+    "grubstake": {"name": "Grubstake", "icon": "grubstake", "kind": "flat", "text": "Coins at the start of a run",
+      "effects": [{"stat": "start_gold", "op": "add", "per": 1.0}]},
+    "spirit": {"name": "Spirit Guide", "icon": "spirit", "kind": "percent", "text": "Totem gifts",
+      "effects": [{"stat": "totem_boost", "op": "add", "per": 1.0}]},
+    "bounty": {"name": "Bounty", "icon": "bounty", "kind": "percent", "text": "Boss chest pay",
+      "effects": [{"stat": "boss_purse", "op": "add", "per": 1.0}]},
+    "stakes": {"name": "Stakes", "icon": "stakes", "kind": "percent", "text": "Creatures tougher, better paid",
+      "effects": [
+        {"stat": "danger_hp", "op": "add", "per": 1.0},
+        {"stat": "danger_attack", "op": "add", "per": 1.0},
+        {"stat": "danger_speed", "op": "add", "per": 0.4},
+        {"stat": "danger_bounty", "op": "add", "per": 0.5}
+      ],
+      "warn": "Every creature gets tougher for good. This cannot be undone."}
+  },
+  "nodes": [
+    {"id": "n1", "level": 1, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.03}},
+
+    {"id": "n2a", "level": 2, "kind": "choice", "group": "g2", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.05}},
+    {"id": "n2b", "level": 2, "kind": "choice", "group": "g2", "gives": {"type": "upgrade", "upgrade": "tempo", "value": 0.04}},
+    {"id": "n2o", "level": 2, "kind": "optional", "from": ["n2a"], "gives": {"type": "upgrade", "upgrade": "regen", "value": 0.5}},
+
+    {"id": "n3a", "level": 3, "kind": "node", "from": ["n2a"], "gives": {"type": "upgrade", "upgrade": "grubstake", "value": 25}},
+    {"id": "n3b", "level": 3, "kind": "node", "from": ["n2b"], "gives": {"type": "upgrade", "upgrade": "reroll", "value": 1}},
+    {"id": "n3o", "level": 3, "kind": "optional", "price": 500, "gives": {"type": "upgrade", "upgrade": "stakes", "value": 0.1}},
+
+    {"id": "n4", "level": 4, "kind": "node", "from": ["n3a", "n3b"], "need": "any", "gives": {"type": "upgrade", "upgrade": "spirit", "value": 0.2}},
+    {"id": "n4x", "level": 4, "kind": "node", "from": ["n3b"], "gives": {"type": "upgrade", "upgrade": "tempo", "value": 0.02}},
+    {"id": "n4y", "level": 4, "kind": "optional", "from": ["n3b", "n4x"], "need": "any", "gives": {"type": "upgrade", "upgrade": "regen", "value": 0.25}},
+
+    {"id": "n5", "level": 5, "kind": "node", "price_mult": 2.0, "gives": {"type": "upgrade", "upgrade": "bounty", "value": 0.5}},
+    {"id": "n5x", "level": 5, "kind": "node", "from": ["n3a", "n3b"], "need": "all", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.1}},
+
+    {"id": "n6", "level": 6, "kind": "node", "gives": {"type": "upgrade", "upgrade": "might", "value": 0.02}}
+  ],
+  "end": {"text": "To be continued"}
+}
