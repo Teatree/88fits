@@ -10063,3 +10063,53 @@ stood a third of a cell above the shadow.
 
 CC-B, CC-C and CC-D play their flight at **8** pictures a second (16 before): one wing cycle in 1.5 s. Their speed over
 the ground is unchanged.
+
+## 74. Pass 133: the difficulty curve against the Trail, the Dust Bowl and Blood Moon in Garry's style
+
+Lane PACING (report `docs/pacing/difficulty_vs_trail.html`, numbers and tools in `tools/dl/p133/PACING/`). Garry: "Give
+me an assessment of our difficulty curve as comparing to the Trail ... Then looking at how I did Nightfall and Stage 1,
+Update the Dust Bowl and Hell. Notice that I like it where there are few enemies with interesting attacks while there
+are hordes of fodder enemies that are relatively easy to kill. Notice that I sometimes challenge the Player with ring
+spawns, but not too much. Notice that there are 'quiet' moments of fewer spawns too." Sundown's and Nightfall's rows are
+his and untouched; the Trail, the stage multipliers and both curves are untouched (proposals for them are in the report).
+
+### 74.CURVE What was measured (no rule)
+
+- HeroPower by Trail Level on Garry's trail.json (`_p129_SETUP_power.gd`, choices averaged): x1.39 at 20, x1.52 at 30,
+  x1.66 at 36, x1.81 at 40 **and at 45** (levels 41-45 give no power), x2.34 at 60, x3.67 at 65 (the +1 projectile at 64),
+  x4.20 at 70; at outlaw level 30 x1.31 / 1.42 / 1.55 / 1.65 / 2.11 / 2.60 / 2.97.
+- The difficulty probe (fixed builds b1 / b2, seed 11, 90 s cells) on pass 126's rows: Sundown's last 100 s cost 1.5 max
+  HP a minute at Trail 0, 0.6 at 10, 0 at 20; Nightfall about 1.0 a minute in every stretch at Trail 0, 0.1-0.7 at 10, 0
+  at 20; **the Dust Bowl 0.00 in every stretch at every Trail Level 0-60** (16-48 alive against Nightfall's 150); the
+  Blood Moon 0 until its last stretch (1.3 at Trail 0, 0 at 10). The bot (sim, 6 players): the Dust Bowl 3 of 6 killed
+  Black Sunday at Trail 20 and at 35; the Blood Moon 0 of 6 at 36 (median end 13:50) and 0 of 6 at 51 (all six reached
+  the Brander and fell to him). Real runs: Sundown 13 of 42 killed the King (1,006 coins banked a run), Nightfall 3 of 26
+  (737; median 18). So: the Dust Bowl was the easiest stage after Sundown's first half (a hole at Trail 20), nothing got
+  harder between Trail 20 and 36, levels 41-45 give nothing, and the Brander (not the Blood Moon's rows) is the wall.
+
+### 74.ROWS The Dust Bowl's and the Blood Moon's rows (new; `tools/dl/p133/PACING/make_rows.py` writes them)
+
+The shape Garry's two stages have, read off the Level Editor's estimate: **one fodder silhouette at a time in hordes**
+(a waves row of 20-75 in packs + a scatter / pack stream, 60-100 s a chapter), **three or four creatures with attacks
+under a Max alive of 2-6**, **a ring every 2.5-3.5 minutes** (30-75, fodder), **a quiet minute between chapters** (the
+crowd to a third), **a thinner tankier last stretch**, peaks of 235-260 alive and a mean near 100. Both stages are now
+five such chapters (the report's tables): the Dust Bowl bunnies / crows / straw men (DUST STORM! ring of 50 at 18 m) /
+crow hordes (THE SKY GOES BLACK!) / big straw men; the Blood Moon runts / red skeletons + knights / fire ants /
+red goblins / werewolves + a knight wall, with the hell channel as before (imps max 16 -> 30 -> 45, hounds 10 -> 20,
+`hell_cap` 0.4). Rings: the Dust Bowl 3 (was 5 + a wall), the Blood Moon 5 (was 8). Rows: 27 (was 35) and 39 (was 37).
+- **Per-body HP keeps pass 126's ramp** (`hp_mult` per chapter: the Dust Bowl 0.16 -> 0.6, the Blood Moon 0.12 -> 0.5).
+- **Bites brought up to Garry's** (new numbers): the Dust Bowl's fodder `damage_mult` **1.0** (was 0.6-0.85), its
+  gunmen / bombers 1.0, toads 0.8, mummies 0.9, beetles 0.8, monks 0.9, giants 0.6; the Blood Moon's fodder **0.8**
+  (was 0.6-0.7), its last chapter 0.85, the hell channel 0.75 / 0.8 / 0.85, giants 0.6. His rows run 1.0-3.0.
+- The Blood Moon's boss fight loses its third trickle (bf3-3, knights): his windows have two trickles, a ranged pair, a
+  charge and a ring. Both windows are otherwise as they were. The Elite events, `r6` / `r7` / `r9` and the specials'
+  pool are the map's and unchanged; the two after-the-boss rows s3g1 / s3g2 are kept.
+- **Measured after** (the report's sections 2 and 6; the bot: 6 players, the Drifter, seed 1): the Dust Bowl at Trail 20
+  1 of 6 killed Black Sunday (was 3 of 6), at Trail 35 **4 of 6** (was 3); the Blood Moon at 36 0 of 6 with 2 reaching
+  the Brander (was 0 with 3), at 51 **1 of 6 killed him** (no bot ever had) with all six reaching him. The probe with a
+  7:10 build: the Dust Bowl's 11:10 0.94 -> 0.91 max HP a minute at Trail 20 and 0.36 -> 0.48 at 35, the Blood Moon's
+  8:10 0.47 -> 0.14 at 36 and 0.40 -> 0.23 at 51; every cell with a 14:20 build reads 0 before and after. Four drafts
+  were measured: the openings came down three times (30 a wave from 0:00 killed every Blood Moon bot inside 2:03) to
+  Garry's own 40-65 alive in the first two minutes (12 a wave every 6 s, rings of 20-24 at 1:30, crow flocks of 12
+  every 20 s), and the middle chapters from 7-8 bodies a second to 4-5. The first chapter's `count` and the crow rows'
+  `every` are the knobs if a phone run reads empty or harsh.

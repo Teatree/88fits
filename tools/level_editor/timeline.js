@@ -525,6 +525,10 @@ const Timeline = (() => {
       return;
     }
     if (id === 'onscreen') {
+      // pass 133 (lane ONSCREEN): the crowd the estimate expects at one second, drawn round the Outlaw (onscreen.js)
+      s.ctl.appendChild(el('button', { class: 'btn small', type: 'button', text: 'Show on screen', 'data-path': 'onscreen.show',
+        title: 'a pop-up: the Outlaw and the creatures the estimate expects alive at one second of this stage, each its row\'s look and size, laid out as the rows spawn them (pick the second on a slider; Re-roll draws the fractions again)',
+        onclick: (e) => { e.stopPropagation(); if (typeof OnScreen !== 'undefined') OnScreen.open(App.viewStage() != null ? App.viewStage() : 0, lastCursorT); } }));
       s.body.appendChild(explainStrip('onscreen', [lg('sw-alive', 'estimate (regular channel)'), lg('sw-hell', 'hell channel'), lg('sw-sim', 'Sim'), lg('sw-capb', 'limit in bodies: the lower of the cap and the hard cap', 'the cap (load units) turned into bodies at the crowd\'s mix, or the hard cap (bodies) where that is lower; hover the lane for the three numbers and which one binds'), lg('sw-floor', 'floor'), lg('sw-hard', 'hard cap (bodies)'), lg('sw-full', 'cap full: rows starve')]));
       return;
     }

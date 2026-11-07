@@ -4727,3 +4727,50 @@ struck from behind and pitches forward, its knees buckling, falling face first .
 buckle, a forward tumble, face down from frame 5, the lying still last; 8 frames at 8 fps (die_final.png). Only the
 die cells changed in the strip (splice.py; the clip cached as ai_anim/skeleton_knight_knd_fall). KN-L made again from
 it with the death pass on every die cell (still fresh). methods.json lists `death_pick`; docs/assets_schema.md "Pass 132d".
+
+
+## Pass 133 (2026-11-07): the crowd at second t, the Watch imports, the difficulty curve against the Trail, the Dust Bowl and Blood Moon in Garry's style
+
+Garry's three requests of the day, three lanes (briefs and status files in tools/dl/p133/<LANE>/).
+
+**ONSCREEN** (Level Editor): the Timeline tab's On screen section has **Show on screen**: a pop-up
+(tools/level_editor/onscreen.js, the pure model onscreen_model.js under Node) with a Stage select, a slider on the
+stage's clock, -1 s / +1 s, Peak, Re-roll, zoom, and the estimate's numbers for that second (expected, drawn, cap, the
+pool's 320, by creature with Elite / special counts); the scene is one canvas of strip cells blitted straight from
+the strip images: the outlaw (the Sim tab's, else the Drifter) in the middle, each body given to a row by the
+estimate's source tallies of the past 20 s so it wears the row's look, size, special tint and Elite crown, placed as
+WaveDirector spawns it (19-24 m by spawn_sides, a ring row on its radius, in_front at the top), walked in by an
+exponential age, relaxed to body radii, under the stage's filter; every figure plays run, run turned, die for 2 s
+each. Fractions by random select (floor + one with the fraction as the chance, seeded). selftest_P133ONSCREEN.py
+(56 checks). Doubts: a non-forced body's Elite / special is a roll of the cumulative tallies; bosses, rocks, the
+lake, relocation and squads are not modelled; the estimate can exceed the pool and the pop-up says so.
+
+**WATCH**: tools/watch.py keeps a supervisor alive while the window runs (the launcher with --wait, else a detached
+copy --supervise) that compares game/ with the files it synced every 5 s and writes tools/dl/watch/sync_status.json;
+the window (Watch.gd, WatchPanel.gd) shows **Import data** after Restart run, amber "IMPORT DATA (N)" with the first
+changed paths on hover, key I: the run ends (record header.watch.ended_by "import"), the window writes
+relaunch.json and quits with code 75, the supervisor syncs, imports (--import / import_json) and relaunches with the
+same Outlaw Settings. Options --look, --no-supervise; Godot args look= sync= relaunch=. Proven twice (cap_start 10 ->
+11 lit it in ~7 s; the new window printed 11). During the import the window is gone 20-40 s (minutes when a PNG
+forces --import). docs/assets_schema.md "The Watch".
+
+**PACING** (report docs/pacing/difficulty_vs_trail.html, published https://claude.ai/artifact/U3wyBBJuzwA8wDzdiQi6BX;
+BALANCING 74): HeroPower x1.39 at Trail 20, x1.81 at 40 = 45 (41-45 give no power), x2.34 at 60, x4.20 at 70; the
+probe on pass 126's rows: the Dust Bowl cost 0 HP a minute at every Trail Level (16-48 alive against Nightfall's
+150), the Blood Moon's wall is the Brander, not its rows; the bot cleared the Dust Bowl 3 of 6 at Trail 20 and 35,
+the Blood Moon 0 of 6; real runs: Sundown 13 of 42 killed the King (1,006 coins a run), Nightfall 3 of 26 (737), so
+the purse model's Nightfall 4,000 is 3-5x too kind. Findings: a hole at Trail 20 (the Dust Bowl opens as the easiest
+stage), nothing harder between 20 and 36, a flat 41-45. Proposals only (nothing changed): the Dust Bowl's node at
+12-15 or Nightfall made to pay, a power node in 41-45, Brander boss_hp_scaling.seconds 80 -> 60-70, price k 5.0-5.5.
+**Garry's style** read off Sundown and Nightfall: one fodder silhouette at a time in hordes (a waves row of 20-75 in
+packs + a stream, 60-100 s a chapter), 3-4 creatures with attacks under Max alive 2-6, a ring every 2.5-3.5 min
+(30-75, fodder only), a quiet minute between chapters, peaks 235-260 / mean ~100, a thinner tankier last stretch.
+**The Dust Bowl (d*, 35 -> 27 rows) and Blood Moon (s3*, 37 -> 39; bf3-3 removed) rewritten** to that shape by
+tools/dl/p133/PACING/make_rows.py (every other byte of the map as it was; the old map in before/): five chapters
+each (bunnies / crows / straw men with a DUST STORM ring / crow hordes / big straw men; runts / red skeletons and
+knights / fire ants / red goblins / werewolves and a knight wall; the hell channel kept). Bot: Dust Bowl Trail 35
+3 -> 4 of 6, Blood Moon Trail 51 0 -> 1 of 6 killed the Brander (first ever), all six reach him. Doubts: the bot
+dies to Garry's own hordes at Sundown 2:12 at any Trail Level and the probe's builds are too strong at Trail 20+,
+so neither measures a human; 6 players a cell is noisy; the openings are gentler than pass 126's middles (da1 12 ->
+16 a wave is the knob); the boss fights were not re-measured. Garry's Nightfall edits of the day (r18, r20, r23,
+r24) are committed with this pass as his.

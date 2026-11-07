@@ -187,6 +187,24 @@ var _auto_left := -1.0
 var hand := false
 var hand_stretches: Array = []
 var hand_count := 0
+
+## Pass 133 (lane WATCH; Garry: "an import data button that highlights when the balancing data is out of date in the tool
+## vs the reality ... it would import everything, and I would have to restart the run"): watch.py's supervisor compares
+## game/ with the snapshot this window plays and writes `sync=` (a JSON {changed: [paths], n, at}) every few seconds; the
+## panel's IMPORT DATA button (key I) reads it here (SYNC_POLL_S) and lights amber with the count. Pressed with changes
+## (never without): the run up ends first (recorded as a run that ended: "import" in the record's watch.ended_by, an
+## "import" event and a decision-log row), the Outlaw Settings it played go to `relaunch=` (with who played and whether a
+## run was up) and the window quits with RELAUNCH_RC; watch.py syncs, imports and opens the window again on them.
+const SYNC_POLL_S := 2.0
+const RELAUNCH_RC := 75
+var sync_changed: Array = []
+var sync_at := 0.0
+var importing := false
+var _sync_file := ""
+var _relaunch_file := ""
+var _sync_left := 0.0
+var _sync_n := 0
+var _import_pending := false
 ## a check's keys held: [{key (Key), frames}] released when their frames run out (the action hold=<key>/<frames>)
 var _held_keys: Array = []
 
@@ -239,6 +257,9 @@ func _read_args() -> void:
 	clock.paused = str(args.get("paused", "0")) == "1"
 	# pass 106: hand=1 starts in your hands
 	hand = str(args.get("hand", "0")) == "1"
+	# pass 133: the supervisor's status file and the relaunch request
+	_sync_file = str(args.get("sync", ""))
+	_relaunch_file = str(args.get("relaunch", ""))
 	for k in args:
 		var key := str(k)
 		if key.begins_with("bot."):
@@ -576,6 +597,12 @@ func _begin_run(s: Dictionary, spawn: bool) -> void:
 		" (run %d of this window, the spawn beam)" % runs if spawn else ""])
 	# pass 130: what that Trail gives, on one line (two builds at one Trail Level may give different things)
 	print("watch: the Trail gives: %s" % trail_bundle())
+	# pass 133: the balancing this window plays, in one line (an IMPORT DATA relaunch shows its new values here)
+	var mdef = get_node("/root/Registry").map(map_id)
+	if mdef != null and mdef.get("timeline") != null:
+		var tl = mdef.timeline
+		print("watch: the map plays: hp_curve %s · stage_mults %s · cap_start %s · cap_per_minute %s" % [JSON.stringify(tl.get("hp_curve")),
+			JSON.stringify(tl.get("stage_mults")), str(tl.get("cap_start")), str(tl.get("cap_per_minute"))])
 
 
 ## The Watch's fields from settings `s`: the hero, his look, the map, the seed (a new one when random), the limit, Down!,
@@ -736,6 +763,7 @@ func _on_frame() -> void:
 	_drive_clicks()
 	_drive_held_keys()
 	_hand_tick()
+	_poll_sync(wall_dt)
 	if not _pending.is_empty() and ended and _restart_frame >= 0 and Engine.get_process_frames() >= _restart_frame:
 		_begin_run(_pending, true)
 		return
@@ -1232,6 +1260,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				panel.set_hurt_tab(not panel.show_hurt)
 		KEY_T:
 			toggle_hand()
+		KEY_I:
+			# pass 133: import everything that changed in game/ (nothing happens while nothing changed)
+			import_data()
 		KEY_F:
 			# pass 117 (lane WATCHDPS): the damage share's place: the share chart or the Weapon DPS tab (F is free in
 			# "You play": WASD and the arrows steer)
@@ -1290,6 +1321,101 @@ func toggle_power() -> void:
 func toggle_sound() -> void:
 	sound_on = not sound_on
 	_refresh_left = 0.0
+
+
+# ---------------------------------------------------------------- pass 133: IMPORT DATA
+
+## The supervisor's status file read every SYNC_POLL_S wall seconds: which files of game/ differ from the snapshot.
+func _poll_sync(wall_dt: float) -> void:
+	if _sync_file == "" or importing:
+		return
+	_sync_left -= wall_dt
+	if _sync_left > 0.0:
+		return
+	_sync_left = SYNC_POLL_S
+	if not FileAccess.file_exists(_sync_file):
+		return
+	var d = JSON.parse_string(FileAccess.get_file_as_string(_sync_file))
+	if not (d is Dictionary):
+		return
+	var at := float(d.get("at", 0.0))
+	if at <= sync_at:
+		return
+	sync_at = at
+	var ch: Array = d.get("changed", []) if d.get("changed") is Array else []
+	var n := maxi(int(d.get("n", ch.size())), ch.size())
+	if ch.size() != sync_changed.size() or n != sync_count():
+		_refresh_left = 0.0
+		if n > 0:
+			print("watch: %d file%s of game/ differ%s from the snapshot: IMPORT DATA (I) imports and restarts the run" % [n, "" if n == 1 else "s", "s" if n == 1 else ""])
+		else:
+			print("watch: the snapshot is current again")
+	sync_changed = ch
+	_sync_n = n
+
+
+## How many files of game/ differ from the snapshot (the list shows the first of them).
+func sync_count() -> int:
+	return maxi(_sync_n, sync_changed.size())
+
+
+## The button's words: plain while current, the count when not, "Importing..." once pressed.
+func import_words() -> String:
+	if importing:
+		return "Importing…"
+	if sync_count() > 0:
+		return "IMPORT DATA (%d)" % sync_count()
+	return "Import data"
+
+
+## IMPORT DATA (I): nothing while nothing changed (the button never fires); else the run ends (recorded) and the window
+## asks watch.py for a fresh snapshot (_relaunch after _finish_run, or now when no run is up).
+func import_data() -> void:
+	if importing or sync_count() == 0 or _relaunch_file == "":
+		return
+	importing = true
+	_refresh_left = 0.0
+	print("watch: IMPORT DATA: %d changed file%s: %s%s" % [sync_count(), "" if sync_count() == 1 else "s",
+		", ".join(sync_changed.slice(0, 5)), " ..." if sync_count() > 5 else ""])
+	if _game_ok() and not ended:
+		_import_pending = true
+		if ra != null and is_instance_valid(ra) and ra.get("header") is Dictionary:
+			var hdr: Dictionary = ra.get("header")
+			if not (hdr.get("watch") is Dictionary):
+				hdr["watch"] = {}
+			hdr["watch"]["ended_by"] = "import"
+			hdr["watch"]["import_files"] = sync_count()
+			ra.event("import", "watch", 0, {"files": sync_count()})
+		data.add_decision({"t": snappedf(play_t(), 0.1), "clock": snappedf(float(run_node().elapsed), 0.1), "kind": "import", "offered": [],
+			"taken": "", "reason": "the run ended for an import: %d changed file%s in game/" % [sync_count(), "" if sync_count() == 1 else "s"],
+			"level": int(run_node().level), "dps_before": 0.0, "driver": driver_now()})
+		if setup != null and setup.visible:
+			setup.visible = false
+		print("watch: the run ends here for the import; it restarts with the same Outlaw Settings")
+		end_now()
+		return
+	_relaunch()
+
+
+## The request watch.py's supervisor reads once this window is gone: the Outlaw Settings played (the pop-up's shape),
+## who played, whether a run was up (go=1 then: the new window starts the run at once); then the window quits.
+func _relaunch() -> void:
+	var s := run_settings.duplicate(true)
+	s["look"] = look if runs > 0 else str(s.get("look", ""))
+	s["speed"] = clock.speed
+	var req := {"at": Time.get_unix_time_from_system(), "settings": s, "hand": hand, "started": runs > 0,
+		"files": sync_count(), "changed": sync_changed}
+	var f := FileAccess.open(_relaunch_file, FileAccess.WRITE)
+	if f == null:
+		problems.append("could not write %s" % _relaunch_file)
+		importing = false
+		_import_pending = false
+		print("watch: IMPORT DATA failed: could not write %s" % _relaunch_file)
+		return
+	f.store_string(JSON.stringify(req, "  "))
+	f.close()
+	print("watch: IMPORT DATA: relaunch request written (%s); the window closes, watch.py syncs and imports the snapshot and opens it again" % _relaunch_file)
+	_quit_soon(RELAUNCH_RC)
 
 
 ## Pass 85 (lane TOOLS): the Hero Settings pop-up, filled with the run's settings now (the command line's at the start).
@@ -1387,6 +1513,9 @@ func _finish_run() -> void:
 	var stamp := str(hdr.get("stamp", "run"))
 	end_info = {"result": str(hdr.get("result", "end")), "t": play_t(), "clock": float(run.elapsed), "level": int(run.level),
 		"kills": int(run.kills), "stamp": stamp}
+	# pass 133: a run ended for the import says so (its record's result is the game's: end, or death if he lay down)
+	if _import_pending:
+		end_info["result"] = "import"
 	# the record: where RunAnalytics mirrored it (the repo's analytics/runs/tools/), else the user folder's copy
 	var dir := repo.path_join("analytics/runs/tools") if repo != "" else ""
 	var rec := dir.path_join(stamp + ".json") if dir != "" else ""
@@ -1425,6 +1554,10 @@ func _finish_run() -> void:
 	print("watch: END %s at %s of play (clock %s) level %d kills %d | record %s | decisions %s (%d) | panel %.2f ms a frame" % [
 		end_info["result"], DATA.mmss(float(end_info["t"])), DATA.mmss(float(end_info["clock"])), int(end_info["level"]),
 		int(end_info["kills"]), rec, str(end_info.get("csv", "not written")), data.decisions.size(), panel_ms])
+	# pass 133: the run ended for IMPORT DATA: the relaunch request, then the window closes
+	if _import_pending:
+		_relaunch()
+		return
 	# pass 85: Start Run in the pop-up mid-run: the next run once this game is gone (two frames on)
 	if not _pending.is_empty():
 		_restart_frame = Engine.get_process_frames() + 2
@@ -1433,10 +1566,10 @@ func _finish_run() -> void:
 		_quit_soon()
 
 
-func _quit_soon() -> void:
+func _quit_soon(code: int = 0) -> void:
 	get_tree().create_timer(0.6, true, false, true).timeout.connect(func() -> void:
 		_release_lock()
-		get_tree().quit(0))
+		get_tree().quit(code))
 
 
 func _names_for_csv() -> Dictionary:

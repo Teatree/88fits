@@ -682,39 +682,6 @@
               "role": "fodder"
             },
             {
-              "id": "bf3-3",
-              "name": "Knight trickle",
-              "t": 0,
-              "enemy": "skeleton_knight",
-              "variant": "KN-F",
-              "weights": [
-                [
-                  0,
-                  2.0
-                ],
-                [
-                  120,
-                  2.0
-                ]
-              ],
-              "pack": 3,
-              "pattern": "scatter",
-              "interval": 4,
-              "stats": {
-                "hp_mult": 0.6,
-                "tint": {
-                  "hue": [
-                    8,
-                    32
-                  ],
-                  "sat": 0.9,
-                  "val": 1.0,
-                  "amount": 0.5
-                }
-              },
-              "role": "fodder"
-            },
-            {
               "id": "bf3-4",
               "name": "Buckshot pair",
               "t": 10,
@@ -1566,7 +1533,7 @@
         "id": "r23",
         "t": 575,
         "until": 667,
-        "enemy": "blue_slime",
+        "enemy": "carrion_crow",
         "weights": [
           [
             575,
@@ -1577,19 +1544,19 @@
             5.0
           ]
         ],
-        "pack": 25,
+        "pack": 30,
         "stats": {
-          "hp_mult": 0.67,
+          "hp_mult": 0.9,
           "size": [
-            2,
-            3.5
+            1,
+            1.5
           ],
           "damage_mult": 2
         },
         "pattern": "pack",
         "pace": "waves",
         "every": 30,
-        "count": 50
+        "count": 60
       },
       {
         "id": "r18",
@@ -1609,7 +1576,8 @@
         ],
         "pack": 35,
         "stats": {
-          "hp_mult": 0.67
+          "hp_mult": 0.67,
+          "size": 2
         },
         "pace": "once",
         "pattern": "ring",
@@ -1705,7 +1673,8 @@
         ],
         "pack": 5,
         "stats": {
-          "hp_mult": 1.0
+          "hp_mult": 1.0,
+          "size": 2
         },
         "interval": 1.75,
         "pattern": "scatter"
@@ -1729,7 +1698,8 @@
         "pack": 10,
         "pattern": "pack",
         "stats": {
-          "hp_mult": 1.0
+          "hp_mult": 1.0,
+          "size": 2.1
         },
         "pace": "waves",
         "every": 15
@@ -2162,848 +2132,846 @@
         "count": 30
       },
       {
-        "id": "d1a",
-        "name": "Straw Men",
-        "t": 1031,
-        "until": 1160,
-        "enemy": "straw_man",
-        "pace": "waves",
-        "every": 5,
-        "count": 6,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.148,
-          "damage_mult": 0.851
-        },
-        "weights": [
-          [
-            1031,
-            1.0
-          ]
-        ],
-        "role": "fodder"
-      },
-      {
-        "id": "d1b",
-        "name": "Dust bunnies",
-        "t": 1045,
-        "until": 1160,
+        "id": "da1",
+        "name": "Bunny hordes",
+        "t": 1030,
+        "until": 1125,
         "enemy": "dust_bunny",
-        "pace": "waves",
-        "every": 4,
-        "count": 6,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.153,
-          "damage_mult": 0.705
-        },
         "weights": [
           [
-            1045,
+            1030,
             1.0
           ]
         ],
-        "role": "fodder"
-      },
-      {
-        "id": "d1c",
-        "name": "First flock",
-        "t": 1100,
-        "until": 1105,
-        "enemy": "carrion_crow",
-        "pace": "once",
+        "pace": "waves",
+        "every": 6,
         "count": 12,
-        "pack": 12,
-        "pattern": "pack",
+        "pattern": "scatter",
+        "pack": 6,
+        "role": "fodder",
         "stats": {
-          "hp_mult": 0.122,
-          "damage_mult": 0.621
-        },
+          "hp_mult": 0.16,
+          "damage_mult": 1.0
+        }
+      },
+      {
+        "id": "da2",
+        "name": "Bunny stream",
+        "t": 1070,
+        "until": 1125,
+        "enemy": "dust_bunny",
         "weights": [
           [
-            1100,
+            1070,
+            4.0
+          ]
+        ],
+        "pattern": "scatter",
+        "pack": 6,
+        "interval": 6,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.16,
+          "damage_mult": 1.0
+        }
+      },
+      {
+        "id": "da3",
+        "name": "Bunny ring",
+        "t": 1120,
+        "until": 1125,
+        "enemy": "dust_bunny",
+        "weights": [
+          [
+            1120,
             1.0
           ]
         ],
-        "role": "swarm"
+        "pace": "once",
+        "count": 24,
+        "pattern": "ring",
+        "ring_radius": 16,
+        "respect_cap": false,
+        "respect_hard_cap": false,
+        "role": "swarm",
+        "stats": {
+          "hp_mult": 0.16,
+          "damage_mult": 1.0
+        }
       },
       {
-        "id": "d2a",
-        "name": "Straw Men",
-        "t": 1160,
-        "until": 1300,
-        "enemy": "straw_man",
+        "id": "da4",
+        "name": "Gunmen pair",
+        "t": 1060,
+        "until": 1270,
+        "enemy": "buckshot_dwarf",
+        "weights": [
+          [
+            1060,
+            1.0
+          ]
+        ],
         "pace": "waves",
-        "every": 5,
-        "count": 8,
+        "every": 25,
+        "count": 2,
         "pattern": "scatter",
+        "role": "ranged",
         "stats": {
-          "hp_mult": 0.245,
-          "damage_mult": 0.779
-        },
+          "hp_mult": 0.17,
+          "damage_mult": 1.0,
+          "max_alive": 2,
+          "tint": {
+            "hue": [
+              42,
+              96
+            ],
+            "sat": 0.85,
+            "val": 0.73,
+            "amount": 0.34
+          }
+        }
+      },
+      {
+        "id": "db1",
+        "name": "Crow flocks",
+        "t": 1150,
+        "until": 1255,
+        "enemy": "carrion_crow",
+        "weights": [
+          [
+            1150,
+            1.0
+          ]
+        ],
+        "pace": "waves",
+        "every": 20,
+        "count": 24,
+        "pattern": "pack",
+        "pack": 12,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.2,
+          "damage_mult": 1.0
+        }
+      },
+      {
+        "id": "db2",
+        "name": "Crow stream",
+        "t": 1160,
+        "until": 1270,
+        "enemy": "carrion_crow",
         "weights": [
           [
             1160,
-            1.0
+            4.0
           ]
         ],
-        "role": "fodder"
-      },
-      {
-        "id": "d2b",
-        "name": "Field closes",
-        "t": 1170,
-        "until": 1175,
-        "enemy": "straw_man",
-        "pace": "once",
-        "count": 18,
-        "pattern": "ring",
-        "ring_radius": 14,
-        "respect_cap": false,
-        "respect_hard_cap": false,
+        "pattern": "scatter",
+        "pack": 8,
+        "interval": 8,
+        "role": "fodder",
         "stats": {
-          "hp_mult": 0.197,
-          "damage_mult": 0.72
-        },
-        "weights": [
-          [
-            1170,
-            1.0
-          ]
-        ],
-        "role": "swarm"
+          "hp_mult": 0.2,
+          "damage_mult": 1.0
+        }
       },
       {
-        "id": "d2c",
-        "name": "Crow flocks",
-        "t": 1140,
-        "until": 1300,
-        "enemy": "carrion_crow",
-        "pace": "waves",
-        "every": 30,
-        "count": 12,
-        "pack": 12,
-        "pattern": "pack",
-        "stats": {
-          "hp_mult": 0.213,
-          "damage_mult": 0.715
-        },
-        "weights": [
-          [
-            1140,
-            1.0
-          ]
-        ],
-        "role": "swarm"
-      },
-      {
-        "id": "d2d",
-        "name": "Gunmen",
+        "id": "db3",
+        "name": "Horned toads",
         "t": 1180,
         "until": 1300,
-        "enemy": "buckshot_dwarf",
-        "pace": "waves",
-        "every": 20,
-        "count": 2,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.172,
-          "damage_mult": 0.883,
-          "max_alive": 3
-        },
+        "enemy": "horned_toad",
         "weights": [
           [
             1180,
             1.0
           ]
         ],
-        "role": "ranged"
-      },
-      {
-        "id": "d2e",
-        "name": "Horned toads",
-        "t": 1220,
-        "until": 1330,
-        "enemy": "horned_toad",
         "pace": "waves",
         "every": 20,
         "count": 2,
         "pattern": "scatter",
+        "role": "tank",
         "stats": {
-          "hp_mult": 0.134,
-          "damage_mult": 0.699,
-          "max_alive": 4
-        },
-        "weights": [
-          [
-            1220,
-            1.0
-          ]
-        ],
-        "role": "tank"
+          "hp_mult": 0.14,
+          "damage_mult": 0.8,
+          "max_alive": 3
+        }
       },
       {
-        "id": "d3a",
-        "name": "Straw Men",
-        "t": 1300,
-        "until": 1410,
-        "enemy": "straw_man",
-        "pace": "waves",
-        "every": 6,
-        "count": 8,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.315,
-          "damage_mult": 0.76
-        },
-        "weights": [
-          [
-            1300,
-            1.0
-          ]
-        ],
-        "role": "fodder"
-      },
-      {
-        "id": "d3b",
-        "name": "Bombers",
-        "t": 1300,
-        "until": 1410,
-        "enemy": "spit_cactus",
-        "pace": "waves",
-        "every": 12,
-        "count": 2,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.21,
-          "damage_mult": 0.724,
-          "max_alive": 4
-        },
-        "weights": [
-          [
-            1300,
-            1.0
-          ]
-        ],
-        "role": "ranged"
-      },
-      {
-        "id": "d3c",
-        "name": "Gunmen",
-        "t": 1300,
-        "until": 1410,
-        "enemy": "buckshot_dwarf",
-        "pace": "waves",
-        "every": 18,
-        "count": 3,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.21,
-          "damage_mult": 0.832,
-          "max_alive": 4
-        },
-        "weights": [
-          [
-            1300,
-            1.0
-          ]
-        ],
-        "role": "ranged"
-      },
-      {
-        "id": "d3d",
-        "name": "Crow flocks",
+        "id": "dc1",
+        "name": "Straw hordes",
         "t": 1310,
-        "until": 1410,
-        "enemy": "carrion_crow",
-        "pace": "waves",
-        "every": 25,
-        "count": 14,
-        "pack": 14,
-        "pattern": "pack",
-        "stats": {
-          "hp_mult": 0.271,
-          "damage_mult": 0.677
-        },
+        "until": 1420,
+        "enemy": "straw_man",
         "weights": [
           [
             1310,
             1.0
           ]
         ],
-        "role": "swarm"
+        "pace": "waves",
+        "every": 8,
+        "count": 24,
+        "pattern": "scatter",
+        "pack": 6,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.24,
+          "damage_mult": 1.0
+        }
       },
       {
-        "id": "d3e",
-        "name": "Mummies",
+        "id": "dc2",
+        "name": "Straw stream",
         "t": 1330,
-        "until": 1420,
-        "enemy": "dust_mummy",
-        "pace": "waves",
-        "every": 20,
-        "count": 3,
+        "until": 1450,
+        "enemy": "straw_man",
+        "weights": [
+          [
+            1330,
+            5.0
+          ]
+        ],
         "pattern": "scatter",
+        "pack": 10,
+        "interval": 5,
+        "role": "fodder",
         "stats": {
-          "hp_mult": 0.165,
-          "damage_mult": 0.658,
-          "max_alive": 6
-        },
+          "hp_mult": 0.24,
+          "damage_mult": 1.0
+        }
+      },
+      {
+        "id": "dc3",
+        "name": "Bombers",
+        "t": 1330,
+        "until": 1450,
+        "enemy": "spit_cactus",
         "weights": [
           [
             1330,
             1.0
           ]
         ],
-        "role": "tank"
+        "pattern": "scatter",
+        "pack": 1,
+        "interval": 6,
+        "role": "ranged",
+        "stats": {
+          "hp_mult": 0.22,
+          "damage_mult": 1.0,
+          "max_alive": 3
+        }
       },
       {
-        "id": "d3f",
-        "name": "Bunny swarm",
-        "t": 1360,
-        "until": 1365,
-        "enemy": "dust_bunny",
-        "variant": "DB-C",
-        "pace": "once",
-        "count": 36,
-        "pattern": "ring",
-        "ring_radius": 16,
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "banner": "SWARM!",
-        "stats": {
-          "hp_mult": 0.242,
-          "damage_mult": 0.597
-        },
+        "id": "dc4",
+        "name": "Monk squad",
+        "t": 1380,
+        "until": 1385,
+        "enemy": "monk",
+        "variant": "MK-B",
         "weights": [
           [
-            1360,
+            1380,
             1.0
           ]
         ],
-        "role": "swarm"
+        "pace": "once",
+        "count": 20,
+        "pattern": "pack",
+        "respect_cap": false,
+        "respect_hard_cap": false,
+        "role": "swarm",
+        "stats": {
+          "hp_mult": 0.24,
+          "damage_mult": 0.9
+        }
       },
       {
-        "id": "d4a",
-        "name": "Storm ring",
+        "id": "dc5",
+        "name": "Dust storm",
         "t": 1410,
         "until": 1415,
         "enemy": "straw_man",
-        "pace": "once",
-        "count": 40,
-        "pattern": "ring",
-        "ring_radius": 16,
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "banner": "DUST STORM!",
-        "stats": {
-          "hp_mult": 0.331,
-          "damage_mult": 0.745
-        },
         "weights": [
           [
             1410,
             1.0
           ]
         ],
-        "role": "swarm"
+        "pace": "once",
+        "count": 50,
+        "pattern": "ring",
+        "ring_radius": 18,
+        "respect_cap": false,
+        "respect_hard_cap": false,
+        "banner": "DUST STORM!",
+        "role": "swarm",
+        "stats": {
+          "hp_mult": 0.3,
+          "damage_mult": 1.0
+        }
       },
       {
-        "id": "d4b",
-        "name": "Bunny surge",
-        "t": 1412,
-        "until": 1482,
-        "enemy": "dust_bunny",
-        "variant": "DB-D",
+        "id": "dc6",
+        "name": "Giants",
+        "t": 1420,
+        "until": 1510,
+        "enemy": "hammer_giant",
+        "weights": [
+          [
+            1420,
+            1.0
+          ]
+        ],
         "pace": "waves",
-        "every": 6,
-        "count": 24,
+        "every": 35,
+        "count": 1,
         "pattern": "scatter",
-        "respect_cap": false,
-        "respect_hard_cap": false,
+        "role": "tank",
         "stats": {
-          "hp_mult": 0.312,
-          "damage_mult": 0.681
-        },
-        "weights": [
-          [
-            1412,
-            1.0
-          ]
-        ],
-        "role": "swarm"
+          "hp_mult": 0.1,
+          "damage_mult": 0.6,
+          "max_alive": 2
+        }
       },
       {
-        "id": "d4c",
-        "name": "Crow surge",
-        "t": 1415,
-        "until": 1482,
-        "enemy": "carrion_crow",
-        "pace": "waves",
-        "every": 14,
-        "count": 20,
-        "pattern": "in_front",
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "stats": {
-          "hp_mult": 0.311,
-          "damage_mult": 0.709
-        },
-        "weights": [
-          [
-            1415,
-            1.0
-          ]
-        ],
-        "role": "swarm"
-      },
-      {
-        "id": "d4d",
-        "name": "Second ring",
+        "id": "dc7",
+        "name": "Beetle charge",
         "t": 1450,
         "until": 1455,
-        "enemy": "straw_man",
-        "pace": "once",
-        "count": 30,
-        "pattern": "ring",
-        "ring_radius": 14,
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "stats": {
-          "hp_mult": 0.342,
-          "damage_mult": 0.738
-        },
+        "enemy": "bull_beetle",
+        "variant": "BB-E",
         "weights": [
           [
             1450,
             1.0
           ]
         ],
-        "role": "swarm"
-      },
-      {
-        "id": "d4e",
-        "name": "Beetle charge",
-        "t": 1474,
-        "until": 1479,
-        "enemy": "bull_beetle",
-        "variant": "BB-E",
         "pace": "once",
         "count": 3,
         "pattern": "in_front",
         "respect_cap": false,
         "respect_hard_cap": false,
+        "role": "tank",
         "stats": {
-          "hp_mult": 0.122,
-          "damage_mult": 0.602,
+          "hp_mult": 0.13,
+          "damage_mult": 0.8,
           "max_alive": 3
-        },
-        "weights": [
-          [
-            1474,
-            1.0
-          ]
-        ],
-        "role": "tank"
+        }
       },
       {
-        "id": "d5a",
-        "name": "Straw Men",
-        "t": 1490,
-        "until": 1600,
-        "enemy": "straw_man",
-        "pace": "waves",
-        "every": 6,
-        "count": 8,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.426,
-          "damage_mult": 0.816
-        },
-        "weights": [
-          [
-            1490,
-            1.0
-          ]
-        ],
-        "role": "fodder"
-      },
-      {
-        "id": "d5b",
-        "name": "Dark monks",
-        "t": 1500,
-        "until": 1505,
-        "enemy": "monk",
-        "variant": "MK-B",
-        "pace": "once",
-        "count": 20,
-        "pattern": "scatter",
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "stats": {
-          "hp_mult": 0.239,
-          "damage_mult": 0.695
-        },
-        "weights": [
-          [
-            1500,
-            1.0
-          ]
-        ],
-        "role": "swarm"
-      },
-      {
-        "id": "d5c",
-        "name": "Bombers",
-        "t": 1500,
-        "until": 1600,
-        "enemy": "spit_cactus",
-        "pace": "waves",
-        "every": 12,
-        "count": 2,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.276,
-          "damage_mult": 0.751,
-          "max_alive": 4
-        },
-        "weights": [
-          [
-            1500,
-            1.0
-          ]
-        ],
-        "role": "ranged"
-      },
-      {
-        "id": "d5d",
-        "name": "Gunmen",
-        "t": 1510,
-        "until": 1630,
-        "enemy": "buckshot_dwarf",
-        "pace": "waves",
-        "every": 20,
-        "count": 3,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.238,
-          "damage_mult": 0.797,
-          "max_alive": 4
-        },
-        "weights": [
-          [
-            1510,
-            1.0
-          ]
-        ],
-        "role": "ranged"
-      },
-      {
-        "id": "d5e",
-        "name": "Giants",
-        "t": 1510,
-        "until": 1630,
-        "enemy": "hammer_giant",
-        "pace": "waves",
-        "every": 35,
-        "count": 1,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.1,
-          "damage_mult": 0.495,
-          "max_alive": 2
-        },
-        "weights": [
-          [
-            1510,
-            1.0
-          ]
-        ],
-        "role": "tank"
-      },
-      {
-        "id": "d5f",
-        "name": "Crow flocks",
-        "t": 1495,
-        "until": 1600,
-        "enemy": "carrion_crow",
-        "pace": "waves",
-        "every": 20,
-        "count": 14,
-        "pack": 14,
-        "pattern": "pack",
-        "stats": {
-          "hp_mult": 0.387,
-          "damage_mult": 0.727
-        },
-        "weights": [
-          [
-            1495,
-            1.0
-          ]
-        ],
-        "role": "swarm"
-      },
-      {
-        "id": "d6a",
-        "name": "Big Straw Men",
-        "t": 1600,
-        "until": 1710,
-        "enemy": "straw_man",
-        "pace": "waves",
-        "every": 5,
-        "count": 9,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.57,
-          "damage_mult": 0.847,
-          "size": [
-            1.9,
-            2.5
-          ]
-        },
-        "weights": [
-          [
-            1600,
-            1.0
-          ]
-        ],
-        "role": "fodder"
-      },
-      {
-        "id": "d6b",
-        "name": "Big Straw Men",
-        "t": 1710,
-        "until": 1810,
-        "enemy": "straw_man",
-        "pace": "waves",
-        "every": 5,
-        "count": 10,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.647,
-          "damage_mult": 0.857,
-          "size": [
-            2.0,
-            2.8
-          ]
-        },
-        "weights": [
-          [
-            1710,
-            1.0
-          ]
-        ],
-        "role": "fodder"
-      },
-      {
-        "id": "d6c",
-        "name": "Crow flocks",
-        "t": 1600,
-        "until": 1810,
-        "enemy": "carrion_crow",
-        "pace": "waves",
-        "every": 15,
-        "count": 20,
-        "pack": 20,
-        "pattern": "pack",
-        "stats": {
-          "hp_mult": 0.518,
-          "damage_mult": 0.798
-        },
-        "weights": [
-          [
-            1600,
-            1.0
-          ]
-        ],
-        "role": "swarm"
-      },
-      {
-        "id": "d6d",
-        "name": "Bunnies",
-        "t": 1600,
-        "until": 1810,
+        "id": "dd0",
+        "name": "Bunny drift",
+        "t": 1460,
+        "until": 1510,
         "enemy": "dust_bunny",
-        "variant": "DB-C",
-        "pace": "waves",
-        "every": 6,
-        "count": 12,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.518,
-          "damage_mult": 0.748
-        },
         "weights": [
           [
-            1600,
+            1460,
+            3.0
+          ]
+        ],
+        "pattern": "scatter",
+        "pack": 10,
+        "interval": 6,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.3,
+          "damage_mult": 1.0
+        }
+      },
+      {
+        "id": "dd1",
+        "name": "Crow hordes",
+        "t": 1510,
+        "until": 1610,
+        "enemy": "carrion_crow",
+        "weights": [
+          [
+            1510,
             1.0
           ]
         ],
-        "role": "fodder"
-      },
-      {
-        "id": "d6e",
-        "name": "Giants",
-        "t": 1630,
-        "until": 1810,
-        "enemy": "hammer_giant",
-        "pace": "waves",
-        "every": 35,
-        "count": 1,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.153,
-          "damage_mult": 0.556,
-          "max_alive": 2
-        },
-        "weights": [
-          [
-            1630,
-            1.0
-          ]
-        ],
-        "role": "tank"
-      },
-      {
-        "id": "d6f",
-        "name": "Gunmen",
-        "t": 1630,
-        "until": 1810,
-        "enemy": "buckshot_dwarf",
-        "pace": "waves",
-        "every": 18,
-        "count": 3,
-        "pattern": "scatter",
-        "stats": {
-          "hp_mult": 0.356,
-          "damage_mult": 0.822,
-          "max_alive": 4
-        },
-        "weights": [
-          [
-            1630,
-            1.0
-          ]
-        ],
-        "role": "ranged"
-      },
-      {
-        "id": "d6g",
-        "name": "Mummies",
-        "t": 1640,
-        "until": 1810,
-        "enemy": "dust_mummy",
         "pace": "waves",
         "every": 20,
-        "count": 3,
-        "pattern": "scatter",
+        "count": 40,
+        "pattern": "pack",
+        "pack": 20,
+        "role": "fodder",
         "stats": {
-          "hp_mult": 0.27,
-          "damage_mult": 0.67,
-          "max_alive": 6
-        },
-        "weights": [
-          [
-            1640,
-            1.0
-          ]
-        ],
-        "role": "tank"
+          "hp_mult": 0.4,
+          "damage_mult": 1.0
+        }
       },
       {
-        "id": "d6h",
-        "name": "Beetle charge",
-        "t": 1670,
-        "until": 1675,
-        "enemy": "bull_beetle",
-        "variant": "BB-E",
-        "pace": "once",
-        "count": 5,
-        "pattern": "in_front",
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "banner": "SWARM!",
-        "stats": {
-          "hp_mult": 0.166,
-          "damage_mult": 0.651,
-          "max_alive": 5
-        },
-        "weights": [
-          [
-            1670,
-            1.0
-          ]
-        ],
-        "role": "tank"
-      },
-      {
-        "id": "d6i",
-        "name": "Last ring",
-        "t": 1730,
-        "until": 1735,
-        "enemy": "straw_man",
-        "pace": "once",
-        "count": 36,
-        "pattern": "ring",
-        "ring_radius": 15,
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "stats": {
-          "hp_mult": 0.592,
-          "damage_mult": 0.854
-        },
-        "weights": [
-          [
-            1730,
-            1.0
-          ]
-        ],
-        "role": "swarm"
-      },
-      {
-        "id": "d6j",
-        "name": "The sky goes black",
-        "t": 1775,
-        "until": 1780,
+        "id": "dd2",
+        "name": "Crow stream",
+        "t": 1520,
+        "until": 1660,
         "enemy": "carrion_crow",
+        "weights": [
+          [
+            1520,
+            4.0
+          ]
+        ],
+        "pattern": "scatter",
+        "pack": 8,
+        "interval": 6,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.4,
+          "damage_mult": 1.0
+        }
+      },
+      {
+        "id": "dd3",
+        "name": "The sky goes black",
+        "t": 1610,
+        "until": 1615,
+        "enemy": "carrion_crow",
+        "weights": [
+          [
+            1610,
+            1.0
+          ]
+        ],
         "pace": "once",
         "count": 40,
         "pattern": "in_front",
         "respect_cap": false,
         "respect_hard_cap": false,
         "banner": "THE SKY GOES BLACK!",
+        "role": "swarm",
         "stats": {
-          "hp_mult": 0.546,
-          "damage_mult": 0.803
-        },
-        "weights": [
-          [
-            1775,
-            1.0
-          ]
-        ],
-        "role": "swarm"
+          "hp_mult": 0.42,
+          "damage_mult": 1.0
+        }
       },
       {
-        "id": "s3a1",
-        "name": "Graves open",
-        "t": 1811,
-        "until": 1927,
-        "enemy": "skeleton",
+        "id": "dd4",
+        "name": "Mummies",
+        "t": 1540,
+        "until": 1660,
+        "enemy": "dust_mummy",
         "weights": [
           [
-            1811,
+            1540,
             1.0
           ]
         ],
         "pace": "waves",
-        "every": 5,
-        "count": 7,
+        "every": 20,
+        "count": 3,
         "pattern": "scatter",
+        "role": "tank",
+        "stats": {
+          "hp_mult": 0.2,
+          "damage_mult": 0.9,
+          "max_alive": 6
+        }
+      },
+      {
+        "id": "dd5",
+        "name": "Gunmen trio",
+        "t": 1540,
+        "until": 1670,
+        "enemy": "buckshot_dwarf",
+        "weights": [
+          [
+            1540,
+            1.0
+          ]
+        ],
+        "pace": "waves",
+        "every": 18,
+        "count": 3,
+        "pattern": "scatter",
+        "role": "ranged",
+        "stats": {
+          "hp_mult": 0.3,
+          "damage_mult": 1.0,
+          "max_alive": 4,
+          "tint": {
+            "hue": [
+              42,
+              96
+            ],
+            "sat": 0.85,
+            "val": 0.73,
+            "amount": 0.34
+          }
+        }
+      },
+      {
+        "id": "de1",
+        "name": "Big straw men",
+        "t": 1690,
+        "until": 1810,
+        "enemy": "straw_man",
+        "weights": [
+          [
+            1690,
+            1.0
+          ]
+        ],
+        "pace": "waves",
+        "every": 8,
+        "count": 16,
+        "pattern": "scatter",
+        "pack": 8,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.6,
+          "damage_mult": 0.85,
+          "size": [
+            2.0,
+            2.8
+          ]
+        }
+      },
+      {
+        "id": "de2",
+        "name": "Big straw stream",
+        "t": 1700,
+        "until": 1810,
+        "enemy": "straw_man",
+        "weights": [
+          [
+            1700,
+            4.0
+          ]
+        ],
+        "pattern": "scatter",
+        "pack": 8,
+        "interval": 6,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.55,
+          "damage_mult": 0.85,
+          "size": [
+            1.9,
+            2.5
+          ]
+        }
+      },
+      {
+        "id": "de3",
+        "name": "Straw ring",
+        "t": 1730,
+        "until": 1735,
+        "enemy": "straw_man",
+        "weights": [
+          [
+            1730,
+            1.0
+          ]
+        ],
+        "pace": "once",
+        "count": 30,
+        "pattern": "ring",
+        "ring_radius": 15,
+        "respect_cap": false,
+        "respect_hard_cap": false,
+        "role": "swarm",
+        "stats": {
+          "hp_mult": 0.59,
+          "damage_mult": 0.85
+        }
+      },
+      {
+        "id": "de4",
+        "name": "Giants",
+        "t": 1690,
+        "until": 1810,
+        "enemy": "hammer_giant",
+        "weights": [
+          [
+            1690,
+            1.0
+          ]
+        ],
+        "pace": "waves",
+        "every": 35,
+        "count": 1,
+        "pattern": "scatter",
+        "role": "tank",
+        "stats": {
+          "hp_mult": 0.15,
+          "damage_mult": 0.6,
+          "max_alive": 2
+        }
+      },
+      {
+        "id": "de5",
+        "name": "Bombers",
+        "t": 1690,
+        "until": 1810,
+        "enemy": "spit_cactus",
+        "weights": [
+          [
+            1690,
+            1.0
+          ]
+        ],
+        "pattern": "scatter",
+        "pack": 1,
+        "interval": 6,
+        "role": "ranged",
+        "stats": {
+          "hp_mult": 0.28,
+          "damage_mult": 1.0,
+          "max_alive": 3
+        }
+      },
+      {
+        "id": "de6",
+        "name": "Beetle charge",
+        "t": 1760,
+        "until": 1765,
+        "enemy": "bull_beetle",
+        "variant": "BB-E",
+        "weights": [
+          [
+            1760,
+            1.0
+          ]
+        ],
+        "pace": "once",
+        "count": 5,
+        "pattern": "in_front",
+        "respect_cap": false,
+        "respect_hard_cap": false,
+        "banner": "SWARM!",
+        "role": "tank",
+        "stats": {
+          "hp_mult": 0.17,
+          "damage_mult": 0.8,
+          "max_alive": 5
+        }
+      },
+      {
+        "id": "de7",
+        "name": "Bunny swarm",
+        "t": 1730,
+        "until": 1810,
+        "enemy": "dust_bunny",
+        "variant": "DB-C",
+        "weights": [
+          [
+            1730,
+            3.0
+          ]
+        ],
+        "pattern": "scatter",
+        "pack": 10,
+        "interval": 6,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.5,
+          "damage_mult": 1.0
+        }
+      },
+      {
+        "id": "s3h1",
+        "name": "Imps",
+        "t": 1810,
+        "until": 2140,
+        "enemy": "imp",
+        "variant": "IMP-A",
+        "weights": [
+          [
+            1810,
+            1.0
+          ]
+        ],
+        "pack": 3,
+        "channel": "hell",
         "role": "fodder",
         "stats": {
           "hp_mult": 0.12,
           "damage_mult": 0.7,
+          "max_alive": 10
+        }
+      },
+      {
+        "id": "s3h2",
+        "name": "Imps",
+        "t": 2140,
+        "until": 2530,
+        "enemy": "imp",
+        "variant": "IMP-A",
+        "weights": [
+          [
+            2140,
+            1.0
+          ]
+        ],
+        "pack": 4,
+        "channel": "hell",
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.2,
+          "damage_mult": 0.8,
+          "max_alive": 30
+        }
+      },
+      {
+        "id": "s3h3",
+        "name": "Imps",
+        "t": 2530,
+        "enemy": "imp",
+        "variant": "IMP-A",
+        "weights": [
+          [
+            2530,
+            1.0
+          ]
+        ],
+        "pack": 4,
+        "channel": "hell",
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.4,
+          "damage_mult": 0.85,
+          "max_alive": 45
+        }
+      },
+      {
+        "id": "s3h4",
+        "name": "Hellhounds",
+        "t": 1930,
+        "until": 2350,
+        "enemy": "hellhound",
+        "weights": [
+          [
+            1930,
+            1.0
+          ]
+        ],
+        "pack": 2,
+        "channel": "hell",
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.12,
+          "damage_mult": 0.75,
+          "max_alive": 10
+        }
+      },
+      {
+        "id": "s3h5",
+        "name": "Hellhounds",
+        "t": 2350,
+        "enemy": "hellhound",
+        "weights": [
+          [
+            2350,
+            1.0
+          ]
+        ],
+        "pack": 3,
+        "channel": "hell",
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.3,
+          "damage_mult": 0.85,
+          "max_alive": 20
+        }
+      },
+      {
+        "id": "s3a1",
+        "name": "Runt hordes",
+        "t": 1810,
+        "until": 1920,
+        "enemy": "red_goblin_runt",
+        "variant": "RR-C",
+        "weights": [
+          [
+            1810,
+            1.0
+          ]
+        ],
+        "pace": "waves",
+        "every": 6,
+        "count": 12,
+        "pattern": "scatter",
+        "pack": 6,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.12,
+          "damage_mult": 0.7
+        }
+      },
+      {
+        "id": "s3a2",
+        "name": "Runt stream",
+        "t": 1850,
+        "until": 1940,
+        "enemy": "red_goblin_runt",
+        "variant": "RR-C",
+        "weights": [
+          [
+            1850,
+            4.0
+          ]
+        ],
+        "pattern": "scatter",
+        "pack": 5,
+        "interval": 6,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.12,
+          "damage_mult": 0.7
+        }
+      },
+      {
+        "id": "s3a3",
+        "name": "Goblin ring",
+        "t": 1900,
+        "until": 1905,
+        "enemy": "red_goblin",
+        "variant": "RG-C",
+        "weights": [
+          [
+            1900,
+            1.0
+          ]
+        ],
+        "pace": "once",
+        "count": 20,
+        "pattern": "ring",
+        "ring_radius": 14,
+        "respect_cap": false,
+        "respect_hard_cap": false,
+        "role": "swarm",
+        "stats": {
+          "hp_mult": 0.13,
+          "damage_mult": 0.7
+        }
+      },
+      {
+        "id": "s3a4",
+        "name": "Gunmen pair",
+        "t": 1850,
+        "until": 2010,
+        "enemy": "buckshot_dwarf",
+        "variant": "BD-B",
+        "weights": [
+          [
+            1850,
+            1.0
+          ]
+        ],
+        "pace": "waves",
+        "every": 25,
+        "count": 2,
+        "pattern": "scatter",
+        "role": "ranged",
+        "stats": {
+          "hp_mult": 0.3,
+          "max_alive": 2,
           "tint": {
             "hue": [
               8,
@@ -3016,128 +2984,14 @@
         }
       },
       {
-        "id": "s3a2",
-        "name": "Imps (hell)",
-        "t": 1811,
-        "until": 1995,
-        "enemy": "imp",
-        "variant": "IMP-A",
-        "weights": [
-          [
-            1811,
-            1.0
-          ]
-        ],
-        "pack": 3,
-        "channel": "hell",
-        "role": "fodder",
-        "stats": {
-          "hp_mult": 0.12,
-          "damage_mult": 0.6,
-          "max_alive": 18
-        }
-      },
-      {
-        "id": "s3a3",
-        "name": "Red goblin ring",
-        "t": 1859,
-        "until": 1865,
-        "enemy": "red_goblin",
-        "variant": "RG-C",
-        "weights": [
-          [
-            1859,
-            1.0
-          ]
-        ],
-        "pace": "once",
-        "count": 16,
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "pattern": "ring",
-        "ring_radius": 14,
-        "role": "swarm",
-        "stats": {
-          "hp_mult": 0.15,
-          "damage_mult": 0.6
-        }
-      },
-      {
-        "id": "s3a4",
-        "name": "Red runts",
-        "t": 1884,
-        "until": 1995,
-        "enemy": "red_goblin_runt",
-        "variant": "RR-C",
-        "weights": [
-          [
-            1884,
-            1.0
-          ]
-        ],
-        "pace": "waves",
-        "every": 8,
-        "count": 9,
-        "pattern": "scatter",
-        "role": "fodder",
-        "stats": {
-          "hp_mult": 0.15,
-          "damage_mult": 0.6
-        }
-      },
-      {
-        "id": "s3b1",
-        "name": "Fire ants",
-        "t": 1921,
-        "until": 2007,
-        "enemy": "fire_ant",
-        "variant": "ANT-G",
-        "weights": [
-          [
-            1921,
-            1.0
-          ]
-        ],
-        "pace": "waves",
-        "every": 6,
-        "count": 9,
-        "pattern": "scatter",
-        "role": "fodder",
-        "stats": {
-          "hp_mult": 0.06,
-          "damage_mult": 0.6
-        }
-      },
-      {
-        "id": "s3b2",
-        "name": "Hellhounds (hell)",
-        "t": 1933,
-        "until": 2290,
-        "enemy": "hellhound",
-        "weights": [
-          [
-            1933,
-            1.0
-          ]
-        ],
-        "pack": 2,
-        "channel": "hell",
-        "role": "fodder",
-        "stats": {
-          "hp_mult": 0.12,
-          "damage_mult": 0.6,
-          "max_alive": 10
-        }
-      },
-      {
-        "id": "s3b3",
+        "id": "s3a5",
         "name": "Horned toads",
-        "t": 1945,
-        "until": 2081,
+        "t": 1900,
+        "until": 2110,
         "enemy": "horned_toad",
         "weights": [
           [
-            1945,
+            1900,
             1.0
           ]
         ],
@@ -3148,126 +3002,304 @@
         "role": "tank",
         "stats": {
           "hp_mult": 0.1,
-          "damage_mult": 0.6,
+          "damage_mult": 0.8,
           "max_alive": 4
         }
       },
       {
-        "id": "s3c1",
-        "name": "Dark monks",
-        "t": 2032,
-        "until": 2038,
+        "id": "s3a6",
+        "name": "Hound pack",
+        "t": 1970,
+        "until": 1975,
+        "enemy": "hellhound",
+        "weights": [
+          [
+            1970,
+            1.0
+          ]
+        ],
+        "pace": "once",
+        "count": 4,
+        "pattern": "in_front",
+        "respect_cap": false,
+        "respect_hard_cap": false,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.12,
+          "damage_mult": 0.75
+        }
+      },
+      {
+        "id": "s3b1",
+        "name": "Skeleton hordes",
+        "t": 1990,
+        "until": 2090,
+        "enemy": "skeleton",
+        "weights": [
+          [
+            1990,
+            1.0
+          ]
+        ],
+        "pace": "waves",
+        "every": 8,
+        "count": 20,
+        "pattern": "scatter",
+        "pack": 5,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.13,
+          "damage_mult": 0.8,
+          "tint": {
+            "hue": [
+              8,
+              32
+            ],
+            "sat": 0.9,
+            "val": 1.0,
+            "amount": 0.5
+          }
+        }
+      },
+      {
+        "id": "s3b2",
+        "name": "Skeleton stream",
+        "t": 2000,
+        "until": 2130,
+        "enemy": "skeleton",
+        "weights": [
+          [
+            2000,
+            5.0
+          ]
+        ],
+        "pattern": "scatter",
+        "pack": 5,
+        "interval": 5,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.13,
+          "damage_mult": 0.8,
+          "tint": {
+            "hue": [
+              8,
+              32
+            ],
+            "sat": 0.9,
+            "val": 1.0,
+            "amount": 0.5
+          }
+        }
+      },
+      {
+        "id": "s3b3",
+        "name": "Knight packs",
+        "t": 2020,
+        "until": 2140,
+        "enemy": "skeleton_knight",
+        "variant": "KN-F",
+        "weights": [
+          [
+            2020,
+            1.0
+          ]
+        ],
+        "pace": "waves",
+        "every": 20,
+        "count": 8,
+        "pattern": "pack",
+        "pack": 8,
+        "role": "tank",
+        "stats": {
+          "hp_mult": 0.15,
+          "damage_mult": 0.8,
+          "tint": {
+            "hue": [
+              8,
+              32
+            ],
+            "sat": 0.9,
+            "val": 1.0,
+            "amount": 0.5
+          }
+        }
+      },
+      {
+        "id": "s3b4",
+        "name": "Monk squad",
+        "t": 2060,
+        "until": 2065,
         "enemy": "monk",
         "variant": "MK-B",
         "weights": [
           [
-            2032,
+            2060,
             1.0
           ]
         ],
         "pace": "once",
         "count": 20,
+        "pattern": "scatter",
         "respect_cap": false,
         "respect_hard_cap": false,
-        "pattern": "scatter",
         "role": "swarm",
         "stats": {
           "hp_mult": 0.2,
-          "damage_mult": 0.6
+          "damage_mult": 0.8
         }
       },
       {
-        "id": "s3c2",
+        "id": "s3b5",
         "name": "Shaman",
-        "t": 2038,
-        "until": 2278,
+        "t": 2030,
+        "until": 2280,
         "enemy": "dust_shaman",
         "weights": [
           [
-            2038,
+            2030,
             1.0
           ]
         ],
         "pack": 1,
-        "role": "fodder",
+        "interval": 10,
+        "role": "ranged",
         "stats": {
           "hp_mult": 0.2,
           "max_alive": 2
         }
       },
       {
-        "id": "s3c3",
-        "name": "Knight rings",
-        "t": 2050,
-        "until": 2142,
-        "enemy": "skeleton_knight",
-        "variant": "KN-F",
+        "id": "s3c1",
+        "name": "Ant hordes",
+        "t": 2170,
+        "until": 2270,
+        "enemy": "fire_ant",
+        "variant": "ANT-G",
         "weights": [
           [
-            2050,
+            2170,
             1.0
           ]
         ],
         "pace": "waves",
-        "every": 12,
-        "count": 12,
-        "pattern": "ring",
+        "every": 10,
+        "count": 24,
+        "pattern": "scatter",
+        "pack": 8,
         "role": "fodder",
         "stats": {
-          "hp_mult": 0.15,
-          "damage_mult": 0.7,
-          "tint": {
-            "hue": [
-              8,
-              32
-            ],
-            "sat": 0.9,
-            "val": 1.0,
-            "amount": 0.5
-          }
+          "hp_mult": 0.07,
+          "damage_mult": 0.8
+        }
+      },
+      {
+        "id": "s3c2",
+        "name": "Ant stream",
+        "t": 2180,
+        "until": 2310,
+        "enemy": "fire_ant",
+        "variant": "ANT-G",
+        "weights": [
+          [
+            2180,
+            5.0
+          ]
+        ],
+        "pattern": "scatter",
+        "pack": 8,
+        "interval": 6,
+        "role": "fodder",
+        "stats": {
+          "hp_mult": 0.07,
+          "damage_mult": 0.8
+        }
+      },
+      {
+        "id": "s3c3",
+        "name": "Ant ring",
+        "t": 2230,
+        "until": 2235,
+        "enemy": "fire_ant",
+        "variant": "ANT-G",
+        "weights": [
+          [
+            2230,
+            1.0
+          ]
+        ],
+        "pace": "once",
+        "count": 30,
+        "pattern": "ring",
+        "ring_radius": 16,
+        "respect_cap": false,
+        "respect_hard_cap": false,
+        "banner": "SWARM!",
+        "role": "swarm",
+        "stats": {
+          "hp_mult": 0.08,
+          "damage_mult": 0.8
         }
       },
       {
         "id": "s3c4",
-        "name": "Skeletons",
-        "t": 2038,
-        "until": 2142,
-        "enemy": "skeleton",
+        "name": "Shielded mummy",
+        "t": 2180,
+        "until": 2185,
+        "enemy": "cyclopean_mummy",
         "weights": [
           [
-            2038,
+            2180,
             1.0
           ]
         ],
-        "pace": "waves",
-        "every": 5,
-        "count": 7,
-        "pattern": "scatter",
-        "role": "fodder",
+        "pace": "once",
+        "count": 1,
+        "pattern": "in_front",
+        "respect_cap": false,
+        "respect_hard_cap": false,
+        "elite": "shielded",
+        "role": "tank",
         "stats": {
-          "hp_mult": 0.13,
-          "damage_mult": 0.7,
-          "tint": {
-            "hue": [
-              8,
-              32
-            ],
-            "sat": 0.9,
-            "val": 1.0,
-            "amount": 0.5
+          "hp_mult": 0.35,
+          "damage_mult": 0.8,
+          "max_alive": 1,
+          "can_be_elite": true,
+          "drops": {
+            "medium": 0.1,
+            "gold": 1
           }
         }
       },
       {
-        "id": "s3d1",
+        "id": "s3c5",
+        "name": "Bombers",
+        "t": 2170,
+        "until": 2320,
+        "enemy": "spit_cactus",
+        "weights": [
+          [
+            2170,
+            1.0
+          ]
+        ],
+        "pack": 1,
+        "interval": 6,
+        "role": "ranged",
+        "stats": {
+          "hp_mult": 0.3,
+          "max_alive": 3
+        }
+      },
+      {
+        "id": "s3c6",
         "name": "Mummies",
-        "t": 2142,
-        "until": 2278,
+        "t": 2230,
+        "until": 2320,
         "enemy": "dust_mummy",
         "variant": "DM-J",
         "weights": [
           [
-            2142,
+            2230,
             1.0
           ]
         ],
@@ -3278,161 +3310,66 @@
         "role": "tank",
         "stats": {
           "hp_mult": 0.12,
-          "damage_mult": 0.6,
+          "damage_mult": 0.8,
           "max_alive": 8
         }
       },
       {
-        "id": "s3d2",
-        "name": "Cyclops",
-        "t": 2179,
-        "until": 2185,
-        "enemy": "cyclopean_mummy",
-        "weights": [
-          [
-            2179,
-            1.0
-          ]
-        ],
-        "pace": "once",
-        "count": 1,
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "pattern": "in_front",
-        "elite": "shielded",
-        "role": "tank",
-        "stats": {
-          "hp_mult": 0.35,
-          "damage_mult": 0.6,
-          "max_alive": 1,
-          "can_be_elite": true,
-          "drops": {
-            "medium": 0.1,
-            "gold": 1
-          }
-        }
-      },
-      {
-        "id": "s3d3",
-        "name": "Bombers",
-        "t": 2155,
-        "until": 2284,
-        "enemy": "spit_cactus",
-        "weights": [
-          [
-            2155,
-            1.0
-          ]
-        ],
-        "pack": 1,
-        "role": "ranged",
-        "stats": {
-          "hp_mult": 0.3,
-          "max_alive": 3
-        }
-      },
-      {
-        "id": "s3d4",
-        "name": "Red goblins",
-        "t": 2142,
-        "until": 2265,
+        "id": "s3d1",
+        "name": "Goblin hordes",
+        "t": 2350,
+        "until": 2450,
         "enemy": "red_goblin",
         "variant": "RG-C",
         "weights": [
           [
-            2142,
+            2350,
             1.0
           ]
         ],
         "pace": "waves",
-        "every": 6,
-        "count": 11,
+        "every": 8,
+        "count": 24,
         "pattern": "scatter",
+        "pack": 12,
         "role": "fodder",
         "stats": {
-          "hp_mult": 0.16,
-          "damage_mult": 0.6
+          "hp_mult": 0.17,
+          "damage_mult": 0.8
         }
       },
       {
-        "id": "s3d5",
-        "name": "Imp swarm",
-        "t": 2241,
-        "until": 2247,
-        "enemy": "imp",
-        "variant": "IMP-A",
+        "id": "s3d2",
+        "name": "Goblin stream",
+        "t": 2370,
+        "until": 2510,
+        "enemy": "red_goblin",
+        "variant": "RG-C",
         "weights": [
           [
-            2241,
-            1.0
+            2370,
+            5.0
           ]
         ],
-        "banner": "SWARM!",
-        "pace": "once",
-        "count": 30,
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "pattern": "ring",
-        "ring_radius": 16,
-        "role": "swarm",
-        "stats": {
-          "hp_mult": 0.2,
-          "damage_mult": 0.6
-        }
-      },
-      {
-        "id": "s3e1",
-        "name": "Imps (hell)",
-        "t": 2290,
-        "until": 2512,
-        "enemy": "imp",
-        "variant": "IMP-A",
-        "weights": [
-          [
-            2290,
-            1.0
-          ]
-        ],
-        "pack": 4,
-        "channel": "hell",
+        "pattern": "scatter",
+        "pack": 6,
+        "interval": 4,
         "role": "fodder",
         "stats": {
-          "hp_mult": 0.2,
-          "damage_mult": 0.65,
-          "max_alive": 35
+          "hp_mult": 0.17,
+          "damage_mult": 0.8
         }
       },
       {
-        "id": "s3e2",
-        "name": "Hellhounds (hell)",
-        "t": 2302,
-        "until": 2512,
-        "enemy": "hellhound",
-        "weights": [
-          [
-            2302,
-            1.0
-          ]
-        ],
-        "pack": 2,
-        "channel": "hell",
-        "role": "fodder",
-        "stats": {
-          "hp_mult": 0.2,
-          "damage_mult": 0.65,
-          "max_alive": 16
-        }
-      },
-      {
-        "id": "s3e3",
-        "name": "Hell giant",
-        "t": 2327,
-        "until": 2512,
+        "id": "s3d3",
+        "name": "Giants",
+        "t": 2380,
+        "until": 2530,
         "enemy": "hammer_giant",
         "variant": "HG-E",
         "weights": [
           [
-            2327,
+            2380,
             1.0
           ]
         ],
@@ -3443,83 +3380,26 @@
         "role": "tank",
         "stats": {
           "hp_mult": 0.22,
-          "damage_mult": 0.55,
+          "damage_mult": 0.6,
           "max_alive": 2
         }
       },
       {
-        "id": "s3e4",
-        "name": "Fire ants",
-        "t": 2315,
-        "until": 2462,
-        "enemy": "fire_ant",
-        "variant": "ANT-G",
-        "weights": [
-          [
-            2315,
-            1.0
-          ]
-        ],
-        "pace": "waves",
-        "every": 8,
-        "count": 13,
-        "pattern": "scatter",
-        "role": "fodder",
-        "stats": {
-          "hp_mult": 0.08,
-          "damage_mult": 0.65
-        }
-      },
-      {
-        "id": "s3e5",
-        "name": "Knight ring",
-        "t": 2388,
-        "until": 2395,
-        "enemy": "skeleton_knight",
-        "variant": "KN-F",
-        "weights": [
-          [
-            2388,
-            1.0
-          ]
-        ],
-        "pace": "once",
-        "count": 30,
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "pattern": "ring",
-        "ring_radius": 15,
-        "role": "swarm",
-        "stats": {
-          "hp_mult": 0.2,
-          "damage_mult": 0.7,
-          "tint": {
-            "hue": [
-              8,
-              32
-            ],
-            "sat": 0.9,
-            "val": 1.0,
-            "amount": 0.5
-          }
-        }
-      },
-      {
-        "id": "s3e6",
-        "name": "Gunmen",
-        "t": 2339,
-        "until": 2512,
+        "id": "s3d4",
+        "name": "Gunmen trio",
+        "t": 2380,
+        "until": 2500,
         "enemy": "buckshot_dwarf",
         "variant": "BD-B",
         "weights": [
           [
-            2339,
+            2380,
             1.0
           ]
         ],
         "pace": "waves",
         "every": 20,
-        "count": 2,
+        "count": 3,
         "pattern": "scatter",
         "role": "ranged",
         "stats": {
@@ -3537,54 +3417,86 @@
         }
       },
       {
-        "id": "s3e7",
-        "name": "Ant swarm",
-        "t": 2475,
-        "until": 2481,
-        "enemy": "fire_ant",
-        "variant": "ANT-G",
+        "id": "s3d5",
+        "name": "Knight ring",
+        "t": 2410,
+        "until": 2415,
+        "enemy": "skeleton_knight",
+        "variant": "KN-F",
         "weights": [
           [
-            2475,
+            2410,
             1.0
           ]
         ],
-        "banner": "SWARM!",
         "pace": "once",
-        "count": 24,
+        "count": 30,
+        "pattern": "ring",
+        "ring_radius": 15,
         "respect_cap": false,
         "respect_hard_cap": false,
-        "pattern": "ring",
-        "ring_radius": 16,
         "role": "swarm",
         "stats": {
-          "hp_mult": 0.1,
-          "damage_mult": 0.65
+          "hp_mult": 0.2,
+          "damage_mult": 0.8,
+          "tint": {
+            "hue": [
+              8,
+              32
+            ],
+            "sat": 0.9,
+            "val": 1.0,
+            "amount": 0.5
+          }
         }
       },
       {
-        "id": "s3f1",
-        "name": "Blood Moon pack",
-        "t": 2518,
-        "until": 2524,
-        "enemy": "werewolf",
+        "id": "s3d6",
+        "name": "Monk squad",
+        "t": 2480,
+        "until": 2485,
+        "enemy": "monk",
+        "variant": "MK-B",
         "weights": [
           [
-            2518,
+            2480,
             1.0
           ]
         ],
-        "banner": "BLOOD MOON!",
         "pace": "once",
-        "count": 28,
+        "count": 20,
+        "pattern": "scatter",
         "respect_cap": false,
         "respect_hard_cap": false,
+        "role": "swarm",
+        "stats": {
+          "hp_mult": 0.3,
+          "damage_mult": 0.8
+        }
+      },
+      {
+        "id": "s3e1",
+        "name": "Blood Moon",
+        "t": 2550,
+        "until": 2555,
+        "enemy": "werewolf",
+        "weights": [
+          [
+            2550,
+            1.0
+          ]
+        ],
+        "pace": "once",
+        "count": 28,
         "pattern": "ring",
         "ring_radius": 16,
+        "respect_cap": false,
+        "respect_hard_cap": false,
+        "banner": "BLOOD MOON!",
         "role": "swarm",
         "stats": {
           "hp_mult": 0.5,
-          "damage_mult": 0.7,
+          "damage_mult": 0.85,
           "size": [
             1.4,
             2.0
@@ -3601,25 +3513,26 @@
         }
       },
       {
-        "id": "s3f2",
-        "name": "Werewolves",
-        "t": 2536,
-        "until": 2721,
+        "id": "s3e2",
+        "name": "Werewolf hordes",
+        "t": 2560,
+        "until": 2710,
         "enemy": "werewolf",
         "weights": [
           [
-            2536,
+            2560,
             1.0
           ]
         ],
         "pace": "waves",
         "every": 10,
-        "count": 9,
+        "count": 27,
         "pattern": "scatter",
+        "pack": 9,
         "role": "fodder",
         "stats": {
           "hp_mult": 0.5,
-          "damage_mult": 0.7,
+          "damage_mult": 0.85,
           "size": [
             1.3,
             1.8
@@ -3636,64 +3549,60 @@
         }
       },
       {
-        "id": "s3f3",
-        "name": "Imps (hell)",
-        "t": 2518,
-        "enemy": "imp",
-        "variant": "IMP-A",
+        "id": "s3e3",
+        "name": "Werewolf stream",
+        "t": 2570,
+        "until": 2770,
+        "enemy": "werewolf",
         "weights": [
           [
-            2518,
-            1.0
+            2570,
+            5.0
           ]
         ],
-        "pack": 4,
-        "channel": "hell",
-        "role": "fodder",
-        "stats": {
-          "hp_mult": 0.4,
-          "damage_mult": 0.7,
-          "max_alive": 50
-        }
-      },
-      {
-        "id": "s3f4",
-        "name": "Hellhounds (hell)",
-        "t": 2518,
-        "enemy": "hellhound",
-        "weights": [
-          [
-            2518,
-            1.0
-          ]
-        ],
+        "pattern": "scatter",
         "pack": 3,
-        "channel": "hell",
+        "interval": 4,
         "role": "fodder",
         "stats": {
-          "hp_mult": 0.4,
-          "damage_mult": 0.7,
-          "max_alive": 22
+          "hp_mult": 0.5,
+          "damage_mult": 0.85,
+          "size": [
+            1.3,
+            1.8
+          ],
+          "tint": {
+            "hue": [
+              350,
+              360
+            ],
+            "sat": 0.9,
+            "val": 0.85,
+            "amount": 0.4
+          }
         }
       },
       {
-        "id": "s3f5",
-        "name": "Knights",
-        "t": 2573,
+        "id": "s3e4",
+        "name": "Knight wall",
+        "t": 2590,
+        "until": 2770,
         "enemy": "skeleton_knight",
         "variant": "KN-F",
         "weights": [
           [
-            2573,
-            1.0
+            2590,
+            4.0
           ]
         ],
+        "pattern": "pack",
         "pack": 5,
-        "role": "fodder",
+        "interval": 6,
+        "role": "tank",
         "stats": {
           "hp_mult": 0.5,
-          "damage_mult": 0.7,
-          "max_alive": 60,
+          "damage_mult": 0.85,
+          "max_alive": 40,
           "tint": {
             "hue": [
               8,
@@ -3706,32 +3615,15 @@
         }
       },
       {
-        "id": "s3f6",
-        "name": "Shaman",
-        "t": 2548,
-        "enemy": "dust_shaman",
-        "weights": [
-          [
-            2548,
-            1.0
-          ]
-        ],
-        "pack": 1,
-        "role": "fodder",
-        "stats": {
-          "hp_mult": 0.4,
-          "max_alive": 2
-        }
-      },
-      {
-        "id": "s3f7",
-        "name": "Hell giant",
-        "t": 2585,
+        "id": "s3e5",
+        "name": "Giants",
+        "t": 2590,
+        "until": 2770,
         "enemy": "hammer_giant",
         "variant": "HG-E",
         "weights": [
           [
-            2585,
+            2590,
             1.0
           ]
         ],
@@ -3742,23 +3634,24 @@
         "role": "tank",
         "stats": {
           "hp_mult": 0.28,
-          "damage_mult": 0.55,
+          "damage_mult": 0.6,
           "max_alive": 2
         }
       },
       {
-        "id": "s3f8",
+        "id": "s3e6",
         "name": "Bombers",
-        "t": 2598,
-        "until": 2721,
+        "t": 2610,
+        "until": 2770,
         "enemy": "spit_cactus",
         "weights": [
           [
-            2598,
+            2610,
             1.0
           ]
         ],
         "pack": 1,
+        "interval": 6,
         "role": "ranged",
         "stats": {
           "hp_mult": 0.6,
@@ -3766,28 +3659,74 @@
         }
       },
       {
-        "id": "s3f9",
-        "name": "Last knight ring",
-        "t": 2672,
-        "until": 2678,
+        "id": "s3e7",
+        "name": "Shaman",
+        "t": 2580,
+        "until": 2770,
+        "enemy": "dust_shaman",
+        "weights": [
+          [
+            2580,
+            1.0
+          ]
+        ],
+        "pack": 1,
+        "interval": 10,
+        "role": "ranged",
+        "stats": {
+          "hp_mult": 0.4,
+          "max_alive": 2
+        }
+      },
+      {
+        "id": "s3e8",
+        "name": "Beetle charge",
+        "t": 2680,
+        "until": 2685,
+        "enemy": "bull_beetle",
+        "variant": "BB-F",
+        "weights": [
+          [
+            2680,
+            1.0
+          ]
+        ],
+        "pace": "once",
+        "count": 5,
+        "pattern": "in_front",
+        "respect_cap": false,
+        "respect_hard_cap": false,
+        "banner": "SWARM!",
+        "role": "tank",
+        "stats": {
+          "hp_mult": 0.3,
+          "damage_mult": 0.85,
+          "max_alive": 5
+        }
+      },
+      {
+        "id": "s3e9",
+        "name": "Knight ring",
+        "t": 2710,
+        "until": 2715,
         "enemy": "skeleton_knight",
         "variant": "KN-F",
         "weights": [
           [
-            2672,
+            2710,
             1.0
           ]
         ],
         "pace": "once",
         "count": 24,
-        "respect_cap": false,
-        "respect_hard_cap": false,
         "pattern": "ring",
         "ring_radius": 15,
+        "respect_cap": false,
+        "respect_hard_cap": false,
         "role": "swarm",
         "stats": {
           "hp_mult": 0.45,
-          "damage_mult": 0.7,
+          "damage_mult": 0.85,
           "tint": {
             "hue": [
               8,
@@ -3846,68 +3785,6 @@
             "amount": 0.4
           }
         }
-      },
-      {
-        "id": "s3x1",
-        "name": "Red goblin ring",
-        "t": 2105,
-        "until": 2110,
-        "enemy": "red_goblin",
-        "variant": "RG-C",
-        "pace": "once",
-        "count": 16,
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "pattern": "ring",
-        "ring_radius": 14,
-        "stats": {
-          "hp_mult": 0.15,
-          "damage_mult": 0.6
-        },
-        "weights": [
-          [
-            2105,
-            1.0
-          ]
-        ],
-        "role": "swarm"
-      },
-      {
-        "id": "s3x2",
-        "name": "Second Blood Moon pack",
-        "t": 2595,
-        "until": 2600,
-        "enemy": "werewolf",
-        "pace": "once",
-        "count": 28,
-        "respect_cap": false,
-        "respect_hard_cap": false,
-        "pattern": "ring",
-        "ring_radius": 16,
-        "stats": {
-          "hp_mult": 0.5,
-          "damage_mult": 0.7,
-          "size": [
-            1.4,
-            2.0
-          ],
-          "tint": {
-            "hue": [
-              350,
-              360
-            ],
-            "sat": 0.9,
-            "val": 0.85,
-            "amount": 0.4
-          }
-        },
-        "weights": [
-          [
-            2595,
-            1.0
-          ]
-        ],
-        "role": "swarm"
       },
       {
         "id": "r6",

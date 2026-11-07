@@ -1268,6 +1268,22 @@ A goal's parts: value, dist.
 | `--actions <when>:<what>,...` | | checks: `p<play s>` or `w<wall s after the action before>`, then `pause`, `go`, `step`, `level`, `speed=<x>`, `shot=<name>`, `end`, `say` |
 | `--log-speed <s>` / `--profile` | 30 / off | the log's speed line every that many wall seconds; with the frame costs |
 | `--log <file>` | tools/dl/watch/logs/watch_<time>.log | Godot's log |
+| `--look <code>` | | pass 133: the outlaw's look (a relaunch keeps the pop-up's) |
+| `--no-supervise` | off | pass 133: no supervisor: the IMPORT DATA button stays plain and does nothing |
+
+Pass 133 (**IMPORT DATA**, key **I**; Garry: "an import data button that highlights when the balancing data is out of
+date in the tool vs the reality"): watch.py leaves a supervisor behind (this process with `--wait`, else a detached copy
+of itself, `--supervise tools/dl/watch/supervise.json`, its log `tools/dl/watch/logs/super_<time>.log`) that compares
+game/ with the snapshot every `CHECK_S` 5 s (the files sync_snapshot copies: size and mtime; project.godot left out) and
+writes `tools/dl/watch/sync_status.json` `{changed: [the first 40 paths], n, at, check_s}`. The window polls it every
+2 s: the header's **Import data** button is plain and idle while nothing differs, **IMPORT DATA (N)** in amber when N
+files do (its hover hint lists the first eight). Pressed, or I: the run up ends (recorded: `header.watch.ended_by =
+"import"`, an `import` event, a decision-log row of kind `import`, the Watch's END line says `import`), the window writes
+`tools/dl/watch/relaunch.json` `{at, settings (the Outlaw Settings played, WatchSetup's shape, the speed), hand, started,
+files, changed}` and quits with exit code 75; the supervisor syncs the snapshot again, imports it (`--import` when an
+asset changed, `import_json` for every content JSON newer than its .tres), and starts the window again with those
+settings (`go=1` when a run was up: it restarts at once down the spawn beam; the pop-up again when none had). A change
+made while the import runs shows on the new window's button. Godot side: `sync=<status file>` `relaunch=<request file>`.
 
 Files: snapshot `tools/dl/watch/snap/game` (user folder `%APPDATA%/Godot/app_userdata/88fits_watch`), lock
 `tools/dl/locks/watch.lock` (owner.json names the Godot pid; the window lets go of it when it closes), logs
@@ -1276,7 +1292,7 @@ Files: snapshot `tools/dl/watch/snap/game` (user folder `%APPDATA%/Godot/app_use
 
 #### The Godot side (watch_main.gd -> Watch.gd), after `--`
 `hero= seed= map= talents= board_label= limit= speed= paused= death= unlocks= repo= lock= sound= numbers= log_speed=
-ref= ref_label= bot= bot.<key>= autoquit= wall= shots= shots_at= w= h= profile= actions= skip_draw=` (watch.py writes
+ref= ref_label= bot= bot.<key>= autoquit= wall= shots= shots_at= w= h= profile= actions= skip_draw= look= sync= relaunch=` (watch.py writes
 them; started as `Godot --fixed-fps 60 --path <snapshot> --log-file <log> --script res://tools/watch/watch_main.gd -- ...`).
 
 #### The decision log CSV

@@ -2602,3 +2602,63 @@ values), `options_guide` (a line per option of a select), `widget` (a named cont
 `look_code`, `hue_ranges`, `hue`, `presets`, `passes`, `recolour_preview`) and `form_only` (a control that writes no
 recipe key); a method may carry `guide {title, steps, sheet, faults}`, drawn as a foldable box at the top of "What to
 paint". A field without these keys is drawn as before.
+
+## Pass 133 (lane ONSCREEN): what's on screen at second t
+
+Garry (2026-11-07): "Add visualization of the OnScreen part as hero and the enemies surrounding him in the numbers that
+the onScreen is estimating ... the same visual alterations as the settings in the LevelEditor itself allow ... switching
+between different animations spending 2 seconds on each (only the run animations and death) ... roughly showing the
+layout of where the enemies would be around the hero given the spawning behaviour ... a respectable distance from each
+other ... exactly that second of the run ... not whole numbers ... by random select ... a press of a button, selecting a
+time on a progress bar type UI element and seeing the result in a separate pop-up."
+
+**The button.** The Timeline tab's **On screen** section bar carries **Show on screen**. It opens a pop-up on the stage
+tab in view (All: the first stage) at the second under the pointer, else the stage's fullest second. Nothing is saved
+and no server route was added: the numbers are the estimate's, the strips come through the `/sprite/<kind>/<id>/<code>`
+routes the look grid already uses, the Outlaw's record from `/api/heroes`.
+
+**The pop-up** (`tools/level_editor/onscreen.js`). A Stage select, a slider over the stage's window on its own clock
+(pass 116's stage-relative seconds), **−1 s** / **+1 s** (← →), **Peak**, **Re-roll** (R), a zoom select, Close
+(Escape). Beside the scene: *On screen ≈ N · drawn M*, the cap in load units and the pool's 320 bodies, the stage, the
+second (and the map second), the seed, the filter, which phase is playing, and one row per creature: its icon, name,
+drawn, expected, Elite and special counts. The scene is one canvas, 560 x 900, the game's portrait view from the fixed
+camera (CameraRig: 46 degrees of pitch, 90 px/m at the feet on a 1080 px phone): 12 m across at zoom 1, ground depth at
+0.72 of the across scale, billboards upright on their feet, drawn back to front, the Outlaw a little below the centre.
+The dashed ellipses are a ring row's 11.7 m and the 19–24 m spawn band, the dashed frame the phone's own view at zoom 1
+(the camera pulls out to about x2 as the Outlaw levels and sprints: zoom 2 is the default). One
+`requestAnimationFrame`, every body a `drawImage` of its cell straight from the loaded strip (no StripPlayer per
+body; 320 bodies draw at 60 fps on the PC); a stage filter tints each strip once on an offscreen canvas (multiply, the
+alpha put back); a special's rim is its cell's silhouette in its tint drawn round it; an Elite's crown is drawn in
+code.
+
+**What a body is** (`tools/level_editor/onscreen_model.js`, pure, run under Node by `selftest_P133ONSCREEN.py`).
+The estimate's point at the second (`aliveBy`: the expected bodies alive per creature) gives each creature's count:
+the whole part, plus one with the fraction as the chance (seeded; Re-roll reseeds). Each body is given to a row that
+spawns its creature, weighed by what the rows spawned in the past 20 s (the estimate's `src` tallies; the rows open now
+when nothing did; the first such row else), so it carries that row's `variant` (its look), `stats.size` (a number, or a
+range rolled per body), `stats.radius`, `pattern`, `ring_radius`, `pack`, `special` and `elite`. A Special row's bodies
+are all specials (x the creature's special size, else the map's `special_defaults.size`, else 1.5, cut to a range's
+top; the rim in the creature's `variance.special.tint`, else the map's, else crimson); an Elite row's all wear the crown
+(x1.4); the rest roll the creature's shares so far (`by`: coloured / spawned, elite-modified / spawned); an Elite boss
+(archetype `elite`) wears the crown too. Bosses are not in `aliveBy` and are not drawn (the clock stands still through
+a fight).
+
+**Where it stands.** The spawn point by the row's pattern as WaveDirector sets it (19–24 m out on a side drawn by
+`spawn_sides`' weights, 45 degrees round each side; In front at the top within 45 degrees; Ring: one ring per `pack`
+bodies on `ring_radius` (11.7 m without one) from a random start, each slid a fifth of the spacing and 0.6 m in or
+out, every body of a ring the same age); then it has walked in for its age (an exponential life whose mean is 1 over
+the estimate's kill rate at that second) at its speed x the stage's and the map's creature speed multiples x 0.85, never
+past the Outlaw's contact ring; then a relaxation pushes every pair apart to the sum of their body radii (the game's
+separation), the Outlaw at the origin pushing only, deterministic from the seed. A plausible still of that second, not
+a replay: it knows nothing of rocks, the lake, the walls, the far crowd's relocation or the Monks' squads.
+
+**The animation.** Three phases of 2 s on one clock: run, run turned round, die (idle never). A body's view follows
+where it walks: above the Outlaw it walks down the screen and shows its front set, below it its back set, the side and
+three-quarter sets where the strip has eight directions, mirrored as the game mirrors (`front_faces` / `back_faces`,
+never a creature with its own left sets); the second phase turns every body round. The Outlaw (the Sim tab's outlaw,
+else the Drifter, in his played look) shows his back, then his front, then dies with the rest.
+
+**Checks.** `selftest_P133ONSCREEN.py`: the count rule over 400 seeds, determinism, no overlap past 10 cm on a crowd
+of 227 and on the Dust Bowl's real peak, a ring row on its ring, In front from the top, a Special row's and an Elite
+row's bodies, a size range, the row attribution, the pool's cut, the facing, the phases, the filter's factors
+(StageLook.filter_mults), the spawn arcs; the page's wiring and words.

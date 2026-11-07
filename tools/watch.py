@@ -7,6 +7,7 @@ right (game/tools/watch/). It starts Godot windowed and returns.
     python tools/watch.py --hero calavera --trail half --seed 7 --speed 4 --bot skill=0.6 --bot style=greedy
     python tools/watch.py --trail 36 --trail-optional --limit 5:00 --ref auto
     python tools/watch.py --wait --timeout 900 --autoquit --limit 300 --speed 4      # a check: waits, prints the end
+    python tools/watch.py --no-supervise                    # pass 133: no supervisor (the IMPORT DATA button stays idle)
 
 What it does, in order:
  1. The Watch lock tools/dl/locks/watch.lock (one Watch at a time; a dead owner's lock is reclaimed). NOT the godot lock:
@@ -27,14 +28,27 @@ Pass 85: the window opens with the Hero Settings pop-up, filled with these optio
 spawn beam; the header's "Restart run" opens it again); --go (or --autoquit) starts at once as before. The sound is off
 unless --sound. watch.py writes tools/dl/watch/setup.json for the pop-up (the Trail's levels, the PC save's Trail, the Sim
 results for the grey line: write_setup).
-Standard library only (the Level Editor's Sim tab starts it: sim_io.py POST /api/sim/watch).
+Pass 133 (Garry: "It would be good if I didn't have to restart the Watch Tool after I make changes to the balancing in
+the timeline ... an import data button that highlights when the balancing data is out of date in the tool vs the
+reality ... it would import everything, and I would have to restart the run"): a supervisor stays alive while the window
+runs (this process with --wait, else a detached copy of itself: --supervise <state.json>). Every CHECK_S seconds it
+compares game/ with the snapshot the window plays (the files sync_snapshot copies: _walk, mtime and size) and writes
+tools/dl/watch/sync_status.json {changed: [paths], n, at}; the window's IMPORT DATA button (key I) reads it and lights
+amber with the count. Pressed, the window ends its run (recorded, "import" in its record and decision log), writes
+tools/dl/watch/relaunch.json (the Outlaw Settings it played, whether a run was up, who played) and quits with exit code
+RELAUNCH_RC; the supervisor then syncs the snapshot again, imports it (--import, import_json) and starts the window again
+with the same settings (go=1: the run restarts at once; the pop-up again when none had started). A change made while
+the import runs shows on the new window's button. Standard library only (the Level Editor's Sim tab starts it: sim_io.py
+POST /api/sim/watch).
 """
 import argparse
+import copy
 import json
 import os
 import random
 import subprocess
 import sys
+import threading
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -51,6 +65,12 @@ USER_DIR_NAME = "88fits_watch"
 LOCK = os.path.join(locks.LOCK_DIR, "watch.lock")
 SCRIPT = "res://tools/watch/watch_main.gd"
 PRESETS = [k for k, _, _ in SB.TRAIL_PRESETS]   # none, quarter, half, full: shares of the Trail's levels
+## pass 133: the out-of-date check (the supervisor's status file the window polls, the window's relaunch request, the
+## exit code that asks for one, how often game/ is compared with the snapshot)
+SYNC_STATUS = os.path.join(WATCH_DIR, "sync_status.json")
+RELAUNCH = os.path.join(WATCH_DIR, "relaunch.json")
+RELAUNCH_RC = 75
+CHECK_S = 5.0   # a walk of game/ (13,000 files) takes 2-3 s on this PC
 
 
 def snap_game():
@@ -208,6 +228,11 @@ def build_args(a, trail, ref, ref_label, lock_path, setup=None):
            "sound=%d" % (1 if sound else 0), "numbers=%d" % (0 if a.no_numbers else 1), "log_speed=%g" % float(a.log_speed)]
     if t_ids:
         out.append("trail_ids=" + ",".join(t_ids))
+    # pass 133: the look a relaunch keeps (--look; the pop-up's own choice otherwise), the out-of-date status file the
+    # window polls and the relaunch request it writes
+    if str(getattr(a, "look", "") or ""):
+        out.append("look=" + str(a.look))
+    out += ["sync=" + SYNC_STATUS.replace("\\", "/"), "relaunch=" + RELAUNCH.replace("\\", "/")]
     if bool(getattr(a, "go", False)) or bool(getattr(a, "autoquit", False)):
         out.append("go=1")
     if bool(getattr(a, "seed_random", False)):
@@ -321,6 +346,245 @@ def refresh_snapshot(no_sync=False):
     return snap
 
 
+# ---------------------------------------------------------------- pass 133: out of date? the supervisor, the relaunch
+
+def sync_base(game=None):
+    """game/ as the snapshot was synced from it (SB._walk: rel path -> (size, mtime)), taken right after refresh_snapshot:
+    what the window plays. Not the snapshot's own walk: its import_json rewrites a .tres and that would read as a
+    change of game/. project.godot is left out (the snapshot's is patched with its own user folder)."""
+    base = SB._walk(game or GAME)
+    base.pop("project.godot", None)
+    return base
+
+
+def changes_since(base, game=None):
+    """The files of game/ that sync_snapshot would copy or remove on its next run, against `base` (sync_base): added,
+    changed (size or mtime, sync's own rule) or removed, sorted. A .import or .uid the snapshot keeps beside a file
+    that is still there (sync's `kept`) is not a change."""
+    have = SB._walk(game or GAME)
+    have.pop("project.godot", None)
+    out = []
+    for rel, (size, mtime) in have.items():
+        o = base.get(rel)
+        if o is None or o[0] != size or abs(o[1] - mtime) >= 0.01:
+            out.append(rel)
+    for rel in base:
+        if rel in have:
+            continue
+        if (rel.endswith(".import") and rel[:-len(".import")] in have) or (rel.endswith(".uid") and rel[:-len(".uid")] in have):
+            continue
+        out.append(rel)
+    return sorted(out)
+
+
+def write_sync_status(changed, checked_s, note=""):
+    SB.write_json(SYNC_STATUS, {"changed": changed[:40], "n": len(changed), "at": time.time(), "check_s": round(checked_s, 2),
+                                "note": note})
+
+
+class SyncWatcher(threading.Thread):
+    """Compares game/ with the snapshot every CHECK_S seconds (a walk of game/ takes about 2 s on this PC: its own
+    thread, so the pid polling never waits on it) and writes SYNC_STATUS for the window."""
+
+    def __init__(self, base, log=say):
+        super().__init__(daemon=True)
+        self.base = base
+        self.log = log
+        self.stop = threading.Event()
+        self.last = None
+
+    def run(self):
+        while not self.stop.is_set():
+            t0 = time.time()
+            try:
+                changed = changes_since(self.base)
+                write_sync_status(changed, time.time() - t0)
+                if changed != self.last:
+                    self.log("sync check: %d file%s differ%s from the snapshot%s" % (
+                        len(changed), "" if len(changed) == 1 else "s", "s" if len(changed) == 1 else "",
+                        (": " + ", ".join(changed[:3]) + (" ..." if len(changed) > 3 else "")) if changed else ""))
+                    self.last = changed
+            except Exception as e:   # a file vanishing mid-walk, a full disk: the next check tries again
+                self.log("sync check: %s" % e)
+            self.stop.wait(max(0.5, CHECK_S - (time.time() - t0)))
+
+
+def read_relaunch(since):
+    """The window's relaunch request (RELAUNCH) when it was written after `since` (a unix time), else None."""
+    if not os.path.isfile(RELAUNCH):
+        return None
+    d = SB.read_json(RELAUNCH, tries=3)
+    if not isinstance(d, dict) or float(d.get("at", 0) or 0) < since - 1.0:
+        return None
+    return d
+
+
+def apply_relaunch(a, req):
+    """A copy of the parsed arguments `a` with the window's Outlaw Settings (`req["settings"]`, WatchSetup's shape) laid
+    over: the next launch plays what the pop-up had. `go` when a run was up (the run restarts at once), the hand kept."""
+    b = copy.copy(a)
+    s = req.get("settings") if isinstance(req.get("settings"), dict) else {}
+    b.hero = str(s.get("hero", a.hero) or a.hero)
+    b.look = str(s.get("look", "") or "")
+    b.map = str(s.get("map", a.map) or a.map)
+    b.stage = max(1, int(s.get("stage", getattr(a, "stage", 1)) or 1))
+    b.seed_random = bool(s.get("seed_random", False))
+    b.seed = random.randint(1, 99999) if b.seed_random else max(1, int(s.get("seed", a.seed) or 1))
+    b.speed = str(s.get("speed", a.speed))
+    b.limit = str(s.get("limit", a.limit))
+    b.death = str(s.get("death", a.death) or a.death)
+    b.sound = bool(s.get("sound", False))
+    b.mute = False
+    b.no_numbers = not bool(s.get("numbers", True))
+    b.unlocks = str(s.get("unlocks", a.unlocks) or a.unlocks)
+    if "trail" in s:
+        b.trail = str(s.get("trail"))
+        b.board = None
+    b.trail_optional = bool(s.get("trail_optional", False))
+    b.stub = str(s.get("bot", "auto")) == "stub"
+    opts = s.get("bot_opts") if isinstance(s.get("bot_opts"), dict) else {}
+    b.bot = ["%s=%s" % (k, ("true" if v is True else "false" if v is False else v)) for k, v in opts.items()]
+    b.bot_preset = ""
+    b.hand = bool(req.get("hand", False))
+    b.go = bool(req.get("started", False))
+    b.paused = False
+    b.no_sync = False
+    # a check's scripted actions and timed shots were the first window's (the shots folder stays for the end shot)
+    b.actions = ""
+    b.shots_at = ""
+    return b
+
+
+def launch(a, log=None):
+    """The Watch started once: the grey line found, the snapshot refreshed and imported, the pop-up's file written, Godot
+    started on it (detached unless --wait) and named as the lock's owner. {proc, log, snap, trail, at}."""
+    t_arg, t_opt, t_ids, t_label, probs = trail_of(a)
+    for p in probs:
+        say("trail: " + p)
+    ref, ref_label = None, ""
+    if str(a.ref).lower() == "auto":
+        ref, why = find_ref(a.hero, SB.trail_key(t_arg, t_opt), a.map, getattr(a, "stage", 1))
+        if ref:
+            ref_label = why
+            say("ref: %s" % os.path.relpath(ref, ROOT))
+        else:
+            say("ref: %s (no grey line)" % why)
+    elif str(a.ref).lower() not in ("", "none"):
+        ref = os.path.abspath(a.ref)
+        ref_label = os.path.basename(os.path.dirname(ref))
+    snap = refresh_snapshot(a.no_sync)
+    base = sync_base()
+    logs = os.path.join(WATCH_DIR, "logs")
+    os.makedirs(logs, exist_ok=True)
+    log = os.path.abspath(log) if log else os.path.join(logs, "watch_%s.log" % time.strftime("%Y%m%d-%H%M%S"))
+    setup = None
+    try:
+        setup = write_setup(os.path.join(WATCH_DIR, "setup.json"))
+    except Exception as e:  # the pop-up then offers the command line's Trail and no save
+        say("setup: %s" % e)
+    # the status the window reads first: current (the check that follows says otherwise within CHECK_S)
+    write_sync_status([], 0.0, "synced")
+    cmd = [locks.GODOT, "--fixed-fps", "60", "--path", snap, "--log-file", log, "--script", SCRIPT, "--"] + \
+        build_args(a, (t_arg, t_opt, t_ids, t_label), ref, ref_label, LOCK, setup)
+    flags = 0
+    if os.name == "nt" and not a.wait:
+        flags = subprocess.CREATE_NEW_PROCESS_GROUP | getattr(subprocess, "DETACHED_PROCESS", 0x8)
+    at = time.time()
+    proc = subprocess.Popen(cmd, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                            creationflags=flags, close_fds=True)
+    lock_owner(proc.pid, "%s seed %d" % (a.hero, a.seed))
+    say("started: %s, the Trail %s, seed %d, pid %d; log %s" % (a.hero, t_label, a.seed, proc.pid, os.path.relpath(log, ROOT)))
+    # pass 130: what that Trail gives, on one line (the snapshot's own Trail file: the build the Watch plays)
+    say("the Trail gives: %s" % trail_gives(t_arg, t_opt, t_ids, snap))
+    return {"proc": proc, "pid": proc.pid, "log": log, "snap": snap, "at": at, "base": base}
+
+
+def detach_supervisor(a, started):
+    """Not --wait: a detached copy of this script keeps watch over the window (--supervise <state.json>): the
+    out-of-date check and the relaunch. Its own output goes to tools/dl/watch/logs/super_<time>.log."""
+    logs = os.path.join(WATCH_DIR, "logs")
+    state = os.path.join(WATCH_DIR, "supervise.json")
+    SB.write_json(state, {"args": vars(a), "pid": started["pid"], "log": started["log"], "snap": started["snap"], "at": started["at"],
+                          "base": {k: list(v) for k, v in started["base"].items()}})
+    slog = os.path.join(logs, "super_%s.log" % time.strftime("%Y%m%d-%H%M%S"))
+    cmd = [sys.executable, os.path.abspath(__file__), "--supervise", state]
+    flags = (subprocess.CREATE_NEW_PROCESS_GROUP | getattr(subprocess, "DETACHED_PROCESS", 0x8)) if os.name == "nt" else 0
+    with open(slog, "w", encoding="utf-8", newline="\n") as lf:
+        p = subprocess.Popen(cmd, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=lf, stderr=subprocess.STDOUT, creationflags=flags, close_fds=True)
+    say("supervisor: pid %d watches game/ for changes (IMPORT DATA in the window; log %s)" % (p.pid, os.path.relpath(slog, ROOT)))
+    return p
+
+
+def supervise(a, started):
+    """Waits for the window (a Popen, or a pid another watch.py started) while the SyncWatcher writes the status file; a
+    relaunch request (the window's IMPORT DATA) syncs, imports and starts the window again with its settings, as often
+    as it asks. Returns the last window's exit code (0 when only its pid was known)."""
+    proc, pid, at = started.get("proc"), int(started["pid"]), float(started["at"])
+    rc = 0
+    while True:
+        watcher = SyncWatcher(started["base"])
+        watcher.start()
+        deadline = time.time() + a.timeout if (a.wait and a.timeout > 0) else None
+        try:
+            while True:
+                if proc is not None:
+                    if proc.poll() is not None:
+                        rc = proc.returncode
+                        break
+                elif not locks.pid_alive(pid):
+                    rc = 0
+                    break
+                if deadline is not None and time.time() > deadline:
+                    say("timeout: %d s passed, the Watch is stopped" % int(a.timeout))
+                    SB.kill_tree(pid)
+                    rc = -9
+                    break
+                time.sleep(0.5)
+        finally:
+            watcher.stop.set()
+        req = read_relaunch(at)
+        if req is None:
+            return rc
+        say("IMPORT DATA: the window asked for a fresh snapshot (%s): syncing, importing, starting again" % (
+            "the run restarts" if req.get("started") else "no run had started"))
+        try:
+            os.remove(RELAUNCH)
+        except OSError:
+            pass
+        b = apply_relaunch(a, req)
+        ok, st = lock_take("%s seed %d" % (b.hero, b.seed))
+        if not ok:
+            say("a Watch is open already (pid %s): no relaunch" % (st or {}).get("pid"))
+            return rc
+        try:
+            started = launch(b)
+        except SystemExit as e:
+            say("relaunch failed: %s" % e)
+            lock_release()
+            return 1
+        proc, pid, at = started["proc"], started["pid"], started["at"]
+        a = b
+
+
+def supervise_main(state_path):
+    """--supervise <state.json>: the detached supervisor (detach_supervisor wrote the state)."""
+    st = SB.read_json(state_path, tries=3)
+    if not isinstance(st, dict):
+        say("supervise: no state at %s" % state_path)
+        return 2
+    a = argparse.Namespace(**st["args"])
+    a.wait = True   # the relaunched window is this process's child: waited on, never detached from it
+    a.timeout = 0
+    started = {"proc": None, "pid": st["pid"], "log": st["log"], "snap": st["snap"], "at": st["at"],
+               "base": {k: tuple(v) for k, v in (st.get("base") or {}).items()} or sync_base()}
+    try:
+        return supervise(a, started)
+    finally:
+        s = lock_status()
+        if s is not None and (s.get("alive") is False or s.get("pid") == os.getpid()):
+            lock_release()
+
+
 # ---------------------------------------------------------------- main
 
 def main(argv=None):
@@ -361,12 +625,14 @@ def main(argv=None):
     ap.add_argument("--actions", default="", help="checks: <p|w><seconds>:<pause|go|step|level|speed=x|shot=name|end|say|hand|bot|handbtn|key=T|hold=W/60|circle=x/y/r/frames[/loops]|card=i>,...")
     ap.add_argument("--skip-draw", default="1", help="1 (default): above 1x the frames not drawn skip the drawing work; 0 keeps it")
     ap.add_argument("--log", default="", help="Godot's log file (default tools/dl/watch/logs/watch_<time>.log)")
+    ap.add_argument("--look", default="", help="the outlaw's look (a variant code; the pop-up's choice otherwise)")
+    ap.add_argument("--no-supervise", action="store_true", help="pass 133: no supervisor after the launch: the IMPORT DATA button stays plain and does nothing")
+    ap.add_argument("--supervise", default="", help=argparse.SUPPRESS)   # pass 133: the detached supervisor's own entry (detach_supervisor)
     a = ap.parse_args(argv)
+    if a.supervise:
+        return supervise_main(a.supervise)
     a.seed_random = str(a.seed).lower() in ("random", "", "0")
     a.seed = random.randint(1, 99999) if a.seed_random else int(a.seed)
-    t_arg, t_opt, t_ids, t_label, probs = trail_of(a)
-    for p in probs:
-        say("trail: " + p)
     if not os.path.isfile(locks.GODOT):
         raise SystemExit("watch: no Godot binary at %s" % locks.GODOT)
     ok, st = lock_take("%s seed %d" % (a.hero, a.seed))
@@ -375,46 +641,22 @@ def main(argv=None):
         return 3
     proc = None
     try:
-        ref, ref_label = None, ""
-        if str(a.ref).lower() == "auto":
-            ref, why = find_ref(a.hero, SB.trail_key(t_arg, t_opt), a.map, getattr(a, "stage", 1))
-            if ref:
-                ref_label = why
-                say("ref: %s" % os.path.relpath(ref, ROOT))
-            else:
-                say("ref: %s (no grey line)" % why)
-        elif str(a.ref).lower() not in ("", "none"):
-            ref = os.path.abspath(a.ref)
-            ref_label = os.path.basename(os.path.dirname(ref))
-        snap = refresh_snapshot(a.no_sync)
-        logs = os.path.join(WATCH_DIR, "logs")
-        os.makedirs(logs, exist_ok=True)
-        log = os.path.abspath(a.log) if a.log else os.path.join(logs, "watch_%s.log" % time.strftime("%Y%m%d-%H%M%S"))
-        setup = None
-        try:
-            setup = write_setup(os.path.join(WATCH_DIR, "setup.json"))
-        except Exception as e:  # the pop-up then offers the command line's Trail and no save
-            say("setup: %s" % e)
-        cmd = [locks.GODOT, "--fixed-fps", "60", "--path", snap, "--log-file", log, "--script", SCRIPT, "--"] + \
-            build_args(a, (t_arg, t_opt, t_ids, t_label), ref, ref_label, LOCK, setup)
-        flags = 0
-        if os.name == "nt" and not a.wait:
-            flags = subprocess.CREATE_NEW_PROCESS_GROUP | getattr(subprocess, "DETACHED_PROCESS", 0x8)
-        proc = subprocess.Popen(cmd, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                creationflags=flags, close_fds=True)
-        lock_owner(proc.pid, "%s seed %d" % (a.hero, a.seed))
-        say("started: %s, the Trail %s, seed %d, pid %d; log %s" % (a.hero, t_label, a.seed, proc.pid,
-                                                                     os.path.relpath(log, ROOT)))
-        # pass 130: what that Trail gives, on one line (the snapshot's own Trail file: the build the Watch plays)
-        say("the Trail gives: %s" % trail_gives(t_arg, t_opt, t_ids, snap))
+        started = launch(a, a.log)
+        proc, log = started["proc"], started["log"]
         if not a.wait:
+            # pass 133: a detached copy of this script keeps the out-of-date check and the relaunch alive
+            if not a.no_supervise:
+                detach_supervisor(a, started)
             return 0
-        try:
-            rc = proc.wait(timeout=a.timeout if a.timeout > 0 else None)
-        except subprocess.TimeoutExpired:
-            say("timeout: %d s passed, the Watch is stopped" % int(a.timeout))
-            SB.kill_tree(proc.pid)
-            rc = -9
+        if a.no_supervise:
+            try:
+                rc = proc.wait(timeout=a.timeout if a.timeout > 0 else None)
+            except subprocess.TimeoutExpired:
+                say("timeout: %d s passed, the Watch is stopped" % int(a.timeout))
+                SB.kill_tree(proc.pid)
+                rc = -9
+        else:
+            rc = supervise(a, started)
         try:
             with open(log, "r", encoding="utf-8", errors="replace") as f:
                 lines = f.read().splitlines()
@@ -428,7 +670,7 @@ def main(argv=None):
     finally:
         # a run that never started, or one that is over: the lock goes (a window still open keeps it)
         st = lock_status()
-        if st is not None and st.get("pid") in (os.getpid(), getattr(proc, "pid", -1)) and (proc is None or proc.poll() is not None):
+        if st is not None and (st.get("pid") == os.getpid() or (st.get("alive") is False and (proc is None or proc.poll() is not None))):
             lock_release()
 
 

@@ -66,6 +66,11 @@ var _window_btn: Button
 var _sound_btn: Button
 var _goals_btn: Button
 var _end_btn: Button
+## pass 133: IMPORT DATA (plain while the snapshot is current, amber with the count when game/ changed)
+var _import_btn: Button
+var _import_lit := false
+var _import_box_lit: StyleBoxFlat
+var _import_box_lit_hover: StyleBoxFlat
 var _status: Label
 var _tiles: Dictionary = {}
 var _charts: Array = []
@@ -374,7 +379,55 @@ func _header() -> Control:
 	_restart_btn = _button("Restart run", "choose the next run's settings (outlaw, look, board, seed, bot ...): Start Run ends this run (recorded) and starts that one down the spawn beam (R)",
 		func() -> void: watch.open_setup(true))
 	row.add_child(_restart_btn)
+	# pass 133 (Garry: "an import data button that highlights when the balancing data is out of date in the tool vs the
+	# reality"): plain and idle while the snapshot matches game/; amber with the count when files changed (the hint names
+	# the first of them); pressed, everything is imported and the run restarts with the same Outlaw Settings (I)
+	_import_btn = _button("Import data", IMPORT_TIP_CURRENT, func() -> void: watch.import_data())
+	_import_btn.custom_minimum_size = Vector2(96, 0)
+	row.add_child(_import_btn)
+	_import_box_lit = _box(Color(0.42, 0.28, 0.06), 4, 6, ACCENT)
+	_import_box_lit_hover = _box(Color(0.55, 0.37, 0.09), 4, 6, ACCENT)
 	return v
+
+
+const IMPORT_TIP_CURRENT := "the tool plays what game/ holds now (the timeline, the items, the creatures, the Trail ... every file the snapshot copies). When something changes in game/ this button lights up with the count: press it (or I) to import everything; the run ends (recorded) and restarts with the same Outlaw Settings"
+
+
+## Pass 133: the IMPORT DATA button's state from the Watch (sync_count, sync_changed, importing).
+func _show_import(w: Node) -> void:
+	if _import_btn == null:
+		return
+	var n: int = int(w.sync_count())
+	var txt: String = str(w.import_words())
+	if _import_btn.text != txt:
+		_import_btn.text = txt
+	var lit := n > 0 and not bool(w.importing)
+	_import_btn.disabled = n == 0 or bool(w.importing)
+	if lit != _import_lit:
+		_import_lit = lit
+		if lit:
+			_import_btn.add_theme_stylebox_override("normal", _import_box_lit)
+			_import_btn.add_theme_stylebox_override("hover", _import_box_lit_hover)
+			_import_btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.7))
+			_import_btn.add_theme_color_override("font_hover_color", Color(1, 1, 1))
+		else:
+			_import_btn.remove_theme_stylebox_override("normal")
+			_import_btn.remove_theme_stylebox_override("hover")
+			_import_btn.remove_theme_color_override("font_color")
+			_import_btn.remove_theme_color_override("font_hover_color")
+	if bool(w.importing):
+		_import_btn.tooltip_text = "importing: the run ends here (recorded), the window closes while watch.py syncs and imports the snapshot, then opens again with the same Outlaw Settings"
+	elif n > 0:
+		var ch: Array = w.sync_changed
+		var lines: Array = []
+		for i in range(mini(ch.size(), 8)):
+			lines.append(str(ch[i]))
+		if n > lines.size():
+			lines.append("... and %d more" % (n - lines.size()))
+		_import_btn.tooltip_text = "%d file%s of game/ differ%s from what this tool plays:\n%s\nPress (or I) to import everything: the run ends (recorded) and restarts with the same Outlaw Settings" % [
+			n, "" if n == 1 else "s", "s" if n == 1 else "", "\n".join(lines)]
+	else:
+		_import_btn.tooltip_text = IMPORT_TIP_CURRENT
 
 
 ## Pass 90: the HP chart's place: a row of two tabs (HP & Danger | Damage taken, the D key) over the chart or the Damage
@@ -874,6 +927,7 @@ func refresh() -> void:
 	_sound_btn.text = "Sound on" if w.sound_on else "Sound off"
 	_end_btn.disabled = w.ended or game == null
 	_restart_btn.disabled = w.setup_open()
+	_show_import(w)
 	_status.text = w.status_words()
 	_status.tooltip_text = _status.text
 	_status.add_theme_color_override("font_color", BAD if clk.short() else DIM)
