@@ -694,6 +694,12 @@ const Instructions = (() => {
       'Drag the slider or type a number (1 to 60). The right player follows at once and says what the change comes to (seconds a cycle, % slower or faster).',
       '<b>Save</b> writes the look\'s own rate (a backup first) and imports it. Lower = the legs or wings move slower; how fast the creature travels is its Speed, not this.'));
 
+    how('A look was better before (a re-roll broke it)', 'Pass 132c. Every version of a look, played, and one click to put it back.', ol(
+      'Enemies or Outlaws tab → the creature → <b>Looks &amp; previews</b> → click the look\'s card → the <b>History</b> row → <b>Show history</b>.',
+      'Each git commit that changed the look and every copy kept from the page is listed newest first, with its walk, back walk, death and icon playing, and what differs from the look now.',
+      '<b>Restore this version</b> puts that strip, icon, provenance file and entry back and imports; what was there is kept as a copy first, so it can be undone from the same row.',
+      '<b>Keep a copy</b> before a re-roll: a job\'s result is in no commit until the next pass, and the row warns when the look as it is now is only in the working folder.'));
+
     how('A creature looks the wrong way', 'Pass 130. A creature that looks away from where it walks (the Straw Man ran up the screen looking the other way) has a painting that turns the other way than the game assumes. No art job is needed.', ol(
       'Enemies tab → the creature → <b>Looks &amp; previews</b> → click the look\'s card. Beside the big player the <b>Facing</b> row shows the <b>Front view</b> (walking down the screen) and the <b>Back view</b> (walking up), each heading left and heading right.',
       'The view that looks the wrong way → <b>Flip</b>. It is saved at once (a backup first) and imported; the previews show the result.',

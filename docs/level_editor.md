@@ -2497,6 +2497,20 @@ look's own rate (`variants[CODE].fps.run` / `.die`; a backup first; look op `fps
 job runs. Lower = the legs or wings move slower; the creature's speed over the ground is its Speed stat, not this. In
 the game a walk plays at this rate times the map's pace.
 
+### A look was better before (a re-roll broke it): its history
+
+Pass 132c (Garry: "allow for seeing history in the LevelEditor as well so I don't ask you all the time"). Enemies or
+Outlaws tab -> the creature -> Looks & previews -> click the look's card -> the **History** row -> **Show history**.
+Every version of the look is listed newest first: each git commit that changed its strip, icon or entry (the commit's
+words beside it) and every copy kept from the page, each played (the walk, the back walk, the death, the icon) with
+what differs from the look now (other pictures, the frame counts, the death kind, NEW, the note). **Restore this
+version** puts that strip, icon, provenance file (`<id>_<x>_ai.json`) and entry back and imports; what was there is
+kept as a copy first, so a restore can be undone from the same row. **Keep a copy** saves the look as it is now
+(tools/level_editor/backups/looks/<id>/<CODE>/<stamp>/): do it before a re-roll, because a job's result lives only in
+the working folder until the next commit, and the row says so ("The look as it is now is in no commit yet").
+Routes: GET `/api/content/<kind>/<id>/look/<CODE>/history`, `/lookhist/<kind>/<id>/<CODE>/<ref>/<sprite|icon>`,
+look ops `snapshot` {why} and `restore` {ref: git:<sha> | snap:<stamp>} (tools/level_editor/look_history.py).
+
 ### A creature looks the wrong way
 
 A creature that looks away from where it walks (pass 130: the Straw Man running up the screen) has a painting that

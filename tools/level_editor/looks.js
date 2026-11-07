@@ -295,6 +295,9 @@ const LookGrid = (() => {
     if (kind !== 'hero' && !isStub(look)) info.appendChild(facingRow(kind, id, record, look, s));
     // pass 132: the frames a second its walk and its death play at, the saved rate beside the one being tried
     if (kind !== 'hero' && !isStub(look)) info.appendChild(fpsRow(kind, id, record, look, s));
+    // pass 132c (Garry: "allow for seeing history in the LevelEditor as well so I don't ask you all the time"): every
+    // past version of the look (git commits, copies kept from the page), each played, one click to restore
+    if (!isStub(look)) info.appendChild(historyRow(kind, id, record, look, s));
     // pass 70: choose the look's badge / icon / cut-out from everything the finished jobs painted
     if (!isStub(look)) info.appendChild(pickers(kind, id, look));
     // pass 76 (lane ICON): the look's icon now, Revert icon, its changes and every icon on disk ("Use for this look")
@@ -408,6 +411,85 @@ const LookGrid = (() => {
       show(cur);
       wrap.appendChild(line);
     }
+    return wrap;
+  }
+
+  function historyRow(kind, id, record, look, s) {
+    for (const p of s.histPlayers || []) { try { p.destroy(); } catch (_) { /* gone already */ } }
+    s.histPlayers = [];
+    const wrap = el('div', { class: 'lg-facing lg-hist' });
+    const list = el('div', { class: 'lg-hist-list' });
+    const status = el('span', { class: 'muted small' });
+    const keepBtn = el('button', { type: 'button', class: 'btn small flip', text: 'Keep a copy', title: 'copy the strip, the icon, the provenance file and the entry as they are now into tools/level_editor/backups/looks/ (a version you can restore later, whatever a job or a Save does to the look in between)',
+      onclick: (e) => { e.stopPropagation(); keepBtn.disabled = true; post(`/api/content/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/look/${encodeURIComponent(look.code)}`, { op: 'snapshot', why: 'kept from the page' }).then((r) => { keepBtn.disabled = false; if (r && r.ok) { status.textContent = `kept as ${r.snapshot}`; App.status(`${id} ${look.code}: a copy kept (${r.snapshot})`, 'good'); if (loaded) fill(r.history); } else App.status(`${id} ${look.code}: keep a copy refused: ${(r && r.error) || '?'}`, 'bad'); }); } });
+    const toggle = el('button', { type: 'button', class: 'btn small ghost', text: 'Show history', title: 'every version of this look: the git commits that changed its strip, icon or entry, and the copies kept from the page' });
+    wrap.appendChild(el('div', { class: 'lg-facing-head' }, el('b', { text: 'History' }),
+      el('span', { class: 'muted small', text: 'what this look was before: each commit that changed it and every copy kept here, played. Restore puts that strip, icon, provenance file and entry back (what is there now is kept as a copy first) and imports.' }),
+      el('span', { class: 'lg-facing-btns' }, toggle, keepBtn, status)));
+    wrap.appendChild(list);
+    let shown = false, loaded = null;
+    const vLabel = (v) => `${v.kind === 'git' ? 'commit ' + v.ref.slice(4, 11) : 'copy ' + v.ref.slice(5)} · ${v.when}`;
+    const diffs = (a, b) => {
+      // what the version changes against the look now: files, counts, the death, the note
+      const out = [];
+      if (!a.has_sprite) out.push('no strip in that version');
+      const e = a.entry || {}, n = b || {};
+      if (JSON.stringify(e.anims || {}) !== JSON.stringify(n.anims || {})) out.push('frames ' + JSON.stringify(e.anims || {}));
+      if ((e.strip_cols || 0) !== (n.strip_cols || 0)) out.push(`strip_cols ${e.strip_cols || '?'}`);
+      if (JSON.stringify(e.fps || {}) !== JSON.stringify(n.fps || {})) out.push('fps ' + JSON.stringify(e.fps || {}));
+      if ((e.recipe_death || '') !== (n.recipe_death || '')) out.push(`death ${e.recipe_death || '(the method’s)'}`);
+      if (!!e.fresh !== !!n.fresh) out.push(e.fresh ? 'NEW' : 'approved');
+      if ((e.note || '') !== (n.note || '')) out.push('another note');
+      return out;
+    };
+    const fill = (h) => {
+      loaded = h;
+      list.textContent = '';
+      for (const p of s.histPlayers) { try { p.destroy(); } catch (_) { /* gone */ } }
+      s.histPlayers = [];
+      if (!h || !h.ok) { list.appendChild(el('div', { class: 'muted small', text: (h && h.error) || 'no history' })); return; }
+      if (!h.now_committed) list.appendChild(el('div', { class: 'muted small lg-hist-note', text: 'The look as it is now is in no commit yet (a job or a Save changed it since the last one): "Keep a copy" before trying a version, or it is gone.' }));
+      if (!h.versions.length) list.appendChild(el('div', { class: 'muted small', text: 'no versions: the look was never committed and no copy was kept' }));
+      for (const v of h.versions) {
+        const line = el('div', { class: 'lg-facing-line lg-hist-line' + (v.same_as_now ? ' same' : '') });
+        const head = el('span', { class: 'lb' }, el('b', { text: vLabel(v) }), el('br'), el('span', { class: 'muted small', text: v.title }));
+        if (v.since) head.appendChild(el('span', { class: 'muted small', text: ` (unchanged since ${v.since})` }));
+        line.appendChild(head);
+        const host = el('span', { class: 'lg-facing-pv' });
+        if (v.has_sprite) {
+          const url = `/lookhist/${kind}/${id}/${look.code}/${v.ref}/sprite`;
+          const e = v.entry || {};
+          for (const [anim, dir] of [['run', 'front'], ['run', 'back'], ['die', 'front']]) {
+            const anims = e.anims || look.anims || record.anims || {};
+            if (!(anims[anim] > 0)) continue;
+            const p = StripPlayer.create(playerOpts(kind, record, look, { url, mtime: 0, mode: 'hover', always: true, zoom: 0.4, anim, dir, anims, stripCols: e.strip_cols || 0, fps: e.fps || look.fps || record.fps || {}, label: `${look.code} ${vLabel(v)} ${anim} ${dir}` }));
+            s.histPlayers.push(p);
+            host.appendChild(p.el);
+          }
+          if (v.has_icon) host.appendChild(el('img', { class: 'lg-hist-icon', src: `/lookhist/${kind}/${id}/${look.code}/${v.ref}/icon`, alt: '', title: 'the icon of that version' }));
+        } else host.appendChild(el('span', { class: 'muted small', text: 'no strip' }));
+        line.appendChild(host);
+        const d = diffs(v, h.now);
+        const right = el('span', { class: 'lg-facing-set' });
+        right.appendChild(el('span', { class: 'muted small', text: v.same_as_now ? 'the same pictures as now' : 'differs: ' + ['other pictures'].concat(d).join(' · ') }));
+        if (!v.same_as_now) right.appendChild(el('button', { type: 'button', class: 'btn small flip', text: 'Restore this version', disabled: s.busy, title: `put ${look.code} back as it was at ${vLabel(v)} (the strip, the icon, the provenance file and the entry; what is there now is kept as a copy first), then import`,
+          onclick: (ev) => { ev.stopPropagation(); if (!confirm(`Restore ${look.code} to ${vLabel(v)}?\nThe strip, the icon, the provenance file and the entry go back to that version; what is there now is kept as a copy in the history first.`)) return; op(kind, id, record, s, look.code, { op: 'restore', ref: v.ref }).then((r) => { if (r && r.ok) redraw(); }); } }));
+        line.appendChild(right);
+        list.appendChild(line);
+      }
+    };
+    toggle.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      shown = !shown;
+      toggle.textContent = shown ? 'Hide history' : 'Show history';
+      list.style.display = shown ? '' : 'none';
+      if (shown && !loaded) {
+        list.appendChild(el('div', { class: 'muted small', text: 'reading git…' }));
+        try { const r = await fetch(`/api/content/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/look/${encodeURIComponent(look.code)}/history`, { cache: 'no-store' }); fill(await r.json()); }
+        catch (err) { fill({ ok: false, error: String(err && err.message || err) }); }
+      }
+    });
+    list.style.display = 'none';
     return wrap;
   }
 

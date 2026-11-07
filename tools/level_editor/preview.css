@@ -334,3 +334,10 @@ input.inherited, textarea.inherited, textarea.txt.area.inherited, .jform textare
 
 .lg-fps-box { width: 58px; }
 .lg-fps-slide { width: 150px; }
+.lg-hist-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.lg-hist-line.same { opacity: 0.75; }
+.lg-hist-line .lg-facing-pv { display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; align-items: center; }
+.lg-hist-line .lb { min-width: 220px; max-width: 320px; white-space: normal; }
+.lg-hist-icon { width: 48px; height: 48px; margin-left: 6px; vertical-align: middle; }
+.lg-hist-note { margin: 4px 0; }
+

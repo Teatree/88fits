@@ -143,6 +143,7 @@ import ai_hosts  # noqa: E402  (pass 97, lane SAFE: tools/ai_hosts.json; the old
 QA_URL = ai_hosts.get("lmstudio", "http://127.0.0.1:1234").rstrip("/") + "/v1/models"
 import locks  # noqa: E402  (tools/locks.py: the repo-wide Godot and ComfyUI locks, the PC save kept aside)
 import content_io as cio  # noqa: E402
+import look_history  # noqa: E402  (pass 132c: a look's versions from git and snapshots, restored from the page)
 import vocab as VOCAB  # noqa: E402
 import boss_attacks_io as BAIO  # noqa: E402  (pass 72, lane BOSS: the custom boss attacks' routes)
 import sim_io as SIMIO  # noqa: E402  (pass 77, lane SIMUI: the Sim tab's routes, /api/sim/...)
@@ -2552,6 +2553,26 @@ def look_op(kind, cid, codes, op, body=None):
     tfolder, path = content_path(kind, cid)
     if path is None:
         return {"ok": False, "error": "no %s %s" % (kind, cid), "status": 404}
+    if op in ("restore", "snapshot"):
+        # pass 132c: a look's history (look_history.py): "Keep a copy" and "Restore this version" (git or a snapshot)
+        c = codes[0] if isinstance(codes, list) and codes else (codes if isinstance(codes, str) else "")
+        if not isinstance(c, str) or not CODE_RE.match(c):
+            return {"ok": False, "error": "no look code", "status": 400}
+        folder = os.path.dirname(path)
+        if op == "snapshot":
+            stamp = look_history.snapshot(cid, c, folder, path, str(body.get("why", "") or "kept from the page"))
+            if not stamp:
+                return {"ok": False, "error": "%s has no look %s" % (cid, c), "status": 404}
+            return {"ok": True, "op": op, "codes": [c], "snapshot": stamp, "history": look_history.history(kind, cid, c, folder, path)}
+        res = look_history.restore(kind, cid, c, str(body.get("ref", "")), folder, path, cio, _write_lock)
+        if not res.get("ok"):
+            return res
+        EV.look_events(kind, cid, [c], "restore", note="restored %s (the copy before: %s)" % (body.get("ref"), res.get("snapshot")))
+        import_ok, output = run_import("%s/%s" % (tfolder, cid))
+        d = load_json(path)
+        res.update({"op": op, "codes": [c], "import_ok": import_ok, "output": output,
+                    "looks": look_records(kind, cid, folder, d, path), "history": look_history.history(kind, cid, c, folder, path)})
+        return res
     if op not in ("approve", "shelve", "unshelve", "remove", "note", "recipe", "default", "facing", "fps"):
         return {"ok": False, "error": "unknown look op %s" % op, "status": 400}
     codes = [c for c in (codes if isinstance(codes, list) else [codes]) if isinstance(c, str) and CODE_RE.match(c)]
@@ -4181,6 +4202,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._iconfile(parts[1:])   # pass 76 (lane ICON): a picture of the icon gallery
             if parts[:1] == ["sprite"]:
                 return self._sprite(parts[1:])
+            if parts[:1] == ["lookhist"]:
+                return self._lookhist(parts[1:])   # pass 132c: a past version's strip or icon
             if parts[:2] == ["art", "wanted"] and len(parts) == 3:
                 return self._wanted(parts[2])
             if parts[:1] == ["dl"]:
@@ -4283,6 +4306,15 @@ class Handler(BaseHTTPRequestHandler):
             if parts[1] not in EDIT_KINDS:
                 return self._error(404, "unknown kind %s" % parts[1])
             return self._send(200, list_templates(parts[1]))
+        if len(parts) == 6 and parts[0] == "content" and parts[3] == "look" and parts[5] == "history":
+            # pass 132c: GET /api/content/<kind>/<id>/look/<CODE>/history
+            kind, cid, code = parts[1], parts[2], parts[4]
+            if kind not in LOOK_KINDS or not ID_RE.match(cid) or not CODE_RE.match(code):
+                return self._error(404, "history paths are /api/content/<enemy|boss|hero>/<id>/look/<CODE>/history")
+            tfolder, path = content_path(kind, cid)
+            if path is None:
+                return self._error(404, "no %s %s" % (kind, cid))
+            return self._result(look_history.history(kind, cid, code, os.path.dirname(path), path))
         if len(parts) in (3, 4) and parts[0] == "content":
             kind, cid = parts[1], parts[2]
             if kind not in EDIT_KINDS:
@@ -4356,6 +4388,18 @@ class Handler(BaseHTTPRequestHandler):
         if not full:
             return self._error(404, "no icon")
         self._file(full, "image/png")
+
+    def _lookhist(self, parts):
+        """/lookhist/<kind>/<id>/<CODE>/<ref>/<sprite|icon> (pass 132c): the picture of one version of a look."""
+        if len(parts) != 5 or parts[0] not in LOOK_KINDS or not ID_RE.match(parts[1]) or not CODE_RE.match(parts[2]) or parts[4] not in ("sprite", "icon"):
+            return self._error(404, "history pictures are /lookhist/<kind>/<id>/<CODE>/<ref>/<sprite|icon>")
+        tfolder, path = content_path(parts[0], parts[1])
+        if path is None:
+            return self._error(404, "no such asset")
+        data = look_history.picture(parts[0], parts[1], parts[2], parts[3], parts[4], os.path.dirname(path), path)
+        if not data:
+            return self._error(404, "that version has no such picture")
+        self._send(200, data, "image/png", "max-age=3600")
 
     def _sprite(self, parts):
         """A creature's or hero's animation strip (pass 58, pass 66): /sprite/<kind>/<id>[/<code>], kind enemy|boss|hero."""

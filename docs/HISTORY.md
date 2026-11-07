@@ -4681,3 +4681,35 @@ walk's dark shields, the death's, the hit frame), fresh. Doubts: the shield read
 the iron boss the walk painted purple in run 6-9 stays purple (in KN-D too), run 4's shield mottled. Garry's own map edit
 of the evening (rows now playing SK-F, SK-G and KN-D) is committed with it. Drivers fall_forward_fit / fall_forward_knd
 are kept as a warning: both tumble.
+
+
+## Pass 132c (2026-11-07): KN-D really restored, KN-L made again, a look's history in the Level Editor
+
+Garry: "No no KN-D is still not good, do another revert. Maybe allow for seeing history in the LevelEditor as well so
+I don't ask you all the time. Basically I want the KN-D to be the version that came after your reroll."
+
+**What had gone wrong.** Pass 132's commit (0121742f, 22:37) carried Garry's re-rolled KN-D as his own edit; pass
+132b's "restore from git" was `git checkout --` at HEAD, so it put back that re-roll, not pass 131's repaired strip
+(832e0237, 19:01), and the lane's "clean back run" sheet looked at the wrong file. The pass 131 strip has the shield
+on the hanging left arm in all twelve back frames; the re-roll's folds it in front and turns the figure.
+
+**KN-D now** (`tools/dl/p132/KND2/restore.py`): pass 131's strip, icon and `_d_ai.json` byte for byte (from
+832e0237), with pass 132b's face-down death spliced in (`artkit.pitch_fall` on this strip's own idle frame, the lying
+still of 132b): anims die 8, strip_cols 43; the entry is pass 131's with the death keys (the re-roll's `anim_seed`,
+`seed_offset`, `painter`, `screen`, `method` keys are gone with it). Proof sheets `tools/dl/p132/KND2/runb.png` (the
+back run), `die.png`, `runb_132b.png` (what 132b had). Pass 132b's files in `tools/dl/p132/KND2/before/`.
+**KN-L** made again from this KN-D with the same four recolour passes (`tools/dl/p132/KND/passes.sh`), still fresh.
+
+**The History row** (`tools/level_editor/look_history.py`, `looks.js` `historyRow`, `selftest_P132C.py`): on an open
+look, every version newest first: the git commits that changed its strip, icon or entry (folded when none of the
+three changed; the commit's words), and the copies kept from the page under `tools/level_editor/backups/looks/<id>/
+<CODE>/<stamp>/` (strip, icon, `_ai.json`, `entry.json`); each version plays its walk, back walk, death and icon
+(`/lookhist/<kind>/<id>/<CODE>/<ref>/<sprite|icon>`, ref `git:<sha>` or `snap:<stamp>`) with what differs from the
+look now. **Restore this version** (look op `restore` {ref}) writes the strip, icon, provenance file and entry back
+(keys the version had not are dropped) after keeping what is there as a copy, then imports; **Keep a copy** (op
+`snapshot` {why}) saves the look as it is now. A row warns when the look now is in no commit. The base look without
+an entry of its own restores its pictures only. Seen in a browser (`tools/dl/p132/KND2/history_row.png`).
+
+Not done / to know: a job's result still lands in the working folder without a copy (Garry presses Keep a copy
+first, or the next commit keeps it); the row reads at most 40 commits of the creature's folder. Garry's Level Editor
+needs a restart (new routes, a new module).
