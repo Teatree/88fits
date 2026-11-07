@@ -184,7 +184,7 @@
       "head": 1.0
     },
     "KN-D": {
-      "note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline. Pass 131: the back walk painted again on the driver bigguy_shield (tools/pose_hang.py arms=l: seen from behind the shield arm hangs with the shield as the painting holds it, where the walk folded it up in front of the chest and left the shield in the air without it); only the 12 back frames changed, the old strip is in tools/dl/p131/SKEL/before/. Pass 132c: this is pass 131's strip, icon and provenance byte for byte (pass 132 had committed Garry's re-rolls and pass 132b restored those by mistake; his last re-roll is in tools/dl/p132/KND/before/garry_reroll2/, pass 132b's file in tools/dl/p132/KND2/before/); only the death is new: `pitch` (artkit.pitch_fall on this strip's own idle frame, then the face-down still painted in pass 132b: the back of the helmet and the back plate to the viewer, the shield on its arm; 8 frames)",
+      "note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline. Pass 131: the back walk painted again on the driver bigguy_shield (tools/pose_hang.py arms=l: seen from behind the shield arm hangs with the shield as the painting holds it, where the walk folded it up in front of the chest and left the shield in the air without it); only the 12 back frames changed, the old strip is in tools/dl/p131/SKEL/before/. Pass 132c: this is pass 131's strip, icon and provenance byte for byte (pass 132 had committed Garry's re-rolls and pass 132b restored those by mistake; his last re-roll is in tools/dl/p132/KND/before/garry_reroll2/, pass 132b's file in tools/dl/p132/KND2/before/); only the death is new: `pitch` (artkit.pitch_fall on this strip's own idle frame, then the face-down still painted in pass 132b: the back of the helmet and the back plate to the viewer, the shield on its arm; 8 frames) Pass 132d: the death is a painted fall (a first-last-frame clip from the standing painting to the face-down still, death \"clip\" with death_motion and death_pick; the pitch warp read as a squash).",
       "recipe": {
         "stills": "vd",
         "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a clear ribcage, spine and pelvis, slim arm and leg bones with rounded joints, bony hands and feet, wearing a simple dented steel medieval breastplate strapped over its ribcage with worn leather straps and a simple round steel kettle helmet with a wide brim on its skull, bare bone arms and legs, a small round wooden shield with an iron boss strapped to one forearm, the other arm hanging at its side, no weapon, standing with its shoulders squared and facing the viewer",
@@ -196,10 +196,20 @@
         "gait": "swaggering in place on the spot with a heavy rolling walk, the same round wooden shield strapped to the same forearm the whole time",
         "motion": "a skeleton walking with a heavy swagger",
         "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing",
-        "death": "pitch",
-        "death_frames": 8,
+        "death": "clip",
         "outline_frac": 0.024,
-        "outline_color": "#0e080c"
+        "outline_color": "#0e080c",
+        "death_motion": "it is struck from behind and pitches forward, its knees buckling, falling face first and landing flat on its face on the ground, its body turned sideways to the camera, then it lies still, dead",
+        "death_pick": [
+          8,
+          9,
+          10,
+          12,
+          14,
+          16,
+          19,
+          32
+        ]
       },
       "sprite": "skeleton_knight_sprite_d.png",
       "icon": "skeleton_knight_icon_d.png",
@@ -220,14 +230,14 @@
       "head": 1.0
     },
     "KN-L": {
-      "note": "Pass 132c recolour of KN-D (Garry: the same look with a white shield), made again from the restored pass 131 KN-D: the round shield's wood lifted to white (lift, hue 335-42, mass-filtered so the thin leather straps, the bone shading and the outline stay), the front walk's dark shields in a pass of their own (cells 4-15), the pitched and lying death frames (cells 22-26) and the hit frame (cell 18); the iron boss, the bone, the steel and the outline as they are; it dies on its face like KN-D (tools/recolour_look.py; passes in tools/dl/p132/KND/passes.sh)",
+      "note": "KN-D with a white shield (pass 132d: made again from KN-D's painted fall; the death pass covers every die cell)",
       "fresh": true,
       "recipe": {
         "recolour_of": "KN-D",
         "recolour_passes": [
           "--mode lift --ranges 335-360,0-42 --hue-soft 2 --min-sat 0.28 --min-val 0.15 --src-hi 0.9 --soft 0.04 --mass 2 --grow 4 --to 40 --set-sat 0.06 --v-lo 0.62 --v-hi 1.0 --gamma 0.9",
           "--cells 4,5,6,7,8,9,10,11,12,13,14,15 --mode lift --ranges 335-360,0-24 --hue-soft 2 --min-sat 0.28 --min-val 0.07 --src-hi 0.5 --soft 0.03 --mass 2 --grow 3 --to 40 --set-sat 0.06 --v-lo 0.5 --v-hi 0.95 --gamma 0.9",
-          "--cells 22,23,24,25,26 --mode lift --ranges 335-360,0-31 --hue-soft 2 --min-sat 0.2 --min-val 0.15 --src-hi 0.9 --soft 0.03 --mass 1 --grow 2 --to 40 --set-sat 0.06 --v-lo 0.62 --v-hi 1.0 --gamma 0.9",
+          "--cells 19,20,21,22,23,24,25,26 --mode lift --ranges 335-360,0-31 --hue-soft 2 --min-sat 0.2 --min-val 0.07 --src-hi 0.9 --soft 0.03 --mass 1 --grow 2 --to 40 --set-sat 0.06 --v-lo 0.62 --v-hi 1.0 --gamma 0.9",
           "--cells 18 --mode lift --ranges 335-360,0-42 --hue-soft 2 --min-sat 0.07 --max-sat 0.3 --min-val 0.6 --max-val 0.9 --src-hi 0.82 --soft 0.02 --mass 3 --grow 5 --to 40 --set-sat 0.03 --v-lo 0.86 --v-hi 0.97"
         ]
       },

@@ -4713,3 +4713,17 @@ an entry of its own restores its pictures only. Seen in a browser (`tools/dl/p13
 Not done / to know: a job's result still lands in the working folder without a copy (Garry presses Keep a copy
 first, or the next commit keeps it); the row reads at most 40 commits of the creature's folder. Garry's Level Editor
 needs a restart (new routes, a new module).
+
+
+## Pass 132d (2026-11-07): KN-D falls on its face for real
+
+Garry: "Can we have a proper death animation for the skeletons knight KN-D. Falling down on his face. Right now, it's
+just squishing into it." Pass 132b's `pitch` warp was a perspective squash of the standing painting. The death is now
+a painted fall: the first-last-frame route (`death: "clip"`, gen_art `death_cycle` / animate `fall_clip`) from the
+standing painting to pass 132b's face-down still, with the recipe's `death_motion` now read by that route too ("it is
+struck from behind and pitches forward, its knees buckling, falling face first ..."), three seeds painted
+(tools/dl/p132/KND3/flf_all.png), seed 2 picked by eye and its frames chosen by hand with the new recipe key
+`death_pick` [8, 9, 10, 12, 14, 16, 19, 32] (the silhouette picker had spent two frames standing): arms out, the knees
+buckle, a forward tumble, face down from frame 5, the lying still last; 8 frames at 8 fps (die_final.png). Only the
+die cells changed in the strip (splice.py; the clip cached as ai_anim/skeleton_knight_knd_fall). KN-L made again from
+it with the death pass on every die cell (still fresh). methods.json lists `death_pick`; docs/assets_schema.md "Pass 132d".

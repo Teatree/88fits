@@ -90,7 +90,7 @@ def _on_canvas(keyed, size, bg, scale, floor=0.86):
     return canvas
 
 
-def fall_clip(still_rgb, dead_rgb, key, seed=0, size=640, length=33, prompt_hint="", tries=2, negative_extra=""):
+def fall_clip(still_rgb, dead_rgb, key, seed=0, size=640, length=33, prompt_hint="", tries=2, negative_extra="", motion=""):
     """A death that is animated, not tilted: a first-last-frame clip from the standing painting to the dead painting.
     Both go in at one body scale on one screen (the standing figure 72% of the canvas tall, the lying body as long as
     the standing figure is tall, a touch less), centred, on one floor line, so the model only has to make it fall.
@@ -115,8 +115,10 @@ def fall_clip(still_rgb, dead_rgb, key, seed=0, size=640, length=33, prompt_hint
     n_first = comfy.upload_pil(first, key + "_first.png")
     n_last = comfy.upload_pil(last, key + "_last.png")
     colour = screen_word(bg)
-    prompt = ("A 2D anime game character sprite" + (", " + prompt_hint if prompt_hint else "") + ": it is struck and falls over, its legs giving way, "
-              "toppling sideways and landing flat on its back on the ground, then it lies still, dead. The same character, outfit and colours "
+    # pass 132d: `motion` (a recipe's "death_motion") replaces the backwards fall's words (KN-D falls onto its face)
+    fall_words = motion or ("it is struck and falls over, its legs giving way, toppling sideways and landing flat on its back on the ground, "
+                            "then it lies still, dead")
+    prompt = ("A 2D anime game character sprite" + (", " + prompt_hint if prompt_hint else "") + ": " + fall_words + ". The same character, outfit and colours "
               "in every frame, one body with two arms and two legs, crisp clean line art, cel shading. The camera is completely locked off "
               "and static. The background stays a flat solid " + colour + " color with nothing in it, no ground plane, no shadow.")
     neg = NEGATIVE + ", extra limbs, a second head, duplicate body, morphing, melting" + (", " + negative_extra if negative_extra else "")

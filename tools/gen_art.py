@@ -1196,7 +1196,7 @@ def pose_death(still_rgb, key, clip, seed, cell, stand_cell, n_out=8, outline_fr
     return [frames[i] for i in idx]
 
 
-def death_cycle(still_rgb, dead_rgb, key, seed, cell, stand_cell, n_out=8, outline_frac=0.024, outline_color=(14, 8, 12, 255), hint="", negative_extra=""):
+def death_cycle(still_rgb, dead_rgb, key, seed, cell, stand_cell, n_out=8, outline_frac=0.024, outline_color=(14, 8, 12, 255), hint="", negative_extra="", motion="", pick=None):
     """A creature's death as an animated fall (pass 33.9, JSON "death": "clip"): animate.fall_clip's first-last-frame
     clip from the standing painting to the dead one, cut to n_out frames from the first to the moment the body comes to
     rest, the dead painting last. Every frame keeps the clip's geometry: one scale (the standing figure exactly as tall
@@ -1205,7 +1205,7 @@ def death_cycle(still_rgb, dead_rgb, key, seed, cell, stand_cell, n_out=8, outli
     if NO_VIDEO:
         return None
     try:
-        frames, meta = animate.fall_clip(still_rgb, dead_rgb, key, seed, prompt_hint=hint, negative_extra=negative_extra)
+        frames, meta = animate.fall_clip(still_rgb, dead_rgb, key, seed, prompt_hint=hint, negative_extra=negative_extra, motion=motion)
     except Exception as e:
         log("  (fall clip failed for %s: %s)" % (key, e))
         return None
@@ -1227,6 +1227,11 @@ def death_cycle(still_rgb, dead_rgb, key, seed, cell, stand_cell, n_out=8, outli
         start -= 1
     idx = [start + int(round(j * (end - start) / (n_out - 1))) for j in range(n_out)]
     idx[-1] = len(frames) - 1
+    if pick:
+        # pass 132d: the recipe's `death_pick`, the clip's frames chosen by eye (KN-D: the picker spent two frames standing)
+        idx = [min(len(frames) - 1, max(0, int(k))) for k in list(pick)[:n_out]]
+        while len(idx) < n_out:
+            idx.append(len(frames) - 1)
     # a frame with a colour neither neighbour has (the goblin's club flashed pink for one frame) gives way to a neighbour
     hx = hue_excess(frames)
     hf = hue_foreign(frames, still_rgb)
@@ -1761,7 +1766,8 @@ def process(type_, folder, id_):
             dead_cell = finish(dead_img, cell, float(d.get("dead_fill", 0.7)), True, None, CF, None, CO)[0]
         fall = None
         if death == "clip":
-            fall = death_cycle(img, dead_img, ak + "_fall", seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")))
+            fall = death_cycle(img, dead_img, ak + "_fall", seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")),
+                               str(d.get("death_motion", "")), d.get("death_pick"))
         elif death.startswith("pose:"):
             fall = pose_death(img, ak + "_death", death[5:], seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")),
                               str(d.get("death_motion", "")))

@@ -3618,3 +3618,11 @@ Nerve talent's `base_stats`). Quest `unlocks.type` "talent" is gone from the Lev
   by this share of the creature's size, eased in over the strip (EnemyManager.die_slide_of; the compiled draw too). For a
   body painted low in its cell that `die_drop` would push under the sand. SK-B, SK-F..K: 0.3.
 - Look op `fps` {anim: run|die, value 1..60} (pass 132): the Level Editor's Frame rate row writes `variants[CODE].fps`.
+
+## Pass 132d (2026-11-07): a clip death's words and frames
+
+- `recipe.death_motion` also serves `death: "clip"` (the first-last-frame clip from the standing painting to the dead
+  still): the words of the fall, where empty keeps "toppling sideways and landing flat on its back". KN-D: "it is
+  struck from behind and pitches forward, its knees buckling, falling face first ...".
+- `recipe.death_pick`: a list of the clip's frame numbers to keep (0 to 32), chosen by eye on the clip's
+  `cycle_sheet.png`; empty = the silhouette picker. The pitch warp of pass 132b (`death: "pitch"`) stays as an option.
