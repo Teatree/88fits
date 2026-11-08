@@ -330,6 +330,23 @@ func place_edge(def: StructureDef, placed: Array) -> int:
 		if st:
 			st.edge = true
 			made += 1
+	# pass 136 (lead: a crowded rim left one short 1 time in ~30): the ones still missing anywhere on the rim, the even
+	# spread given up for them, so the run always has its `min`
+	var spare := 0
+	while made < lo and spare < EDGE_TRIES * 4:
+		spare += 1
+		var a := _rng.randf() * TAU
+		var r := map.arena_radius - inset - _rng.randf() * EDGE_IN
+		var p := Vector3(cos(a) * r, 0, sin(a) * r)
+		if not edge_spot_ok(p, placed, spacing * 0.5, kin, clear):
+			continue
+		p.y = map.height_at(p.x, p.z)
+		placed.append(p)
+		kin.append(p)
+		var st2 := _spawn(def, p)
+		if st2:
+			st2.edge = true
+			made += 1
 	if made < lo:
 		push_warning("StructureManager: placed %d of %d %s on the rim" % [made, lo, def.id])
 	return made

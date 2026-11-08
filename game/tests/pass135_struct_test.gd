@@ -109,7 +109,8 @@ func test_four_to_six_teleports_stand_on_the_rim_spread_round_it_clear_of_the_wa
 			assert_float(StructureManager.nearest_distance(p, others)).is_greater_equal(float(e["clear"]) - 0.01)
 			mean += Vector2(p.x, p.z).normalized()
 		# spread round the circle: they face each other, so their directions nearly cancel
-		assert_float(mean.length() / float(edges.size())).is_less(0.45)
+		# (pass 136: one that could not fit its even place goes anywhere on the rim, so "not all on one side")
+		assert_float(mean.length() / float(edges.size())).is_less(0.7)
 		if trial > 0:
 			sm.queue_free()
 			await get_tree().process_frame

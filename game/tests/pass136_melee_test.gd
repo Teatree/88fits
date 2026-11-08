@@ -283,8 +283,9 @@ func test_the_hit_tests_are_unchanged() -> void:
 	var r := float(em.radius[on])
 	var b := _thruster(w, "pike")
 	var lane := 0.55 * b.stat("area", 1.0) * 0.5
-	var off := _creature(em, Vector3(lane + r + 0.25, 0, -3.0), 50.0)
-	var edge := _creature(em, Vector3(-(lane + r - 0.05), 0, -3.5), 50.0)
+	# (pass 136 lead: margins 0.6 / 0.2 m, so a creature's first step cannot carry it across the lane's side)
+	var off := _creature(em, Vector3(lane + r + 0.6, 0, -3.0), 50.0)
+	var edge := _creature(em, Vector3(-(lane + r - 0.2), 0, -3.5), 50.0)
 	em._rebuild_grid()
 	var hp_on := em.hp[on]
 	var hp_off := em.hp[off]
