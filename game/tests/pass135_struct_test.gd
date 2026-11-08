@@ -163,6 +163,11 @@ func test_every_barrel_material_glints_and_the_props_do_not() -> void:
 	var g := _run_game(11)
 	await get_tree().create_timer(0.3).timeout
 	g.director.stop()
+	# (pass 136: the barrels may come a little later now that a run's build can be spread over frames; wait up to 3 s)
+	var waited := 0
+	while (g.barrels == null or g.barrels.materials().is_empty()) and waited < 180:
+		await get_tree().process_frame
+		waited += 1
 	var mats: Array = g.barrels.materials()
 	assert_int(mats.size()).is_greater(0)
 	for m: ShaderMaterial in mats:
