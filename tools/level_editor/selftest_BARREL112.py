@@ -183,7 +183,8 @@ PICKUPS = ["heart", "rage", "sprint", "shield", "magnet_pulse", "nuke", "coin_ba
 
 def checks(check, run_node, server):
     src = _read(GAME, "core", "systems", "BarrelSpawns.gd")
-    gd = {"RESPAWN_DEFAULTS": _gd_dict(src, "RESPAWN_DEFAULTS"), "CONTENT_DEFAULTS": _gd_dict(src, "CONTENT_DEFAULTS"), "EVERY_MIN": _gd_const(src, "EVERY_MIN")}
+    gd = {"RESPAWN_DEFAULTS": _gd_dict(src, "RESPAWN_DEFAULTS"), "CONTENT_DEFAULTS": _gd_dict(src, "CONTENT_DEFAULTS"), "EVERY_MIN": _gd_const(src, "EVERY_MIN"),
+          "GLINT_DEFAULTS": _gd_dict(src, "GLINT_DEFAULTS")}  # pass 135: the glint
     check(all(v is not None for v in gd.values()), "BARREL112: BarrelSpawns.gd's RESPAWN_DEFAULTS, CONTENT_DEFAULTS, EVERY_MIN read: %s" % [k for k, v in gd.items() if v is None])
     if any(v is None for v in gd.values()):
         return
@@ -252,16 +253,16 @@ def checks(check, run_node, server):
 
     # fields.js: the Barrels card's rows
     rows = {x[0]: x for x in res["rows"]}
-    want_keys = {"barrels.respawn." + k for k in gd["RESPAWN_DEFAULTS"]} | {"barrels.%s.%s" % (ty, k) for ty in ("exp", "coins", "powerup") for k in cd[ty]}
+    want_keys = {"barrels.respawn." + k for k in gd["RESPAWN_DEFAULTS"]} | {"barrels.%s.%s" % (ty, k) for ty in ("exp", "coins", "powerup") for k in cd[ty]}         | {"barrels.glint." + k for k in gd["GLINT_DEFAULTS"]}
     check(set(rows) == want_keys, "BARREL112: fields.js has a row for every key: missing %s, extra %s" % (sorted(want_keys - set(rows)), sorted(set(rows) - want_keys)))
     greys = []
     for key, (k, group, typ, dv, helped, blk) in rows.items():
         part = key.split(".")
-        game = gd["RESPAWN_DEFAULTS"][part[2]] if part[1] == "respawn" else cd[part[1]][part[2]]
+        game = gd["RESPAWN_DEFAULTS"][part[2]] if part[1] == "respawn" else gd["GLINT_DEFAULTS"][part[2]] if part[1] == "glint" else cd[part[1]][part[2]]
         shown = game[0] if typ == "interval" and isinstance(game, list) else game
         if not (_same(dv, shown) and helped and group == "Barrels"):
             greys.append((key, dv, shown, helped, group))
-        if part[1] != "respawn" and blk != "barrel_contents":
+        if part[1] not in ("respawn", "glint") and blk != "barrel_contents":
             greys.append((key, "not in the contents block"))
     check(not greys, "BARREL112: every row is in the Barrels card, has help and is greyed with the game's number: %s" % greys[:4])
     check("Barrels" in res["groups"] and "Chests" not in res["groups"] and res["chestRows"] == 0, "BARREL112: the Barrels card is drawn, the Chests card gone: %s" % res["groups"])

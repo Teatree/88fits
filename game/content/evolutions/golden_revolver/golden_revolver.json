@@ -16,7 +16,7 @@
     "damage": 40,
     "cooldown": 0.8,
     "amount": 2,
-    "pierce": 2,
+    "pierce": 3,
     "speed": 36,
     "range": 15,
     "knockback": 3.0

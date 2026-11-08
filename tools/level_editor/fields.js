@@ -443,6 +443,11 @@ const FIELDS = (() => {
     { key: 'barrels.respawn.in_boss', group: 'Barrels', label: 'During the boss fight', type: 'bool', def: true, help: 'on: barrels keep coming back while the boss is alive (empty = the game\'s: on)' },
     { key: 'barrels.respawn.in_portal', group: 'Barrels', label: 'During the portal countdown', type: 'bool', def: false, help: 'on: barrels keep coming back in the minute the portal counts down to Endless (empty = the game\'s: off)' },
     { key: 'barrels.respawn.in_endless', group: 'Barrels', label: 'In Endless', type: 'bool', def: false, help: 'on: barrels keep coming back in Endless (empty = the game\'s: off)' },
+    // pass 135 (Garry: "Barrels aren't clear, make them glint occasionally"): BarrelSpawns.GLINT_DEFAULTS
+    { key: 'barrels.glint.strength', group: 'Barrels', label: 'Glint strength', type: 'number', min: 0, max: 1, step: 0.05, def: 0.85, help: 'now and then a bright band sweeps corner to corner over each barrel so it catches the eye. 0 = no glint, 1 = the brightest (empty = the game\'s 0.85)' },
+    { key: 'barrels.glint.every', group: 'Barrels', label: 'Glint every (s)', type: 'number', min: 0.5, step: 0.5, def: 6, help: 'seconds between one barrel\'s glints; each barrel takes its own 0.75 to 1.25 of this, so they never glint together (empty = the game\'s 6)' },
+    { key: 'barrels.glint.length', group: 'Barrels', label: 'Glint length (s)', type: 'number', min: 0.05, step: 0.05, def: 0.5, help: 'seconds the band takes to cross the barrel (empty = the game\'s 0.5)' },
+    { key: 'barrels.glint.width', group: 'Barrels', label: 'Glint width', type: 'number', min: 0.01, max: 1, step: 0.01, def: 0.14, help: 'how wide the band is, as a share of the diagonal of the barrel picture (empty = the game\'s 0.14)' },
     // pass 116 (lane MAP; Garry: three kinds, "One of them produces only power ups ... about 60% of the amount of the
     // EXP+Coins ... the other barrels don't give any power-up anymore"): exp, coins, powerup (BarrelSpawns.CONTENT_DEFAULTS)
     ...['exp', 'coins', 'powerup'].flatMap((ty) => {

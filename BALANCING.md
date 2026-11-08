@@ -10160,3 +10160,42 @@ LevelEditor." Two keys in `timeline_data.relocate` (Level Editor: Settings -> Re
   the most left, counted as fire damage (kills, weapon damage, fire tallies); the burn ends (no spread, no Prairie Fire
   jump from a survivor's cut burn). Dead of it: dies where it stands, not moved. Alive: moved unburnt. Poison rides along
   unchanged.
+
+## 76. Pass 135: barrels glint, every structure 3 s, the Teleport smaller and louder with a rim set, the Revolver pierces one more
+
+Garry (2026-11-08): "Barrels aren't clear, make them glint occasionally"; "All Structures that can be interacted with, can
+be interacted with in 3 seconds. Not the different kind that we have at the moment. Make the teleport smaller, make the
+animation be much more noticeable as Player is activating it. And place 4 to 6 more of them all around the edges on
+opposite ends of the map. The number of the ones around the edges is still random (between 4 and 6), but the placement of
+these specific ones is on the very edges (not colliding with the walls though). The teleports that hang out in the middle
+stay the same, but the visuals still change obviously"; "Increase all pierce of Revolver by 1 (damage still drops though)".
+
+**76.GLINT.** Every barrel glints now and then: a bright band sweeps corner to corner over its painting
+(prop_billboard.gdshader `glint`, `glint_every`, `glint_length`, `glint_width`, `glint_color`; off by default, so no other
+prop changes). Each barrel keeps its own clock (its instance number in INSTANCE_CUSTOM.z, hashed) and glints every
+`every` x 0.75..1.25 seconds, so they never glint together. The map's `barrels.glint` block {strength **0.85**, every
+**6 s**, length **0.5 s**, width **0.14** of the diagonal} (BarrelSpawns.GLINT_DEFAULTS fill what it leaves out; strength 0 =
+none); the Level Editor's Barrels card has a row for each.
+
+**76.STRUCT.** `interact_time` is **3 s** on every structure: the Stranger (hooded_figure) 1.2 -> 3, the Teleport 1.5 -> 3
+(the rest were 3 already). The Teleport is smaller (height 2.7 -> **2.0** m, ring radius 1.8 -> **1.4** m) and charges with a
+show (`params.charge`, every number there): the swirl grows to 1.9x (`grow` 0.9, eased in) and from 15% of the charge comes
+out over the stone (`spill` 0.45 m in front of the painting), spins 2.2 -> 20 radians a second (`spin`, turned by the script
+through the swirl shader's new `phase`, so a changing speed never jumps the arms), burns 1.0 -> 2.3 (`energy`); a vortex
+opens on the sand in the ring (`vortex` 1.0, `vortex_size` 0.8 -> 1.6 of the ring); lightning cracks from the swirl to the
+ring every 0.45 -> 0.06 s (`arcs`); a ring of light flashes round it every 0.7 -> 0.18 s (`pulses`); the light swells by
+`light` 5 at full; the ring pulses 2.5 -> 16 a second (`pulse`); the stone shakes from 35% on (`shake` 0.07 m); sparks come
+0.16 -> 0.018 s apart, drawn in and up (`motes`, `lift`). Using it still throws the outlaw as before (Game.teleport_hero).
+**The rim set** (`params.edge` {min **4**, max **6**, inset **4 m**, jitter_deg **10**, clear **20 m**, spacing **10 m**},
+StructureManager.place_edge): after every other structure, 4-6 more Teleports (an even draw) stand spread evenly round the
+arena from a random start (so they face each other across the map), 4 m in from the wall's inner face (the whole ring is
+where the outlaw can stand: he stops 1.5 m from the wall), each turned up to 10 degrees off its even place, 20 m from any
+other Teleport and 10 m from any other structure, by the start's rules (rocks, water, bushes, the dressing, the river's
+bed). A spot that fails slides along the rim (up to 35% of the gap to the next) and steps in by up to 3 m before it is given
+up. They work as the middle ones do (the outlaw comes out at a random clear spot at least 60% of the arena's radius away,
+never within 15 m of any Teleport); the middle ones keep their count (3-4) and their places.
+
+**76.REVOLVER.** The Revolver's base pierce 1 -> **2** (so 2 / 2 / 3 / 3 / 3 at levels 1-5, with the Silver Bullet's +1 on
+top), the Golden Revolver's 2 -> **3**. The pierce drop-off is unchanged (`pierce_falloff` step 0.8, floor 0.4, the first
+x1.15): the extra creature in the row takes the next step down.
+

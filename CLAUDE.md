@@ -303,7 +303,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-11-08, pass 134, version 1.00)
+## Status (2026-11-08, pass 135, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -644,6 +644,8 @@ Pass 132: the Revolver's rounds fan out (`params.burst_fan_deg` 7, `ProjectileEm
 Pass 133: the Level Editor's Timeline tab has **Show on screen** (tools/level_editor/onscreen.js + onscreen_model.js: the estimate's crowd at one second of a stage drawn from the strips round the outlaw, each body in its row's look, size, special rim and Elite crown, under the stage filter, fractions by random select, run / run turned / die 2 s each); the **Watch imports changed content without a restart of the tool** (tools/watch.py's supervisor compares game/ with its snapshot every 5 s; the window's Import data button / key I ends the run, the supervisor syncs, imports and relaunches with the same settings); the **difficulty curve against the Trail** assessed (docs/pacing/difficulty_vs_trail.html, https://claude.ai/artifact/U3wyBBJuzwA8wDzdiQi6BX; proposals for Garry, nothing of the Trail changed) and **the Dust Bowl's and Blood Moon's rows rewritten in Garry's style** (hordes of one fodder, 3-4 attackers under a small Max alive, a ring every 2.5-3.5 min, a quiet minute between chapters; tools/dl/p133/PACING/make_rows.py, the old rows in before/). BALANCING 74. Waiting on Garry: his play of the two stages, the report's proposals. Garry's Level Editor needs a restart. Waiting on Garry: the list under pass 132 in docs/HISTORY.md.
 
 Pass 134: **everyone walks 15% faster at the start and the top is kept** (every base walk speed x1.15 where it lives, the Outlaw's 4.14; the lasting increases shrunk by one exponent a side so the late build lands at today's speed; timed boosts, far_speed, move_pace and the camera unchanged; `tools/speed_rescale.py`, BALANCING 75.SPEED: every older speed number in this file is history); **the relocation is hidden and rarer** (`relocate.hidden`: only off the screen, at once; `relocate.chance` 0.6; `every` 0.6 s; a burning creature takes the rest of its burns at once and dies where it stands or moves unburnt; BALANCING 75.RELOC; Garry's Level Editor needs a restart); the **weapons-aim proposal** docs/weapons_aim/weapons_aim.html (https://claude.ai/artifact/X1QEyidM248EXQYAm1CKQJ; nothing in the game changed). Waiting on Garry: the document's questions, the feel of the speeds and the relocation.
+
+Pass 135: **barrels glint** now and then (the map's `barrels.glint`, prop_billboard `glint*`, off for other props); **every structure takes 3 s** to use; **the Teleport** is smaller (2.0 m, ring 1.4 m), charges with a show (`params.charge`) and **4-6 more stand on the rim** (`params.edge`, StructureManager.place_edge); **the Revolver pierces one more** (base 2, Golden 3). BALANCING 76. No build was made (Garry asked). Waiting on Garry: his pick among the first-load proposals.
 
 **Outlaws** ("heroes" in code; title order): Drifter (Revolver; free), Astro (Gravity Gun), Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout

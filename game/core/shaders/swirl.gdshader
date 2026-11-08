@@ -3,6 +3,9 @@
 // centre `lift` metres up the camera's up and `shift` along its right, `push` metres behind the painting so the stone
 // frame covers its edge). Arms of colour_b over colour_a, a middle of colour_eye, fading out at the rim; `energy`
 // brightens it and `speed` turns it (the Teleport speeds up while the hero charges it).
+// Pass 135: `phase` is a turn the script keeps itself (radians, added to TIME x speed). A speed that changes every frame
+// jumped the arms (TIME x speed moves the whole angle when speed moves), so the Teleport sets speed 0 and turns its
+// spiral by phase, which it adds up frame by frame (StructureManager._tick_portal); 0, the default, is the shader as before.
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, skip_vertex_transform, shadows_disabled;
 
@@ -20,6 +23,7 @@ uniform float size = 1.0;
 uniform float lift = 0.0;
 uniform float shift = 0.0;
 uniform float push = 0.0;
+uniform float phase = 0.0;
 
 void vertex() {
 	if (billboard > 0.5) {
@@ -42,7 +46,7 @@ void fragment() {
 	}
 	float a = atan(p.y, p.x);
 	// the spiral arms wind in towards the middle and turn with time
-	float s = sin(arms * a + twist * 6.2831 * r - TIME * speed);
+	float s = sin(arms * a + twist * 6.2831 * r - TIME * speed - phase);
 	float arm = smoothstep(0.1, 0.95, s * 0.5 + 0.5);
 	vec3 col = mix(color_a.rgb, color_b.rgb, arm) * energy;
 	float body_a = mix(color_a.a, color_b.a, arm);

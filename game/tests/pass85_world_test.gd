@@ -188,7 +188,9 @@ func test_the_teleports_stand_apart_and_never_land_the_hero_by_one() -> void:
 			sm = StructureManager.new()
 			g.add_child(sm)
 			sm.setup(g, g.map, plan)
-		var tps := sm.teleport_spots()
+		# pass 135: the rim's 4-6 (params.edge) stand apart from these by their own rules (pass135_struct_test)
+		var edges := sm.edge_spots()
+		var tps := sm.teleport_spots().filter(func(q: Vector3) -> bool: return not edges.has(q))
 		assert_int(tps.size()).is_between(3, 4)
 		for i in tps.size():
 			var p: Vector3 = tps[i]

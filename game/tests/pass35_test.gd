@@ -378,7 +378,8 @@ func test_the_teleport_is_half_the_magnet() -> void:
 	var m: StructureDef = Registry.structure("uber_magnet")
 	assert_object(t).is_not_null()
 	assert_str(t.effect_kind).is_equal("teleport")
-	assert_float(t.interact_time).is_equal_approx(m.interact_time * 0.5, 0.001)
+	# pass 135 (Garry: every structure "can be interacted with in 3 seconds"): no longer half the magnet's
+	assert_float(t.interact_time).is_equal_approx(m.interact_time, 0.001)
 	assert_bool(t.params.get("portal") is Dictionary).is_true()
 	assert_bool(ResourceLoader.exists("res://art/sprites/props/st_teleport.png")).is_true()
 	assert_bool(ResourceLoader.exists("res://art/sprites/props/st_teleport_off.png")).is_true()

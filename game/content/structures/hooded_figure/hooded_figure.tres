@@ -10,7 +10,6 @@ params = {
 "hp_cost": 0.15,
 "levels": 3.0
 }
-interact_time = 1.2
 color = Color(0.41568628, 0.30980393, 0.627451, 1)
 height = 2.4
 id = "hooded_figure"

@@ -74,7 +74,7 @@ roster = [{
 "elite": {
 "hp_mult_per_stage": 0.0
 },
-"hp_mult": 2.0
+"hp_mult": 1.0
 },
 "t": 123.0,
 "until": 219.0,
@@ -97,7 +97,7 @@ roster = [{
 "elite": {
 "hp_mult_per_stage": 0.0
 },
-"hp_mult": 2.0
+"hp_mult": 1.0
 },
 "t": 123.0,
 "until": 219.0,
@@ -106,7 +106,7 @@ roster = [{
 }, {
 "enemy": "goblin_runt",
 "id": "r2",
-"interval": 4.0,
+"interval": 8.0,
 "pack": 12.0,
 "pattern": "scatter",
 "role": "fodder",
@@ -130,7 +130,7 @@ roster = [{
 "role": "fodder",
 "stats": {
 "damage_mult": 1.25,
-"hp_mult": 1.0,
+"hp_mult": 0.75,
 "size": 1.25,
 "speed": 1.438
 },
@@ -146,7 +146,7 @@ roster = [{
 "role": "fodder",
 "stats": {
 "damage_mult": 1.25,
-"hp_mult": 1.0,
+"hp_mult": 0.7,
 "size": 1.25,
 "speed": 1.438
 },
@@ -221,14 +221,15 @@ roster = [{
 }, {
 "count": 10.0,
 "enemy": "skeleton",
-"every": 5.0,
+"every": 7.0,
 "id": "r12",
 "pace": "waves",
 "pack": 1.0,
 "pattern": "scatter",
 "role": "fodder",
 "stats": {
-"hp": 20.0
+"hp": 20.0,
+"hp_mult": 0.75
 },
 "t": 53.0,
 "until": 123.0,
@@ -242,7 +243,8 @@ roster = [{
 "pattern": "pack",
 "role": "fodder",
 "stats": {
-"hp": 35.0
+"hp": 35.0,
+"hp_mult": 0.75
 },
 "t": 83.0,
 "until": 123.0,

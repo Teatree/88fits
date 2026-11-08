@@ -33,9 +33,21 @@ uniform float rim_width = 0.03;
 uniform float wind_mult = 1.0;
 uniform float wind_speed = 1.3;
 uniform float wind_gust = 0.0;
+// Pass 135 (Garry: "Barrels aren't clear, make them glint occasionally"): a glint, a bright band sweeping corner to corner
+// over the painted pixels now and then. `glint` 0..1 is its strength (0, the default: off, every prop unchanged); each
+// instance glints once every glint_every seconds x 0.75..1.25 (its own, from INSTANCE_CUSTOM.z, the barrels' phase: their
+// sway is 0, so z only times the glint), the band taking glint_length seconds to cross, glint_width (of the painting's
+// diagonal) wide, in glint_color, with a soft lift of the whole painting at its peak. Only the barrels set it
+// (BarrelField, the map's `barrels.glint`).
+uniform float glint : hint_range(0.0, 1.0) = 0.0;
+uniform float glint_every = 6.0;
+uniform float glint_length = 0.5;
+uniform float glint_width = 0.14;
+uniform vec4 glint_color : source_color = vec4(1.0, 0.97, 0.86, 1.0);
 
 varying vec2 v_uv;
 varying vec3 v_roll;
+varying float v_glint;
 
 // Pass 85 (lane WORLD): the natural tints, up to two parts per painting (PropField._set_tint_uniforms): hue window
 // (lo, hi, sat_min, all hues), the hue shift and saturation factor ranges, the value factor range with the link and on.
@@ -96,6 +108,14 @@ void vertex() {
 		uv.x = 1.0 - uv.x;
 	}
 	v_uv = uv;
+	v_glint = -1.0;
+	if (glint > 0.0) {
+		// how far through its glint this instance is (0..1), -1 between glints
+		float h = fract(sin(phase * 12.9898 + 78.233) * 43758.5453);
+		float cyc = glint_every * (0.75 + 0.5 * h);
+		float t = mod(TIME + h * 97.0, cyc);
+		v_glint = t < glint_length ? t / glint_length : -1.0;
+	}
 	float code = floor(INSTANCE_CUSTOM.w + 0.5);
 	v_roll = vec3(mod(code, 12.0), mod(floor(code / 12.0), 12.0), floor(code / 144.0)) / 11.0;
 	vec3 origin = MODEL_MATRIX[3].xyz;
@@ -145,5 +165,12 @@ void fragment() {
 		float lum = dot(c.rgb, vec3(0.3, 0.59, 0.11));
 		vec3 albedo = mix(c.rgb, vec3(lum), mute) * (1.0 - mute * 0.3);
 		ALBEDO = mix(albedo, rim_color.rgb, rim_in * rim * 0.45);
+		if (v_glint >= 0.0) {
+			float s = v_glint * 1.6 - 0.3;
+			float u = (v_uv.x + (1.0 - v_uv.y)) * 0.5;
+			float band = 1.0 - smoothstep(0.0, glint_width, abs(u - s));
+			float peak = sin(v_glint * 3.14159);
+			ALBEDO += glint_color.rgb * glint * (band * 0.9 + peak * 0.12);
+		}
 	}
 }

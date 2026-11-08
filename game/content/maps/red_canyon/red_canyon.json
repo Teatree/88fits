@@ -938,7 +938,7 @@
           "drops": {
             "medium": 0
           },
-          "hp_mult": 2.0
+          "hp_mult": 1.0
         },
         "until": 219,
         "variant": "RG-B",
@@ -977,7 +977,7 @@
           "drops": {
             "medium": 0
           },
-          "hp_mult": 2
+          "hp_mult": 1
         },
         "until": 219,
         "variant": "RG-B",
@@ -1011,7 +1011,7 @@
         },
         "pack": 12,
         "pattern": "scatter",
-        "interval": 4,
+        "interval": 8,
         "role": "fodder"
       },
       {
@@ -1035,7 +1035,7 @@
         ],
         "pack": 30,
         "stats": {
-          "hp_mult": 1.0,
+          "hp_mult": 0.75,
           "size": 1.25,
           "damage_mult": 1.25,
           "speed": 1.438
@@ -1068,7 +1068,7 @@
         ],
         "pack": 10,
         "stats": {
-          "hp_mult": 1.0,
+          "hp_mult": 0.7,
           "size": 1.25,
           "damage_mult": 1.25,
           "speed": 1.438
@@ -1208,10 +1208,11 @@
         ],
         "until": 123,
         "stats": {
-          "hp": 20
+          "hp": 20,
+          "hp_mult": 0.75
         },
         "pace": "waves",
-        "every": 5,
+        "every": 7,
         "count": 10,
         "pack": 1,
         "pattern": "scatter",
@@ -1230,7 +1231,8 @@
         ],
         "until": 123,
         "stats": {
-          "hp": 35
+          "hp": 35,
+          "hp_mult": 0.75
         },
         "pattern": "pack",
         "pack": 5,

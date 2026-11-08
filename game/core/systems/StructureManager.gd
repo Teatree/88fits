@@ -67,6 +67,17 @@ const RIVER_CLEAR := 1.5
 ## Pass 85: a per-map structure's `kin_spacing` (two Teleports apart) is kept in full; only when the last fifth of the
 ## tries finds nothing does it close to this share of itself.
 const KIN_RELAX := 0.75
+## Pass 135 (Garry: "place 4 to 6 more of them all around the edges on opposite ends of the map. The number of the ones
+## around the edges is still random (between 4 and 6), but the placement of these specific ones is on the very edges (not
+## colliding with the walls though)"): a structure whose JSON has `params.edge {min, max, inset, jitter_deg, clear,
+## spacing}` also stands min..max more times on the arena's rim (place_edge): spread evenly round the circle from a random
+## start, so they face each other across the map, each `inset` metres in from the wall's inner face (the outlaw stops 1.5 m
+## from it, so the whole ring is reachable), `jitter_deg` of random turn each, `clear` metres from any other of its kind
+## and `spacing` from everything else standing. A spot that fails slides along the rim (up to EDGE_SLIDE of the gap to the
+## next) and steps in by up to EDGE_IN metres before that one is given up.
+const EDGE_TRIES := 80
+const EDGE_SLIDE := 0.35
+const EDGE_IN := 3.0
 ## the spent painting of a structure with `params.spent "grey"` (pass 73, the Totem Pole, Garry: "When used they turn
 ## gray as well, but they don't get 'destroyed'"): its own painting with the colour taken out, this much darker, a
 ## little flatter, and tinted by SPENT_GREY_TINT; made once per structure kind (_grey_cache)
@@ -105,6 +116,16 @@ class Structure:
 	var visual: Node3D
 	var portal: MeshInstance3D     # the Teleport's swirl in its ring (params.portal)
 	var portal_mat: ShaderMaterial
+	## pass 135: one of the rim's (params.edge, place_edge); the Teleport's charge: the swirl's own turn (the shader's
+	## `phase`), its resting size, the flat vortex on the ground inside the ring and its material
+	var edge := false
+	var spin := 0.0
+	var portal_size := 0.0
+	var vortex: MeshInstance3D
+	var vortex_mat: ShaderMaterial
+	var portal_lift := 0.0
+	var _arc_t := 0.0
+	var _pulse_t := 0.0
 	var _t := 0.0
 	var _last_frac := -1.0
 	var _mote_t := 0.0
@@ -183,6 +204,10 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 			push_warning("StructureManager: placed %d of %d kinds" % [placed.size(), defs.size()])
 	for d: StructureDef in apart:
 		var _n := place_apart(d, placed)
+	# pass 135: the rim's own (params.edge: the Teleports), after everything else so they keep clear of it
+	for d: StructureDef in apart + defs:
+		if d.params.get("edge") is Dictionary:
+			var _e := place_edge(d, placed)
 
 
 ## The structures of `defs` the weighted draw scatters (pass 73): every one without `params.per_map`.
@@ -265,6 +290,66 @@ func place_apart(def: StructureDef, placed: Array) -> int:
 	if made < rng.x:
 		push_warning("StructureManager: placed %d of %d %s" % [made, rng.x, def.id])
 	return made
+
+
+## Stands a structure's rim set (pass 135, EDGE_*; `params.edge`): a fresh count in min..max, spread evenly round the
+## arena from a random start, `inset` metres in from the wall. `placed` grows with each one. Returns how many stood.
+func place_edge(def: StructureDef, placed: Array) -> int:
+	var e: Dictionary = def.params.get("edge", {})
+	var lo := maxi(int(e.get("min", 4)), 0)
+	var hi := maxi(int(e.get("max", lo)), lo)
+	var n := lo + mini(int(_rng.randf() * float(hi - lo + 1)), hi - lo)
+	if n <= 0 or map == null:
+		return 0
+	var inset := maxf(float(e.get("inset", 4.0)), def.radius + 1.0)
+	var jitter := deg_to_rad(float(e.get("jitter_deg", 10.0)))
+	var clear := float(e.get("clear", 20.0))
+	var spacing := float(e.get("spacing", 10.0))
+	var step := TAU / float(n)
+	var a0 := _rng.randf() * TAU
+	var kin: Array = teleport_spots() if def.effect_kind == "teleport" else []
+	var made := 0
+	for k in range(n):
+		var want := a0 + step * float(k) + _rng.randf_range(-jitter, jitter)
+		var spot := Vector3.INF
+		for t in range(EDGE_TRIES):
+			var f := float(t) / float(EDGE_TRIES)
+			var a := want + (_rng.randf_range(-1.0, 1.0) * step * EDGE_SLIDE * f if t > 0 else 0.0)
+			var r := map.arena_radius - inset - (_rng.randf() * EDGE_IN * f if t > 0 else 0.0)
+			var p := Vector3(cos(a) * r, 0, sin(a) * r)
+			if not edge_spot_ok(p, placed, spacing, kin, clear):
+				continue
+			spot = p
+			break
+		if spot == Vector3.INF:
+			continue
+		spot.y = map.height_at(spot.x, spot.z)
+		placed.append(spot)
+		kin.append(spot)
+		var st := _spawn(def, spot)
+		if st:
+			st.edge = true
+			made += 1
+	if made < lo:
+		push_warning("StructureManager: placed %d of %d %s on the rim" % [made, lo, def.id])
+	return made
+
+
+## Whether a rim spot `p` is free (pass 135): the start's rules minus the start clearing (the rim is far from it), off
+## the river's bed, `spacing` from everything in `placed` and `clear` from every one of `kin`.
+func edge_spot_ok(p: Vector3, placed: Array, spacing: float, kin: Array, clear: float) -> bool:
+	if not start_spot_ok(p, placed, spacing) or not off_river(p):
+		return false
+	return clear <= 0.0 or nearest_distance(p, kin) >= clear
+
+
+## The structures standing on the rim (pass 135, place_edge), used or not.
+func edge_spots() -> Array:
+	var out: Array = []
+	for st: Structure in items:
+		if is_instance_valid(st) and st.edge:
+			out.append(st.global_position)
+	return out
 
 
 ## How many of a per-map structure stand this run (pass 85): `params.per_map` {min, max, max_chance}: with
@@ -547,11 +632,40 @@ func _add_portal(s: Structure, cfg: Dictionary, side: float, color: Color) -> vo
 	m.set_shader_parameter("eye", 0.22)
 	m.set_shader_parameter("arms", 4.0)
 	m.set_shader_parameter("twist", 1.4)
-	m.set_shader_parameter("speed", 2.2)
+	# pass 135: turned by the script (`phase`, _tick_portal), so a speed changing every frame never jumps the arms
+	m.set_shader_parameter("speed", 0.0)
 	q.material_override = m
 	s.add_child(q)
 	s.portal = q
 	s.portal_mat = m
+	s.portal_size = 2.0 * float(cfg.get("r", 0.2)) * side * 1.08
+	s.portal_lift = (1.0 - float(cfg.get("y", 0.45))) * side + 0.04
+	s.spin = _rng.randf() * TAU
+	# pass 135 (Garry: "make the animation be much more noticeable as Player is activating it"): a vortex laid flat on the
+	# ground inside the ring, unseen at rest, opening and spinning up as the outlaw charges it (params.charge.vortex)
+	if s.def.params.get("charge") is Dictionary:
+		var v := MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(2.0, 2.0) * s.def.radius
+		v.mesh = pm
+		v.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		v.position.y = 0.09
+		var vm := ShaderMaterial.new()
+		vm.shader = m.shader
+		vm.set_shader_parameter("billboard", 0.0)
+		vm.set_shader_parameter("color_a", Color(color.r * 0.35, color.g * 0.12, color.b * 0.5, 0.35))
+		vm.set_shader_parameter("color_b", Color(color.r, color.g, color.b, 0.9))
+		vm.set_shader_parameter("color_eye", Color(1.0, 0.95, 1.0, 0.95))
+		vm.set_shader_parameter("eye", 0.16)
+		vm.set_shader_parameter("arms", 3.0)
+		vm.set_shader_parameter("twist", 1.8)
+		vm.set_shader_parameter("speed", 0.0)
+		vm.set_shader_parameter("alpha", 0.0)
+		v.material_override = vm
+		v.visible = false
+		s.add_child(v)
+		s.vortex = v
+		s.vortex_mat = vm
 
 
 ## Pass 83 (lane SCENE; Garry: "barrels, signs, and structures too. Want them to feel like they are part of the world"):
@@ -666,20 +780,100 @@ func _process(delta: float) -> void:
 
 
 ## The portal breathes and turns, faster and brighter as the hero charges it, and throws sparks up out of the ring.
+## Pass 135 (Garry: "make the animation be much more noticeable as Player is activating it"), with `params.charge`
+## (every number there; none = pass 35's numbers): the swirl grows (`grow`: its size x 1 + grow at full) and spins up
+## (`spin` [rest, full] radians a second, eased in), burns brighter (`energy` [rest, full]), the light swells (`light`
+## more at full), a vortex opens on the ground in the ring (`vortex` its alpha at full, `vortex_size` [start, full] of the
+## ring), the ring pulses faster (`pulse` [rest, full] a second), the stone shakes from `shake_from` of the charge on
+## (`shake` metres at full), the sparks come thicker (`motes` [rest, full] seconds apart) and are drawn in to the middle
+## and up (`lift` more height a spark at full); the swirl comes out over the stone (`spill`, from `spill_from`), lightning
+## cracks from it down to the ring (`arcs` [first, full] seconds apart) and a ring of light flashes on the sand round it
+## (`pulses` [first, full] seconds apart).
 func _tick_portal(s: Structure, delta: float, inside: bool, dist: float) -> void:
 	var p := s.progress
-	s.portal_mat.set_shader_parameter("speed", lerpf(2.2, 10.0, p))
-	s.portal_mat.set_shader_parameter("energy", 1.0 + 0.9 * p + 0.12 * sin(s._t * 5.0))
+	var c: Dictionary = s.def.params.get("charge", {})
+	var e := p * p
+	var spin_r := _pair(c.get("spin"), Vector2(2.2, 10.0))
+	s.spin = fmod(s.spin + delta * lerpf(spin_r.x, spin_r.y, e), TAU * 64.0)
+	s.portal_mat.set_shader_parameter("phase", s.spin)
+	var en := _pair(c.get("energy"), Vector2(1.0, 1.9))
+	s.portal_mat.set_shader_parameter("energy", lerpf(en.x, en.y, p) + 0.12 * sin(s._t * 5.0))
 	s.portal_mat.set_shader_parameter("alpha", 0.9 + 0.1 * sin(s._t * 3.0))
+	if s.portal_size > 0.0:
+		var throb := 0.04 * p * sin(s._t * 18.0)
+		s.portal_mat.set_shader_parameter("size", s.portal_size * (1.0 + float(c.get("grow", 0.0)) * e + throb))
+		# `spill`: from `spill_from` of the charge on the swirl comes out in front of the stone (push from its resting 0.08
+		# behind to `spill` metres in front), so its growth pours over the ring instead of hiding behind it
+		var sp := clampf((p - float(c.get("spill_from", 1.0))) / maxf(1.0 - float(c.get("spill_from", 1.0)), 0.01), 0.0, 1.0)
+		s.portal_mat.set_shader_parameter("push", lerpf(0.08, -float(c.get("spill", 0.0)), sp))
+	if not c.is_empty():
+		var pulse := _pair(c.get("pulse"), Vector2(2.5, 2.5))
+		var rm := s.ring.material_override as StandardMaterial3D
+		rm.albedo_color.a = 0.55 + 0.3 * absf(sin(s._t * lerpf(pulse.x, pulse.y, e))) + 0.15 * p
+		if s.glow:
+			s.glow.light_energy += float(c.get("light", 0.0)) * e
+		if s.vortex:
+			s.vortex.visible = p > 0.0
+			if p > 0.0:
+				var vs := _pair(c.get("vortex_size"), Vector2(0.7, 1.2))
+				var k := lerpf(vs.x, vs.y, p)
+				s.vortex.scale = Vector3(k, 1.0, k)
+				s.vortex_mat.set_shader_parameter("alpha", float(c.get("vortex", 0.9)) * minf(p * 2.5, 1.0))
+				s.vortex_mat.set_shader_parameter("phase", -s.spin * 1.4)
+				s.vortex_mat.set_shader_parameter("energy", 1.0 + 1.2 * p)
+		var from := float(c.get("shake_from", 1.0))
+		var amp := float(c.get("shake", 0.0)) * clampf((p - from) / maxf(1.0 - from, 0.01), 0.0, 1.0)
+		var off := Vector3(sin(s._t * 61.0) * amp, 0.0, cos(s._t * 47.0) * amp * 0.6) if amp > 0.0 else Vector3.ZERO
+		if s.visual:
+			s.visual.position = Vector3(off.x, 0.04, off.z)
+		if s.portal:
+			s.portal.position = off
+		# `arcs` [first, full] seconds apart: a crackle of lightning from the swirl down to the ring's edge, quicker as it
+		# fills; `pulses` [first, full] seconds apart: a ring of light flashing round the ring on the sand
+		if inside and p > 0.0 and dist <= 26.0:
+			var col_a: Color = s.def.color
+			s._arc_t -= delta
+			if c.has("arcs") and s._arc_t <= 0.0:
+				var ar := _pair(c.get("arcs"), Vector2(0.4, 0.08))
+				s._arc_t = lerpf(ar.x, ar.y, p)
+				var top: Vector3 = s.global_position + off + Vector3(0, s.portal_lift, 0.15)
+				var a := randf() * TAU
+				var foot: Vector3 = s.global_position + Vector3(cos(a), 0.05, sin(a)) * s.def.radius * randf_range(0.7, 1.0)
+				foot.y = s.global_position.y + 0.05
+				game.fx.lightning([top, top.lerp(foot, 0.5) + Vector3(randf_range(-0.3, 0.3), 0.2, 0.0), foot],
+					Color(col_a.r, col_a.g * 0.6, col_a.b, 1.0), 0.35 + 0.35 * p)
+			s._pulse_t -= delta
+			if c.has("pulses") and s._pulse_t <= 0.0:
+				var pr := _pair(c.get("pulses"), Vector2(0.6, 0.2))
+				s._pulse_t = lerpf(pr.x, pr.y, p)
+				game.telegraphs.flash_ring(s.global_position, s.def.radius * (1.05 + 0.25 * p), col_a, 0.3)
 	if dist > 26.0:
 		return
 	s._mote_t -= delta
 	if s._mote_t <= 0.0:
-		s._mote_t = 0.05 if inside else 0.16
+		var mr := _pair(c.get("motes"), Vector2(0.05, 0.05))
+		s._mote_t = lerpf(mr.x, mr.y, p) if inside else 0.16
 		var a := randf() * TAU
-		var at: Vector3 = s.global_position + Vector3(cos(a) * s.def.radius * 0.8, 0.15, sin(a) * s.def.radius * 0.8)
+		var rr := s.def.radius * 0.8
+		var at: Vector3 = s.global_position + Vector3(cos(a) * rr, 0.15, sin(a) * rr)
 		var col: Color = s.def.color
-		game.fx.mote(at, Vector3(-cos(a) * 0.6, randf_range(1.6, 2.6) * (1.6 if inside else 1.0), -sin(a) * 0.6), 0.9, 0.18, Color(col.r, col.g, col.b, 0.9))
+		# charging: drawn in to the middle, swirling round it, and up faster and higher
+		var pull := 0.6 + (rr / 0.9) * p
+		var swirl := 1.8 * p
+		var up := randf_range(1.6, 2.6) * (1.6 if inside else 1.0) * (1.0 + float(c.get("lift", 0.0)) * 4.0 * p)
+		var vel := Vector3(-cos(a) * pull - sin(a) * swirl, up, -sin(a) * pull + cos(a) * swirl)
+		game.fx.mote(at, vel, 0.9, 0.18 + 0.16 * p, Color(col.r, col.g, col.b, 0.9))
+		if inside and p > 0.5 and randf() < p * 0.5:
+			game.fx.mote(at, vel * 1.2, 0.7, 0.12, Color(1.0, 0.95, 1.0, 0.95))
+
+
+## `v` as a pair [a, b] (pass 135: params.charge's ranges); one number is both, anything else `fallback`.
+static func _pair(v, fallback: Vector2) -> Vector2:
+	if v is Array and (v as Array).size() >= 2:
+		return Vector2(float(v[0]), float(v[1]))
+	if v is float or v is int:
+		return Vector2(float(v), float(v))
+	return fallback
 
 
 func _use(s: Structure) -> void:
@@ -693,6 +887,8 @@ func _use(s: Structure) -> void:
 	s.ring.visible = false
 	if s.portal:
 		s.portal.visible = false
+	if s.vortex:
+		s.vortex.visible = false
 	if s.glow:
 		s.glow.light_energy = 0.0
 	# the spent painting (art/sprites/props/st_<id>_off.png) when there is one, a grey tint otherwise; a prop with

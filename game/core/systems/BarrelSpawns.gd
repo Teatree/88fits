@@ -55,6 +55,10 @@ const CONTENT_DEFAULTS := {
 	"powerup": {"weight": 0.132, "powerup_chance": 1.0, "powerups": [], "throw_distance": [5.0, 7.0], "gems_small": 0,
 		"gems_medium": 0, "coins": 0},
 }
+## Pass 135 (Garry: "Barrels aren't clear, make them glint occasionally"): the `barrels` block's `glint` {strength 0..1
+## (0 = none), every (seconds between one barrel's glints, each barrel 0.75..1.25 of it), length (seconds the band takes to
+## cross), width (share of the painting's diagonal)}; these fill the keys it leaves out (no block: they are the glint).
+const GLINT_DEFAULTS := {"strength": 0.85, "every": 6.0, "length": 0.5, "width": 0.14}
 const TYPES := ["exp", "coins", "powerup"]
 ## Kind numbers (BarrelField.light holds them since pass 116: 0 exp, 1 coins, 2 powerup).
 const EXP := 0
@@ -128,6 +132,21 @@ static func respawn_of(block) -> Dictionary:
 	out["view_margin"] = maxf(_num(out["view_margin"], 2.0), 0.0)
 	for k in ["in_boss", "in_portal", "in_endless"]:
 		out[k] = _bool(out[k])
+	return out
+
+
+## The glint block whole (pass 135; the `barrels` block's `glint`), every key filled and in range.
+static func glint_of(block) -> Dictionary:
+	var own = (block as Dictionary).get("glint") if block is Dictionary else null
+	var out: Dictionary = GLINT_DEFAULTS.duplicate(true)
+	if own is Dictionary:
+		for k in (own as Dictionary):
+			if out.has(k):
+				out[k] = own[k]
+	out["strength"] = clampf(_num(out["strength"], 0.85), 0.0, 1.0)
+	out["every"] = maxf(_num(out["every"], 6.0), 0.5)
+	out["length"] = clampf(_num(out["length"], 0.5), 0.05, float(out["every"]))
+	out["width"] = clampf(_num(out["width"], 0.14), 0.01, 1.0)
 	return out
 
 

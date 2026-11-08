@@ -141,6 +141,17 @@ func setup(p_game: Node, p_map: MapBase) -> void:
 		_index_in.append(k[t])
 		k[t] += 1
 	_add_shadows()
+	apply_glint(BarrelSpawns.glint_of(_block()))
+
+
+## Pass 135: the glint (prop_billboard.gdshader `glint*`) on every kind's material from a filled block
+## (BarrelSpawns.glint_of).
+func apply_glint(g: Dictionary) -> void:
+	for m: ShaderMaterial in _mats:
+		m.set_shader_parameter("glint", float(g["strength"]))
+		m.set_shader_parameter("glint_every", float(g["every"]))
+		m.set_shader_parameter("glint_length", float(g["length"]))
+		m.set_shader_parameter("glint_width", float(g["width"]))
 
 
 ## The barrels' ground shadows (pass 83), one each in the map's scenery shadows; none on a map without props.
@@ -196,7 +207,11 @@ func _billboards(t: int, n: int, spare: int = 0) -> MultiMesh:
 	_mats.append(mat)
 	var quad := QuadMesh.new()
 	quad.size = Vector2(1, 1)
-	return _multimesh(quad, n, mat, spare, true)
+	var mm := _multimesh(quad, n, mat, spare, true)
+	# pass 135: each instance its own glint clock (INSTANCE_CUSTOM.z; the shader hashes it, the sway stays 0)
+	for k in mm.instance_count:
+		mm.set_instance_custom_data(k, Color(0.0, 0.0, float(k) * 1.618 + float(t) * 7.31, 0.0))
+	return mm
 
 
 ## Pass 122 (lane S3WORLD): the stage's hell `f` (0..1; StageLook.show_stage, with the map's set_hell): the barrels' rim
