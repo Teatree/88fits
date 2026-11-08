@@ -174,4 +174,5 @@ func test_every_barrel_material_glints_and_the_props_do_not() -> void:
 		assert_float(float(m.get_shader_parameter("glint"))).is_equal_approx(0.85, 0.001)
 	# the shader's own default is off, so every other prop is as before
 	var sh: Shader = load("res://core/shaders/prop_billboard.gdshader")
-	assert_float(float(RenderingServer.shader_get_parameter_default(sh.get_rid(), "glint"))).is_equal(0.0)
+	# (read from its code: the headless renderer hands no parameter defaults back)
+	assert_bool(sh.code.contains("uniform float glint : hint_range(0.0, 1.0) = 0.0;")).is_true()
