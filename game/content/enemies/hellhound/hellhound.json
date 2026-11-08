@@ -5,7 +5,7 @@
   "archetype": "runner",
   "brain": "chase",
   "hp": 30,
-  "speed": 2.6,
+  "speed": 2.99,
   "damage": 9,
   "knockback": 5.1,
   "radius": 0.55,

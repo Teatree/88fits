@@ -6,7 +6,7 @@
   "brain": "flock",
   "flies": true,
   "hp": 8,
-  "speed": 3.0,
+  "speed": 3.45,
   "damage": 4,
   "knockback": 3.4,
   "radius": 0.4,

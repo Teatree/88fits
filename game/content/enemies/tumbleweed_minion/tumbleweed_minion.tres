@@ -7,7 +7,7 @@
 script = ExtResource("2_7bp8e")
 doc = "The Tumbleweed King's own: little tumbleweed knights in commoner caps, goblins in all but looks and a touch faster. The King's ring calls them instead of goblins."
 hp = 6.0
-speed = 2.0
+speed = 2.3
 damage = 3.0
 radius = 0.45
 size = 1.4

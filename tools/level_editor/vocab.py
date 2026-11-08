@@ -214,7 +214,7 @@ def bad_stills(doc):
 
 # StatSheet.PLAYER_DEFAULTS, read with a regex in check_against_source
 PLAYER_DEFAULTS = {
-    "max_hp": 100.0, "damage_reduction": 0.0, "regen": 0.0, "move_speed": 3.6, "might": 1.0, "cooldown": 1.0,
+    "max_hp": 100.0, "damage_reduction": 0.0, "regen": 0.0, "move_speed": 4.14, "might": 1.0, "cooldown": 1.0,
     "area": 1.0, "projectile_speed": 1.0, "duration": 1.0, "amount": 0.0, "magnet": 1.5, "luck": 0.0,
     "freeze_chance": 0.0, "crit_heal_chance": 0.0, "gold_on_hit": 0.0, "greed": 1.0, "lifesteal": 0.0, "revives": 0.0,
     "turn_rate": 180.0, "rerolls": 1.0, "skips": 2.0, "banishes": 1.0, "crit_chance": 0.01, "crit_damage": 2.0,

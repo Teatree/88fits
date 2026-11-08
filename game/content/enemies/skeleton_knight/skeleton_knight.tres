@@ -7,7 +7,7 @@
 script = ExtResource("2_e2gww")
 doc = "The skeleton that was buried in its armour: a dented breastplate and a kettle helm, a quarter off every hit and half again a plain skeleton's HP, a little slower, one to every two and a half skeletons from the thirtieth second. Falls over backwards with its armour on."
 hp = 15.0
-speed = 1.5
+speed = 1.725
 damage = 4.0
 radius = 0.54
 size = 1.85

@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_6528k")
 doc = "The runt in red: the skeleton's numbers, a runt's dagger. Placed by the Level Editor."
-speed = 1.6
+speed = 1.84
 damage = 3.0
 radius = 0.35
 size = 0.95

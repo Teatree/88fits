@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_qfptp")
 doc = "The second thing the outlaw meets: a small black scorpion with the skeleton's numbers, in fours. Three looks (LS-A plain, LS-B plates, LS-C detailed) walked on the Dune Scorpion's 3D model at half its size."
-speed = 1.6
+speed = 1.84
 damage = 3.0
 radius = 0.55
 size = 1.5

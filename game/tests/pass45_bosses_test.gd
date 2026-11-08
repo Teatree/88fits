@@ -257,7 +257,8 @@ func test_the_minion_is_a_goblin_on_twig_legs() -> void:
 	var gob: EnemyDef = Registry.enemy("goblin")
 	assert_str(m.archetype).is_equal("walker")
 	assert_str(m.brain).is_equal("chase")
-	assert_float(m.speed).is_equal_approx(2.0, 0.001)
+	# pass 134: speeds x1.15 at the start, the top kept (2.0 -> 2.3)
+	assert_float(m.speed).is_equal_approx(2.3, 0.001)
 	assert_float(m.hp).is_equal_approx(gob.hp, 0.001)
 	assert_float(m.cap_share).is_equal_approx(0.5, 0.001)
 	# the ring spawns them like any registered creature

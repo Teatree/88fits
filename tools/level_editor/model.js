@@ -2659,7 +2659,7 @@ const Model = (() => {
   // default, and the file stores it only when it differs from that default.
 
   /** WaveTimeline.RELOCATE_DEFAULTS: the map's `relocate` block's keys and the game's values for the missing ones. */
-  const RELOCATE_DEFAULTS = { enabled: true, distance: 16, seconds: 5, every: 0.4, ring: [19, 24], sectors: 12, sink: 0.35, scan: 0.5, squads: false };
+  const RELOCATE_DEFAULTS = { enabled: true, distance: 16, seconds: 5, every: 0.4, ring: [19, 24], sectors: 12, sink: 0.35, scan: 0.5, squads: false, hidden: false, chance: 1 };
   /** The block whole, every key filled (WaveTimeline.relocate_cfg): `ring` always [near, far] (one number = both), `sectors`
    *  a whole number of at least 1, no negative number. */
   function relocateCfg(tl) {
@@ -2675,6 +2675,8 @@ const Model = (() => {
         else if (typeof v === 'number' && isFinite(v)) { lo = v; hi = v; }
         out[k] = [Math.max(Math.min(lo, hi), 0), Math.max(Math.max(lo, hi), 0)];
       } else if (k === 'sectors') out[k] = typeof v === 'number' && isFinite(v) ? Math.max(Math.trunc(v), 1) : dv;
+      // pass 134 (lane RELOC): a share, 0..1 (WaveTimeline.relocate_cfg)
+      else if (k === 'chance') out[k] = typeof v === 'number' && isFinite(v) ? Math.min(Math.max(v, 0), 1) : dv;
       else out[k] = typeof v === 'number' && isFinite(v) ? Math.max(v, 0) : dv;
     }
     return out;
@@ -2743,7 +2745,12 @@ const Model = (() => {
     const c = relocateCfg(tl);
     if (!c.enabled) return 'Relocation: off (a crowd left behind walks after the outlaw, or despawns past the despawn distance).';
     const perMin = c.every > 0 ? Math.round(60 / c.every) : 0;
-    return `A regular creature farther than ${c.distance} m from the outlaw for ${c.seconds} s (checked every ${c.scan} s) joins the queue; one leaves it every ${c.every} s (at most ${perMin} a minute): it sinks over ${c.sink} s and rises ${c.ring[0]} to ${c.ring[1]} m from him in the emptiest of ${c.sectors} sectors round him. Never a boss, an Elite, a coloured special, a special type, a boss's summon or a dummy, never in the middle of an attack, and nothing while a boss barrier stands; squad creatures ${c.squads ? 'too' : 'only where their row says so'}. Not a spawn: no cap, no count, no XP. A row's own switch: its card on the Timeline (Where and how → Relocates when far).`;
+    // pass 134 (lane RELOC): the chance and the hidden move
+    const odds = c.chance >= 1 ? 'joins the queue' : (c.chance <= 0 ? 'would join the queue, but Chance to go is 0: nobody does' : `joins the queue with a chance of ${Math.round(c.chance * 100)}% (a miss tries again after another ${c.seconds} s: on average ${Math.round(c.seconds / c.chance * 10) / 10} s far before it goes)`);
+    const move = c.hidden
+      ? `it is moved unseen: only while it is off the screen, at once, to a spot off the screen ${c.ring[0]} to ${c.ring[1]} m from him in the emptiest of ${c.sectors} sectors round him (one you can see is passed over and tries again)`
+      : `it sinks over ${c.sink} s and rises ${c.ring[0]} to ${c.ring[1]} m from him in the emptiest of ${c.sectors} sectors round him`;
+    return `A regular creature farther than ${c.distance} m from the outlaw for ${c.seconds} s (checked every ${c.scan} s) ${odds}; one leaves it every ${c.every} s (at most ${perMin} a minute): ${move}. A burning one stops burning at its turn, the rest of its burn dealt at once (dead of it, it is not moved). Never a boss, an Elite, a coloured special, a special type, a boss's summon or a dummy, never in the middle of an attack, and nothing while a boss barrier stands; squad creatures ${c.squads ? 'too' : 'only where their row says so'}. Not a spawn: no cap, no count, no XP. A row's own switch: its card on the Timeline (Where and how → Relocates when far).`;
   }
   /** What reads as a mistake in the block. */
   function relocateIssues(tl) {
@@ -2753,6 +2760,8 @@ const Model = (() => {
     if (c.ring[0] < c.distance) out.push(`Comes up at ${c.ring[0]} m is nearer than Far from ${c.distance} m: a relocated creature could rise where it would not count as far`);
     if (c.every <= 0) out.push('One every 0 s: the queue would hand over a creature every tick (60 a second)');
     if (c.scan <= 0) out.push('Check every 0 s: the crowd would be checked every tick');
+    // pass 134 (lane RELOC)
+    if (c.chance <= 0) out.push('Chance to go 0: nobody relocates (Relocate far creatures off says the same)');
     return out;
   }
 

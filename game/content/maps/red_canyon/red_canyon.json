@@ -343,7 +343,7 @@
                   2.0
                 ],
                 "hp_mult": 0.25,
-                "speed": 2
+                "speed": 2.3
               },
               "role": "swarm"
             },
@@ -384,7 +384,7 @@
         "difficulty": "Hard",
         "xp_mult": 1.15,
         "reward_mult": 2.75,
-        "speed_mult": 1.15,
+        "speed_mult": 1.1371,
         "filter": {
           "color": "#B08A60",
           "strength": 0.34,
@@ -761,7 +761,7 @@
           ]
         },
         "reward_mult": 3.34,
-        "speed_mult": 1.2,
+        "speed_mult": 1.1825,
         "xp_mult": 0.8
       }
     ],
@@ -1005,7 +1005,7 @@
         ],
         "until": 200,
         "stats": {
-          "speed": 3,
+          "speed": 3.45,
           "can_be_elite": false,
           "size_mult": 1.1
         },
@@ -1038,7 +1038,7 @@
           "hp_mult": 1.0,
           "size": 1.25,
           "damage_mult": 1.25,
-          "speed": 1.25
+          "speed": 1.438
         },
         "pattern": "ring",
         "pace": "waves",
@@ -1071,7 +1071,7 @@
           "hp_mult": 1.0,
           "size": 1.25,
           "damage_mult": 1.25,
-          "speed": 1.25
+          "speed": 1.438
         },
         "pattern": "scatter",
         "role": "fodder",
@@ -1161,7 +1161,7 @@
         "pattern": "ring",
         "pack": 6,
         "stats": {
-          "speed": 1.5,
+          "speed": 1.725,
           "hp_mult": 1.2
         },
         "pace": "waves",
@@ -1188,7 +1188,7 @@
         "pattern": "scatter",
         "pack": 10,
         "stats": {
-          "speed": 1.75,
+          "speed": 2.012,
           "hp_mult": 1.2
         },
         "pace": "waves",
@@ -1391,7 +1391,7 @@
           "hp": 20,
           "size": 2.0,
           "hp_mult": 12,
-          "speed": 1.75,
+          "speed": 2.012,
           "damage_mult": 3
         },
         "pattern": "scatter",
@@ -1493,7 +1493,7 @@
             2.0
           ],
           "hp_mult": 0.2,
-          "speed": 2,
+          "speed": 2.3,
           "can_be_elite": false
         },
         "pace": "waves",
@@ -1522,7 +1522,7 @@
             3
           ],
           "hp_mult": 0.2,
-          "speed": 2.1
+          "speed": 2.415
         },
         "pace": "once",
         "count": 3,
@@ -4045,7 +4045,7 @@
       "beams": "#4F3626"
     },
     "cap_per_stage": 0,
-    "speed_per_stage": 0.1,
+    "speed_per_stage": 0.0916,
     "weight_late_t": 1030,
     "weapon_cap": [
       5,
@@ -4109,11 +4109,11 @@
       "cap": 1.0,
       "hp": 1.15,
       "atk": 1.0,
-      "speed": 1.1,
+      "speed": 1.0916,
       "hp_growth": 0.15,
       "atk_growth": 0.095,
-      "speed_growth": 0.04,
-      "speed_max": 2.4,
+      "speed_growth": 0.0355,
+      "speed_max": 2.2367,
       "xp_share": 0.35,
       "coin_chance": 0.05,
       "roster_window": 60,
@@ -4308,7 +4308,7 @@
       "enabled": true,
       "distance": 16.0,
       "seconds": 5.0,
-      "every": 0.4,
+      "every": 0.6,
       "ring": [
         19.0,
         24.0
@@ -4316,7 +4316,9 @@
       "sectors": 12,
       "sink": 0.35,
       "scan": 0.5,
-      "squads": false
+      "squads": false,
+      "hidden": true,
+      "chance": 0.6
     },
     "sand": "ripples_pebbles",
     "oases": {

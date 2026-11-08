@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_twtmw")
 doc = "The green goblin's red cousin: the skeleton's numbers in a goblin's body, in packs. Placed by the Level Editor."
-speed = 1.6
+speed = 1.84
 damage = 3.0
 radius = 0.45
 size = 1.2

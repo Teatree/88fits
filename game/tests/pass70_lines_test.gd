@@ -377,7 +377,9 @@ func test_bucking_bronco_throws_plain_creatures_up_and_away() -> void:
 	assert_bool(em.is_launched(a)).is_false()
 	assert_float(top).is_greater(EnemyManager.BRONCO_HEIGHT * 0.8)
 	# pass 72: the throw's distance at the map's share of the hero's pushes (hero_knockback_mult)
-	assert_float(em.pos[a].x - x0).is_greater(EnemyManager.BRONCO_AWAY_MIN * 0.8 * em.hero_knock_mult())
+	# pass 134: speeds x1.15 at the start, the top kept (the ten ticks after the landing walk it back a little faster:
+	# the throw is measured less that walk)
+	assert_float(em.pos[a].x - x0 + 10.0 * DT * em.speed[a]).is_greater(EnemyManager.BRONCO_AWAY_MIN * 0.8 * em.hero_knock_mult())
 	# no fall damage: it was hit for 1
 	assert_float(em.hp[a]).is_greater(em.max_hp[a] - 1.5)
 	# a boss, an Elite or an elite-modded creature only takes the knock

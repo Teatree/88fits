@@ -276,8 +276,10 @@ func test_the_trait_words() -> void:
 	# pass 67: Buck is back with a level rule (Full Tilt) and his charge (a special) says itself after it, in his own words
 	var buck: CharacterDef = Registry.character("buck")
 	if buck:
-		assert_str(TextGen.hero_trait(buck)).is_equal("Gain 1% move speed per level. " + buck.trait_text)
-		assert_str(TextGen.hero_trait_now(buck, 10)).is_equal("+10% move speed at level 10")
+		# pass 134: speeds x1.15 at the start, the top kept
+		assert_str(TextGen.hero_trait(buck)).is_equal("Gain 0.6% move speed per level. " + buck.trait_text)
+		# pass 134: speeds x1.15 at the start, the top kept
+		assert_str(TextGen.hero_trait_now(buck, 10)).is_equal("+6% move speed at level 10")
 	# a hidden hero without a rule keeps his own words
 	var dad: CharacterDef = Registry.character("dad")
 	if dad:

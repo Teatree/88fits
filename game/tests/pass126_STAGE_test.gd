@@ -191,12 +191,14 @@ func test_its_coins_items_and_speed_are_what_they_were() -> void:
 	var tl := _tl()
 	assert_float(tl.stage_reward_mult(3)).is_equal(OLD_HELL_MULT)
 	assert_int(int(round(tl.stage_reward_mult(3)))).is_equal(3)
-	assert_float(tl.speed_mult(3)).is_equal_approx(1.2, 0.0001)
+	# pass 134: speeds x1.15 at the start, the top kept (Blood Moon 1.2 -> 1.2^0.91953)
+	assert_float(tl.speed_mult(3)).is_equal_approx(1.1825, 0.0001)
 	# Sundown's and Nightfall's stay what they read: no key of their own
 	assert_float(tl.stage_reward_mult(0)).is_equal(tl.stage_mult(0))
 	assert_float(tl.stage_reward_mult(1)).is_equal(tl.stage_mult(1))
 	assert_float(tl.speed_mult(0)).is_equal_approx(1.0, 0.0001)
-	assert_float(tl.speed_mult(1)).is_equal_approx(1.1, 0.0001)
+	# pass 134: speeds x1.15 at the start, the top kept
+	assert_float(tl.speed_mult(1)).is_equal_approx(1.0916, 0.0001)
 
 
 func test_what_meant_the_blood_moon_keeps_meaning_it() -> void:

@@ -5,7 +5,7 @@
   "archetype": "swarmer",
   "brain": "flock",
   "hp": 36,
-  "speed": 2.8,
+  "speed": 3.22,
   "damage": 8,
   "knockback": 4.81,
   "radius": 0.45,

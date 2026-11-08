@@ -7,7 +7,7 @@
 script = ExtResource("2_pyrrf")
 doc = "The Dust Bowl's main walker: a burlap scarecrow half again as tough as a skeleton and a touch slower, half a slot against the cap. It slumps and spills its straw when it dies."
 hp = 15.0
-speed = 1.5
+speed = 1.725
 damage = 4.0
 radius = 0.52
 size = 1.8

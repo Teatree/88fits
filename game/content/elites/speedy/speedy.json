@@ -5,7 +5,7 @@
     {
       "stat": "speed",
       "op": "mul",
-      "value": 0.7
+      "value": 0.629
     },
     {
       "stat": "hp",

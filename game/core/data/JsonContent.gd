@@ -782,7 +782,8 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 111 (lane ENEMY): far creatures walk faster (read as it is; WaveTimeline.FAR_SPEED_DEFAULTS fill gaps)
 	var fsp = t.get("far_speed", {})
 	w.far_speed = fsp if fsp is Dictionary else {}
-	# pass 128 (lane BLOB): far creatures sink and rise round the outlaw (read as it is; WaveTimeline.RELOCATE_DEFAULTS fill gaps)
+	# pass 128 (lane BLOB): far creatures sink and rise round the outlaw (read as it is; WaveTimeline.RELOCATE_DEFAULTS fill gaps;
+	# pass 134: `hidden` and `chance` too, mended in WaveTimeline.relocate_cfg)
 	var rlc = t.get("relocate", {})
 	w.relocate = rlc if rlc is Dictionary else {}
 	# pass 112 (lane BARREL): the barrels' respawn clock and both barrel types' contents (BarrelSpawns' defaults fill gaps)

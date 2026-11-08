@@ -8,7 +8,7 @@
 ## twelve sectors round him (the fullest sector's share; an even ring is 8%), and the relocations, the queue and the
 ## despawns so far. Run it once with relocate=0 and once with relocate=1 and compare the RESULT lines.
 ##   bash tools/godot.sh --headless --fixed-fps 60 --path game --script res://tools/_p128_BLOB_probe.gd --log-file <f> -- \
-##       relocate=1 secs=60 warm=20 t0=200 stage=0 hero=drifter seed=11 [every=0.1] [far=2]
+##       relocate=1 secs=60 warm=20 t0=200 stage=0 hero=drifter seed=11 [every=0.1] [far=2] [hidden=0|1 chance=0.6 (pass 134)]
 ## Bounded: the probe's own frame clock, a 300 s watchdog (and GODOT_TIMEOUT on tools/godot.sh). Nothing reaches the disk
 ## (Save.begin_sandbox in the probe's _start).
 extends "res://tools/difficulty_probe.gd"
@@ -41,6 +41,9 @@ func _init() -> void:
 			"secs": _run_secs = float(kv[1])
 			"every": _over["every"] = float(kv[1])
 			"far": _over["seconds"] = float(kv[1])
+			# pass 134 (lane RELOC): the two new keys, in place of the map's
+			"hidden": _over["hidden"] = kv[1] != "0"
+			"chance": _over["chance"] = float(kv[1])
 	_secs = _warm + _run_secs
 	create_timer(300.0, true, false, true).timeout.connect(func(): print("blob: watchdog"); quit(3))
 
@@ -174,3 +177,7 @@ func _report(ran: float) -> void:
 		int(rl.dropped) if rl != null else 0, int(em.despawned), int(_run.kills) - _kills0])
 	if rl != null:
 		print("blob: relocated by creature %s" % str(rl.relocated_by))
+		# pass 134 (lane RELOC): the hidden move and the chance
+		print("blob: RELOC hidden %s chance %.2f | relocated %d in %.0f s = %.1f a minute | missed rolls %d | passed over seen %d, no hidden spot %d | burnt %d, died of it %d, dealt %.0f" % [
+			str(rl.hidden), float(rl.chance), int(rl.relocated), ran - _warm, float(rl.relocated) / maxf(ran - _warm, 1.0) * 60.0, int(rl.missed),
+			int(rl.passed_seen), int(rl.passed_spot), int(rl.burnt), int(rl.burn_kills), float(rl.burn_dealt)])

@@ -7,7 +7,7 @@
 script = ExtResource("2_34cu8")
 doc = "Retired in pass 44 (too many goblins): the Blue Slime took its stage-2 hell row. Stage 2's hell crowd: four times a goblin's health and twice its bite, in packs of four that come on top of the regular roster. It walks like a goblin and dies like one, slower."
 hp = 24.0
-speed = 1.75
+speed = 2.012
 damage = 7.0
 radius = 0.55
 size = 1.6

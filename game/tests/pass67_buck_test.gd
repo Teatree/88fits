@@ -138,8 +138,10 @@ func test_the_charge_at_full_adds_speed_attack_damage_and_evade_under_one_source
 	var base_speed := Run.player_sheet.get_stat("move_speed", 0.0)
 	var base_might := Run.player_sheet.get_stat("might", 0.0)
 	# level 1: 3.6 x 0.85 (the flat -15%, kept) x 1.01 (Full Tilt's 1% a level); slower than anyone at the start
-	assert_float(base_speed).is_equal_approx(3.6 * 0.85 * 1.01, 0.0001)
-	assert_float(base_speed).is_less(3.6)
+	# pass 134: speeds x1.15 at the start, the top kept
+	assert_float(base_speed).is_equal_approx(4.14 * 0.85 * 1.006, 0.0001)
+	# pass 134: speeds x1.15 at the start, the top kept
+	assert_float(base_speed).is_less(4.14)
 	assert_float(Run.player_sheet.get_stat("evade", 0.0)).is_equal(0.0)
 	Run.momentum = 1.0
 	Run.rebuild_sheets()
@@ -416,16 +418,18 @@ func test_bucks_trait_says_the_level_rule_then_his_charge() -> void:
 	var buck: CharacterDef = Registry.character("buck")
 	assert_str(buck.trait_name).is_equal("Full Tilt")
 	var t := TextGen.hero_trait(buck)
-	assert_str(t).starts_with("Gain 1% move speed per level. ")
+	# pass 134: speeds x1.15 at the start, the top kept
+	assert_str(t).starts_with("Gain 0.6% move speed per level. ")
 	assert_str(t).ends_with(buck.trait_text)
 	assert_str(buck.trait_text).is_equal("Starts 15% slower. While he is not hit his charge climbs over 10 s to +80% speed, +60% attack damage and +20% evade chance; a hit that lands knocks off half of it.")
-	assert_str(TextGen.hero_trait_now(buck, 10)).is_equal("+10% move speed at level 10")
+	assert_str(TextGen.hero_trait_now(buck, 10)).is_equal("+6% move speed at level 10")
 	# a hero with a rule and no special reads the rule alone, as before
 	assert_str(TextGen.hero_trait(Registry.character("drifter"))).is_equal("Gain 1% crit chance per level.")
 	# the plaque shows what a level gives
 	var ts = load("res://ui/TitleScreen.gd").new()
 	var rows: Array = ts._stats_of(buck)
-	assert_str(str(rows[0][0])).is_equal("+1%")
+	# pass 134: speeds x1.15 at the start, the top kept
+	assert_str(str(rows[0][0])).is_equal("+0.6%")
 	assert_str(str(rows[0][1])).is_equal("SPEED / LV")
 	ts.free()
 
@@ -442,7 +446,8 @@ func test_buck_is_back_in_play_seventh_and_his_kit_is_whole() -> void:
 	assert_float(buck.trait_effects[0].value).is_equal_approx(-0.15, 0.0001)
 	assert_int(buck.level_trait.size()).is_equal(1)
 	assert_str((buck.level_trait[0] as Effect).stat).is_equal("move_speed")
-	assert_float((buck.level_trait[0] as Effect).value).is_equal_approx(0.01, 0.00001)
+	# pass 134: speeds x1.15 at the start, the top kept
+	assert_float((buck.level_trait[0] as Effect).value).is_equal_approx(0.006, 0.00001)
 	assert_str(buck.start_weapon).is_equal("frisbee")
 	assert_str(buck.favourite_weapon).is_equal("salt")
 	assert_str(Registry.start_weapon_for(buck).id).is_equal("frisbee")

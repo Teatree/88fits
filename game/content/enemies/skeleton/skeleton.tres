@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_88nap")
 doc = "The crowd since pass 45: bare bones walking in with their arms at their sides, five to a pack, half a slot each against the cap. Everything else is measured against it. It falls over backwards when it dies."
-speed = 1.6
+speed = 1.84
 damage = 3.0
 radius = 0.52
 size = 1.75

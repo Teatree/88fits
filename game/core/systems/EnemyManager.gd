@@ -2994,6 +2994,56 @@ func is_burning(i: int) -> bool:
 	return i >= 0 and i < pool_max and not (fire_src[i] as Dictionary).is_empty()
 
 
+## Pass 134 (lane RELOC; Garry: a burning creature that relocates stops burning, "all the damage that they'd get should
+## apply immediately instead"): what creature `i`'s burns would still deal, [damage, weapon]: each source's tick times
+## the ticks it has left (its seconds left against the next tick, fire_tick, then one every FIRE_TICK: a source whose
+## seconds run out first deals no more), the sum times White Phosphorus and Lingering Light as a tick is; the weapon is
+## the source with the most left (a tick's is the biggest tick's). [0.0, ""] for one not burning.
+func burn_rest(i: int) -> Array:
+	if not is_burning(i):
+		return [0.0, ""]
+	status_clocks_now(i)
+	_pstats()
+	var ft: float = maxf(fire_tick[i], 0.0)
+	var total := 0.0
+	var best := 0.0
+	var best_id := ""
+	var src: Dictionary = fire_src[i]
+	for k in src:
+		var e: Dictionary = src[k]
+		var t: float = float(e["t"])
+		if t <= ft:
+			continue
+		var n := ceili((t - ft) / FIRE_TICK - 1.0e-6)
+		var part: float = float(e["dmg"]) * float(maxi(n, 0))
+		total += part
+		if part > best:
+			best = part
+			best_id = str(k)
+	return [total * (1.0 + _fire_vuln) * _ll_harder, best_id]
+
+
+## Pass 134: creature `i`'s burns end now and what they would still deal (burn_rest) lands at once as one burn tick's
+## hit (hot: no crit, counted as fire damage of the burn's weapon: the kill, the weapon's damage, the quests' and posters'
+## fire tallies); no spread, no Prairie Fire jump from the cut burn (a kill's death jumps as any death does). True when it
+## died of it (the normal death, where it stands).
+func burn_out(i: int) -> bool:
+	if not is_burning(i):
+		return false
+	var rest := burn_rest(i)
+	var amount: float = float(rest[0])
+	if amount > 0.0:
+		damage(i, amount, str(rest[1]), Vector3.ZERO, 0.0, false, true)
+	if alive[i] == 0 or state[i] == STATE_DYING:
+		return true
+	fire_src[i] = {}
+	fire_blue[i] = 0
+	fire_tick[i] = 0.0
+	fire_puff[i] = 0.0
+	_fire_flush(i)
+	return false
+
+
 ## True when the creature carries the given element ("poison" or "fire"); "" is never carried.
 func has_element(i: int, element: String) -> bool:
 	match element:

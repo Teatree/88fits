@@ -5,7 +5,7 @@
   "archetype": "walker",
   "brain": "chase",
   "hp": 6,
-  "speed": 2.3,
+  "speed": 2.645,
   "damage": 4,
   "knockback": 3.4,
   "radius": 0.35,

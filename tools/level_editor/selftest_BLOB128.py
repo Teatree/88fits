@@ -1,7 +1,7 @@
 """Pass 128, lane BLOB: the Level Editor's side of relocation. selftest.py discovers this file (`extra_checks`) and hands
 it its `check` counter, its `run_node(query, runner_src)` and the `server` module. Nothing here writes.
 
-Groups: the map's `relocate` rows in fields.js (nine keys in their own Relocation card, explained, their grey numbers
+Groups: the map's `relocate` rows in fields.js (eleven keys since pass 134 in their own Relocation card, explained, their grey numbers
 WaveTimeline.RELOCATE_DEFAULTS) and the row field `relocate` (in the row card's Where and how group, in the save order);
 model.js's relocateCfg (the game's block: gaps filled, the ring [near, far], at least one sector, no negative number),
 rowRelocate (the effective value and its source: a regular creature on by default, a squad creature off by default and
@@ -134,8 +134,9 @@ def checks(check, run_node, server):
     wt = _read(GAME, "core", "data", "WaveTimeline.gd")
     m = re.search(r"const RELOCATE_DEFAULTS := (\{.*?\})\n", wt)
     dflt = json.loads(m.group(1)) if m else {}
-    check(dflt == {"enabled": True, "distance": 16.0, "seconds": 5.0, "every": 0.4, "ring": [19.0, 24.0], "sectors": 12, "sink": 0.35, "scan": 0.5, "squads": False},
-          "BLOB128: WaveTimeline.RELOCATE_DEFAULTS are the rule's numbers (on, 16 m, 5 s, one every 0.4 s, ring 19-24 m, 12 sectors, sink 0.35 s, scan 0.5 s, no squads): %s" % dflt)
+    # pass 134 (lane RELOC): `hidden` (off) and `chance` (1) joined them; selftest_RELOC134.py checks their rows
+    check(dflt == {"enabled": True, "distance": 16.0, "seconds": 5.0, "every": 0.4, "ring": [19.0, 24.0], "sectors": 12, "sink": 0.35, "scan": 0.5, "squads": False, "hidden": False, "chance": 1.0},
+          "BLOB128: WaveTimeline.RELOCATE_DEFAULTS are the rule's numbers (on, 16 m, 5 s, one every 0.4 s, ring 19-24 m, 12 sectors, sink 0.35 s, scan 0.5 s, no squads, not hidden, chance 1): %s" % dflt)
     check("func relocate_cfg() -> Dictionary" in wt and "@export var relocate: Dictionary" in wt and "static func row_relocate(r) -> int" in wt,
           "BLOB128: WaveTimeline carries the block, fills it and reads a row's say")
     mp = json.loads(_read(CONTENT, "maps", "red_canyon", "red_canyon.json"))
@@ -147,7 +148,7 @@ def checks(check, run_node, server):
     else:
         rows = {r[0]: r for r in res["rows"]}
         want = {"relocate." + k for k in dflt}
-        check(set(rows) == want, "BLOB128: fields.js has exactly the relocate rows of the defaults (nine): %s" % sorted(rows))
+        check(set(rows) == want, "BLOB128: fields.js has exactly the relocate rows of the defaults (eleven): %s" % sorted(rows))
         check(all(r[1] == "Relocation" and r[4] and r[5] is None for r in rows.values()), "BLOB128: every relocate row sits in the Relocation card, explained, no block")
         check("Relocation" in res["groups"], "BLOB128: the Settings tab has the Relocation card")
         defs = {k: rows["relocate." + k][3] for k in dflt if "relocate." + k in rows}

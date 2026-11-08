@@ -2389,6 +2389,13 @@ for a squad creature" (tick it to switch that row's Monks on), "on / off: this r
 locked, "off: an Elite row never relocates" (the same for a special row, a boss, an Elite by its kind, a special type and
 a dummy). The file stores the box only where it differs from the row's default, so a map full of defaults stays clean.
 
+**Pass 134 (lane RELOC).** The Relocation card (Settings tab) has two more boxes. **Hidden** (Red Canyon on): nobody
+sees a creature relocate; it goes only while it is off the screen, to a spot off the screen, at once (no sinking, no
+rising; **Sinks over** then does nothing). **Chance to go** (0..1, Red Canyon 0.6): a creature far for Far for seconds
+goes with this chance, else it tries again after another Far for (0.6 = about 8 s far on average). The card's sentence
+says both, and a chance of 0 is warned of. A burning creature stops burning at its turn: the rest of its burn hits it
+at once, and one that dies of it is not moved. Checks: `selftest_RELOC134.py`.
+
 ## Pass 129: the Trail tab (lane TRAIL-EDITOR)
 
 The Trail (the game's permanent progression, `game/content/trail/trail.json`; the file and its rules are in

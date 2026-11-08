@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_qgsna")
 doc = "A beast that walks like a skeleton (the skeleton's numbers) in threes; three looks from a real wolf to a cartoon (WW-A, WW-B, WW-C), walked on the Orc Walk retargeted to its long arms. Placed by the Level Editor."
-speed = 1.6
+speed = 1.84
 damage = 3.0
 radius = 0.55
 size = 1.8

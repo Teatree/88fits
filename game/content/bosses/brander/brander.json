@@ -5,7 +5,7 @@
   "archetype": "boss",
   "brain": "boss",
   "hp": 10880,
-  "speed": 1.55,
+  "speed": 1.782,
   "damage": 30,
   "knockback": 7.0,
   "radius": 2.2,

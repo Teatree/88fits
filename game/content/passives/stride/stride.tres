@@ -8,7 +8,7 @@
 script = ExtResource("2_ndof0")
 stat = "move_speed"
 op = "mul"
-value = 0.06
+value = 0.037
 target = "player"
 
 [resource]

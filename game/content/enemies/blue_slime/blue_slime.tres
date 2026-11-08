@@ -7,7 +7,7 @@
 script = ExtResource("2_qusyu")
 doc = "Stage 2's hell crowd: a bouncing blue jelly, four times a goblin's health and twice its bite, five to a pack on top of the regular roster. It bursts into a puddle when it dies."
 hp = 26.0
-speed = 1.7
+speed = 1.955
 damage = 7.0
 radius = 0.6
 size = 1.8

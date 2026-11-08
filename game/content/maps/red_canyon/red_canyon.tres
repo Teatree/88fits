@@ -13,7 +13,7 @@ stage_mults = [1.0, 2.2, 2.05, 2.05]
 endless_wave_seconds = 86.0
 endless_wave_mult = 1.12
 hell_cap = [0.0, 0.3, 0.0, 0.4]
-speed_per_stage = 0.1
+speed_per_stage = 0.0916
 cap_start = 10
 cap_per_minute = 7.81
 cap_max = 500
@@ -113,7 +113,7 @@ roster = [{
 "stats": {
 "can_be_elite": false,
 "size_mult": 1.1,
-"speed": 3.0
+"speed": 3.45
 },
 "t": 141.0,
 "until": 200.0,
@@ -132,7 +132,7 @@ roster = [{
 "damage_mult": 1.25,
 "hp_mult": 1.0,
 "size": 1.25,
-"speed": 1.25
+"speed": 1.438
 },
 "t": 245.0,
 "until": 266.0,
@@ -148,7 +148,7 @@ roster = [{
 "damage_mult": 1.25,
 "hp_mult": 1.0,
 "size": 1.25,
-"speed": 1.25
+"speed": 1.438
 },
 "t": 270.0,
 "until": 315.0,
@@ -197,7 +197,7 @@ roster = [{
 "role": "fodder",
 "stats": {
 "hp_mult": 1.2,
-"speed": 1.5
+"speed": 1.725
 },
 "t": 47.0,
 "until": 53.0,
@@ -213,7 +213,7 @@ roster = [{
 "role": "fodder",
 "stats": {
 "hp_mult": 1.2,
-"speed": 1.75
+"speed": 2.012
 },
 "t": 0.0,
 "until": 47.0,
@@ -361,7 +361,7 @@ roster = [{
 "hp": 20.0,
 "hp_mult": 12.0,
 "size": 2.0,
-"speed": 1.75
+"speed": 2.012
 },
 "t": 368.0,
 "until": 430.0,
@@ -410,7 +410,7 @@ roster = [{
 "can_be_elite": false,
 "hp_mult": 0.2,
 "size": [1.0, 2.0],
-"speed": 2.0
+"speed": 2.3
 },
 "t": 480.0,
 "until": 623.0,
@@ -427,7 +427,7 @@ roster = [{
 "stats": {
 "hp_mult": 0.2,
 "size": [2.5, 3.0],
-"speed": 2.1
+"speed": 2.415
 },
 "t": 469.0,
 "until": 471.0,
@@ -2233,9 +2233,11 @@ far_speed = {
 "ramp": 24.0
 }
 relocate = {
+"chance": 0.6,
 "distance": 16.0,
 "enabled": true,
-"every": 0.4,
+"every": 0.6,
+"hidden": true,
 "ring": [19.0, 24.0],
 "scan": 0.5,
 "seconds": 5.0,
@@ -2587,7 +2589,7 @@ stage_list = [{
 "stats": {
 "hp_mult": 0.25,
 "size": [1.0, 2.0],
-"speed": 2.0
+"speed": 2.3
 },
 "t": 80.0,
 "weights": [[0.0, 1.0], [120.0, 1.0]]
@@ -2741,7 +2743,7 @@ stage_list = [{
 "name": "The Dust Bowl",
 "reward_mult": 2.75,
 "shot": "res://art/ui/stages/red_canyon_dust.jpg",
-"speed_mult": 1.15,
+"speed_mult": 1.1371,
 "weather": {
 "fog": {
 "color": "#A67F52",
@@ -2875,7 +2877,7 @@ stage_list = [{
 "name": "Blood Moon",
 "reward_mult": 3.34,
 "shot": "res://art/ui/stages/red_canyon_s3.jpg",
-"speed_mult": 1.2,
+"speed_mult": 1.1825,
 "xp_mult": 0.8
 }]
 endless = {
@@ -2893,9 +2895,9 @@ endless = {
 "knock_resist_seconds": 90.0,
 "portal_seconds": 60.0,
 "roster_window": 60.0,
-"speed": 1.1,
-"speed_growth": 0.04,
-"speed_max": 2.4,
+"speed": 1.0916,
+"speed_growth": 0.0355,
+"speed_max": 2.2367,
 "wave_growth": 2.0,
 "wave_size": 30.0,
 "xp_share": 0.35

@@ -8,7 +8,7 @@
 script = ExtResource("1_ms1ta")
 stat = "speed"
 op = "mul"
-value = 0.7
+value = 0.629
 
 [sub_resource type="Resource" id="Resource_tlh2m"]
 script = ExtResource("1_ms1ta")

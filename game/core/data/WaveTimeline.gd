@@ -285,8 +285,11 @@ func far_speed_cfg() -> Dictionary:
 ## (core/systems/CrowdRelocate.gd). Not a spawn: no cap, no count, no XP change. `squads` false = squad creatures (the
 ## Monk) stay put unless their row says `relocate: true`; a roster row's own `relocate` (true / false) wins over the
 ## default. A key left out (the whole block too) plays RELOCATE_DEFAULTS; enabled false = off. The arena never relocates.
+## Pass 134 (lane RELOC): `hidden` true = the move is unseen (only off the screen, to a spot off the screen, at once: no
+## sink, no rise; false = the sink and rise above), `chance` (0..1) = the share of far times reaching `seconds` that join
+## the queue (a miss starts the far time again); a burning creature's burn ends at its turn, its rest dealt at once.
 @export var relocate: Dictionary = {}
-const RELOCATE_DEFAULTS := {"enabled": true, "distance": 16.0, "seconds": 5.0, "every": 0.4, "ring": [19.0, 24.0], "sectors": 12, "sink": 0.35, "scan": 0.5, "squads": false}
+const RELOCATE_DEFAULTS := {"enabled": true, "distance": 16.0, "seconds": 5.0, "every": 0.4, "ring": [19.0, 24.0], "sectors": 12, "sink": 0.35, "scan": 0.5, "squads": false, "hidden": false, "chance": 1.0}
 
 
 ## The relocate block whole, every key filled (pass 128): what EnemyManager.set_relocate takes. `ring` is always
@@ -311,6 +314,9 @@ func relocate_cfg() -> Dictionary:
 			out[k] = [maxf(minf(lo, hi), 0.0), maxf(maxf(lo, hi), 0.0)]
 		elif dv is int:
 			out[k] = maxi(int(v), 1) if (v is float or v is int) else int(dv)
+		elif k == "chance":
+			# pass 134: a share, 0..1
+			out[k] = clampf(float(v), 0.0, 1.0) if (v is float or v is int) else float(dv)
 		else:
 			out[k] = maxf(float(v), 0.0) if (v is float or v is int) else float(dv)
 	return out

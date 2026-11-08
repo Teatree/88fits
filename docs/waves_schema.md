@@ -1444,6 +1444,8 @@ the fewest creatures. The player never sees a word for it.
 | `sink` | s [0.35] | it sinks where it stands over this long (the spawn rise played backwards, a puff of dust on the screen), is placed the tick it is under, and rises over `spawn_rise.seconds`; 0 = gone at once |
 | `scan` | s [0.5] | seconds between two checks of who is far; each adds this much to a far creature's time |
 | `squads` | bool [false] | false: a squad creature (the Monk) relocates only when its row says `relocate: true`; true: every squad creature by default |
+| `hidden` | bool [false] | pass 134: true = nobody sees the move: a creature goes only while it is off the screen, to a spot off the screen, placed at once (no sink, no dust, no rise; `sink` does nothing); false = the sink and rise above. Red Canyon: true |
+| `chance` | 0..1 [1] | pass 134: a creature whose far time reaches `seconds` joins the queue with this chance (the lane's own dice); a miss starts its far time again from 0, so on average it waits `seconds` / `chance` far (0.6 with 5 s: about 8 s); 0 = nobody. Red Canyon: 0.6 |
 
 A key left out (the whole block too) plays `WaveTimeline.RELOCATE_DEFAULTS`; Red Canyon's file names every key. The
 debug arena never relocates, nor a crowd without a director.
@@ -1462,6 +1464,16 @@ emptiest one's middle turned inside the arena.
 far time are set to 0. No cap, no count, no XP, no kill, no analytics. Deterministic: its own dice
 (`Dice.rng_for("crowd_relocate")`), clocks counted in physics ticks, the crowd read in index order; the compiled crowd
 needs no change (it hands every creature that is not walking, is buried, rising or sinking back to the script).
+
+**Pass 134 (lane RELOC; Garry: "make it hidden, when teleporting burning enemies they stop burning ... If they die they
+don't teleport ... make it a bit more rare").** With `hidden` a creature is off the screen when its turn comes (the
+weapons' screen flag and its picture's feet and top against the screen, `CrowdRelocate.seen`) or its turn is passed
+over; the spot must be off the screen too (`pick_spot` with `unseen`: a seen point is never taken; none in any sector =
+passed over). One passed over keeps the turn it won and joins the queue again at the next check while it stays far,
+without a new chance roll. Either way a **burning** creature's burns end at its turn and what they would still deal
+(each source's tick x the ticks it has left) lands at once as one burn tick's hit credited to the burn's weapon
+(`EnemyManager.burn_rest`, `burn_out`): one that dies of it dies where it stands and is not moved, one that lives goes
+unburnt. Poison is not burning: a poisoned creature moves with its poison. Tests `game/tests/pass134_reloc_test.gd`.
 
 #### Roster row (`timeline_data.roster[]`, a boss-fight window's rows too): new key
 | key | type | default | meaning |

@@ -5,7 +5,7 @@
   "archetype": "tank",
   "brain": "chase",
   "hp": 60,
-  "speed": 0.85,
+  "speed": 0.977,
   "damage": 14,
   "knockback": 6.36,
   "radius": 0.6,

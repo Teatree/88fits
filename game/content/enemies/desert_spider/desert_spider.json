@@ -5,7 +5,7 @@
   "archetype": "swarmer",
   "brain": "chase",
   "hp": 36,
-  "speed": 3.0,
+  "speed": 3.45,
   "damage": 8,
   "knockback": 4.81,
   "radius": 0.5,

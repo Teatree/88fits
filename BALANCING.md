@@ -10113,3 +10113,50 @@ red goblins / werewolves + a knight wall, with the hell channel as before (imps 
   Garry's own 40-65 alive in the first two minutes (12 a wave every 6 s, rings of 20-24 at 1:30, crow flocks of 12
   every 20 s), and the middle chapters from 7-8 bodies a second to 4-5. The first chapter's `count` and the crow rows'
   `every` are the knobs if a phone run reads empty or harsh.
+
+## 75. Pass 134: everyone starts faster with the top kept, the relocation hidden and rarer
+
+**75.SPEED. Everyone starts 15% faster, the top stays** (pass 134; Garry, 2026-11-08: "Increase the starting movement
+speed of all enemies and heroes by 15% but such that the consequent movement speed increases all adjust in such a way
+that the max speed remains the same ... Don't change the camera"). Every walk speed x1.15 where it lives: the Outlaw's
+base `move_speed` 3.6 -> 4.14 (StatSheet.PLAYER_DEFAULTS), every creature's and boss's JSON `speed`, every roster row's
+absolute `stats.speed` (rows' `speed_mult` are slows and stay). The map's `move_pace` 0.9 and `creature_speed_mult` 0.9
+are not used for it (they also speed shots, charges and warnings). The increases that last then shrink by one exponent a
+side, (1 + m) -> (1 + m)^a, a = 1 - ln(1.15) / ln(P_top), so the start is 15% faster and the top lands where it was.
+- The Outlaw: the top is his lasting build, The Chariot Risen 1.3 x the Trail's Boots 1.12 x twelve Wolf gifts with the
+  Spirit Guide 1.476 = 2.150; the Wolf gift stays 1..3% (a roll reads in whole percents), so a = 1 - ln 1.15 /
+  ln(2.150 / 1.476) = 0.628: The Chariot 3.7% a level (was 6%), Risen 17.9% (30%), Boots 1.9 / 2.5 / 3.1% (3 / 4 / 5%),
+  Jeżyk's trait 0.6% a level (1%; fitted at level 30). The timed boosts keep their numbers (Sprint 40%, the War Drum
+  15%, Adrenaline, Barrel Rush, Skedaddle, Counterpunch, Jeżyk's charge 80%): each multiplies the speed he has, which
+  is today's at the lasting top, so every moment a boost runs is at today's speed too (Risen + Boots + Sprint 6.61 m/s,
+  was 6.60). Jeżyk's -15% and Dad's -10% are slows: kept. What the player reads is rounded to a tenth of a percent.
+- The creatures: P_top 5.68 (Blood Moon 1.2 x Endless's cap 2.4 x the Stakes 1.16 x Speedy 1.7), a = 0.920:
+  Nightfall 1.0916 (`speed_per_stage` 0.0916), the Dust Bowl 1.1371, Blood Moon 1.1825; Endless `speed` 1.0916,
+  `speed_max` 2.2367, `speed_growth` 0.0355 (the cap after the same 29.5 waves); the Stakes' and Boss Stakes'
+  `danger_speed` per 0.366 (fitted on all four of a kind); Speedy +62.9%. `far_speed` is kept (max_mult 4, max_speed
+  8 m/s): its absolute cap binds long before x4 on the top stack, and it is the far crowd's catch-up with the Outlaw.
+- What stays: slows, the variance jitter, charges, rolls, leaps, boss attacks, shots, missiles, dust devils, the
+  camera (CameraRig.walk_speed 3.6: it pulls out a little more at the start, as Garry accepted).
+- The tool: `python tools/speed_rescale.py --check | --write | --undo` (defaults `--top lasting --timed keep`; `--top
+  full` and `--timed shrink` are the readings not taken), the table before / after in tools/dl/p134/SPEED/plan.json; it
+  edits the copies too (tools/trail_setup.py DESIGN, tools/level_editor/vocab.py PLAYER_DEFAULTS).
+
+**75.RELOC. Relocation hidden, rarer, and burning creatures** (pass 134). Garry: "make it hidden, when teleporting burning enemies they stop burning (all the damage that they'd get should apply
+immediately instead. If they die they don't teleport) - make it a bit more rare. Give me some parameter I can edit in the
+LevelEditor." Two keys in `timeline_data.relocate` (Level Editor: Settings -> Relocation -> Hidden, Chance to go):
+
+- `hidden` (game default false; **Red Canyon true**): a creature relocates only while it is off the screen (the
+  weapons' screen flag, and its feet and its picture's top at 1.2 x its size against the screen grown 1 m) and only to a
+  spot off the screen (a dice try that would show is skipped; no hidden spot in any sector = no move); it is placed at
+  once (no sink, no dust, no rise; `sink` does nothing). One seen at its turn is passed over, keeps the turn it won and
+  joins the queue again at the next check (0.5 s) while it stays far. Without a camera that can say, nothing moves.
+- `chance` (0..1, game default 1; **Red Canyon 0.6**): a creature whose far time reaches `seconds` (5 s) joins the queue
+  with this chance (the relocation's own dice), else its far time starts again from 0. Mean far time before it goes =
+  seconds / chance (0.6: 8.3 s). The moves a minute stay capped by `every`; in a long chase the queue is full and `every` is what sets the
+  rate, so the lead raised **Red Canyon's `every` 0.4 -> 0.6 s** (at most 100 a minute, was 150; the probe's 60 s chase:
+  104 moves before, 105 with hidden + chance 0.6 alone, 51 at 0.8 s).
+- Burning (either way): at its turn a burning creature takes the rest of its burns at once (each source's tick x the ticks
+  it has left before its seconds run out, x White Phosphorus and Lingering Light), one hit credited to the source with
+  the most left, counted as fire damage (kills, weapon damage, fire tallies); the burn ends (no spread, no Prairie Fire
+  jump from a survivor's cut burn). Dead of it: dies where it stands, not moved. Alive: moved unburnt. Poison rides along
+  unchanged.
