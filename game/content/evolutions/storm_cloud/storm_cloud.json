@@ -14,9 +14,13 @@
     "chains": 3,
     "range": 7,
     "amount": 1,
-    "knockback": 4.0
+    "knockback": 5.0
   },
   "params": {
+    "aim": {
+      "family": "placed",
+      "min_r": 2.0
+    },
     "follow": true,
     "final": {
       "echo_zap": {

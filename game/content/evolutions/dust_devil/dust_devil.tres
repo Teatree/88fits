@@ -11,7 +11,7 @@ base = {
 "amount": 3.0,
 "cooldown": 2.4,
 "damage": 30.0,
-"knockback": 14.0,
+"knockback": 17.5,
 "pierce": 80.0,
 "range": 18.0,
 "speed": 7.0
@@ -27,6 +27,9 @@ sfx = {
 visual = ExtResource("3_3a4ox")
 visual_file = "dust_devil_visual.tscn"
 params = {
+"aim": {
+"cone": 40.0
+},
 "fan_step_deg": 14.0,
 "final": {
 "aura": {

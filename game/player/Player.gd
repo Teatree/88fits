@@ -27,6 +27,9 @@ var shadow_scale := Vector3(0.9, 1, 0.63)
 
 var sheet: StatSheet
 var facing := 0.0               # yaw radians, 0 = -Z forward
+## Pass 136 (lane GUNS, R1): under the aim rule (Aim.on) a stick pushed less than this share of its reach turns him on
+## the spot without walking (BALANCING 77.AIM).
+const TURN_ZONE := 0.15
 var hp := 100.0
 var max_hp := 100.0
 var invuln := 0.0
@@ -357,6 +360,10 @@ func _physics_process(delta: float) -> void:
 		# gentle nudges creep, past half deflection it is full speed: precise in a crowd, fast in the open
 		var throttle := smoothstep(0.0, 0.55, d.length())
 		planar = world.normalized() * move_speed * throttle * leash_factor(world)
+		# pass 136 (lane GUNS, R1; Garry: "the 15% stick to turn while standing is a fine one"): while the weapons aim where
+		# he faces, a stick pushed under TURN_ZONE of its reach turns him without walking
+		if d.length() < TURN_ZONE and Aim.on():
+			planar = Vector3.ZERO
 	elif cannot_stop:
 		planar = forward() * move_speed * leash_factor(forward())
 	# a hit's shove (pass 54, hit_knock): for a beat the stick does not move him, so the shove is not walked through

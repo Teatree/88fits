@@ -19,7 +19,7 @@ base = {
 "amount": 1.0,
 "cooldown": 1.2,
 "damage": 36.0,
-"knockback": 6.0,
+"knockback": 7.5,
 "pierce": 0.0,
 "range": 10.0,
 "speed": 18.0
@@ -36,6 +36,9 @@ sfx = {
 visual = ExtResource("4_7i1t1")
 visual_file = "res://content/weapons/basketball/basketball_visual.tscn"
 params = {
+"aim": {
+"cone": 60.0
+},
 "amount_mode": "bounces",
 "back_speed_mult": 1.6,
 "catch": {
@@ -46,7 +49,7 @@ params = {
 "slam": {
 "at_heat": 10.0,
 "damage_frac": 1.5,
-"knockback": 12.0,
+"knockback": 15.0,
 "radius": 3.5
 }
 },

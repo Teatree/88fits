@@ -14,6 +14,9 @@ hero = "drifter"
 text = "A blast that catches nine or more creatures lands a Mini Crit on every one of them."
 vfx = "a big blast in a packed crowd, every creature in it flashing the mini crit's pale gold number"
 params = {
+"aim": {
+"best_chance": 0.8
+},
 "mass_mini": {
 "min_hits": 9.0
 }

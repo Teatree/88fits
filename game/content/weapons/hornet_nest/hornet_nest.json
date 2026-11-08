@@ -16,7 +16,7 @@
     "area": 0,
     "speed": 15,
     "range": 11,
-    "knockback": 1.0
+    "knockback": 1.25
   },
   "max_level": 5,
   "levels": [
@@ -73,6 +73,14 @@
   "evolves_with": "",
   "evolves_into": "hive_queen",
   "params": {
+    "aim": {
+      "family": "placed",
+      "mode": "bees",
+      "min_r": 2.5,
+      "near": 2.5,
+      "best_chance": 0.6,
+      "bee_life": 5.0
+    },
     "radius": 0.15,
     "missile": {
       "wander": 0.3,

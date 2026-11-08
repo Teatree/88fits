@@ -19,7 +19,7 @@
     {
       "stat": "knockback",
       "op": "add",
-      "value": 9
+      "value": 11.25
     }
   ],
   "params": {

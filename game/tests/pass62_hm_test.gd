@@ -90,7 +90,14 @@ func _script(src: String) -> GDScript:
 	return s
 
 
+## Pass 136 (lane MELEE): this suite pins the old aim, so it plays with Settings.aim_mode off (the aimed rules:
+## pass136_melee_test.gd).
+var _aim_keep136 := true
+
+
 func before_test() -> void:
+	_aim_keep136 = Settings.aim_mode
+	Settings.aim_mode = false
 	# pass 132: Ironwood is free in the game now; this suite's checks of an outlaw sold for gold put him on sale for their time
 	Registry.character("ironwood").availability = "purchase"
 	Save.data = Save._default()
@@ -102,6 +109,7 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	Settings.aim_mode = _aim_keep136
 	Registry.character("ironwood").availability = "available"
 	if _falloff_was != null:
 		Settings.set("pierce_falloff", _falloff_was)
@@ -577,7 +585,7 @@ func test_the_sun_blast_does_its_share_within_its_radius_and_throws_weakly() -> 
 	assert_float(hp_out - em.hp[outside]).is_equal(0.0)
 	# a weak shove straight out: 2.4 against a grenade's 7 (a third of a blast)
 	var mass := maxf(em.size[inside], 0.8)
-	assert_float(em.kb[inside].length()).is_equal_approx(2.4 / mass * em.hero_knock_mult(), 0.01)  # pass 72: the map's share of the hero's pushes (hero_knockback_mult)
+	assert_float(em.kb[inside].length()).is_equal_approx(2.4 * 1.25 / mass * em.hero_knock_mult(), 0.01)  # pass 72: the map's share of the hero's pushes (hero_knockback_mult)
 	assert_float(em.kb[inside].x).is_greater(0.0)
 	assert_float(em.kb[inside].length()).is_less(Registry.weapon("lob_grenade").base["knockback"] / mass * 0.5)
 	assert_float(em.kb[outside].length()).is_equal(0.0)

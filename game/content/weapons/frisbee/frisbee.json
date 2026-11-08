@@ -16,7 +16,7 @@
     "pierce": 999,
     "speed": 13,
     "range": 12,
-    "knockback": 1.5
+    "knockback": 1.875
   },
   "max_level": 5,
   "levels": [
@@ -73,6 +73,9 @@
   "evolves_with": "",
   "evolves_into": "flying_saucer",
   "params": {
+    "aim": {
+      "cone": 60
+    },
     "fire_forward": true,
     "bend_deg": 25,
     "bend_per_extra": 12,

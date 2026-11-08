@@ -50,23 +50,25 @@ const LURE_EVERY := 6
 ## reads this block for the Level Editor's Sim tab). "sim77" is pass 77's bot exactly
 ## (tiers for cards, a random mutation, the gift with the most feathers, the shop and the Stranger left, no goals but
 ## chests, the boss and the portal). Pass 90 (lane BOT): "survivor" is the Explorer playing the safety style with the ring
-## breakout on (tools/bot/BotBreakout.gd).
+## breakout on (tools/bot/BotBreakout.gd). Pass 136 (lane BOT, R9): `aim` (0..1) is how well he aims by moving while every
+## weapon aims where the Outlaw faces (Settings.aim_mode): the attack lean's weight and how often his turn-and-fire beats
+## meet his weapons' shots (sim77 0: pass 77's legs; careless 0.3, explorer and survivor 0.9, expert 1.0).
 const PRESETS := {
 	"sim77": {"skill": 1.0, "style": "balanced", "reaction": 0.0, "dodge": 1.0, "daring": 0.5, "stray": 60.0, "explore": 0.0,
 		"totems": false, "barrels": false, "powerups": true, "structures": false, "shop": false, "stranger": false, "boss": "leash",
-		"cards": "tier", "specials": false, "portal": "endless", "breakout": false},
+		"cards": "tier", "specials": false, "portal": "endless", "breakout": false, "aim": 0.0},
 	"explorer": {"skill": 0.9, "style": "balanced", "reaction": 0.0, "dodge": 1.0, "daring": 0.5, "stray": 60.0, "explore": 0.6,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "leash",
-		"cards": "score", "specials": true, "portal": "endless", "breakout": false},
+		"cards": "score", "specials": true, "portal": "endless", "breakout": false, "aim": 0.9},
 	"careless": {"skill": 0.4, "style": "balanced", "reaction": 0.6, "dodge": 0.5, "daring": 0.8, "stray": 60.0, "explore": 0.4,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "free",
-		"cards": "score", "specials": true, "portal": "endless", "breakout": false},
+		"cards": "score", "specials": true, "portal": "endless", "breakout": false, "aim": 0.3},
 	"expert": {"skill": 1.0, "style": "balanced", "reaction": 0.1, "dodge": 1.0, "daring": 0.45, "stray": 60.0, "explore": 0.7,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "leash",
-		"cards": "score", "specials": true, "portal": "endless", "breakout": false},
+		"cards": "score", "specials": true, "portal": "endless", "breakout": false, "aim": 1.0},
 	"survivor": {"skill": 0.9, "style": "safety", "reaction": 0.0, "dodge": 1.0, "daring": 0.5, "stray": 60.0, "explore": 0.6,
 		"totems": true, "barrels": true, "powerups": true, "structures": true, "shop": true, "stranger": true, "boss": "leash",
-		"cards": "score", "specials": true, "portal": "endless", "breakout": true},
+		"cards": "score", "specials": true, "portal": "endless", "breakout": true, "aim": 0.9},
 }
 const DEFAULT_PRESET := "explorer"
 ## Pass 87 (lane STOOLS; a stage run ends at its boss, then the portal counts down to Endless): what the bot does after
@@ -131,6 +133,38 @@ const BOOL_KEYS := ["totems", "barrels", "powerups", "structures", "shop", "stra
 ## a red warning on the sand nudges a push by BREAK_RING_NUDGE of its dodge push; the special creature types are watched
 ## every GEAR_EVERY frames (summary's specials tallies).
 const BREAK_SCAN_EVERY := 2
+## Pass 136 (lane BOT, R9: the bot learns to aim by moving; only while Settings.aim_mode, else nothing here runs).
+## Every AIM_SCAN_EVERY frames he reads the crowd within his aimed weapons' reach (the longest `range` of the weapons
+## whose params.aim family is aimed or melee, AIM_REACH_MIN..AIM_REACH_MAX m; AIM_REACH_MIN with none), each creature
+## weighing 1 / (1 + d / AIM_NEAR_M) (an Elite or a boss AIM_BIG_W times), and keeps the thickest ±30° front
+## (BotLegs.pack_of). The lean (BotLegs.lean_dir) is `aim` x LEAN_SHARE x his health's say (whole from AIM_HP_FULL, none at
+## AIM_HP_NONE). LEAN_SHARE is 0 (measured, Drifter stage 1, 6 players x 6 min: the lean with the beats lost 75-90% more HP
+## a minute than the beats alone for no more kills; the lean alone bought nothing): the lean is there to try again.
+## The turn-and-fire beat: with the front outside his cone (AIM_CONE_HALF of his facing) he stops and turns to it on the
+## spot (BotLegs.push_turn, R1's small push) for BEAT_S s; a beat is synced, for a weapon whose cooldown is SYNC_MIN_CD s
+## or more, `aim` of the time: it starts BEAT_LEAD s before that weapon's next shot and ends when it has fired (BEAT_SYNC_MAX
+## s at most), at least lerp(SYNC_GAP_LOW, SYNC_GAP_HIGH, aim) s after the last beat; otherwise one every BEAT_EVERY_MIN..
+## BEAT_EVERY_MAX s. A beat turns towards the front give or take (1 - aim) x BEAT_NOISE_DEG. No beat while he dodges (a red
+## ring or line, a big one's push), breaks out, is down, walks to a must (the portal, the boss's chest), or is under
+## AIM_HP_NONE of his health with a creature nearer than his flee distance; a beat under way stops for the same.
+const AIM_SCAN_EVERY := 3
+const LEAN_SHARE := 0.0
+const AIM_REACH_MIN := 6.0
+const AIM_REACH_MAX := 16.0
+const AIM_NEAR_M := 3.0
+const AIM_BIG_W := 3.0
+const AIM_HP_FULL := 0.5
+const AIM_HP_NONE := 0.25
+const AIM_CONE_HALF := 30.0
+const BEAT_S := 0.3
+const BEAT_LEAD := 0.07
+const BEAT_SYNC_MAX := 0.2
+const SYNC_MIN_CD := 0.25
+const SYNC_GAP_LOW := 2.0
+const SYNC_GAP_HIGH := 0.35
+const BEAT_EVERY_MIN := 1.5
+const BEAT_EVERY_MAX := 3.0
+const BEAT_NOISE_DEG := 25.0
 const BREAK_RING_NUDGE := 0.5
 const GEAR_EVERY := 15
 
@@ -212,6 +246,26 @@ var _bo_hp0 := 0.0
 ## GEAR_EVERY frames): summary's specials came / killed / life_s
 var _gear_seen: Dictionary = {}
 var _gear_k := 0
+## pass 136 (R9): whether the aim rule plays (Settings.aim_mode, read at every scan), the front (BotLegs.pack_of: flat way,
+## its weight as length), the nearest creature in reach, the aimed weapons' behaviours, the beat under way (seconds left,
+## its way, the weapon it waits for and that weapon's clock when it started) and the next unsynced beat; tallies: beats,
+## synced beats, frames with a front, frames with it inside his cone
+var _settings: Node = null
+var aim_live := false
+var _aim_k := 0
+var _aim_pack := Vector3.ZERO
+var _aim_ws: Array = []
+var _beat_t := 0.0
+var _beat_dir := Vector3.ZERO
+var _beat_w = null
+var _beat_cd := 0.0
+var _beat_next := -1.0
+var _beat_last := -100.0
+var _sync_roll: Dictionary = {}
+var aim_beats := 0
+var aim_synced := 0
+var aim_frames := 0
+var aim_in_cone := 0
 
 
 func _init(p_game: Node, p_opts: Dictionary = {}) -> void:
@@ -221,6 +275,7 @@ func _init(p_game: Node, p_opts: Dictionary = {}) -> void:
 	if tree:
 		_run = tree.root.get_node_or_null("Run")
 		_reg = tree.root.get_node_or_null("Registry")
+		_settings = tree.root.get_node_or_null("Settings")
 	var sd := int(opts["seed"])
 	rng.seed = hash([sd, "bot"])
 	legs = LEGS.new(hash([sd, "pilot"]))
@@ -272,7 +327,7 @@ static func resolve_opts(raw: Dictionary) -> Dictionary:
 		match key:
 			"seed":
 				o["seed"] = int(v) if int(v) != 0 else 1
-			"skill", "dodge", "daring", "explore":
+			"skill", "dodge", "daring", "explore", "aim":
 				o[key] = clampf(float(v), 0.0, 1.0)
 			"reaction":
 				o[key] = clampf(float(v), 0.0, 3.0)
@@ -328,7 +383,9 @@ func tick(dt: float) -> void:
 	if bool(game.get("_ended")):
 		return
 	_keep_up()
+	_aim_pre()
 	_drive(dt)
+	_aim_after(dt)
 
 
 func play_t() -> float:
@@ -1160,7 +1217,9 @@ func summary() -> Dictionary:
 		# pass 90: the ring breakout's pushes (started, by a fresh ring, out by the margin, by the clock); {} with it off
 		"breakout": breakout.tallies() if breakout != null else {},
 		# pass 85: the power-ups that lay on the map, the goals made of them, those walked to and taken
-		"powerups": {"lying": pu_lying.size(), "goals": int(goals_by.get("powerup", 0)), "reached": pu_reached}}
+		"powerups": {"lying": pu_lying.size(), "goals": int(goals_by.get("powerup", 0)), "reached": pu_reached},
+		# pass 136 (R9): the aim by moving ({} while the rule is off)
+		"aim": aim_tallies()}
 
 
 ## The goal shown (bot.goal) and, when it is a new one, a "goal" decision entry with why.
@@ -1595,3 +1654,161 @@ func _watch_gear() -> void:
 		if float(e[1]) < 0.0 and not live.has(key):
 			e[1] = now
 
+
+
+# ---------------------------------------------------------------- the aim by moving (pass 136, lane BOT, R9)
+
+## Whether the aim rule plays now: Settings.aim_mode (the switch; on by default), read through the tree.
+func _aim_switch() -> bool:
+	if _settings == null or not is_instance_valid(_settings):
+		return false
+	var v = _settings.get("aim_mode")
+	return v != null and bool(v)
+
+
+## Before the legs: every AIM_SCAN_EVERY frames the switch, the aimed weapons and the front; then the lean's weight for
+## this frame (legs.aim_w, legs.aim_pack; both zero while the rule is off or the dial is 0: the old legs exactly).
+func _aim_pre() -> void:
+	var dial := float(opts.get("aim", 0.0))
+	_aim_k -= 1
+	if _aim_k <= 0:
+		_aim_k = AIM_SCAN_EVERY
+		aim_live = dial > 0.0 and _aim_switch()
+		if aim_live:
+			_aim_scan()
+		else:
+			_aim_pack = Vector3.ZERO
+			_aim_ws = []
+	if not aim_live or _aim_pack == Vector3.ZERO:
+		legs.aim_w = 0.0
+		legs.aim_pack = Vector3.ZERO
+		return
+	legs.aim_w = dial * LEAN_SHARE * clampf((hp_frac() - AIM_HP_NONE) / (AIM_HP_FULL - AIM_HP_NONE), 0.0, 1.0)
+	legs.aim_pack = _aim_pack.normalized()
+
+
+## The aimed weapons' behaviours (params.aim family aimed or melee) and the front within their reach.
+func _aim_scan() -> void:
+	_aim_ws = []
+	var reach := 0.0
+	var bs = game.get("_behaviors")
+	if bs is Dictionary:
+		for id in (bs as Dictionary).keys():
+			var b = bs[id]
+			if b == null or not is_instance_valid(b) or b.get("inst") == null:
+				continue
+			var a = b.inst.params.get("aim")
+			if not (a is Dictionary) or not (str((a as Dictionary).get("family", "aimed")) in ["aimed", "melee"]):
+				continue
+			_aim_ws.append(b)
+			reach = maxf(reach, float(b.stat("range", AIM_REACH_MIN)))
+	reach = clampf(reach, AIM_REACH_MIN, AIM_REACH_MAX) if reach > 0.0 else AIM_REACH_MIN
+	var em = game.get("enemies")
+	var p: Node3D = game.player
+	if em == null or p == null:
+		_aim_pack = Vector3.ZERO
+		return
+	var me := p.global_position
+	var rel := PackedVector2Array()
+	var w := PackedFloat32Array()
+	var r2 := reach * reach
+	var hid = em.get("hidden")
+	for i in range(em.MAX):
+		if em.alive[i] != 1:
+			continue
+		if hid is PackedByteArray and i < (hid as PackedByteArray).size() and (hid as PackedByteArray)[i] == 1:
+			continue
+		var dx: float = em.pos[i].x - me.x
+		var dz: float = em.pos[i].z - me.z
+		var d2 := dx * dx + dz * dz
+		if d2 > r2 or d2 < 0.0001:
+			continue
+		var wt := 1.0 / (1.0 + sqrt(d2) / AIM_NEAR_M)
+		var def = em.types[em.type_idx[i]]["def"]
+		if def.archetype == "elite" or def.archetype == "boss":
+			wt *= AIM_BIG_W
+		rel.append(Vector2(dx, dz))
+		w.append(wt)
+	_aim_pack = LEGS.pack_of(rel, w)
+
+
+## After the legs: the turn-and-fire beat (it overrides the stick with R1's small push while it lasts) and the tallies.
+func _aim_after(dt: float) -> void:
+	if not aim_live:
+		_beat_t = 0.0
+		return
+	var p = game.player
+	if p == null or p.dead or bool(game.paused) or p.input == null:
+		_beat_t = 0.0
+		return
+	var dial := float(opts.get("aim", 0.0))
+	var f: Vector3 = p.forward()
+	f.y = 0.0
+	var has_pack := _aim_pack != Vector3.ZERO
+	var off := 0.0
+	if has_pack:
+		aim_frames += 1
+		off = rad_to_deg(absf(Vector2(f.x, f.z).angle_to(Vector2(_aim_pack.x, _aim_pack.z))))
+		if off <= AIM_CONE_HALF:
+			aim_in_cone += 1
+	var blocked := intent in ["breakout", "down", "dodge", "portal", "boss_chest"] or legs.seen_ring != Vector3.ZERO \
+		or legs.seen_danger > 0.4 or (hp_frac() < AIM_HP_NONE and legs.seen_nearest < legs.flee_d)
+	if _beat_t > 0.0:
+		_beat_t -= dt
+		var fired := _beat_w != null and is_instance_valid(_beat_w) and float(_beat_w.cooldown_left) > _beat_cd + 0.01
+		if blocked or not has_pack or fired:
+			_beat_t = 0.0
+		else:
+			if _beat_w != null and is_instance_valid(_beat_w):
+				_beat_cd = float(_beat_w.cooldown_left)
+			LEGS.push_turn(p.input, _beat_dir)
+			intent = "aim"
+			mode_frames["aim"] = int(mode_frames.get("aim", 0)) + 1
+			return
+	if _beat_next < 0.0:
+		_beat_next = _t + rng.randf_range(BEAT_EVERY_MIN, BEAT_EVERY_MAX)
+	if blocked or not has_pack or off <= AIM_CONE_HALF:
+		return
+	# synced: a weapon's shot about to leave, taken `aim` of the time (one roll a shot)
+	var wait = null
+	var gap := lerpf(SYNC_GAP_LOW, SYNC_GAP_HIGH, dial)
+	if _t - _beat_last >= gap:
+		for b in _aim_ws:
+			if not is_instance_valid(b):
+				continue
+			var cl := float(b.cooldown_left)
+			if float(b.stat("cooldown", 1.0)) < SYNC_MIN_CD or cl > BEAT_LEAD or cl <= 0.0:
+				continue
+			var key: int = b.get_instance_id()
+			var roll = _sync_roll.get(key)
+			if not (roll is Array) or _t > float(roll[0]):
+				roll = [_t + cl + 0.1, rng.randf() < dial]
+				_sync_roll[key] = roll
+			if bool(roll[1]):
+				wait = b
+				break
+	if wait == null and _t < _beat_next:
+		return
+	_beat_w = wait
+	_beat_cd = float(wait.cooldown_left) if wait != null else 0.0
+	_beat_t = BEAT_SYNC_MAX if wait != null else BEAT_S
+	var noise := deg_to_rad(rng.randf_range(-1.0, 1.0) * (1.0 - dial) * BEAT_NOISE_DEG)
+	var pv := Vector2(_aim_pack.x, _aim_pack.z).normalized().rotated(noise)
+	_beat_dir = Vector3(pv.x, 0.0, pv.y)
+	_beat_last = _t
+	_beat_next = _t + rng.randf_range(BEAT_EVERY_MIN, BEAT_EVERY_MAX)
+	aim_beats += 1
+	if wait != null:
+		aim_synced += 1
+	LEGS.push_turn(p.input, _beat_dir)
+	intent = "aim"
+	mode_frames["aim"] = int(mode_frames.get("aim", 0)) + 1
+
+
+## The aim's tallies for the run sim's meta and the Watch: the dial, beats (synced among them), the share of the frames
+## with a front in reach that had it inside his cone. {} while the rule never played.
+func aim_tallies() -> Dictionary:
+	if aim_frames == 0 and aim_beats == 0 and not aim_live:
+		return {}
+	return {"dial": float(opts.get("aim", 0.0)), "beats": aim_beats, "synced": aim_synced, "frames": aim_frames,
+		"in_cone": snappedf(float(aim_in_cone) / float(maxi(aim_frames, 1)), 0.001)}

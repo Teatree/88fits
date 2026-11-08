@@ -98,6 +98,10 @@ static var _lock_mat: ShaderMaterial
 
 func build() -> void:
 	_build_royale()
+	# pass 136 (lane LOAD): the strips of the stage a tap is most likely to start load on the loader threads meanwhile
+	get_tree().create_timer(PREFETCH_AFTER).timeout.connect(func() -> void:
+		if is_inside_tree() and get_tree().get_first_node_in_group(&"run_curtain") == null:
+			RunLooks.prefetch_next(get_tree(), likely_stage(map_id), "", map_id))
 	return
 
 
@@ -737,6 +741,22 @@ static func entries(m: MapDef) -> Array:
 	for k in tl.stage_count():
 		out.append(tl.stage_entry(k))
 	return out
+
+
+## Pass 136 (lane LOAD): the stage a tap here is most likely to start (its strips are asked for ahead): the furthest one
+## open. PREFETCH_AFTER s after the menu is built.
+const PREFETCH_AFTER := 0.6
+
+
+static func likely_stage(p_map_id: String) -> int:
+	var m := Registry.map(p_map_id)
+	if m == null or m.timeline == null:
+		return 0
+	var best := 0
+	for k in m.timeline.stage_count():
+		if unlocked(p_map_id, k):
+			best = k
+	return best
 
 
 ## Whether stage `i` (0-based) of the map can be played: the first always, the next once the one before is beaten.

@@ -17,7 +17,7 @@
     "amount": 4,
     "range": 3.8,
     "area": 1.2,
-    "knockback": 12.0
+    "knockback": 15.0
   },
   "levels": [
     []
@@ -35,6 +35,13 @@
     "trail_color": "#A8F0FF",
     "final": {
       "crit_refund": 0.2
+    },
+    "aim": {
+      "family": "melee",
+      "look": "slash",
+      "cone": 60,
+      "assist": 20,
+      "big_cone": 90
     }
   },
   "sfx": {

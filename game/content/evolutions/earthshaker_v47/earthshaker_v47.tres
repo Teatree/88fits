@@ -14,7 +14,7 @@ base = {
 "area": 1.5,
 "cooldown": 2.0,
 "damage": 42.0,
-"knockback": 14.0,
+"knockback": 17.5,
 "range": 5.2
 }
 levels = [[]]
@@ -28,6 +28,11 @@ sfx = {
 visual = ExtResource("3_jld7e")
 visual_file = "res://content/evolutions/earthshaker/earthshaker_visual.tscn"
 params = {
+"aim": {
+"best_chance": 0.6,
+"family": "placed",
+"min_r": 1.0
+},
 "smash": {
 "bounce": 0.2,
 "fade": 0.24,

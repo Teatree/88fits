@@ -109,6 +109,8 @@ func _fire() -> bool:
 	var em: EnemyManager = game.enemies
 	var reach := stat("range", 7.0)
 	var n: int = maxi(stat_int("amount", 1), 1)
+	if Aim.covers(inst):
+		return _fire_aimed(em, reach, n)
 	# the nearest creatures the gun may take
 	var cands: Array = []
 	for e in em.indices_in_radius(player.global_position, reach):
@@ -137,12 +139,69 @@ func _fire() -> bool:
 	return true
 
 
+## Pass 136 (lane GUNS; Garry: the Gravity Gun "is a weapon that fires at the ground, and nothing happens to it"): under
+## "Aim where you face" (Aim.covers) it grabs the best grabbable creatures in its cone (`params.aim.cone`, 60), ranked by
+## R4's score (Aim.cone_score), and throws each at a spot in the circle round him (Aim.circle_spots, R6; picked again as
+## the throw leaves, _retarget). With nothing to grab in the cone it still fires: a shot at the sand ahead, a puff of dust,
+## and nothing happens (no hold, the cooldown runs).
+var dry_shots := 0
+
+
+func _fire_aimed(em: EnemyManager, reach: float, n: int) -> bool:
+	var pp := player.global_position
+	var f := Aim.facing(player)
+	var cone := float(Aim.cfg(inst).get("cone", Aim.DEFAULT_CONE))
+	var ranked: Array = []
+	for e in em.indices_in_radius(pp, reach):
+		if not em.grabbable(e) or not em.screen_ok(e):
+			continue
+		var sc := Aim.cone_score(em, e, pp, f, cone)
+		if sc < INF:
+			ranked.append([sc, e])
+	ranked.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]) or (float(a[0]) == float(b[0]) and int(a[1]) < int(b[1])))
+	if ranked.is_empty():
+		# the dry shot: at the sand ahead, and nothing happens
+		dry_shots += 1
+		Aim.note_dry(inst)
+		var at := pp + f * minf(reach * 0.6, 4.0)
+		at.y = _ground(at)
+		if game.has_method("fx_sand"):
+			game.fx_sand(at, 0.6)
+		_recoil = 1.0
+		_aim_yaw = atan2(-f.x, -f.z)
+		AimWedge.pulse_dir(f)
+		sfx("fire", _core_pos())
+		return true
+	var taken := {}
+	for k in range(mini(n, ranked.size())):
+		taken[int(ranked[k][1])] = true
+	var spots := Aim.circle_spots(em, pp, 2.0, reach + 2.0, taken.size(), _blast_r(), float(Aim.cfg(inst).get("best_chance", Aim.BEST_CHANCE)), "", [], Aim.arena_ok(game))
+	var k := 0
+	for e: int in taken.keys():
+		em.grab(e)
+		var target: Vector3 = spots[k % spots.size()] if not spots.is_empty() else em.pos[e]
+		_grips.append({"i": e, "phase": PH_GRAB, "t": 0.0, "from": em.pos[e], "rel": float(k) - float(taken.size() - 1) * 0.5,
+				"target": target, "bounced": false, "flip_t": 0.0, "slam": spots.is_empty()})
+		k += 1
+	AimWedge.pulse_dir(f)
+	sfx("fire", _core_pos())
+	return true
+
+
 ## The Singularity: the claws open, the core swells, and a moment later the black hole goes.
 func _fire_hole() -> bool:
 	var em: EnemyManager = game.enemies
 	var reach := stat("range", 9.0)
 	# a crowd no bomb is headed for or has just come down on (pass 36), else the thickest one
 	var r := float(_hole().get("radius", 3.2)) * stat("area", 1.0)
+	if Aim.covers(inst):
+		# pass 136 (lane GUNS): the black hole lands at a spot in the circle round him (Aim.circle_spots, R6), always
+		var hs := Aim.circle_spots(em, player.global_position, 2.0, reach, 1, r, float(Aim.cfg(inst).get("best_chance", Aim.BEST_CHANCE)), "", game.projectiles.claimed_spots(), Aim.arena_ok(game))
+		if not hs.is_empty():
+			_charge = float(_hole().get("charge", 0.35))
+			_charge_to = hs[0]
+			sfx("fire", _core_pos())
+			return true
 	# pass 73 (lane SNIPER): a special, an Elite or the boss within reach takes the black hole
 	var pt: int = priority_pick(player.global_position, reach)
 	var target: Vector3 = em.pos[pt] if pt >= 0 else em.densest_point(player.global_position, reach, "", game.projectiles.claimed_spots(), r)
@@ -284,6 +343,12 @@ func _retarget(g: Dictionary) -> void:
 	for o: Dictionary in _grips:
 		if o != g and int(o["phase"]) == PH_THROW:
 			avoid.append(o["target"])
+	if Aim.covers(inst):
+		# pass 136 (lane GUNS): a spot in the circle round him from the crowd as it is now (R6)
+		var cs := Aim.circle_spots(game.enemies, player.global_position, 2.0, stat("range", 7.0) + 2.0, 1, _blast_r(), float(Aim.cfg(inst).get("best_chance", Aim.BEST_CHANCE)), "", avoid, Aim.arena_ok(game))
+		if not cs.is_empty():
+			g["target"] = cs[0]
+		return
 	var lt := _lead_target(_hold_point(g), player.global_position, stat("range", 7.0) + 2.0, {}, avoid)
 	if lt != Vector3.INF:
 		g["target"] = lt
@@ -442,6 +507,9 @@ func _aim(delta: float) -> void:
 		break
 	if want == Vector3.ZERO and _charge > 0.0 and _charge_to != Vector3.INF:
 		want = _charge_to - from
+	if want == Vector3.ZERO and Aim.covers(inst):
+		# pass 136 (lane GUNS): idle, it points where he faces
+		want = player.forward()
 	if want == Vector3.ZERO:
 		var t := em.nearest_index(player.global_position, stat("range", 7.0))
 		want = (em.pos[t] - from) if t >= 0 else player.forward()

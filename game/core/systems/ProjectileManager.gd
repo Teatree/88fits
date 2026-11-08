@@ -1267,6 +1267,9 @@ func _returns_on_hit(w: WeaponInstance) -> bool:
 ## Pass 95 (lane ITEMS, "Fire forward"; Garry: the Basketball "will simply fall to the floor and disappear in case there
 ## are no nearby enemies"): seconds a dropped ball may fall before it is gone, and how many have dropped (tests, the arena).
 const DROP_LIFE := 0.6
+## Pass 136 (lane GUNS): the aimed Basketball's dry throw (extra "drop_bounce") bounces this many times, within this life.
+const DROP_BOUNCES := 2
+const DROP_BOUNCE_LIFE := 1.8
 var drops := 0
 
 
@@ -1277,12 +1280,18 @@ var drops := 0
 func _drop_alone(i: int, enemies: EnemyManager, w: WeaponInstance) -> bool:
 	if not extra[i].has("drop_alone") or int(extra[i].get("hits", 0)) > 0:
 		return false
-	if enemies != null and _ricochet_on(i, enemies, w):
+	# pass 136 (lane GUNS; Garry on the aimed Basketball: "Can just fall on the ground and bounce couple of times before
+	# disappearing"): a ball thrown down the facing (extra "drop_bounce") that hit nothing hops to no one: it falls and
+	# bounces DROP_BOUNCES times (_tick_dropping), then it is gone
+	var bouncy: bool = extra[i].has("drop_bounce")
+	if not bouncy and enemies != null and _ricochet_on(i, enemies, w):
 		return true
 	extra[i]["drop_t"] = 0.0
 	ret[i] = 0
-	vel[i] = Vector3(vel[i].x, 0.0, vel[i].z) * 0.35
-	life[i] = DROP_LIFE
+	vel[i] = Vector3(vel[i].x, 0.0, vel[i].z) * (0.5 if bouncy else 0.35)
+	life[i] = DROP_BOUNCE_LIFE if bouncy else DROP_LIFE
+	if bouncy:
+		extra[i]["bounces_left"] = DROP_BOUNCES
 	drops += 1
 	return true
 
@@ -1298,6 +1307,15 @@ func _tick_dropping(i: int, delta: float, map) -> void:
 	pos[i] += vel[i] * delta
 	spin[i] += delta * 6.0
 	var ground: float = map.height_at(pos[i].x, pos[i].z) if map else 0.0
+	# pass 136 (lane GUNS): a bouncing drop hops off the sand while it has bounces left (DROP_BOUNCES, half its fall each)
+	var hops := int(extra[i].get("bounces_left", 0))
+	if hops > 0 and pos[i].y <= ground + 0.12 and life[i] > 0.0:
+		extra[i]["bounces_left"] = hops - 1
+		pos[i].y = ground + 0.12
+		vel[i].y = absf(vel[i].y) * 0.5
+		if game != null and game.has_method("fx_sand"):
+			game.fx_sand(Vector3(pos[i].x, ground, pos[i].z), 0.35)
+		return
 	if pos[i].y <= ground + 0.12 or life[i] <= 0.0:
 		if game != null and game.has_method("fx_sand"):
 			game.fx_sand(Vector3(pos[i].x, ground, pos[i].z), 0.7)
@@ -1964,6 +1982,45 @@ func _tick_loose_mark(i: int, t: float) -> void:
 	game.loose_mark_move(id, aim, a)
 
 
+## Pass 136 (lane HOMING): a bee reaching its spot within this (flat metres, or its turning circle when that is wider)
+## fades; it cruises this high on its way.
+const BEE_SPOT_REACH := 0.9
+const BEE_CRUISE := 1.0
+## bees that reached their spot with nothing near it (tests)
+var bees_faded := 0
+
+
+## Pass 136 (lane HOMING, MissilePod's aim): the next creature for an aimed seeker. A rocket (`aim_fan` {dir, cone,
+## strongest}) picks only inside the fan ahead of the Outlaw it left in (Aim.pick from where he stands now); a dry one
+## (`aim_dry`) stays dry and so does one that finds the fan empty (it blows where its creature stood). A bee
+## (`bee_spot`, `bee_near`) takes the best creature within `bee_near` of its spot. -1 for none.
+func _aim_seek(i: int, p: Dictionary, enemies: EnemyManager) -> int:
+	var wl: WeaponInstance = weapon[i]
+	var strongest: bool = wl != null and wl.def.targeting == "priority"
+	if p.has("bee_spot"):
+		var spot: Vector3 = p["bee_spot"]
+		return Aim.pick(enemies, spot, Vector3.FORWARD, float(p.get("bee_near", 2.5)), 360.0, strongest, 360.0, "", true)
+	if bool(p.get("aim_dry", false)):
+		return -1
+	var fan: Dictionary = p.get("aim_fan", {})
+	var hero: Vector3 = game.player.global_position if game.player else pos[i]
+	var cone: float = float(fan.get("cone", 90.0))
+	var t := Aim.pick(enemies, hero, fan.get("dir", Vector3.FORWARD), float(p["range"]), cone, bool(fan.get("strongest", strongest)), cone, "", true)
+	if t < 0:
+		p["aim_dry"] = true
+	return t
+
+
+## `heading` turned towards `want` by at most `step` radians (both unit length).
+static func _turn_to(heading: Vector3, want: Vector3, step: float) -> Vector3:
+	var ang := heading.angle_to(want)
+	if ang > 0.0001 and ang < PI - 0.02:
+		return heading.slerp(want, clampf(step / ang, 0.0, 1.0)).normalized()
+	if ang >= PI - 0.02:
+		return heading.rotated(Vector3.UP, step).normalized()
+	return heading
+
+
 func _fly_missile(i: int, delta: float, enemies: EnemyManager, map) -> void:
 	var p: Dictionary = extra[i]
 	if p.has("rocket"):
@@ -1984,7 +2041,12 @@ func _fly_missile(i: int, delta: float, enemies: EnemyManager, map) -> void:
 		spd *= 0.65
 	else:
 		var t: int = int(p["target"])
-		if t < 0 or enemies.alive[t] == 0 or enemies.state[t] == EnemyManager.STATE_DYING or enemies.hidden[t] == 1:
+		var aimed: bool = p.has("aim_spot") or p.has("bee_spot")
+		if aimed and (t < 0 or enemies.alive[t] == 0 or enemies.state[t] == EnemyManager.STATE_DYING or enemies.hidden[t] == 1):
+			# pass 136 (lane HOMING): an aimed rocket picks again only inside its fan, a bee only near its spot
+			t = _aim_seek(i, p, enemies)
+			p["target"] = t
+		elif t < 0 or enemies.alive[t] == 0 or enemies.state[t] == EnemyManager.STATE_DYING or enemies.hidden[t] == 1:
 			# a priority weapon's seekers (pass 48: the Killer Bees) lock on the strong and the close
 			var wl: WeaponInstance = weapon[i]
 			var reach: float = float(p["range"]) + 6.0
@@ -1995,6 +2057,8 @@ func _fly_missile(i: int, delta: float, enemies: EnemyManager, map) -> void:
 				t = enemies.priority_index(pos[i], reach, "", true) if (wl and wl.def.targeting == "priority") else enemies.nearest_index(pos[i], reach, "", true)
 			p["target"] = t
 		if t >= 0:
+			if p.has("aim_spot"):
+				p["aim_spot"] = enemies.pos[t]
 			var want: Vector3 = (enemies.pos[t] + Vector3(0, enemies.size[t] * 0.45, 0) - pos[i]).normalized()
 			var ang := heading.angle_to(want)
 			if ang > 0.0001 and ang < PI - 0.02:
@@ -2002,6 +2066,18 @@ func _fly_missile(i: int, delta: float, enemies: EnemyManager, map) -> void:
 			elif ang >= PI - 0.02:
 				# straight behind: slerp has no plane to turn in, so yaw
 				heading = heading.rotated(Vector3.UP, float(p["turn"]) * delta).normalized()
+		elif aimed:
+			# pass 136: to its spot (a dry rocket dives into it and blows; a bee that gets there finds nothing and fades)
+			var goal: Vector3 = p["bee_spot"] if p.has("bee_spot") else p["aim_spot"]
+			if p.has("bee_spot"):
+				# (within its turning circle: it would only circle the spot)
+				if Vector2(goal.x - pos[i].x, goal.z - pos[i].z).length() < maxf(BEE_SPOT_REACH, spd / maxf(float(p["turn"]), 0.1)):
+					game.fx_burst(pos[i], Color(0.95, 0.82, 0.4), 0.3)
+					bees_faded += 1
+					_free(i)
+					return
+				goal += Vector3(0.0, BEE_CRUISE, 0.0)
+			heading = _turn_to(heading, (goal - pos[i]).normalized(), float(p["turn"]) * delta)
 		else:
 			heading.y = lerpf(heading.y, -0.25, clampf(delta * 2.0, 0.0, 1.0))
 			heading = heading.normalized()

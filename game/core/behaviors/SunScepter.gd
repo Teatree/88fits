@@ -34,6 +34,12 @@
 ## fatter white core (SunBeams' impact), a white pop and rising motes (Fx.sun_impact), a shock ring racing out over the
 ## sand (Telegraphs.race_ring, IMPACT_RING x its radius) and a hot glow on the sand that fades (Telegraphs.scorch,
 ## IMPACT_GLOW); a Zenith sweep's forty landings take fewer motes each (IMPACT_MOTES_SWEEP). All pooled, no nodes, no lights.
+## Pass 136 (lane HOMING; Garry: "Zap Beam and Sun Scepter: Should leave a mark on the floor whenever they attack. And
+## yeah those too in a circle, not a cone"): while Aim.covers(inst) the pillars are picked as before (the creatures round
+## her, the near ones likelier), and with nobody to pick it still strikes on its clock: its pillars come down on the sand
+## at random spots of the circle `params.aim.min_r`..min(range, `max_r`) (Aim.dice(); a Zenith tenth with nobody waits
+## for the next strike with someone, the count kept). Every pillar that lands burns a ring into the sand
+## (StrikeMarks.sun: gold-white, cooling to dark). With the switch off it plays as before.
 class_name SunScepter
 extends WeaponBehavior
 
@@ -140,6 +146,8 @@ var _beams: BEAMS
 var _strikes: Array = []   # {t, warn, at, r, dmg, target, serial, single, ring, pillar, sweep}
 ## Strikes fired, creatures hit, Zenith's count towards its sweep and its sweeps (tests, the pause screen).
 var strikes := 0
+## pass 136: strikes on the sand with nobody to pick (tests)
+var dry_strikes := 0
 var hits := 0
 var count := 0
 var sweeps := 0
@@ -323,7 +331,20 @@ func _fire() -> bool:
 	else:
 		targets = pick_targets(maxi(stat_int("amount", 1), 1))
 	var spots: Array = []
-	if targets.is_empty():
+	var held_sweep := false
+	if targets.is_empty() and Aim.covers(inst):
+		# pass 136: under the aim it strikes the sand round her (a sweep with nobody waits: a plain strike, the count kept)
+		held_sweep = sweep
+		sweep = false
+		var g := Aim.dice()
+		var hi := minf(stat("range", 10.0), float(Aim.cfg(inst).get("max_r", 8.0)))
+		var lo := clampf(float(Aim.cfg(inst).get("min_r", 2.5)), 0.0, hi)
+		for k in range(maxi(stat_int("amount", 1), 1)):
+			var a := g.randf() * TAU
+			var d := sqrt(lerpf(lo * lo, hi * hi, g.randf()))
+			spots.append(_ground(player.global_position + Vector3(cos(a) * d, 0.0, sin(a) * d)))
+		dry_strikes += 1
+	elif targets.is_empty():
 		if bool(_sun_p().get("hold_when_empty", true)) or sweep:
 			# nothing on the screen: it holds, and asks again in a moment (WeaponBehavior)
 			return false
@@ -332,7 +353,7 @@ func _fire() -> bool:
 			var d := Dice.r.randf_range(EMPTY_REACH.x, EMPTY_REACH.y)
 			spots.append(_ground(player.global_position + Vector3(cos(a) * d, 0.0, sin(a) * d)))
 	strikes += 1
-	if not zp.is_empty():
+	if not zp.is_empty() and not held_sweep:
 		count = 0 if sweep else count + 1
 	var sun := _sun_p()
 	var warn: float = maxf(float(sun.get("warn", 0.45)), 0.05)
@@ -477,6 +498,9 @@ func _land(s: Dictionary) -> void:
 				if sweep:
 					gi = Color(gi.r, gi.g, gi.b, gi.a * IMPACT_GLOW_SWEEP)
 				tg.scorch(at, r * IMPACT_GLOW, gi, IMPACT_GLOW_OUTER, IMPACT_GLOW_HOLD, IMPACT_GLOW_FADE)
+		# pass 136: under the aim every pillar burns a ring into the sand
+		if Aim.covers(inst):
+			StrikeMarks.sun(game, at, r)
 		impacts += 1
 
 

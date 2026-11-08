@@ -13,6 +13,8 @@ it runs from a shell too:
     python tools/sim_batch.py --out <dir> --stage 2                  # pass 87: every run plays stage 2 (a fresh hero at its
                                                                      # window's start; its boss, the portal's countdown,
                                                                      # Endless until the stop or the death)
+    python tools/sim_batch.py --out <dir> --aim 0                    # pass 136: the old auto-aim (Settings.aim_mode off);
+                                                                     # --aim 1 the aim rule; default the game's (on)
 
 What it does, in order:
  1. The sim lock tools/dl/locks/sim.lock (one sim batch at a time). NOT the godot lock: the snapshot is another project
@@ -79,7 +81,7 @@ SCHEMA = 1
 # the processors; pass 129: `trail` and `trail_optional` in place of the Upgrade board's board / talents / board_label);
 # the page, the job spec and the CLI share them
 DEFAULTS = {"hero": "drifter", "players": 10, "workers": 0, "limit": 1500, "trail": "quarter", "trail_optional": False,
-            "death": "end", "seed": 1, "map": "red_canyon", "fps": 60, "note": "", "fast": True, "bot": {}, "stage": 1}
+            "death": "end", "seed": 1, "map": "red_canyon", "fps": 60, "note": "", "fast": True, "bot": {}, "stage": 1, "aim": ""}
 # pass 87 (lane STOOLS): the stage every run of a sim plays (1-based; sim_run.gd's stage=, lane SGAME's launch key)
 STAGE_MAX = 20
 # pass 129: the Trail's presets (key, the share of the Trail's levels, the words), as game/tools/trail_arg.gd has them
@@ -225,6 +227,8 @@ BOT_KEYS = [  # (key, kind, lo/choices, hi, label, help)
     ("cards", "enum", ("tier", "score"), None, "Cards", "score: every card scored (DPS, survival, plan, gold); tier: pass 77's fixed order"),
     ("specials", "bool", None, None, "Specials", "pass 82: goes to find a glowing special that stays out of reach (known 5 s, past 9 m or off the screen; not while a boss lives)"),
     ("portal", "enum", ("endless", "extract"), None, "Portal", "pass 87: after the stage's boss: endless = never extracts, plays on into Endless until the stop or his death; extract = walks to the portal and extracts (the run ends there)"),
+    ("aim", "float", 0.0, 1.0, "Aim", "pass 136: how well he aims by moving while every weapon aims where the Outlaw faces: the lean towards the crowd and "
+     "how often his turns on the spot meet his shots (0: the old legs; careless 0.3, explorer 0.9, expert 1)"),
     ("breakout", "bool", None, None, "Breakout", "pass 90: surrounded by a closing ring (80% of the ways shut within 12 m, no gap wider than 35 degrees, 8 or more creatures), he picks the thinnest side and pushes through it at full speed, taking the bites, until he is out by a margin (4 s at most, 3 s before another); on with the safety style unless set"),
 ]
 BOT_KEY_NAMES = [k[0] for k in BOT_KEYS]
@@ -690,6 +694,16 @@ def clean_settings(raw, heroes=None, maps=None, legacy=False):
         d = DEFAULTS["death"]
     s["death"] = d
     s["fast"] = str(raw.get("fast", True)).strip().lower() not in ("0", "false", "no", "off")
+    # pass 136 (lane BOT): the aim rule (Settings.aim_mode) the players play: "1" on, "0" off, "" the game's default (on)
+    a = str(raw.get("aim", "") if raw.get("aim") is not None else "").strip().lower()
+    if a in ("1", "true", "yes", "on"):
+        s["aim"] = "1"
+    elif a in ("0", "false", "no", "off"):
+        s["aim"] = "0"
+    else:
+        if a != "":
+            probs.append("aim must be 0 or 1 (got %r)" % raw.get("aim"))
+        s["aim"] = ""
     for key in ("hero", "map"):
         v = str(raw.get(key, DEFAULTS[key]) or "").strip()
         if not re.match(r"^[a-z0-9_]+$", v):
@@ -1286,6 +1300,8 @@ def player_args(settings, p, snap, out_dir, wall_cap, caps=None):
             "stage=%d" % int(s.get("stage", 1) or 1)]
     if s.get("trail_optional"):
         args.append("trail_optional=1")
+    if str(s.get("aim", "")) in ("0", "1"):
+        args.append("aim_mode=" + str(s["aim"]))   # pass 136 (lane BOT): Settings.aim_mode for the run
     if caps.get("fast"):
         args.append("fast=%d" % (1 if s.get("fast", True) else 0))   # the runner's sim mode is on unless told fast=0
     if caps.get("bot"):
@@ -2750,6 +2766,7 @@ def main(argv=None):
     ap.add_argument("--map", default=DEFAULTS["map"])
     ap.add_argument("--stage", type=int, default=DEFAULTS["stage"], help="pass 87: the stage every run plays, 1-based (a fresh hero at its window's start)")
     ap.add_argument("--fps", type=int, default=DEFAULTS["fps"])
+    ap.add_argument("--aim", default=None, help="pass 136: the aim rule (every weapon aims where the Outlaw faces): 1 on, 0 off (the old auto-aim); default the game's (on)")
     ap.add_argument("--note", default="")
     ap.add_argument("--bot", default="", help="the bot's options: preset=explorer|sim77|careless|expert|survivor and key=value (BOT_KEYS), comma-separated")
     ap.add_argument("--job", default="", help="the Level Editor job that runs this (its id)")

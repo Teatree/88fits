@@ -30,15 +30,61 @@ static func run(game: Node) -> void:
 	w.name = "Warmup"
 	game.add_child(w)
 	w.position = game.player.global_position + PIT
+	if game.get_tree().get_first_node_in_group(CURTAIN_GROUP) != null:
+		w._build_staged(game)
+		return
 	w._build(game)
 	# the timer runs paused or not, then everything goes (pass 112: once at least MIN_FRAMES frames have been drawn too)
 	var t := game.get_tree().create_timer(FRAMES_S, true, false, true)
 	t.timeout.connect(func(): w._finish_when_drawn(game))
 
 
+## Every step at once (a run without a curtain over it: a tool's instant start, the tests).
 func _build(game: Node) -> void:
+	_build_creatures(game)
+	_build_weapons(game)
+	_build_shots(game)
+	_build_rest(game)
+
+
+## Pass 136 (lane LOAD; Garry: "the loading screen doesn't move while the game is loading"): under a run's curtain
+## (RunCurtain's group) the build goes in steps, one a frame after the creatures, so the first draw of each (where the
+## Compatibility renderer compiles) is its own frame and the loading screen keeps moving between them; the curtain opens
+## on the run only once the last step has been drawn (warmed). FRAMES_S and MIN_FRAMES count from the last step.
+const STAGED_STEPS := ["_build_weapons", "_build_shots", "_build_rest"]
+const CURTAIN_GROUP := &"run_curtain"
+var _steps_done := true
+var _warmed := true
+
+
+## Whether every step has been built and drawn at least once (the curtain's open waits for it). Counted on the tree's
+## frames, so a paused tree (a run left from a paused one) counts too.
+func warmed() -> bool:
+	return _warmed
+
+
+func _build_staged(game: Node) -> void:
+	_steps_done = false
+	_warmed = false
+	_build_creatures(game)
+	for step: String in STAGED_STEPS:
+		await get_tree().process_frame
+		if not is_instance_valid(game) or not is_inside_tree():
+			return
+		call(step, game)
+	_drawn_frames = 0
+	_steps_done = true
+	var t := get_tree().create_timer(FRAMES_S, true, false, true)
+	t.timeout.connect(func(): _finish_when_drawn(game))
+	# the last step drawn: its frame and one more
+	for k in 2:
+		await get_tree().process_frame
+	_warmed = true
+
+
+## The creatures (step 1, always at once: their types are registered before anything can spawn).
+func _build_creatures(game: Node) -> void:
 	var em: EnemyManager = game.enemies
-	var pm: ProjectileManager = game.projectiles
 	# every creature type the map can show, drawn once through its MultiMesh. Pass 101 (lane LOOKS): only the creatures
 	# this run's stage can bring (RunLooks: their strips, in every look the stage brings them in, and the hero's, are
 	# loaded and pinned here, under the beam); every other creature's strip loads when something first asks for it
@@ -46,6 +92,11 @@ func _build(game: Node) -> void:
 	for def: EnemyDef in RunLooks.prepare(game, li if li is Dictionary else {}):
 		em.register_type(def)
 	em.warm_draw(global_position)
+
+
+## The weapons' visuals (step 2 of a staged build).
+func _build_weapons(game: Node) -> void:
+	var pm: ProjectileManager = game.projectiles
 	# every weapon's visual (held guns, familiars, projectile meshes) and its projectile kind
 	for wdef in Registry.weapons.values():
 		if wdef.visual:
@@ -93,6 +144,11 @@ func _build(game: Node) -> void:
 						_shot_kinds[wdef.id] = pm.register_kind((c as MeshInstance3D).mesh, gm, float(wdef.params.get("model_scale", 1.0)))
 						break
 				root.free()
+
+
+## The shots, the creatures' throws and the pickups (step 3 of a staged build).
+func _build_shots(game: Node) -> void:
+	var pm: ProjectileManager = game.projectiles
 	_warm_mutation_shots(pm)
 	# pass 112 (lane ENEMY; Garry: "the new bombs and harpoons take a second to load when they are first seen"): every
 	# creature's thrown model (the bomb, the dynamite stick) is loaded and registered here, so warm_draw below draws it
@@ -111,6 +167,10 @@ func _build(game: Node) -> void:
 	# the un-instanced variant, not theirs) and the first magnet pull never stalls.
 	if game.get("pickups") and game.pickups.has_method("warm_draw"):
 		game.pickups.warm_draw(global_position)
+
+
+## Everything else the run can show: the effects' materials, the mid-run nodes, the fonts (step 4 of a staged build).
+func _build_rest(game: Node) -> void:
 	# pass 48: the Tarantula Hawk is built from its own meshes when it launches; one sits here (no game, so it never moves)
 	add_child(TarantulaHawk.new())
 	# pass 54: the Sun Scepter's pillars of sunlight, one MultiMesh on their own shader: one faint pillar here

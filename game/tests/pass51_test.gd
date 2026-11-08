@@ -276,6 +276,8 @@ func test_wide_reach_springs_from_two_point_eight_metres() -> void:
 # ---------------------------------------------------------------- the Jackrabbit lays ahead
 
 func test_the_jackrabbit_flicks_its_mines_ahead_of_the_walking_hero() -> void:
+	# pass 136 (lane PLACED): the old aim (Aim.covers false); the aim's own placing: pass136_placed_test
+	Settings.aim_mode = false
 	var w := _world()
 	var hero: Node3D = w["hero"]
 	var ml := MineLayer.new()
@@ -314,6 +316,7 @@ func test_the_jackrabbit_flicks_its_mines_ahead_of_the_walking_hero() -> void:
 	(w["g"] as Node).add_child(plain)
 	plain.setup(_inst("land_mine"), w["g"])
 	assert_bool(plain.lay_point().is_equal_approx(hero.global_position)).is_true()
+	Settings.aim_mode = true
 
 
 # ---------------------------------------------------------------- Both Barrels: two shots

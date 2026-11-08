@@ -12,6 +12,8 @@ signal touch_ended
 const DEADZONE_PX := 6.0
 ## Full deflection distance at the 432 px reference width (scaled by the viewport and the stick size setting).
 const STICK_FULL_PX := 60.0
+## Pass 136 (lane GUNS): the dead zone's cap under the aim rule, a share of the stick's reach.
+const AIM_DEADZONE := 0.05
 
 var wants_move := false
 var stick_dir := Vector2.ZERO
@@ -128,7 +130,12 @@ func _process(_delta: float) -> void:
 			carry = Vector2.ZERO
 		else:
 			pushed = v + carry * r * w
-	if pushed.length() < DEADZONE_PX * px_scale:
+	# pass 136 (lane GUNS, R1): under the aim rule the dead zone is at most AIM_DEADZONE of the reach, so the turn-on-the-
+	# spot zone (Player.TURN_ZONE, 15%) stays usable whatever the stick size (6 px is 17% of a stick at size 0.6)
+	var dz := DEADZONE_PX * px_scale
+	if Aim.on():
+		dz = minf(dz, r * AIM_DEADZONE)
+	if pushed.length() < dz:
 		stick_dir = Vector2.ZERO
 	else:
 		stick_dir = (pushed / r).limit_length(1.0)

@@ -164,14 +164,15 @@ func _debug_panel() -> PanelContainer:
 		sw3.toggled.connect(func(on: bool): Settings.set_value("hero_knockback", on))
 		r3.add_child(sw3)
 		col.add_child(r3)
-	# "Fire forward" (pass 95, lane ITEMS; Garry: "add this as a togglable option in the debug version of settings, by
-	# default it's off"): on, the Sabre, Spear, Hammer, Frisbee, Tumbleweed and Basketball fire along the hero's facing
-	# while no creature stands within 75% of their range (core/systems/FireForward.gd)
-	if "fire_forward" in Settings:
-		var r4 := _row("Fire forward")
-		var sw4 := WSwitch.make(bool(Settings.get("fire_forward")))
-		sw4.name = "FireForward"
-		sw4.toggled.connect(func(on: bool): Settings.set_value("fire_forward", on))
+	# "Aim where you face" (pass 136, lane GUNS; Garry: "Make this Aiming version a togglable option in the Debug version of
+	# Settings as before. But this time make it the default option"): on (the default), every weapon aims where the
+	# Outlaw faces (core/systems/Aim.gd); off, the old auto-aim. It replaces pass 95's "Fire forward" row (its key stays
+	# readable in old saves; Aim supersedes it)
+	if "aim_mode" in Settings:
+		var r4 := _row("Aim where you face")
+		var sw4 := WSwitch.make(bool(Settings.get("aim_mode")))
+		sw4.name = "AimMode"
+		sw4.toggled.connect(func(on: bool): Settings.set_value("aim_mode", on))
 		r4.add_child(sw4)
 		col.add_child(r4)
 	return p
@@ -262,7 +263,9 @@ func _refresh_royale() -> void:
 	ft.name = "FloatPanel"
 	var fc: VBoxContainer = ft.get_child(0)
 	for spec in [["Damage numbers", "damage_numbers", "DamageNumbers"], ["Heal numbers", "float_heal", "HealNumbers"],
-			["XP numbers", "float_xp", "XpNumbers"], ["Coin numbers", "float_coins", "CoinNumbers"]]:
+			["XP numbers", "float_xp", "XpNumbers"], ["Coin numbers", "float_coins", "CoinNumbers"],
+			# pass 136 (lane GUNS, R7): the aim wedge on the sand (core/systems/AimWedge.gd)
+			["Show aim", "show_aim", "ShowAim"]]:
 		var r := _row_royale(str(spec[0]))
 		var key: String = spec[1]
 		var s := _switch_royale(bool(Settings.get(key)))

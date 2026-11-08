@@ -14,7 +14,7 @@ base = {
 "area": 0.0,
 "cooldown": 0.55,
 "damage": 7.0,
-"knockback": 1.2,
+"knockback": 1.5,
 "range": 12.0,
 "speed": 17.0
 }
@@ -29,6 +29,14 @@ sfx = {
 visual = ExtResource("3_6nk3w")
 visual_file = "hive_queen_visual.tscn"
 params = {
+"aim": {
+"bee_life": 5.0,
+"best_chance": 0.6,
+"family": "placed",
+"min_r": 2.5,
+"mode": "bees",
+"near": 2.5
+},
 "familiar": {
 "bob": 0.14,
 "height": 1.5,

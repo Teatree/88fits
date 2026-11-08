@@ -12,7 +12,7 @@
     "damage": 8,
     "amount": 4,
     "orbit_radius": 3.8,
-    "knockback": 2.0,
+    "knockback": 2.5,
     "area": 1.4,
     "cooldown": 0.3,
     "poison_damage": 6,

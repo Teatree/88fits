@@ -10199,3 +10199,196 @@ never within 15 m of any Teleport); the middle ones keep their count (3-4) and t
 top), the Golden Revolver's 2 -> **3**. The pierce drop-off is unchanged (`pierce_falloff` step 0.8, floor 0.4, the first
 x1.15): the extra creature in the row takes the next step down.
 
+## 77. Pass 136: aim where you face, the melee as effects, knockback x1.25, the first load spread out
+
+Garry (2026-11-08), answering docs/weapons_aim/weapons_aim.html: "R1 - Yes ... R6 - Yes, but not in a cone, in a circle.
+R7 - Yes, this is especially important for Rockets. Come to think of it, bees should just fly in random places in a circle
+as well, but they don't need to show aim. R9 - Yes, and it would be ok if he were especially good at it"; the Basketball
+falls and bounces; the Big Mouth with no assist, "it ticks up damage in small bits little by little"; the Gravity Gun "fires
+at the ground, and nothing happens"; the Spear "a good thrust VFX"; the Skull Rain's stink round "a skull 3d object sitting
+on the ground"; the Zap Beam and Sun Scepter "leave a mark on the floor ... in a circle"; the Hammer "attack all the time";
+"add 25% knockback to all weapons that do have it"; "Make this Aiming version a togglable option in the Debug version of
+Settings as before. But this time make it the default option." Where he said nothing, the proposal's recommendations hold.
+
+**77.AIM. The rule** (core/systems/Aim.gd, `Settings.aim_mode`: **on by default**, held on in prod; the developer Settings'
+"Aim where you face" turns it off, and with it every weapon plays exactly as before). Every weapon's (and evolution's)
+`params.aim` block: `family` aimed | melee | placed | around, `cone` (full degrees, 60 default), `big_cone` (the specials,
+Elites and boss first inside it: 1.5 x the cone), `assist`, `hold`, `best_chance` (0.6). The score d x (1 + 2 (phi/theta)^2)
+/ w picks the target in the cone (R4); a shot turns to it by at most its assist, else goes straight down the facing (R3);
+every weapon fires on its clock with nothing to hit (R5; the Dragon's Breath holds 2 s, the Big Mouth 0.5 s). Placed spots
+come from **a circle** round the Outlaw (R6, Garry): 6 candidates from the run's aim dice (`Dice.rng_for("aim")`), **up to
+3 of them standing on a creature in the ring** (`Aim.CROWD_SEEDED`, the lead's after lane GUNS measured uniform candidates
+catching a lone pack 1 time in 20), scored by what the blast would catch (specials, Elites, boss x3), the best taken 60% of
+the time. R1: a stick pushed under 15% of its reach turns him without walking. Orbit Saws and Salt are "around" (no aim);
+the Turret Buddy's gun, the Tarantula Hawk, chains and ricochets keep aiming by themselves.
+
+**77.KNOCK. Knockback x1.25** on every weapon, evolution and mutation number that adds knockback (`base.knockback`, level
+and mutation `add` effects, `params` keys `knock*` / `knockback`; multipliers `*_mult` and `mul` effects unchanged;
+tools/dl/p136/LEAD/knock_survey.py). Garry: "I think it warrants it."
+
+**77.AIM.GUNS.**
+
+77.AIM-GUNS. Under "Aim where you face" (Settings.aim_mode, on; the developer Settings row) the aimed guns fire down the
+Outlaw's facing every cooldown, turned to the best target in their cone by R4 (`params.aim`: cone, assist, big_cone,
+dry_db); with nothing in the cone they fire anyway (a dry pull, counted in the record's `weapon_dry`). Cones: Revolver,
+Tommy Gun, Basketball, Frisbee, Gravity Gun 60 deg (assist 30); Boomstick 60 (assist 15, a dry blast -6 dB, no jolt);
+Blunderbuss 75 (assist 15); Tumbleweed 40; Guitarra 70 (assist 20); Dragon's Breath 50 (hold 2 s, as before); Requiem
+around (as before). A burst's later rounds, Hip Shot's volleys and Both Barrels' second barrel read the facing again as
+they leave. Trigger Happy: the stream sways +-12 deg over 1.4 s on its own (`stream_sway_deg`). The Basketball: a throw
+that hits nothing falls and bounces twice (ProjectileManager.DROP_BOUNCES 2, DROP_BOUNCE_LIFE 1.8 s) and is gone: no
+return, no refund, no Heat; Free Throw still throws at the evaded creature by the old aim. The Gravity Gun grabs the
+best-scored grabbable creatures in its cone and throws each at a spot in the circle round him (R6, picked again as it
+leaves); with nobody in the cone it fires at the sand ahead and nothing happens (no hold). The Singularity's hole lands
+at a circle spot, always. R1: a stick pushed under 15% of its reach (Player.TURN_ZONE) turns him without walking; the
+dead zone is at most 5% of the reach under the rule (PlayerInput.AIM_DEADZONE). R7: the aim wedge (AimWedge: 0.9-3.0 m,
+the widest aimed cone, else melee, clamped 20-150 deg; a dark shade 12% with pale edge lines and a chevron; x2.8 for
+0.1 s on a pulse), a player setting "Show aim" (on).
+
+**77.AIM.HOMING.**
+
+**77.AIM.ROCKETS (Rocket Pod, Hellfire Battery, the hidden Missile Massacre; `aim.mode` "rockets").** Under the aim the
+pod faces the Outlaw's facing and fires on its clock even with nothing ahead (R5). Each rocket locks at launch on the best
+creature (Aim.pick, R4) inside the fan `cone` 90 (+-45 degrees) ahead within its range; a volley spreads over the fan's
+creatures before two rockets share one. A rocket whose creature dies picks again only inside that fan (from where the
+Outlaw stands then, along the facing it left on); with the fan empty it blows where its creature stood. With nothing in the
+fan at launch it flies to a dry spot `dry_reach` 8 m down the facing, +-`dry_spread` 1.5 m and +-`dry_deg` 12 degrees
+(the aim dice), and blows there. R7: each rocket marks where it is going on the sand, a ring (0.7 m) and a small dot (0.2 m) in
+`mark_color` (pod #FF8A2A, Hellfire #FF5A1F) at 55% strength (the dot 40%), following its creature, gone the moment the rocket blows
+(`marks` false hides them). The Pressure Cooker, overpressure and the pod's look-up launch are unchanged.
+
+**77.AIM.BEES (Killer Bees, Hive Queen, the hidden Killer Swarm; `aim.mode` "bees").** Garry: "bees should just fly in
+random places in a circle as well, but they don't need to show aim". Each bee of a volley gets its own spot (Aim.circle_spots,
+R6): `min_r` 2.5 m to the weapon's range round him, the best of six candidates by what stands within `near` 2.5 m of it
+taken `best_chance` 60% of the time; it flies there at 1 m up, takes the best creature within `near` of its spot when one
+is there (a special, an Elite or the boss first), else reaches its spot (within 0.9 m) and fades. A bee lives at least
+`bee_life` 5 s so it can get there. No marks, no wedge. The volley fires on its clock with nothing about. The Tarantula
+Hawk, Second Sting (it stings again near its spot) and Pollen are unchanged.
+
+**77.AIM.BEAM (Big Mouth, Loudmouth).** No aim assist: the mouth looks down the Outlaw's facing (its line laid from the floating mouth through the spot `converge` 6 m ahead of him), turning after it at most
+`turn_deg` 180 degrees a second, and the beam pours down that line and follows it (Sweep pans round it). When its clock is
+up it waits up to `hold` 0.5 s for a creature inside its `cone` 50 ahead, then pours anyway. Damage comes in small ticks
+every `tick` 0.09 s (each the sheet's damage x 0.09 / beam.tick 0.18) and ramps on each creature with its time in the beam:
+`ramp_start` 30% of full on first touch to `ramp_full` 130% after `ramp_seconds` 1 s in it; time out of the beam takes
+exposure off at `ramp_decay` 2 s a second. A fresh pour starts every ramp again. Fire and poison are laid at the old
+tick's rate (every second tick); hit sparks and Bad Breath's small gusts at the old rate.
+
+**77.AIM.STRIKE (Zap Beam, Storm Cloud; Sun Scepter, Zenith; `aim.family` "placed").** Garry: "in a circle, not a cone".
+The first strike is picked as before (the priority creature, else the zap's random pick in range / the sceptre's
+near-weighted pick on the screen). With nobody to pick they still strike on their clock: the zap a dry bolt into the sand
+at a random spot `min_r` 2 m to its range round him, the sceptre its pillars at random spots `min_r` 2.5 m to
+min(range, `max_r` 8 m) (the aim dice); a Zenith tenth with nobody to pick waits for the next strike with someone (the dry
+strike counts toward it like any other). Every strike leaves a mark (core/systems/StrikeMarks.gd, held Telegraphs marks):
+the zap a dark burnt star (0.75 m) under a blue glow that cools in 0.9 s, lying 1.6 s and fading over 2.2 s, on the first
+strike's spot (chains jump through the air, no mark); every sun pillar a gold-white ring of its radius burnt into the sand,
+cooling to a dark ring in 1.3 s, lying 1.8 s, fading over 2.4 s (Zenith's noon pillars too). At most 24 of each kind lie at
+once, the oldest going first.
+
+**77.AIM.PLACED.**
+
+**77.PLACED: placed weapons in a circle (R6 as Garry chose it: "Yes, but not in a cone, in a circle").** While
+`Aim.covers(inst)` (Settings.aim_mode on, the weapon's `params.aim.family` "placed"):
+- **Dynamite, Molotov, Skull Rain** (Lobber, and Golden Pineapple, Moonshine, Grave Hail): every pull throws `amount`
+  bombs on spots in a circle round the Outlaw, `params.aim.min_r` (2 m) to the weapon's range, inside the arena
+  (`Aim.arena_ok`, 1.5 m in from the rim). Each spot is the pick of 6 candidates (even over the ring's area) scored by
+  what its blast would catch, the best taken `best_chance` 60% of the time, else one of the other five at random. The
+  Dynamite (`params.lead`) scores a candidate by the creatures foreseen inside its blast when it blows (the lob's
+  flight plus the 1 s fuse, the crowd closing on where he will be: pass 79's prediction), and the spot is not led
+  again; the Molotov and the Skull Rain score creatures not yet burning / poisoned; specials, Elites and the boss count
+  x3 (Aim.spot_score). The spots of a volley and the spots other bombs are headed for keep 1.5 blasts apart. Nobody
+  anywhere: the bombs land on the sand all the same (a dry throw, `Aim.note_dry`). **Fire in the Hole** (the Drifter's
+  mutation) sets `aim.best_chance` 0.8. The Golden Pineapple still sticks to the strongest creature by its spot. The
+  old "first bomb at the priority creature" and the crowd-claiming of pass 36 do not play under the aim.
+  Up to Aim.CROWD_SEEDED (3) of the 6 candidates stand on creatures in the ring (the lead's rule), so a lone pack is
+  caught by most throws (over half in pass136_placed_test; a spot at random ~9%).
+- **Skull Rain's skull**: a poison cloud of a weapon with `params.ground_skull` (Skull Rain, Grave Hail and the hidden
+  Día de Muertos) holds one 3D skull (art/props/skull_rain_skull.glb, tools/blender_skull_rain.py) at its centre for the
+  cloud's life: it pops up out of the sand in 0.2 s, sits with its face turned up 0.55 rad towards the camera, sinks
+  away over the cloud's last `sink` 0.5 s and is gone as the cloud goes (core/systems/GroundSkulls.gd: one MultiMesh a
+  model and tint, `size` 1.5 x the model grown with sqrt(radius / 2.2) within 0.8..1.4, `tint` per weapon: Grave Hail
+  #FFE2B0). Grave Hail's bounces leave one where each lands. A puff or death pool with its own `pool_seconds` has
+  none. Looks only (no rule; not tied to the aim switch).
+- **Hammer** (Smasher, Earthshaker): comes down every pull on `amount` spots in the circle `min_r` 1 m to its reach
+  (4.6 m), scored by its blast (1.6 m x area), the best 60%; nobody near, it still strikes a spot in the circle. Pass
+  95's FireForward is ignored under the aim.
+- **Land Mine** (MineLayer): while he walks (over 0.6 m/s) each mine is flicked `aim.lay_ahead` 2 m (Jackrabbit Mines
+  3 m) down his facing, turned up to `aim.spread_deg` 30° off it at random, the second of a drop to the other side of
+  the facing from the first, the third to the first's side again; standing, at his feet (the rest ±1.5 m round it, as
+  before). Rolls on the aim dice.
+- **Turret Buddy** (Spawner, Iron Bastion): each turret of a drop goes on a spot in the ring `aim.min_r` 2 to `max_r`
+  3 m round him, each candidate scored by the creatures within the turret gun's `range` (8 m) of it (the crowd's side),
+  the best 60%; the turrets of a drop keep 1.5 m apart; each starts with its head turned down his facing (the Bunker's
+  slow traverse fires first where he looked); its gun then aims by itself as ever.
+Every roll of these comes from the aim dice (Aim.dice()), so replays play the same. Switch off: everything as before.
+
+**77.AIM.MELEE.**
+
+### 77.MELEE (pass 136, lane MELEE): the Sabre and the Spear as effects
+
+While `Settings.aim_mode` is on (the default) the Sabre, the Whirlwind, the Spear (`pike`) and the Thunder Lance aim by
+the new rule (`params.aim`: family `melee`; `look` "slash" or "stab"):
+
+- **Aim**: every stroke goes down the Outlaw's facing, turned towards the best target (Aim.pick, R4) by at most
+  `params.aim.assist` degrees: the Sabre and the Whirlwind 20 (`cone` 60), the Spear and the Thunder Lance 15 (`cone` 40);
+  a special, an Elite or the boss inside `big_cone` 90 (+-45) may pull it to 45 (Aim.shot's rule). The Thunder Lance's
+  thrust half aims afresh after its sweep. Heartseeker's crit stroke looks for its target 20% further, as before.
+- **Every beat**: a stroke comes on every cooldown with or without a creature (R5); before, the blade waited for one
+  within its reach (0.15 s retries). Pass 95's Fire Forward is not read while the rule plays.
+- **The hit tests are unchanged**: the Sabre's slice (`thrust.slice_deg` 150 round its line, the edge's width x Area as
+  padding), the Spear's lane (`thrust.width` 0.55 x Area, the reach), the fan of level 5 (40), Wide Sweep, the Thunder
+  Lance's sweep-then-thrust, stuns, crits, the pierce drop-off, knockback: the same code on the new line. What changes is
+  only where the line points: a creature behind him or well off to the side is no longer cut.
+- **No blade is shown**. The Sabre's swing is a crescent slash flat just above the sand (`MeleeFx.arc`), as wide as the
+  slice plus the edge's width at 70% of the reach (so Area items widen it), as deep as the reach, revealed with the swing's
+  own ease over `thrust.slice` and gone in 0.12 s; level 3 and 5's extra swings and Flurry's alternate sides; Critical
+  Thinking a white hairline edge with a gold halo, Riposte a brass edge and a short reverse arc at the flick, the
+  Whirlwind a full ring in its cyan, Flame Blade orange, Heartseeker's crit sweep red. The Spear's thrust is a stab streak
+  at the waist (`MeleeFx.thrust`): it shoots out in 0.08 s so its point lands as the hit does (windback + out), holds at
+  most 0.06 s with a star flash at the point, and thins away in 0.22 s; one streak a blade (level 5's two, Phalanx's
+  more); Heartseeker's three strokes before warm from steel to orange and the 4th is red, x1.5 wide, with a bigger red
+  flash (Fx.crit_thrust's sparks and ring stay; the old red lance mesh is not drawn); Wide Sweep a narrow tipped fan of
+  light; the Thunder Lance a crackling blue sweep, then white streaks and one bolt from the point to the nearest creature
+  within 3.5 m (else 1.8 m on down the line, looks only); Stunning Thrust a small yellow ring on each creature it stuns.
+- Looks only, no dice: the effects' own seeds use randf. Pools: 8 arcs, 6 streaks, 6 flashes a weapon, the oldest
+  reused. Not drawn in the sim (Run.sim_mode).
+
+With the switch off everything plays and looks as before pass 136 (the blades, the old aim, Fire Forward).
+
+**77.LOAD.**
+
+**77.LOAD The way into a run loads ahead and never stands still long** (pass 136, lane LOAD; Garry: "the first time
+Player ... goes into a run, it takes quite a while for the first level to load ... the loading screen doesn't move while
+the game is loading"). No rule of play changes; what changes is when things load:
+- The run's sprite strips (RunLooks: every creature its stage brings in the look it brings it, and the Outlaw's look)
+  load on Godot's loader threads, never on the main thread: from the tap (RunCurtain asks for them as the wipe starts:
+  RunLooks.prefetch_next), and already before it: the title asks for the run PLAY would start `PREFETCH_AFTER` 2 s after it
+  opens (the Outlaw shown; stage 1, or the Stages menu's likely stage), the Stages menu 0.6 s after it opens for the
+  furthest stage that is open (StagesScreen.likely_stage). An ask never waits; a strip asked ahead is held (LookArt
+  "staged", outside the KEEP_MB 160 rule) until the run's pin, then those the run does not use count against KEEP_MB
+  again; a new ask lets go of an older ask's strips it leaves out, so at most one run's set is kept for nothing.
+- The curtain builds the Game once the strips have landed (the loading screen moving meanwhile), and at most
+  `RunCurtain.STRIP_WAIT` 8 s after it could have been built (then the pin loads the rest itself, as before).
+- Under a curtain the Game's map is built in a frame of its own (Game._build_pause: the run is held off for that frame
+  and its play clock put back, so it plays and replays exactly as one build), and the warm-up (Warmup) draws in steps,
+  one a frame: the creatures at once, then the weapons' models, the shots and pickups, the rest. The curtain opens on the
+  run only once the last step has been drawn (Warmup.warmed; at most `WARM_WAIT` 3 s past MIN_SHOW), so every first
+  draw (where a phone compiles its shaders) still happens under the loading screen (pass 112's rule). A Game without a
+  curtain (a tool's instant start, the tests, a replay, the sim) builds in one go as before.
+- Each way in is reported: the log line "RunCurtain: run N of the session: tap to open ..., longest frame ..., M frames
+  over 100 ms" and the run record's header `load` (analytics/SCHEMA.md), so a phone run says what the phone saw.
+
+The Game is built as the slam settles: `RunCurtain.BUILD_LEAD` 1/30 -> **0.15 s** before MIN_SHOW.
+
+**77.BOT.**
+
+**77.BOT (R9, the bot aims by moving).** Only while Settings.aim_mode is on and the bot's `aim` dial is above 0 (sim77 0,
+careless 0.3, explorer and survivor 0.9, expert 1.0; Garry: "it would be ok if he were especially good at it"). Every 3
+frames he reads the thickest ±30° front within his aimed weapons' longest range (6..16 m; each creature 1/(1 + d/3),
+Elites and bosses x3). The beat: with the front outside ±30° of his facing he turns to it on the spot (a 12% push, R1)
+for 0.3 s; for a weapon whose cooldown is 0.25 s or more the beat is synced, `aim` of the time, starting 0.07 s before
+its next shot and ending when it fires (0.2 s at most), at least
+lerp(2.0, 0.35, aim) s after the last beat; otherwise one every 1.5-3 s; the turn is off by up to (1 - aim) x 25°. No
+beat while he dodges, breaks out, is down, walks to the portal or the boss's chest, or is under 25% health with a
+creature inside his flee distance. With the switch off he plays exactly as before. The attack lean (his kiting way
+turned within 25° of the front once the crowd is 3 m past his keep distance) is built but weighs 0 (`Bot.LEAN_SHARE`):
+measured, it cost 75-90% more HP a minute with the beats for no more kills.
+

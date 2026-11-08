@@ -35,6 +35,10 @@ sfx = {
 }
 visual_file = "fire_eater_visual.tscn"
 params = {
+"aim": {
+"cone": 50.0,
+"hold": 2.0
+},
 "breath": {
 "cone_deg": 50.0,
 "look": {
@@ -47,7 +51,7 @@ params = {
 },
 "final": {
 "breath": {
-"knock": 4.7,
+"knock": 5.875,
 "look": {
 "intensity": 1.8
 }

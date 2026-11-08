@@ -25,7 +25,7 @@
   "params": {
     "cone": {
       "side_random": true,
-      "knock": 7.0
+      "knock": 8.75
     }
   },
   "art_prompt": "a big golden musical note being slapped sideways by an open hand, a white impact star and speed lines",

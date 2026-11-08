@@ -24,6 +24,9 @@
     []
   ],
   "params": {
+    "aim": {
+      "family": "placed"
+    },
     "gravity": {
       "blast": 1.9,
       "black_hole": {

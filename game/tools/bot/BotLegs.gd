@@ -46,6 +46,21 @@ const RING_MARGIN := 0.8
 const RING_PUSH := 4.0
 const LINE_HALF_MIN := 0.3
 
+## Pass 136 (lane BOT, the proposal's R9: "the bot learns to aim by moving"; Garry: "it would be ok if he were especially
+## good at it"). Every weapon aims where the Outlaw faces while the switch is on (Settings.aim_mode, core/systems/Aim.gd),
+## and his facing is the stick's way. The attack lean (lean_dir) turns the sweep's way towards the pack (pack_of: the
+## thickest ±PACK_HALF_DEG front within the aimed weapons' reach): once the nearest creature is LEAN_FROM + KEEP_BLEND m
+## past keep_d, within ARC_DEG of it (he arcs in, the crowd inside his cone), blended from none at LEAN_FROM m past keep_d;
+## nearer, none (the kite's circling and the escape are whole: the sims showed a lean inside the keep band cost health and
+## bought nothing; the turn-and-fire beats aim there). `aim_w` is the lean's weight (Bot's `aim` dial x his health's say; 0 = the old legs exactly),
+## `aim_pack` the pack's way (flat, unit; ZERO for none); the Bot sets both every frame while the rule plays.
+const ARC_DEG := 25.0
+const LEAN_FROM := 1.0
+const PACK_HALF_DEG := 30.0
+const PACK_BINS := 36
+var aim_w := 0.0
+var aim_pack := Vector3.ZERO
+
 var lure_w := LURE_W
 var lure_close := LURE_CLOSE
 ## the dials (pass 80): the kite's distances, the reaction delay (s), the share of warnings seen and that roll's seed
@@ -92,6 +107,9 @@ func steer_sweep(game: Node, dt: float, t: float, lure: Vector3) -> void:
 	if inp == null or game.paused:
 		return
 	var dir := kite_dir(game, dt, t)
+	# pass 136 (R9): the attack lean on the kite's way (the lure's lean and the dodge come after it, as before)
+	if aim_w > 0.0 and aim_pack != Vector3.ZERO and seen_danger <= 0.4:
+		dir = lean_dir(dir, aim_pack, aim_w, seen_nearest, keep_d, flee_d)
 	if lure != Vector3.INF:
 		var me: Vector3 = p.global_position
 		var to_l: Vector3 = lure - me
@@ -342,6 +360,84 @@ func danger_push(game: Node, me: Vector3) -> Vector3:
 				side_off = Vector3(-bf.z, 0.0, bf.x)
 			danger += side_off.normalized() * 3.0 / maxf(sqrt(l2b), 0.5)
 	return danger
+
+
+## Pass 136 (R9): the attack lean. `k` (the kite's way, flat, any length) turned towards `p` (the pack's way, flat) by
+## `w` (0..1) of the angle it lies outside the limit: ARC_DEG once the nearest creature is LEAN_FROM + KEEP_BLEND m past
+## `keep` (he arcs in, the pack inside his cone), 180 (no lean) at LEAN_FROM m past it and nearer, blended in between;
+## with w 0 or no pack `k` itself. The length of `k` is kept.
+const KEEP_BLEND := 2.0
+static func lean_dir(k: Vector3, p: Vector3, w: float, nearest: float, keep: float, flee: float) -> Vector3:
+	k.y = 0.0
+	p.y = 0.0
+	var kl := k.length()
+	if w <= 0.0 or kl < 0.0001 or p.length_squared() < 0.0001 or nearest < maxf(flee, keep + LEAN_FROM):
+		return k
+	var pu := Vector2(p.x, p.z).normalized()
+	var ku := Vector2(k.x, k.z) / kl
+	var ang := pu.angle_to(ku)
+	var far := clampf((nearest - keep - LEAN_FROM) / KEEP_BLEND, 0.0, 1.0) if nearest < INF else 1.0
+	var lim := deg_to_rad(lerpf(180.0, ARC_DEG, far))
+	if absf(ang) <= lim:
+		return k
+	var side := 1.0 if ang >= 0.0 else -1.0
+	var v := pu.rotated(lerpf(ang, side * lim, clampf(w, 0.0, 1.0)))
+	return Vector3(v.x, 0.0, v.y) * kl
+
+
+## Pass 136 (R9): the thickest front: `rel` the creatures' flat offsets from him (Vector2(x, z)), `w` their weights; the
+## sums in PACK_BINS angle bins, the window of ±PACK_HALF_DEG with the most weight, its weighted mean way. Returns that
+## way (Vector3, flat) with the window's weight as its length; ZERO for none.
+static func pack_of(rel: PackedVector2Array, w: PackedFloat32Array) -> Vector3:
+	var n := mini(rel.size(), w.size())
+	if n == 0:
+		return Vector3.ZERO
+	var bins := PackedFloat32Array()
+	bins.resize(PACK_BINS)
+	var bin_of := PackedInt32Array()
+	bin_of.resize(n)
+	var step := TAU / float(PACK_BINS)
+	for i in range(n):
+		var a := atan2(rel[i].y, rel[i].x)
+		var b := posmod(int(floor((a + PI) / step)), PACK_BINS)
+		bin_of[i] = b
+		bins[b] += w[i]
+	var half := maxi(int(round(deg_to_rad(PACK_HALF_DEG) / step)), 0)
+	var best := -1
+	var best_s := 0.0
+	for c in range(PACK_BINS):
+		var sm := 0.0
+		for j in range(-half, half + 1):
+			sm += bins[posmod(c + j, PACK_BINS)]
+		if sm > best_s + 0.000001:
+			best_s = sm
+			best = c
+	if best < 0:
+		return Vector3.ZERO
+	var acc := Vector2.ZERO
+	for i in range(n):
+		var off := posmod(bin_of[i] - best + PACK_BINS / 2, PACK_BINS) - PACK_BINS / 2
+		if absi(off) <= half and rel[i].length_squared() > 0.000001:
+			acc += rel[i].normalized() * w[i]
+	if acc.length_squared() < 0.000001:
+		return Vector3.ZERO
+	acc = acc.normalized() * best_s
+	return Vector3(acc.x, 0.0, acc.y)
+
+
+## Pass 136 (R9): the thumb a little off the stick's middle (`frac` of its reach): R1's turn on the spot (Player.TURN_ZONE:
+## a push under 15% turns him without walking while the aim rule plays; PlayerInput keeps its dead zone under 5% then).
+static func push_turn(inp, dir: Vector3, frac: float = 0.12) -> void:
+	dir.y = 0.0
+	if dir.length() < 0.001:
+		return
+	dir = dir.normalized()
+	var r := 60.0
+	if inp.has_method("radius_px"):
+		r = float(inp.radius_px())
+	inp.wants_move = true
+	inp.origin = Vector2(216, 500)
+	inp.touch_pos = inp.origin + Vector2(dir.x, dir.z) * r * clampf(frac, 0.08, 0.14)
 
 
 ## The thumb on the stick: `dir` (world, flat) as a drag from the stick's origin (the probe's mapping onto the north-up

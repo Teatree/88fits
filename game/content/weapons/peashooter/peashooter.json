@@ -14,7 +14,7 @@
     "pierce": 0,
     "speed": 14,
     "range": 9,
-    "knockback": 4.0
+    "knockback": 5.0
   },
   "max_level": 5,
   "levels": [

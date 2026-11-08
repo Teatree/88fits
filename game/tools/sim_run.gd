@@ -4,7 +4,7 @@
 ## multiplier, the cap, the timeline, specials, Elites, bosses and their HP pegging count because it is the game itself.
 ##   "$GODOT" --headless --fixed-fps 60 --path game --script res://tools/sim_run.gd -- out=<file> hero=drifter seed=1 \
 ##       limit=1500 trail=quarter death=end [trail_optional=1] [fast=1] [map=red_canyon] [progress=10] [wall=2700]
-##       [res=504x1122] [unlocks=all]
+##       [res=504x1122] [unlocks=all] [aim_mode=0|1]
 ## trail= (pass 129, tools/trail_arg.gd; the Upgrade board's board= / talents= until then): none, quarter, half, full
 ## or a Trail Level: the player's save holds every required node up to it (choices in turn; optional nodes only with
 ## trail_optional=1), so his stats, outlaws, items and stages are a player's at that level. board=<ranks> is the old
@@ -69,8 +69,11 @@ var _trace := 0
 var _trace_n := 0
 ## the bot's options as given (args; Bot.resolve_opts fills in the rest from the preset); lure_r is stray's old name
 var _bot_raw: Dictionary = {}
+## pass 136 (lane BOT): aim_mode=0|1 sets Settings.aim_mode (every weapon aims where the Outlaw faces; on by default) for
+## this run; -1 (not given) keeps the game's default
+var _aim_mode := -1
 const BOT_ARGS := ["preset", "skill", "style", "reaction", "dodge", "daring", "stray", "explore", "totems", "barrels", "powerups",
-	"structures", "shop", "stranger", "boss", "cards", "lure_w", "lure_close", "breakout", "specials", "portal"]
+	"structures", "shop", "stranger", "boss", "cards", "lure_w", "lure_close", "breakout", "aim", "specials", "portal"]
 
 var _game: Node
 var _run: Node
@@ -130,6 +133,7 @@ func _init() -> void:
 			"profile": _profile = v == "1"
 			"fast": _fast = v != "0"
 			"trace": _trace = int(v)
+			"aim_mode": _aim_mode = 0 if v in ["0", "false", "off", "no"] else 1
 			_:
 				if BOT_ARGS.has(k):
 					_bot_raw[k] = v
@@ -205,6 +209,9 @@ func _start() -> void:
 		settings.show_hints = false
 		settings.damage_numbers = false
 		settings.debug_mode = false
+		# pass 136 (lane BOT): the aim rule as asked (aim_mode=0|1), else the game's default
+		if _aim_mode >= 0 and "aim_mode" in settings:
+			settings.aim_mode = _aim_mode == 1
 	# a phone's screen (the ranged weapons pick only what is on it): 9:20 with the canvas expanding as on Android
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	root.size = _res
@@ -468,12 +475,40 @@ func _meta(ra: Node, reason: String) -> Dictionary:
 		"dmg_total": snappedf(dmg, 0.1), "build_text": build, "started": str(header.get("started", "")),
 		# pass 87 (lane STOOLS): the stage run: the stage played (1-based), how it ended, its boss, its Endless
 		"stage": _stage, "outcome": _stage_outcome(reason),
+		# pass 136 (lane BOT): the aim rule played (Settings.aim_mode), the damage by weapon id, the dry shots by weapon id
+		# (Run.weapon_dry, lane GUNS: {} when the game keeps none) and the bot's aim tallies
+		"aim_mode": _aim_on(), "dmg_by_weapon": (_run.damage_by_weapon as Dictionary).duplicate(),
+		"weapon_dry": _weapon_dry(), "bot_aim": _bot.aim_tallies() if _bot and _bot.has_method("aim_tallies") else {},
 		"boss_killed": bool(_run.get("stage_beaten")) if _run.get("stage_beaten") != null else false,
 		"endless_s": snappedf(float(_run.get("endless_time")) if _run.get("endless_time") != null and bool(_run.get("endless")) else 0.0, 0.1),
 		"stage_clock": snappedf(float(_run.call("stage_clock")) if _run.has_method("stage_clock") else float(_run.elapsed), 0.1),
 		# pass 113 (lane TASKS): the task types' tallies (Run's, by path: TaskTally names the autoloads)
 		"tasks": {"element_damage": _run.get("element_damage"), "healed_by_item": _run.get("healed_by_item"),
 			"healed_by_source": _run.get("healed_by_source"), "barrels": _run.get("barrels_broken"), "totems": _run.get("totems_taken")}}
+
+
+## Pass 136 (lane BOT): whether the aim rule played (Settings.aim_mode; false where the game has no such switch).
+func _aim_on() -> bool:
+	var st := root.get_node_or_null("Settings")
+	return st != null and "aim_mode" in st and bool(st.aim_mode)
+
+
+## Pass 136 (lane BOT): the dry shots (an aimed weapon fired with nothing to hit) by weapon id: Aim.dry_counts() (lane
+## GUNS; loaded at run time, the class names an autoload); {} where the game keeps none.
+func _weapon_dry() -> Dictionary:
+	if not ResourceLoader.exists("res://core/systems/Aim.gd"):
+		return {}
+	var aim = load("res://core/systems/Aim.gd")
+	if not (aim is Script):
+		return {}
+	var has := false
+	for m in (aim as Script).get_script_method_list():
+		if str(m.get("name", "")) == "dry_counts":
+			has = true
+	if not has:
+		return {}
+	var d = aim.dry_counts()
+	return (d as Dictionary).duplicate() if d is Dictionary else {}
 
 
 ## The player's JSON from the recorder's rows and events (in memory) and the tool's own: meta, the series, the events.

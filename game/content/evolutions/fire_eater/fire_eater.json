@@ -30,6 +30,10 @@
     ]
   ],
   "params": {
+    "aim": {
+      "cone": 50,
+      "hold": 2.0
+    },
     "breath": {
       "cone_deg": 50,
       "tick": 1.0,
@@ -42,7 +46,7 @@
     },
     "final": {
       "breath": {
-        "knock": 4.7,
+        "knock": 5.875,
         "look": {
           "intensity": 1.8
         }

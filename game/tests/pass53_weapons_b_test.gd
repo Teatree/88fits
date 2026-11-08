@@ -83,11 +83,15 @@ func _script(src: String) -> GDScript:
 
 
 func before_test() -> void:
+	# pass 136 (lane GUNS): these tests pin the old auto-aim: the aim switch off (core/systems/Aim.gd)
+	Settings.aim_mode = false
 	Save.data = Save._default()
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 
 
 func after_test() -> void:
+	# pass 136: the aim switch back to its default
+	Settings.aim_mode = true
 	Run.base_crit = false
 	Run.debug_clear_items()
 	Run.end()
@@ -363,7 +367,7 @@ func test_wide_sweep_sweeps_every_spear_in_one_stroke_and_cuts_each_creature_onc
 	assert_bool(t._blades_sweep()).is_true()
 	assert_float(deg_to_rad(float(t.inst.params["thrust"]["slice_deg"]))).is_equal_approx(deg_to_rad(120.0), 0.0001)
 	# -40% knockback over the Spear's own (+30% at level 3; the sheet multiplies: 12 x 1.3 x 0.6)
-	assert_float(t.stat("knockback", 0.0)).is_equal_approx(12.0 * 1.3 * 0.6, 0.001)
+	assert_float(t.stat("knockback", 0.0)).is_equal_approx(12.0 * 1.25 * 1.3 * 0.6, 0.001)  # pass 136: every weapon's knockback x1.25 (BALANCING 77.KNOCK)
 	var i := _creature(em, Vector3(3.0, 0, 0))
 	var hp0: float = em.hp[i]
 	assert_bool(t._fire()).is_true()

@@ -18,7 +18,7 @@ base = {
 "fire_damage": 6.0,
 "fire_duration": 2.4,
 "fire_spread": 0.7,
-"knockback": 2.0,
+"knockback": 2.5,
 "range": 12.0,
 "speed": 11.0
 }
@@ -33,6 +33,11 @@ sfx = {
 visual = ExtResource("5_jvgev")
 visual_file = "moonshine_visual.tscn"
 params = {
+"aim": {
+"best_chance": 0.6,
+"family": "placed",
+"min_r": 2.0
+},
 "final": {
 "burn_line": {
 "seconds": 4.0,

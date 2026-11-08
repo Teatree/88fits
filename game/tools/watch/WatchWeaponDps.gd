@@ -426,6 +426,21 @@ static func lanes(xs: Array, sz: float, max_lanes: int) -> Array:
 
 
 ## A damage figure: 12k, 3.4k, 812.
+## Pass 136 (lane BOT): the run's dry shots by weapon id (Aim.dry_counts(), loaded at run time: the class names an autoload
+## and tools compile before autoloads); {} where the game keeps none.
+static func dry_counts() -> Dictionary:
+	if not ResourceLoader.exists("res://core/systems/Aim.gd"):
+		return {}
+	var aim = load("res://core/systems/Aim.gd")
+	if not (aim is Script):
+		return {}
+	for m in (aim as Script).get_script_method_list():
+		if str(m.get("name", "")) == "dry_counts":
+			var d = aim.dry_counts()
+			return d if d is Dictionary else {}
+	return {}
+
+
 static func _n(v: float) -> String:
 	if v >= 100000.0:
 		return "%dk" % int(roundf(v / 1000.0))
@@ -655,6 +670,7 @@ func _draw_all() -> void:
 	var total := float(model.get("total", 0.0))
 	var ts: PackedFloat32Array = model.get("t", PackedFloat32Array())
 	var fit := _fit_rows()
+	var dry := dry_counts()
 	scroll = clampi(scroll, 0, maxi(keys.size() - fit, 0))
 	for idx in range(scroll, mini(scroll + fit, keys.size())):
 		var k := str(keys[idx])
@@ -691,7 +707,10 @@ func _draw_all() -> void:
 		var held_s := (ts[ts.size() - 1] - ts[first] + 1.0) if first >= 0 and ts.size() > first else 0.0
 		var peak := float((_rolled.get(k, {}) as Dictionary).get("peak", 0.0))
 		draw_string(font, Vector2(num_x, y + 12.0), "%s dealt · %s" % [_n(tot), _pct(tot / total if total > 0.0 else 0.0)], HORIZONTAL_ALIGNMENT_LEFT, num_w, FONT_SIZE, Color(ACCENT if bool(inf.get("weapon", false)) else TITLE, dim))
-		draw_string(font, Vector2(num_x, y + 24.0), "%s DPS since first hit · peak %s" % [_n(tot / held_s if held_s > 0.0 else 0.0), _n(peak)], HORIZONTAL_ALIGNMENT_LEFT, num_w, FONT_SIZE - 2, Color(TEXT, dim))
+		# pass 136 (lane BOT): the dry shots (fired by the aim rule with nothing to hit; Aim.dry_counts, lane GUNS)
+		var dry_n := int(dry.get(k, 0))
+		draw_string(font, Vector2(num_x, y + 24.0), "%s DPS since first hit · peak %s%s" % [_n(tot / held_s if held_s > 0.0 else 0.0), _n(peak),
+			(" · %d dry shots" % dry_n) if dry_n > 0 else ""], HORIZONTAL_ALIGNMENT_LEFT, num_w, FONT_SIZE - 2, Color(TEXT, dim))
 		# what shaped it: an icon each (the hint says what it did and when it was taken)
 		var srcs: Array = inf.get("sources", [])
 		if srcs.is_empty():

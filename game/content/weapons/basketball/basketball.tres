@@ -59,7 +59,7 @@ base = {
 "amount": 1.0,
 "cooldown": 1.6471,
 "damage": 20.0,
-"knockback": 4.0,
+"knockback": 5.0,
 "pierce": 0.0,
 "range": 9.0,
 "speed": 16.0
@@ -75,6 +75,9 @@ sfx = {
 visual = ExtResource("4_gkevb")
 visual_file = "basketball_visual.tscn"
 params = {
+"aim": {
+"cone": 60.0
+},
 "amount_mode": "bounces",
 "back_speed_mult": 1.25,
 "catch": {

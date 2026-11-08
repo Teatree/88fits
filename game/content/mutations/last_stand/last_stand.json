@@ -16,7 +16,7 @@
       "boom": {
         "radius": 3.0,
         "damage_mult": 4.0,
-        "knockback": 9.0
+        "knockback": 11.25
       }
     }
   },

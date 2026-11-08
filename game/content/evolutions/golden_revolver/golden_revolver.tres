@@ -12,7 +12,7 @@ base = {
 "amount": 2.0,
 "cooldown": 0.8,
 "damage": 40.0,
-"knockback": 3.0,
+"knockback": 3.75,
 "pierce": 3.0,
 "range": 15.0,
 "speed": 36.0
@@ -28,6 +28,9 @@ sfx = {
 visual = ExtResource("3_bnuvs")
 visual_file = "golden_revolver_visual.tscn"
 params = {
+"aim": {
+"cone": 60.0
+},
 "burst": true,
 "burst_fan_deg": 7.0,
 "burst_gap": 0.14,

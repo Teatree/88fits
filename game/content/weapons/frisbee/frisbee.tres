@@ -57,7 +57,7 @@ base = {
 "amount": 1.0,
 "cooldown": 1.4118,
 "damage": 14.0,
-"knockback": 1.5,
+"knockback": 1.875,
 "pierce": 999.0,
 "range": 12.0,
 "speed": 13.0
@@ -71,6 +71,9 @@ sfx = {
 }
 visual_file = "frisbee_visual.tscn"
 params = {
+"aim": {
+"cone": 60.0
+},
 "bend_deg": 25.0,
 "bend_per_extra": 12.0,
 "disc": {

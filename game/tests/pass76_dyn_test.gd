@@ -209,15 +209,15 @@ func test_a_slightly_bigger_blast_and_twice_the_knockback() -> void:
 	var gp: WeaponDef = Registry.weapon("golden_pineapple")
 	assert_float(float(lg.base["area"])).is_equal_approx(2.8, 0.0001)
 	assert_float(float(lg.base["area"])).is_greater(OLD_AREA)
-	assert_float(float(lg.base["knockback"])).is_equal_approx(OLD_KB * 2.0, 0.0001)
-	assert_float(float(gp.base["knockback"])).is_equal_approx(OLD_GP_KB * 2.0, 0.0001)
+	assert_float(float(lg.base["knockback"])).is_equal_approx(OLD_KB * 2.0 * 1.25, 0.0001)  # pass 136: every weapon's knockback x1.25 (BALANCING 77.KNOCK)
+	assert_float(float(gp.base["knockback"])).is_equal_approx(OLD_GP_KB * 2.0 * 1.25, 0.0001)
 	# the rest of the weapon's numbers are untouched
 	assert_float(float(gp.base["area"])).is_equal_approx(3.0, 0.0001)
 	assert_float(float(lg.base["damage"])).is_equal_approx(25.0, 0.0001)
 	# (pass 109: 2.2 / 0.85, level 1 of the attack-speed ramp, BALANCING.md 52.ATKSPD)
 	assert_float(float(lg.base["cooldown"])).is_equal_approx(2.5882, 0.0001)
 	assert_float(float(gp.base["damage"])).is_equal_approx(45.0, 0.0001)
-	assert_float(_inst("lob_grenade").stat("knockback")).is_equal_approx(14.0, 0.0001)
+	assert_float(_inst("lob_grenade").stat("knockback")).is_equal_approx(14.0 * 1.25, 0.0001)  # pass 136: knockback x1.25
 	# the fuse is a rule in the base params of both, so every look has it
 	for d: WeaponDef in [lg, gp]:
 		var fz = d.params.get("fuse")
@@ -304,7 +304,7 @@ func test_the_evolution_lies_and_its_bomblets_fuse_and_push_at_half() -> void:
 	var w := _world()
 	var pm: ProjectileManager = w["pm"]
 	var gp := _inst("golden_pineapple")
-	assert_float(gp.stat("knockback")).is_equal_approx(18.0, 0.0001)
+	assert_float(gp.stat("knockback")).is_equal_approx(18.0 * 1.25, 0.0001)  # pass 136: knockback x1.25
 	var k := pm.register_kind(BoxMesh.new(), null)
 	# nothing in reach to stick to: it lies like any stick
 	var j := pm.lob(k, Vector3(0, 1.2, 0), Vector3(5, 0, 0), 9.0, gp.stat("damage"), gp.stat("area"), gp, gp.stat("knockback"), gp.params.duplicate())

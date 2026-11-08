@@ -18,7 +18,7 @@
     "pierce": 999,
     "speed": 15,
     "range": 15,
-    "knockback": 2.0,
+    "knockback": 2.5,
     "poison_damage": 2,
     "poison_duration": 2
   },
@@ -26,6 +26,9 @@
     []
   ],
   "params": {
+    "aim": {
+      "cone": 60
+    },
     "fire_forward": true,
     "bend_deg": 25,
     "bend_per_extra": 12,

@@ -15,7 +15,7 @@
     "amount": 1,
     "range": 2.6,
     "area": 1.0,
-    "knockback": 6.0
+    "knockback": 7.5
   },
   "max_level": 5,
   "levels": [
@@ -80,6 +80,13 @@
       "width": 0.7,
       "slice_deg": 150,
       "side": 1.0
+    },
+    "aim": {
+      "family": "melee",
+      "look": "slash",
+      "cone": 60,
+      "assist": 20,
+      "big_cone": 90
     }
   },
   "sfx": {

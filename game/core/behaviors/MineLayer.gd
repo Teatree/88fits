@@ -57,6 +57,44 @@ func lay_point() -> Vector3:
 	return at + flat.normalized() * la
 
 
+## Pass 136 (lane PLACED; the aim proposal, Garry left it as written: "Every mine is flicked ahead like the
+## Jackrabbit's: 2 m down the facing while he walks, scattered ±30°, and at his feet while he stands"): while
+## Aim.covers(this weapon), the `n` spots of a drop. Walking (faster than LAY_AHEAD_SPEED): each `params.aim.lay_ahead`
+## (2 m; the Jackrabbit Mines 3 m) down his facing (Aim.facing), turned up to `params.aim.spread_deg` (30) off it, the
+## second to the other side of the facing from the first, the third on the first's side, and so on (level 4's second
+## mine, Extra Supply's double drop). Standing: the first at his feet, the rest round it as before (±1.5 m). Rolls on
+## the aim dice.
+func aim_points(n: int) -> Array:
+	var c := Aim.cfg(inst)
+	var g := Aim.dice()
+	var at: Vector3 = player.global_position
+	var v = player.get("velocity")
+	var flat := Vector3.ZERO
+	if v is Vector3:
+		flat = Vector3((v as Vector3).x, 0.0, (v as Vector3).z)
+	var out: Array = []
+	if flat.length() < LAY_AHEAD_SPEED:
+		for k in range(n):
+			var off := Vector3.ZERO
+			if k > 0:
+				off = Vector3(g.randf_range(-1.5, 1.5), 0, g.randf_range(-1.5, 1.5))
+			out.append(at + off)
+		return out
+	var f := Aim.facing(player)
+	var la := float(c.get("lay_ahead", 2.0))
+	var spread := deg_to_rad(float(c.get("spread_deg", 30.0)))
+	var first := g.randf_range(-1.0, 1.0)
+	var side := 1.0 if first >= 0.0 else -1.0
+	for k in range(n):
+		var turn := first * spread
+		if k > 0:
+			# odd ones to the other side of the facing, even ones to the first's
+			turn = (-side if k % 2 == 1 else side) * g.randf() * spread
+		var d := f.rotated(Vector3.UP, turn)
+		out.append(at + d * la)
+	return out
+
+
 ## Whether this drop lays twice as many: always for the Jackrabbit, else Extra Supply's share of the time.
 func _doubles() -> bool:
 	var jb = inst.params.get("jackrabbit")
@@ -73,18 +111,24 @@ func _fire() -> bool:
 		amount *= 2
 		doubled += 1
 	var max_mines := int(inst.params.get("max_mines", 8))
+	var aimed := Aim.covers(inst)
 	var ahead := lay_point()
+	var pts: Array = aim_points(amount) if aimed else []
 	for k in range(amount):
 		var mine := Mine.new()
 		mine.setup(self, _mine_mesh, _mine_mat, stat("damage", 25.0), stat("area", 2.2), stat("knockback", 6.0), stat("lifetime", 25.0), float(inst.params.get("trigger_radius", 0.7)))
 		game.add_child(mine)
-		var off := Vector3.ZERO
-		if k > 0:
-			off = Vector3(Dice.r.randf_range(-1.5, 1.5), 0, Dice.r.randf_range(-1.5, 1.5))
-		var p: Vector3 = ahead + off
+		var p: Vector3
+		if aimed:
+			p = pts[k]
+		else:
+			var off := Vector3.ZERO
+			if k > 0:
+				off = Vector3(Dice.r.randf_range(-1.5, 1.5), 0, Dice.r.randf_range(-1.5, 1.5))
+			p = ahead + off
 		p.y = game.map.height_at(p.x, p.z) if game.map else 0.0
 		var feet: Vector3 = player.global_position
-		if ahead.distance_squared_to(feet) > 0.01:
+		if (aimed and Vector2(p.x - feet.x, p.z - feet.z).length() > 0.1) or (not aimed and ahead.distance_squared_to(feet) > 0.01):
 			# flicked ahead from his feet (pass 51, lay_ahead): it lands armed where he is heading
 			feet.y = game.map.height_at(feet.x, feet.z) if game.map else 0.0
 			mine.global_position = feet

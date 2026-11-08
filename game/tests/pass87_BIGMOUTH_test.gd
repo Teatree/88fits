@@ -1,5 +1,19 @@
 extends GdUnitTestSuite
 
+## Pass 136 (lane HOMING): this suite pins the old aim, so it plays with Settings.aim_mode off (the aimed rules:
+## pass136_homing_test.gd).
+var _aim_keep136 := true
+
+
+func before_test() -> void:
+	_aim_keep136 = Settings.aim_mode
+	Settings.aim_mode = false
+
+
+func after_test() -> void:
+	Settings.aim_mode = _aim_keep136
+
+
 ## Pass 87, lane BIGMOUTH (Garry: "Remove the tongue from the Big Mouth 3d Object. But keep a kind of a bright shining
 ## thing in the back of the Mouth when it's shooting the Laser. Add a bit of a wind-up animation to the Big Mouth as
 ## it's about to shoot, something short. And a visual 'punch back' when the laser is being shot"). The model has no

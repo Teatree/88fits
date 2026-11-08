@@ -16,13 +16,18 @@
     "cooldown": 1.4,
     "amount": 2,
     "area": 3.0,
-    "knockback": 11.0,
+    "knockback": 13.75,
     "lifetime": 30
   },
   "levels": [
     []
   ],
   "params": {
+    "aim": {
+      "family": "placed",
+      "lay_ahead": 3.0,
+      "spread_deg": 30.0
+    },
     "max_mines": 16,
     "trigger_radius": 0.8,
     "leap": {

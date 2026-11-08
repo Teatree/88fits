@@ -75,12 +75,20 @@ func _script(src: String) -> GDScript:
 	return s
 
 
+## Pass 136 (lane HOMING): this suite pins the old aim, so it plays with Settings.aim_mode off (the aimed rules:
+## pass136_homing_test.gd).
+var _aim_keep136 := true
+
+
 func before_test() -> void:
 	Save.data = Save._default()
 	Run.start(Registry.character("solenne"), Registry.map("red_canyon"))
+	_aim_keep136 = Settings.aim_mode
+	Settings.aim_mode = false
 
 
 func after_test() -> void:
+	Settings.aim_mode = _aim_keep136
 	Run.debug_clear_items()
 	Run.end()
 

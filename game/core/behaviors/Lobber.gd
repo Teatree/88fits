@@ -263,6 +263,9 @@ func death_pool_count() -> int:
 
 
 func _fire() -> bool:
+	# pass 136 (lane PLACED): "Aim where you face" throws on spots in a circle round him (_fire_placed)
+	if Aim.covers(inst):
+		return _fire_placed()
 	var enemies: EnemyManager = game.enemies
 	var range_m := stat("range", 10.0)
 	# a poison or fire bomb looks for the thickest crowd of creatures not carrying its element; plain bombs take any crowd
@@ -337,6 +340,96 @@ func _fire() -> bool:
 			halo_shots += 1
 	sfx("fire", from)
 	return true
+
+
+# ---------------------------------------------------------------- placed in a circle (pass 136, lane PLACED)
+
+## Pass 136 (lane PLACED; Garry on the aim proposal's R6: "Yes, but not in a cone, in a circle"; "certain weapons will
+## now fire at random positions, like bombs"): while Aim.covers(this weapon) every throw goes to spots in a circle round
+## the Outlaw, `params.aim.min_r` (2 m) out to the weapon's range, inside the arena (Aim.circle_spots: CANDIDATES
+## candidates a spot, the best taken `best_chance` of the time (0.6; Fire in the Hole 0.8), else one of the others; the
+## spots of a volley and the spots other bombs are headed for keep APART blasts apart). A candidate is scored by what the
+## blast would catch: with `params.lead` (the Dynamite) by where the crowd will be when the bomb blows (placed_scores:
+## EnemyManager.predicted_counts over the lob's flight plus the fuse, the lead's own wait), else by the creatures inside
+## it now, specials, Elites and the boss x3, a fire or poison bomb leaving out those already carrying its element
+## (Aim.spot_score). The spot is not led again. Nobody anywhere: the bombs land on the sand all the same (dry, counted
+## by Aim.note_dry). The Golden Pineapple still sticks to the strongest creature by its spot.
+func _fire_placed() -> bool:
+	var enemies: EnemyManager = game.enemies
+	var c := Aim.cfg(inst)
+	var range_m := stat("range", 10.0)
+	var healthy := inst.def.targeting == "densest_healthy" or inst.def.targeting == "healthy"
+	var el := inst.element() if healthy else ""
+	var amount: int = maxi(stat_int("amount", 1), 1)
+	var hero := player.global_position
+	var area := stat("area", 2.5)
+	var from: Vector3 = _stray.global_position if _stray else hero + Vector3(0, 1.2, 0)
+	var scorer := Callable()
+	if float(lead_config(inst.params)["share"]) > 0.0:
+		scorer = placed_scores.bind(from, hero, area)
+	var spots: Array = Aim.circle_spots(enemies, hero, float(c.get("min_r", 2.0)), maxf(range_m, float(c.get("min_r", 2.0)) + 0.5),
+			amount, area, float(c["best_chance"]), el, game.projectiles.claimed_spots(), Aim.arena_ok(game), scorer)
+	if spots.is_empty():
+		return false
+	var map = game.get("map")
+	var stp = inst.params.get("sticky")
+	var sticky_pt := stp is Dictionary and bool((stp as Dictionary).get("priority", false))
+	var dry := true
+	for k in range(spots.size()):
+		var at: Vector3 = spots[k]
+		if map and map.has_method("height_at"):
+			at.y = map.height_at(at.x, at.z)
+		if Aim.spot_score(enemies, at, area, el) > 0.0:
+			dry = false
+		# the Golden Pineapple (pass 48): at the strongest creature by the spot, the one it will stick to
+		if sticky_pt:
+			var s := enemies.priority_index(at, float((stp as Dictionary).get("reach", 1.4)) + 1.0, "", true)
+			if s >= 0:
+				at = enemies.pos[s]
+		spots[k] = at
+	if dry:
+		Aim.note_dry(inst)
+	var k_draw := shot_kind()
+	var haloed := not _halo().is_empty()
+	for at: Vector3 in spots:
+		var lp: Dictionary = inst.params.duplicate()
+		lp["throw_dir"] = (at - from) * Vector3(1, 0, 1)
+		if haloed:
+			_stamp += 1
+			lp["halo_id"] = _stamp
+		var j: int = game.projectiles.lob(k_draw, from, at, stat("speed", 9.0), stat("damage", 25.0), area, inst, stat("knockback", 3.0), lp)
+		if haloed and j >= 0:
+			_flying.append([j, _stamp])
+			halo_shots += 1
+	placed_throws += spots.size()
+	sfx("fire", from)
+	return true
+
+
+## Diagnostics and tests: bombs thrown on placed spots (pass 136).
+var placed_throws := 0
+
+
+## The Dynamite's candidates scored by where the crowd will be when each bomb blows (pass 136; the lead's prediction,
+## params.lead): the creatures foreseen inside the blast after the lob's flight to the spot plus the fuse (a Sticky bomb
+## rides what it catches: the flight alone), each closing on where the Outlaw will be.
+func placed_scores(cands: Array, from: Vector3, hero: Vector3, area: float) -> Array:
+	var lc := lead_config(inst.params)
+	var hv := Vector3.ZERO
+	if player and player.get("velocity") is Vector3:
+		hv = player.get("velocity")
+	hv.y = 0.0
+	var fuse := 0.0
+	var fz := ProjectileManager.fuse_of(inst)
+	if not fz.is_empty() and not inst.params.get("sticky") is Dictionary:
+		fuse = ProjectileManager.fuse_seconds(fz, {})
+	var out: Array = []
+	for p: Vector3 in cands:
+		var wait := clampf(maxf(Vector2(p.x - from.x, p.z - from.z).length(), 0.5) / maxf(stat("speed", 9.0), 1.0), 0.35, 2.5) + fuse
+		var goal := hero + hv * (wait * float(lc["hero_ahead"]))
+		var n: PackedInt32Array = game.enemies.predicted_counts([p], area, wait, goal, float(lc["gap"]), p, area + LEAD_MAX + 6.0)
+		out.append(float(n[0]))
+	return out
 
 
 # ---------------------------------------------------------------- the lead (pass 79, lane WORLD)

@@ -18,12 +18,20 @@
     "area": 0,
     "speed": 17,
     "range": 12,
-    "knockback": 1.2
+    "knockback": 1.5
   },
   "levels": [
     []
   ],
   "params": {
+    "aim": {
+      "family": "placed",
+      "mode": "bees",
+      "min_r": 2.5,
+      "near": 2.5,
+      "best_chance": 0.6,
+      "bee_life": 5.0
+    },
     "radius": 0.15,
     "missile": {
       "wander": 0.3,

@@ -13,7 +13,7 @@ base = {
 "area": 2.8,
 "cooldown": 1.8,
 "damage": 8.0,
-"knockback": 3.0,
+"knockback": 3.75,
 "poison_damage": 6.0,
 "poison_duration": 12.0,
 "poison_stacks": 3.0,
@@ -31,6 +31,11 @@ sfx = {
 visual = ExtResource("3_1e4hs")
 visual_file = "res://content/evolutions/dia_de_muertos/dia_de_muertos_visual.tscn"
 params = {
+"aim": {
+"best_chance": 0.6,
+"family": "placed",
+"min_r": 2.0
+},
 "cloud_seconds": 6.0,
 "final": {
 "bounce": {
@@ -49,6 +54,12 @@ params = {
 "slow": 0.5,
 "step": 0.2
 }
+},
+"ground_skull": {
+"sink": 0.5,
+"size": 1.6,
+"tilt": 0.55,
+"tint": "#FFE2B0"
 }
 }
 id = "grave_hail"

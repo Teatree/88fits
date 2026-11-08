@@ -15,7 +15,7 @@
     "amount": 4,
     "range": 18,
     "pierce": 80,
-    "knockback": 12.0,
+    "knockback": 15.0,
     "speed": 7
   },
   "params": {

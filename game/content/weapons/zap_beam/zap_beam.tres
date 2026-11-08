@@ -59,7 +59,7 @@ base = {
 "chains": 2.0,
 "cooldown": 1.8824,
 "damage": 12.0,
-"knockback": 3.0,
+"knockback": 3.75,
 "range": 9.0
 }
 levels = [[], [SubResource("Resource_r8tns"), SubResource("Resource_y1fi3"), SubResource("Resource_7u84o")], [SubResource("Resource_887o3"), SubResource("Resource_0g86e")], [SubResource("Resource_qrq2d")], [SubResource("Resource_s7ecw"), SubResource("Resource_baajs")]]
@@ -71,6 +71,12 @@ sfx = {
 }
 visual = ExtResource("4_887o3")
 visual_file = "zap_beam_visual.tscn"
+params = {
+"aim": {
+"family": "placed",
+"min_r": 2.0
+}
+}
 id = "zap_beam"
 display_name = "Zap Beam"
 flavour = "Ants hate this one trick."

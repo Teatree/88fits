@@ -1,5 +1,19 @@
 extends GdUnitTestSuite
 
+## Pass 136 (lane MELEE): this suite pins the old aim, so it plays with Settings.aim_mode off (the aimed rules:
+## pass136_melee_test.gd).
+var _aim_keep136 := true
+
+
+func before_test() -> void:
+	_aim_keep136 = Settings.aim_mode
+	Settings.aim_mode = false
+
+
+func after_test() -> void:
+	Settings.aim_mode = _aim_keep136
+
+
 ## Pass 48, lane L3: the Hammer's paths (Thor's Wrath zaps only outside the blast and none when nobody stands out there,
 ## Giant Slayer only on big game), the Earthshaker redone (lightning down the cracks and onto what stands by them, the
 ## roll along the cracks, Giant Slayer on every blow, the rebuilt model still swinging with its own proportions), the

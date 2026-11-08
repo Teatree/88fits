@@ -91,7 +91,7 @@ const DT := 1.0 / 60.0
 ## Old level-8 totals of a few weapons as their sheets folded them (from tools/dl/levels_v47.json, the frozen copy
 ## tools/compress_levels.py made before it rewrote the levels): level 5 keeps every one.
 const OLD_L8 := {
-	"boomstick": {"amount": 8.0, "damage": 9.36, "cooldown": 1.26, "knockback": 10.0, "pierce": 1.0},
+	"boomstick": {"amount": 8.0, "damage": 9.36, "cooldown": 1.26, "knockback": 12.5, "pierce": 1.0}, # pass 136: every weapon's knockback x1.25 (BALANCING 77.KNOCK)
 	"peashooter": {"damage": 14.976, "amount": 3.0, "cooldown": 0.81, "pierce": 1.0},
 	"tommy_gun": {"amount": 12.0, "damage": 6.09375, "cooldown": 1.232},
 	"hammer": {"damage": 31.25, "area": 1.38, "range": 6.348, "amount": 3.0},

@@ -53,7 +53,7 @@ base = {
 "area": 1.0,
 "cooldown": 0.25,
 "damage": 8.0,
-"knockback": 5.0,
+"knockback": 6.25,
 "orbit_radius": 2.0
 }
 levels = [[], [SubResource("Resource_shtm4"), SubResource("Resource_o1ibo")], [SubResource("Resource_lakte"), SubResource("Resource_xaqcr")], [SubResource("Resource_uwa1h")], [SubResource("Resource_wby7v"), SubResource("Resource_y8jrs")]]

@@ -65,7 +65,7 @@ base = {
 "fire_damage": 4.0,
 "fire_duration": 1.8,
 "fire_spread": 0.5,
-"knockback": 2.0,
+"knockback": 2.5,
 "range": 10.0,
 "speed": 10.0
 }
@@ -79,6 +79,11 @@ sfx = {
 visual = ExtResource("6_c3fjh")
 visual_file = "molotov_visual.tscn"
 params = {
+"aim": {
+"best_chance": 0.6,
+"family": "placed",
+"min_r": 2.0
+},
 "cloud_seconds": 3.0
 }
 variants = {

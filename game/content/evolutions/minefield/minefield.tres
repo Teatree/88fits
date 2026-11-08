@@ -14,7 +14,7 @@ base = {
 "area": 3.0,
 "cooldown": 1.4,
 "damage": 40.0,
-"knockback": 11.0,
+"knockback": 13.75,
 "lifetime": 30.0
 }
 levels = [[]]
@@ -28,6 +28,11 @@ sfx = {
 visual = ExtResource("3_ao4eg")
 visual_file = "minefield_visual.tscn"
 params = {
+"aim": {
+"family": "placed",
+"lay_ahead": 2.0,
+"spread_deg": 30.0
+},
 "max_mines": 16.0,
 "trigger_radius": 0.8
 }

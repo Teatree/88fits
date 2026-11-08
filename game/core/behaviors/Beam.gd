@@ -7,6 +7,12 @@
 ## zaps on that creature (its slot and its serial, so the next creature in the slot is never zapped), `gap` seconds apart,
 ## each for `damage_frac` of the hit, with a discharge: three or four short bolts out of the air round it into its body,
 ## sparks, and a pale blue tint while they last. The Storm Cloud's `final` lifts the chance to 35%.
+## Pass 136 (lane HOMING; Garry: "Zap Beam and Sun Scepter: Should leave a mark on the floor whenever they attack. And
+## yeah those too in a circle, not a cone"): while Aim.covers(inst) the first strike is still any creature round him in
+## range (the priority one first, else the random pick), and with nobody in range it still strikes on its clock: a dry
+## bolt into the sand at a random spot of the circle `params.aim.min_r`..its range (Aim.dice()). Every bolt's first
+## strike leaves a burn on the sand (StrikeMarks.zap: a dark burnt star under a blue glow that cools). The Storm Cloud
+## the same, from its cloud. With the switch off it plays as before (holds with nobody in range, no marks).
 class_name Beam
 extends WeaponBehavior
 
@@ -18,6 +24,8 @@ var _cloud: Node3D
 var _shocks: Array = []
 ## echoes landed (tests, the smoke run)
 var shocks_landed := 0
+## pass 136: bolts that came down on the sand with nobody in range (tests)
+var dry_bolts := 0
 
 
 func _shows_held() -> bool:
@@ -101,6 +109,9 @@ func _fire() -> bool:
 	var first: int = priority_pick(player.global_position, range_m)
 	if first < 0:
 		first = enemies.random_in_range(player.global_position, range_m)
+	var aimed := Aim.covers(inst)
+	if first < 0 and aimed:
+		return _dry_bolt(range_m)
 	if first < 0:
 		return false
 	var chains: int = max(stat_int("chains", 2), 0)
@@ -145,5 +156,26 @@ func _fire() -> bool:
 				best = e
 		current = best
 	game.fx_lightning(points)
+	if aimed and hit.size() > 0:
+		StrikeMarks.zap(game, enemies.pos[int(hit[0])])
+	sfx("fire", origin)
+	return true
+
+
+## Pass 136: nobody in range under the aim: the bolt still comes down, on the sand at a random spot of the circle, and
+## burns it. Nothing is hit (nobody stood there).
+func _dry_bolt(range_m: float) -> bool:
+	var g := Aim.dice()
+	var lo := clampf(float(Aim.cfg(inst).get("min_r", 2.0)), 0.0, range_m)
+	var a := g.randf() * TAU
+	var d := sqrt(lerpf(lo * lo, range_m * range_m, g.randf()))
+	var at := player.global_position + Vector3(cos(a) * d, 0.0, sin(a) * d)
+	var map = game.get("map")
+	if map != null and map.has_method("height_at"):
+		at.y = map.height_at(at.x, at.z)
+	var origin: Vector3 = _cloud.global_position if (_cloud and _cloud.visible) else player.global_position + Vector3(0, 1.0, 0)
+	game.fx_lightning([origin, at + Vector3(0, 0.05, 0)])
+	StrikeMarks.zap(game, at)
+	dry_bolts += 1
 	sfx("fire", origin)
 	return true

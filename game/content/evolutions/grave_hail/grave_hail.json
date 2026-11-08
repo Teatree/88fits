@@ -14,7 +14,7 @@
     "amount": 3,
     "area": 2.8,
     "range": 13,
-    "knockback": 3.0,
+    "knockback": 3.75,
     "speed": 13,
     "poison_damage": 6,
     "poison_stacks": 3,
@@ -31,6 +31,17 @@
   },
   "art_prompt": "a hail of bouncing sugar skulls trailing green poison",
   "params": {
+    "aim": {
+      "family": "placed",
+      "min_r": 2.0,
+      "best_chance": 0.6
+    },
+    "ground_skull": {
+      "size": 1.6,
+      "tint": "#FFE2B0",
+      "sink": 0.5,
+      "tilt": 0.55
+    },
     "cloud_seconds": 6.0,
     "final": {
       "bounce": {

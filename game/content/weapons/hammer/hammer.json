@@ -15,7 +15,7 @@
     "amount": 1,
     "range": 4.6,
     "area": 1.0,
-    "knockback": 10.0
+    "knockback": 12.5
   },
   "max_level": 5,
   "levels": [
@@ -82,6 +82,11 @@
   "evolves_with": "",
   "evolves_into": "earthshaker",
   "params": {
+    "aim": {
+      "family": "placed",
+      "min_r": 1.0,
+      "best_chance": 0.6
+    },
     "fire_forward": true,
     "smash": {
       "radius": 1.6,

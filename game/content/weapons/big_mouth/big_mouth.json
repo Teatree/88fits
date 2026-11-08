@@ -16,6 +16,18 @@
     "pierce": 99
   },
   "params": {
+    "aim": {
+      "family": "aimed",
+      "cone": 50,
+      "hold": 0.5,
+      "turn_deg": 180,
+      "tick": 0.09,
+      "ramp_start": 0.3,
+      "ramp_full": 1.3,
+      "ramp_seconds": 1.0,
+      "ramp_decay": 2.0,
+      "converge": 6.0
+    },
     "beam": {
       "width": 0.34,
       "tick": 0.18,

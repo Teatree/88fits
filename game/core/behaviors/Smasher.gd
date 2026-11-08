@@ -130,8 +130,24 @@ func _fire() -> bool:
 	# pass 95 (lane ITEMS): "Fire forward" (FireForward.dir, Settings.fire_forward): the blow lands 75% of the reach ahead
 	# along his facing (FireForward.NEAR_FRAC: the smash's radius covers the range's end) while no creature stands within
 	# 75% of the range; else on the thickest crowd as before
-	var fwd: Vector3 = FireForward.dir(inst, player, game.enemies, 4.6)
-	var spots: Array = [player.global_position + fwd * reach * FireForward.NEAR_FRAC] if fwd != Vector3.ZERO else crowd_spots(n, reach, r)
+	var spots: Array
+	if Aim.covers(inst):
+		# pass 136 (lane PLACED; Garry: "Can just be as it is visually, just make it attack all the time"): every pull, on
+		# spots in a circle round him out to the reach (Aim.circle_spots, scored by what the blast would catch, the best
+		# `best_chance` of the time); nobody near, it still comes down on a spot in the circle
+		var c := Aim.cfg(inst)
+		var lo := float(c.get("min_r", 1.0))
+		spots = Aim.circle_spots(game.enemies, player.global_position, lo, maxf(reach, lo + 0.5), n, r, float(c["best_chance"]), "", [], Aim.arena_ok(game))
+		var dry := true
+		for at: Vector3 in spots:
+			if Aim.spot_score(game.enemies, at, r) > 0.0:
+				dry = false
+				break
+		if dry:
+			Aim.note_dry(inst)
+	else:
+		var fwd: Vector3 = FireForward.dir(inst, player, game.enemies, 4.6)
+		spots = [player.global_position + fwd * reach * FireForward.NEAR_FRAC] if fwd != Vector3.ZERO else crowd_spots(n, reach, r)
 	if spots.is_empty():
 		return false
 	var stagger := _smash("stagger", 0.12)

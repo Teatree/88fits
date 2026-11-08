@@ -28,6 +28,18 @@
 ## LAUNCH_SETTLE s; its tube cluster never turns (the quarter turns pushed the tubes through the box's top) and the kick no
 ## longer swells the cluster. `params.missile.rise` (ProjectileManager.launch_missile) keeps the rockets climbing through
 ## their corkscrew before they turn onto their targets.
+## Pass 136 (lane HOMING; Garry: "R7 - Yes, this is especially important for Rockets. Come to think of it, bees should just
+## fly in random places in a circle as well, but they don't need to show aim"): while Aim.covers(inst) (the switch on and
+## the weapon's `params.aim` block), `params.aim.mode` says how the pod aims. "rockets" (the Rocket Pod, the Hellfire
+## Battery): the pod faces the Outlaw's facing and fires on its clock even with nothing ahead (R5); each rocket of a volley
+## locks at launch on the best creature inside the +-cone/2 fan ahead (Aim.pick, the volley spreading over the fan's
+## creatures, then doubling up), and a rocket whose creature dies picks again only inside that fan; with nothing there it
+## flies to a dry spot `dry_reach` m down the facing (spread `dry_spread` m and `dry_deg`) and blows there. Each rocket
+## shows where it is going on the sand (R7): a ring and a dot in `mark_color` that follows its creature and goes when it
+## blows (Telegraphs held rings; `marks` false hides them). "bees" (the Killer Bees, the Hive Queen): each bee of a volley
+## gets its own spot round him (Aim.circle_spots, `min_r`..its range, leaning to the crowd), flies there, dives on the
+## best creature within `near` m of that spot when one is there, else reaches it and fades; no marks, no aim shown. The
+## Tarantula Hawk stays a free hunter. With the switch off everything plays as before.
 class_name MissilePod
 extends WeaponBehavior
 
@@ -95,6 +107,13 @@ var _hold_up := 0.0
 var _raise_wait := 0.0
 ## Double volleys the overpressure gave (tests).
 var doubled := 0
+## Pass 136 (lane HOMING): the volley's bee spots waiting for their bees (bees mode), and the rockets in flight with their
+## R7 marks {i (projectile slot), ex (its extra, to know the slot is still this rocket), ring, dot}.
+var _spots: Array = []
+var _flying: Array = []
+## rockets launched dry (to a spot, nothing in the fan) and locked (tests)
+var dry_launched := 0
+var locked_launched := 0
 
 
 func _on_setup() -> void:
@@ -326,6 +345,18 @@ func _missile_param(key: String, default: float) -> float:
 	return float(m.get(key, default)) if m is Dictionary else default
 
 
+## Pass 136: the aim mode while Aim covers this weapon ("rockets", "bees"), "" for the old aim.
+func aim_mode() -> String:
+	if not Aim.covers(inst):
+		return ""
+	var m := str(Aim.cfg(inst).get("mode", "rockets"))
+	return m if m in ["rockets", "bees"] else "rockets"
+
+
+func _aim_f(key: String, default: float) -> float:
+	return float(Aim.cfg(inst).get(key, default))
+
+
 func _familiar_param(key: String, default: float) -> float:
 	var f = inst.params.get("familiar", {})
 	return float(f.get(key, default)) if f is Dictionary else default
@@ -402,9 +433,10 @@ func _tick(delta: float) -> void:
 				_hold_up = LAUNCH_SETTLE
 	var enemies: EnemyManager = game.enemies
 	# the pod faces what its seekers will go for (pass 48: the strong and the close for a priority weapon); seekers hunt
-	# off the screen too (pass 54)
-	var t := aim_index(player.global_position, stat("range", 12.0), "", true)
-	var want: Vector3 = (enemies.pos[t] - player.global_position) if t >= 0 else player.forward()
+	# off the screen too (pass 54); pass 136: under the aim it faces the Outlaw's facing
+	var am := aim_mode()
+	var t := aim_index(player.global_position, stat("range", 12.0), "", true) if am == "" else -1
+	var want: Vector3 = (enemies.pos[t] - player.global_position) if t >= 0 else (Aim.facing(player) if am != "" else player.forward())
 	want.y = 0.0
 	if want.length_squared() > 0.0001:
 		_aim_yaw = lerp_angle(_aim_yaw, atan2(-want.x, -want.z), clampf(delta * 8.0, 0.0, 1.0))
@@ -413,15 +445,21 @@ func _tick(delta: float) -> void:
 	_tick_heat()
 	_tick_pod(delta)
 	_place(delta)
+	_tick_marks()
 
 
 func _fire() -> bool:
-	# homing: it fires at prey off the screen too (pass 54)
-	if aim_index(player.global_position, stat("range", 12.0), "", true) < 0:
+	# homing: it fires at prey off the screen too (pass 54); pass 136: under the aim it fires on its clock (R5)
+	var am := aim_mode()
+	if am == "" and aim_index(player.global_position, stat("range", 12.0), "", true) < 0:
 		return false
 	var n: int = maxi(stat_int("amount", 1), 1)
 	for k in range(n):
 		_queue.append(k)
+	if am == "bees":
+		_add_spots(n)
+	elif am == "rockets":
+		StrikeMarks.wedge_pulse()
 	# the Hellfire Battery's overpressure (pass 53): at the top of the ramp every `every`th volley is a double one
 	var op = inst.params.get("overpressure")
 	if op is Dictionary and pressure >= 1.0:
@@ -429,6 +467,8 @@ func _fire() -> bool:
 		if _top_volleys % maxi(int((op as Dictionary).get("every", 4)), 1) == 0:
 			for k in range(n):
 				_queue.append(k)
+			if am == "bees":
+				_add_spots(n)
 			doubled += 1
 	_queue_t = 0.0
 	_fired = true
@@ -491,6 +531,14 @@ func _launch_one() -> void:
 	var k: int = _queue.pop_front()
 	var from := _launch_point()
 	var aim := Vector3(-sin(_aim_yaw), 0, -cos(_aim_yaw))
+	# pass 136: a bee leaves towards its own spot
+	var am := aim_mode()
+	var spot := Vector3.INF
+	if am == "bees" and not _spots.is_empty():
+		spot = _spots.pop_front()
+		var to := Vector3(spot.x - from.x, 0.0, spot.z - from.z)
+		if to.length_squared() > 0.0001:
+			aim = to.normalized()
 	# a fan: alternate sides of the aim, wider for the later ones, all tilted up; the corkscrew does the rest
 	var side: float = (1.0 if k % 2 == 0 else -1.0) * (0.3 + 0.22 * float(k / 2))
 	var dir: Vector3 = (aim + aim.rotated(Vector3.UP, PI * 0.5) * side + Vector3(0, 0.9, 0)).normalized()
@@ -515,7 +563,15 @@ func _launch_one() -> void:
 	if m is Dictionary:
 		params["trail_style"] = str((m as Dictionary).get("trail_style", ""))
 		params["trail_color"] = str((m as Dictionary).get("trail_color", ""))
-	game.projectiles.launch_missile(_red() if red else projectile_kind, from, dir, stat("speed", 13.0), stat("damage", 12.0), stat("area", 1.5), stat("range", 12.0), inst, params, stat("knockback", 3.0))
+	var pi: int = game.projectiles.launch_missile(_red() if red else projectile_kind, from, dir, stat("speed", 13.0), stat("damage", 12.0), stat("area", 1.5), stat("range", 12.0), inst, params, stat("knockback", 3.0))
+	if pi >= 0 and am == "rockets":
+		_aim_rocket(pi)
+	elif pi >= 0 and am == "bees" and spot != Vector3.INF:
+		var ex: Dictionary = game.projectiles.extra[pi]
+		ex["bee_spot"] = spot
+		ex["bee_near"] = _aim_f("near", 2.5)
+		# a bee needs the time to reach its spot
+		game.projectiles.life[pi] = maxf(game.projectiles.life[pi], _aim_f("bee_life", 5.0))
 	_recoil = 1.0
 	# the tube that fired shows empty and the cluster turns the next one up
 	if not _tips.is_empty():
@@ -530,3 +586,119 @@ func _launch_one() -> void:
 		_reload_t = 0.35
 	muzzle_flash(from, aim)
 	sfx("fire", from)
+
+
+# ---------------------------------------------------------------- pass 136: the aim (lane HOMING)
+
+## The volley's bee spots (bees mode): `n` spots round him from the aim dice (Aim.circle_spots), `min_r` up to the
+## weapon's range, scored by what is within `near` of each.
+func _add_spots(n: int) -> void:
+	var hero := player.global_position
+	var near := _aim_f("near", 2.5)
+	var spots := Aim.circle_spots(game.enemies, hero, _aim_f("min_r", 2.5), stat("range", 12.0), n, near,
+		_aim_f("best_chance", Aim.BEST_CHANCE), "", _spots)
+	for p: Vector3 in spots:
+		_spots.append(_on_sand(p))
+
+
+## The bee spots still waiting (tests).
+func pending_spots() -> Array:
+	return _spots.duplicate()
+
+
+func _on_sand(p: Vector3) -> Vector3:
+	var map = game.get("map")
+	if map != null and map.has_method("height_at"):
+		return Vector3(p.x, map.height_at(p.x, p.z), p.z)
+	return p
+
+
+## A rocket just launched (rockets mode): its lock inside the fan ahead (the volley spreads over the fan's creatures
+## before doubling up), else a dry spot down the facing; its fan and spot handed to the flight (ProjectileManager
+## _fly_missile reads `aim_fan`, `aim_spot`, `aim_dry`), and its R7 mark laid.
+func _aim_rocket(pi: int) -> void:
+	var pm: ProjectileManager = game.projectiles
+	var em: EnemyManager = game.enemies
+	var ex: Dictionary = pm.extra[pi]
+	var hero := player.global_position
+	var f := Aim.facing(player)
+	var cone := _aim_f("cone", 90.0)
+	var strongest: bool = inst.def.targeting == "priority"
+	var range_m := stat("range", 12.0)
+	var taken: Array = []
+	for r: Dictionary in _flying:
+		var rex: Dictionary = r["ex"]
+		if int(rex.get("target", -1)) >= 0:
+			taken.append(int(rex["target"]))
+	var t := Aim.pick(em, hero, f, range_m, cone, strongest, cone, "", true, taken)
+	if t < 0 and not taken.is_empty():
+		t = Aim.pick(em, hero, f, range_m, cone, strongest, cone, "", true)
+	ex["aim_fan"] = {"dir": f, "cone": cone, "strongest": strongest}
+	if t >= 0:
+		ex["target"] = t
+		ex["aim_spot"] = _on_sand(em.pos[t])
+		locked_launched += 1
+	else:
+		var g := Aim.dice()
+		var reach := _aim_f("dry_reach", 8.0) + g.randf_range(-1.0, 1.0) * _aim_f("dry_spread", 1.5)
+		var turn := deg_to_rad(g.randf_range(-1.0, 1.0) * _aim_f("dry_deg", 12.0))
+		ex["aim_spot"] = _on_sand(hero + f.rotated(Vector3.UP, turn) * reach)
+		ex["aim_dry"] = true
+		dry_launched += 1
+	var rec := {"i": pi, "ex": ex, "ring": -1, "dot": -1}
+	var tg = game.get("telegraphs")
+	if tg != null and bool(Aim.cfg(inst).get("marks", true)):
+		var c := Color(str(Aim.cfg(inst).get("mark_color", StrikeMarks.ROCKET_COL.to_html())))
+		var at: Vector3 = ex["aim_spot"]
+		rec["ring"] = tg.hold_ring(at, StrikeMarks.ROCKET_R, Color(c.r, c.g, c.b, StrikeMarks.ROCKET_ALPHA))
+		rec["dot"] = tg.hold_ring(at, StrikeMarks.ROCKET_DOT, Color(c.r, c.g, c.b, StrikeMarks.ROCKET_ALPHA * 0.7))
+	_flying.append(rec)
+
+
+## Each rocket's mark follows where it is going (its creature, else its spot) and goes when the rocket has blown.
+func _tick_marks() -> void:
+	if _flying.is_empty():
+		return
+	var pm: ProjectileManager = game.projectiles
+	var em: EnemyManager = game.enemies
+	var tg = game.get("telegraphs")
+	var keep: Array = []
+	for r: Dictionary in _flying:
+		var i: int = r["i"]
+		var live: bool = i < pm.alive.size() and pm.alive[i] == 1 and is_same(pm.extra[i], r["ex"])
+		if not live:
+			_drop_mark(r, tg)
+			continue
+		var ex: Dictionary = r["ex"]
+		var at: Vector3 = ex.get("aim_spot", Vector3.INF)
+		# a locked rocket's mark stands under its creature (in its corkscrew too)
+		var t: int = int(ex.get("target", -1))
+		if t >= 0 and t < em.pool_max and em.alive[t] == 1 and not bool(ex.get("aim_dry", false)):
+			at = em.pos[t]
+		if at != Vector3.INF and tg != null:
+			for k: String in ["ring", "dot"]:
+				if int(r[k]) >= 0:
+					tg.move_held(int(r[k]), at)
+		keep.append(r)
+	_flying = keep
+
+
+func _drop_mark(r: Dictionary, tg) -> void:
+	if tg == null:
+		return
+	for k: String in ["ring", "dot"]:
+		if int(r[k]) >= 0:
+			tg.release(int(r[k]))
+			r[k] = -1
+
+
+## The rockets in flight with a mark (tests): [{i, ex, ring, dot}].
+func flying() -> Array:
+	return _flying
+
+
+func _exit_tree() -> void:
+	var tg = game.get("telegraphs") if game else null
+	for r: Dictionary in _flying:
+		_drop_mark(r, tg)
+	_flying.clear()

@@ -13,7 +13,7 @@ base = {
 "area": 2.0,
 "cooldown": 1.6,
 "damage": 24.0,
-"knockback": 7.0,
+"knockback": 8.75,
 "range": 13.0,
 "speed": 15.0
 }
@@ -28,6 +28,16 @@ sfx = {
 visual = ExtResource("3_3ogmy")
 visual_file = "hellfire_battery_visual.tscn"
 params = {
+"aim": {
+"cone": 90.0,
+"dry_deg": 12.0,
+"dry_reach": 8.0,
+"dry_spread": 1.5,
+"family": "aimed",
+"mark_color": "#FF5A1F",
+"marks": true,
+"mode": "rockets"
+},
 "cluster_spin": false,
 "familiar": {
 "bob": 0.1,

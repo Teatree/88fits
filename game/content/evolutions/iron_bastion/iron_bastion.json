@@ -16,9 +16,16 @@
     "amount": 2,
     "speed": 18,
     "pierce": 1,
-    "knockback": 7.0
+    "knockback": 8.75
   },
   "params": {
+    "aim": {
+      "family": "placed",
+      "min_r": 2.0,
+      "max_r": 3.0,
+      "apart": 1.0,
+      "best_chance": 0.6
+    },
     "pierce_falloff": {
       "step": 0.8,
       "floor": 0.4,
@@ -36,7 +43,7 @@
         "boom": {
           "radius": 4.5,
           "damage_mult": 6.0,
-          "knockback": 12
+          "knockback": 15.0
         }
       },
       "focus": {

@@ -87,6 +87,10 @@ func _ready() -> void:
 	_disc = _hold_spill(at, radius)
 	_r_drawn = radius
 	_r0 = radius
+	# pass 136 (lane PLACED): the Skull Rain's skull sits in its cloud for the cloud's life (GroundSkulls; a puff or a
+	# death pool with its own `pool_seconds` has none)
+	if weapon != null and not params.has("pool_seconds"):
+		GroundSkulls.place_for(game, weapon, at, radius, life)
 	# the spill's colours are its own, so the disc's alpha is the fade alone
 	_disc_col = Color(1, 1, 1, 1)
 	radius = maxf(radius, 0.4)

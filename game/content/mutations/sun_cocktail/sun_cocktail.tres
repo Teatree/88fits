@@ -20,7 +20,7 @@ params = {
 },
 "land_blast": {
 "damage_frac": 1.5,
-"knockback": 2.4,
+"knockback": 3.0,
 "look": "sun",
 "radius_frac": 0.9
 },

@@ -22,12 +22,23 @@ static var _held: Dictionary = {}
 static var _pinned: Dictionary = {}
 ## disk loads made here since boot (the tests count them)
 static var loads := 0
+## Pass 136 (lane LOAD; Garry: "the first time Player ... goes into a run, it takes quite a while for the first level to
+## load"): strips asked for ahead (request) load on Godot's loader threads; path -> true while one is in flight. Each is
+## collected as it lands (poll, or the first tex() of it, which waits for that one only) and held as staged: never let go
+## by _trim until the next pin_only, which pins those its run uses; the rest then count against KEEP_MB.
+static var _asked: Dictionary = {}
+## path -> true: collected from a threaded ask, kept until the next pin_only (or a request that leaves it out)
+static var _staged: Dictionary = {}
+## strips collected from threaded asks since boot (the probes and tests)
+static var thread_loads := 0
 
 
 ## The strip at `path` (a res:// path), loaded on the first ask and kept (see the header); null for "" or a missing file.
 static func tex(path: String) -> Texture2D:
 	if path == "":
 		return null
+	if _asked.has(path):
+		_collect(path, true)
 	var hit = _held.get(path)
 	if hit != null:
 		# the most recently asked last
@@ -71,6 +82,8 @@ static func pin_only(paths: Array) -> int:
 			continue
 		if tex(s) != null:
 			_pinned[s] = true
+	# pass 136: what was asked ahead and is not this run's counts like any recent ask now
+	_staged.clear()
 	_trim()
 	return loads - before
 
@@ -91,7 +104,7 @@ static func _trim() -> void:
 	# newest first: they stay
 	for k in range(keys.size() - 1, -1, -1):
 		var p: String = keys[k]
-		if _pinned.has(p):
+		if _pinned.has(p) or _staged.has(p):
 			continue
 		var t: Texture2D = _held[p]
 		used += t.get_width() * t.get_height() * 4
@@ -101,8 +114,70 @@ static func _trim() -> void:
 
 ## Lets go of everything held here (tests): what a material still draws stays alive in Godot's cache.
 static func clear() -> void:
+	for p in _asked.keys():
+		_collect(str(p), true)
 	_held.clear()
 	_pinned.clear()
+	_staged.clear()
+
+
+## Pass 136 (lane LOAD): asks for `paths` on the loader threads (never waits; a path held, in flight or missing is left
+## alone), held as staged once they land. `replace`: a staged strip not in `paths` (an earlier ask for another stage or
+## Outlaw) is let go to the KEEP_MB rule, so two sets are never kept for nothing. Returns how many were asked now.
+static func request(paths: Array, replace: bool = true) -> int:
+	if replace:
+		var want := {}
+		for p in paths:
+			want[str(p)] = true
+		for p in _staged.keys():
+			if not want.has(p):
+				_staged.erase(p)
+		_trim()
+	var n := 0
+	for p in paths:
+		var s := str(p)
+		if s == "" or _held.has(s) or _asked.has(s) or not ResourceLoader.exists(s):
+			if _held.has(s) and not _pinned.has(s):
+				_staged[s] = true
+			continue
+		if ResourceLoader.load_threaded_request(s, "", true) == OK:
+			_asked[s] = true
+			n += 1
+	return n
+
+
+## Collects every threaded ask that has landed (never waits for one in flight); returns how many are still in flight.
+static func poll() -> int:
+	for p in _asked.keys():
+		if ResourceLoader.load_threaded_get_status(str(p)) != ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			_collect(str(p), false)
+	return _asked.size()
+
+
+## How many threaded asks are in flight now.
+static func pending() -> int:
+	return _asked.size()
+
+
+## Whether `path` is staged now (asked ahead, landed, not yet pinned or let go).
+static func is_staged(path: String) -> bool:
+	return _staged.has(path)
+
+
+## Takes one threaded ask's strip into the held set (`wait`: even one still in flight, waiting for that one only). A failed
+## ask is fetched too (Godot keeps a failed task under its path until it is), and tex() then loads the file itself.
+static func _collect(path: String, wait: bool) -> void:
+	if not _asked.has(path):
+		return
+	var st := ResourceLoader.load_threaded_get_status(path)
+	if st == ResourceLoader.THREAD_LOAD_IN_PROGRESS and not wait:
+		return
+	_asked.erase(path)
+	var t = ResourceLoader.load_threaded_get(path)
+	if t is Texture2D and not _held.has(path):
+		thread_loads += 1
+		_held[path] = t
+		_staged[path] = true
 
 
 ## A look entry's icon (pass 101): an entry holds its icon's res:// path (what JsonContent writes since pass 101, so an

@@ -55,11 +55,19 @@ const DT := 1.0 / 60.0
 var _keep_last := ""
 
 
+## Pass 136 (lane HOMING): this suite pins the old aim, so it plays with Settings.aim_mode off (the aimed rules:
+## pass136_homing_test.gd).
+var _aim_keep136 := true
+
+
 func before_test() -> void:
 	_keep_last = str(Save.data.get("last_character", "astro"))
+	_aim_keep136 = Settings.aim_mode
+	Settings.aim_mode = false
 
 
 func after_test() -> void:
+	Settings.aim_mode = _aim_keep136
 	Stage.forget()
 	Save.data["last_character"] = _keep_last
 

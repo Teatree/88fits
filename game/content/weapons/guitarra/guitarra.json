@@ -73,11 +73,15 @@
   "evolves_with": "",
   "evolves_into": "requiem",
   "params": {
+    "aim": {
+      "cone": 70,
+      "assist": 20
+    },
     "cone": {
       "deg": 70,
       "lift": 0.6,
       "lift_time": 0.45,
-      "knock": 2.5,
+      "knock": 3.125,
       "notes": 8,
       "color": [
         1.0,

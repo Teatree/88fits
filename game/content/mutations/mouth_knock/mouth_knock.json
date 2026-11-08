@@ -14,7 +14,7 @@
     {
       "stat": "knockback",
       "op": "add",
-      "value": 11
+      "value": 13.75
     },
     {
       "stat": "damage",

@@ -103,6 +103,8 @@ var _keep_ff := false
 
 
 func before_test() -> void:
+	# pass 136 (lane GUNS): these tests pin the old auto-aim: the aim switch off (core/systems/Aim.gd)
+	Settings.aim_mode = false
 	Save.data = Save._default()
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
 	_keep_ff = Settings.fire_forward
@@ -111,6 +113,8 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	# pass 136: the aim switch back to its default
+	Settings.aim_mode = true
 	Settings.fire_forward = _keep_ff
 	Run.debug_clear_items()
 	Run.end()

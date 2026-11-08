@@ -16,7 +16,7 @@
     "pierce": 3,
     "speed": 18,
     "range": 10,
-    "knockback": 3.0
+    "knockback": 3.75
   },
   "levels": [
     []

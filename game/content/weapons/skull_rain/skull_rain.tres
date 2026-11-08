@@ -58,7 +58,7 @@ base = {
 "area": 2.2,
 "cooldown": 2.5882,
 "damage": 6.0,
-"knockback": 2.0,
+"knockback": 2.5,
 "poison_damage": 3.0,
 "poison_duration": 10.0,
 "poison_stacks": 1.0,
@@ -75,7 +75,18 @@ sfx = {
 visual = ExtResource("4_swffb")
 visual_file = "skull_rain_visual.tscn"
 params = {
-"cloud_seconds": 4.0
+"aim": {
+"best_chance": 0.6,
+"family": "placed",
+"min_r": 2.0
+},
+"cloud_seconds": 4.0,
+"ground_skull": {
+"sink": 0.5,
+"size": 1.5,
+"tilt": 0.55,
+"tint": "#FFFFFF"
+}
 }
 id = "skull_rain"
 display_name = "Skull Rain"

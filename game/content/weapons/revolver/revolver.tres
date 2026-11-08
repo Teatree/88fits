@@ -58,7 +58,7 @@ base = {
 "amount": 1.0,
 "cooldown": 1.1765,
 "damage": 20.0,
-"knockback": 2.0,
+"knockback": 2.5,
 "pierce": 2.0,
 "range": 14.0,
 "speed": 33.0
@@ -73,6 +73,9 @@ sfx = {
 visual = ExtResource("4_a46im")
 visual_file = "revolver_visual.tscn"
 params = {
+"aim": {
+"cone": 60.0
+},
 "burst": true,
 "burst_fan_deg": 7.0,
 "burst_gap": 0.14,

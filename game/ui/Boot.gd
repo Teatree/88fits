@@ -1009,13 +1009,19 @@ func _hand_over(scene: PackedScene) -> void:
 	await get_tree().process_frame
 	timings["first_frame"] = (Time.get_ticks_usec() - t0) / 1000.0
 	_note("first_frame")
-	while _clock < MIN_SHOW and is_inside_tree():
+	# pass 136 (lane LOAD): and until the built scene says it may be seen (a run's warm-up drawn: RunCurtain._may_open)
+	while (_clock < MIN_SHOW or not _may_open()) and is_inside_tree():
 		await get_tree().process_frame
 	if not is_inside_tree():
 		return
 	_report()
 	_dissolve()
 	handed_over.emit(title)
+
+
+## Whether the built scene may be seen now (from MIN_SHOW on; the title at once: a run's curtain waits for its warm-up).
+func _may_open() -> bool:
+	return true
 
 
 ## The built scene under the root as the current scene, this screen over it until it has drawn.

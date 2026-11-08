@@ -18,7 +18,7 @@
     "pierce": 2,
     "speed": 33,
     "range": 14,
-    "knockback": 2.0
+    "knockback": 2.5
   },
   "max_level": 5,
   "levels": [
@@ -75,6 +75,9 @@
   "evolves_with": "",
   "evolves_into": "golden_revolver",
   "params": {
+    "aim": {
+      "cone": 60
+    },
     "pierce_falloff": {
       "step": 0.8,
       "floor": 0.4,

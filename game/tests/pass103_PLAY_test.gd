@@ -229,10 +229,10 @@ func test_a_hero_throw_names_its_source() -> void:
 func test_backdraft_shoves_about_a_third_less() -> void:
 	var bd: MutationDef = Registry.mutation("backdraft")
 	var knock := float(((bd.params as Dictionary)["breath"] as Dictionary)["knock"])
-	assert_float(knock).is_equal_approx(3.3, 0.001)
+	assert_float(knock).is_equal_approx(3.3 * 1.25, 0.001)  # pass 136: every weapon's knockback x1.25 (BALANCING 77.KNOCK)
 	var fe: WeaponDef = Registry.weapon("fire_eater")
 	var fk := float((((fe.params as Dictionary)["final"] as Dictionary)["breath"] as Dictionary)["knock"])
-	assert_float(fk).is_equal_approx(4.7, 0.001)
+	assert_float(fk).is_equal_approx(4.7 * 1.25, 0.001)  # pass 136: knockback x1.25
 	# the shove a breath tick gives is that knock (damage()'s kb_force): 0.66 of pass 95's 5.0
 	var w := _world()
 	var em: EnemyManager = w["em"]
@@ -247,7 +247,7 @@ func test_backdraft_shoves_about_a_third_less() -> void:
 	var got: float = em.kb[a].length()
 	_dummy = a
 	var ref := _push(em, "", -1.0) * 5.0 / KB
-	assert_float(got / ref).is_equal_approx(3.3 / 5.0, 0.01)
+	assert_float(got / ref).is_equal_approx(3.3 * 1.25 / 5.0, 0.01)  # pass 136: knockback x1.25
 
 
 func test_powder_keg_deals_a_third_of_its_old_damage_at_every_rank() -> void:

@@ -1,5 +1,19 @@
 extends GdUnitTestSuite
 
+## Pass 136 (lane HOMING): this suite pins the old aim, so it plays with Settings.aim_mode off (the aimed rules:
+## pass136_homing_test.gd).
+var _aim_keep136 := true
+
+
+func before_test() -> void:
+	_aim_keep136 = Settings.aim_mode
+	Settings.aim_mode = false
+
+
+func after_test() -> void:
+	Settings.aim_mode = _aim_keep136
+
+
 ## Pass 46, the weapons. The Guitarra's cone of melody (ConeWave): it hits only inside its angle, lifts what it hits and
 ## sets it down on the spot it stood with nothing more than the chord's damage, Far Reach's half circle further at half
 ## damage, Music Slap's sideways shove, echoes for Multishot, Bosses and Elites only hit, its path. The Spear (Ironwood's

@@ -303,7 +303,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-11-08, pass 135, version 1.00)
+## Status (2026-11-08, pass 136, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -645,7 +645,9 @@ Pass 133: the Level Editor's Timeline tab has **Show on screen** (tools/level_ed
 
 Pass 134: **everyone walks 15% faster at the start and the top is kept** (every base walk speed x1.15 where it lives, the Outlaw's 4.14; the lasting increases shrunk by one exponent a side so the late build lands at today's speed; timed boosts, far_speed, move_pace and the camera unchanged; `tools/speed_rescale.py`, BALANCING 75.SPEED: every older speed number in this file is history); **the relocation is hidden and rarer** (`relocate.hidden`: only off the screen, at once; `relocate.chance` 0.6; `every` 0.6 s; a burning creature takes the rest of its burns at once and dies where it stands or moves unburnt; BALANCING 75.RELOC; Garry's Level Editor needs a restart); the **weapons-aim proposal** docs/weapons_aim/weapons_aim.html (https://claude.ai/artifact/X1QEyidM248EXQYAm1CKQJ; nothing in the game changed). Waiting on Garry: the document's questions, the feel of the speeds and the relocation.
 
-Pass 135: **barrels glint** now and then (the map's `barrels.glint`, prop_billboard `glint*`, off for other props); **every structure takes 3 s** to use; **the Teleport** is smaller (2.0 m, ring 1.4 m), charges with a show (`params.charge`) and **4-6 more stand on the rim** (`params.edge`, StructureManager.place_edge); **the Revolver pierces one more** (base 2, Golden 3). BALANCING 76. No build was made (Garry asked). Waiting on Garry: his pick among the first-load proposals.
+Pass 135: **barrels glint** now and then (the map's `barrels.glint`, prop_billboard `glint*`, off for other props); **every structure takes 3 s** to use; **the Teleport** is smaller (2.0 m, ring 1.4 m), charges with a show (`params.charge`) and **4-6 more stand on the rim** (`params.edge`, StructureManager.place_edge); **the Revolver pierces one more** (base 2, Golden 3). BALANCING 76. No build was made (Garry asked). Garry's first-load pick was answered by pass 136.
+
+Pass 136: **every weapon aims where the Outlaw faces** (core/systems/Aim.gd; `Settings.aim_mode` on by default, the developer Settings' "Aim where you face" turns it off and every weapon plays as before; each weapon's `params.aim`; placed weapons on spots in a circle; R1 turn on the spot; the aim wedge AimWedge.gd with the player row Show aim; rockets' marks, StrikeMarks.gd scorch marks, GroundSkulls.gd, MeleeFx.gd: the Sabre and Spear drawn as effects, no blades); **knockback x1.25** on every weapon; the bot aims by moving (option `aim`, `sim_batch --aim`); **the first load spread over frames** (strips on threads from the tap and the title, LookArt.request/poll, RunLooks.plan_for, Warmup in steps, Game._build_pause; the run record's `load`). Old tests that pin the old auto-aim turn `Settings.aim_mode` off in before_test. BALANCING 77. Waiting on Garry: his play of the aim.
 
 **Outlaws** ("heroes" in code; title order): Drifter (Revolver; free), Astro (Gravity Gun), Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout

@@ -54,7 +54,7 @@ const KEEP_FILES := 50
 const MARKER_NAMES := ["plain", "special", "elite", "boss", "down"]
 ## Pass 74: the header blocks the index leaves out (big, or the run file's own business); the rest goes in flattened.
 const INDEX_SKIP := ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests",
-	"totems", "stat_names", "build_text", "heat", "tasks", "weapon_sources", "weapon_family", "icons",
+	"totems", "stat_names", "build_text", "heat", "tasks", "weapon_sources", "weapon_family", "weapon_dry", "icons",
 	"chest_banks", "trail"]
 ## Pass 115 (lane DASH): the hero's stats every weapon's numbers fold in (WeaponInstance.rebuild: attack damage, cooldown,
 ## Berserk's weapon speed, area, projectile speed, duration, extra projectiles) and the ones its hits read (crits, damage
@@ -1130,6 +1130,8 @@ func _fill_end(with_log: bool, banked: int = 0) -> void:
 	# pass 115 (lane DASH): what shaped each held weapon, an evolution's base weapon, and every id's icon (schema 5)
 	header["weapon_sources"] = _weapon_sources()
 	header["weapon_family"] = _weapon_family()
+	# pass 136 (lane GUNS): the pulls each aimed weapon fired with nothing in its cone (Aim.note_dry; R5's dry shots)
+	header["weapon_dry"] = Aim.dry_counts()
 	header["icons"] = _icons()
 	if with_log and game and is_instance_valid(game):
 		var player = game.get("player")
@@ -1992,7 +1994,7 @@ static func stat_names() -> Dictionary:
 ## The switches the run played with: pierce drop-off (Settings.pierce_falloff), the player's debug mode, and whether
 ## the run counts as Garry's own (Analytics.is_dev: the editor binary, a debug build or debug mode).
 func _settings() -> Dictionary:
-	return {"pierce_falloff": bool(Settings.pierce_falloff), "hero_knockback": bool(Settings.hero_knockback), "fire_forward": bool(Settings.get("fire_forward")), "debug_mode": bool(Settings.debug_mode), "dev": Analytics.is_dev()}
+	return {"pierce_falloff": bool(Settings.pierce_falloff), "hero_knockback": bool(Settings.hero_knockback), "fire_forward": bool(Settings.get("fire_forward")), "aim_mode": bool(Settings.get("aim_mode")), "show_aim": bool(Settings.get("show_aim")), "debug_mode": bool(Settings.debug_mode), "dev": Analytics.is_dev()}
 
 
 ## The map's numbers the run played, each block with the game's own defaults where the map leaves a key out (an empty

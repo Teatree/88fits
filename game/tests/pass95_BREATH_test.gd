@@ -485,7 +485,7 @@ func test_the_fire_eater_puts_thorns_on_the_hero_while_held_and_amplifies_the_br
 	# amplified: the path stays on (blue, Backdraft's shove stronger, Held Breath), more a second than the base at 5
 	assert_bool(ev.blue_fire()).is_true()
 	# pass 103 (lane PLAY): a third lower, 7.0 -> 4.7
-	assert_float(float((ev.params["breath"] as Dictionary).get("knock", 0.0))).is_equal_approx(4.7, 0.001)
+	assert_float(float((ev.params["breath"] as Dictionary).get("knock", 0.0))).is_equal_approx(4.7 * 1.25, 0.001)  # pass 136: every weapon's knockback x1.25 (BALANCING 77.KNOCK)
 	assert_bool((ev.params["breath"] as Dictionary).has("still")).is_true()
 	assert_float(float(((ev.params["breath"] as Dictionary)["look"] as Dictionary).get("intensity", 1.0))).is_equal_approx(1.8, 0.001)
 	assert_float(ev.dps_estimate()).is_greater(base_dps)

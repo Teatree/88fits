@@ -19,12 +19,22 @@
     "area": 2.0,
     "speed": 15,
     "range": 13,
-    "knockback": 7.0
+    "knockback": 8.75
   },
   "levels": [
     []
   ],
   "params": {
+    "aim": {
+      "family": "aimed",
+      "mode": "rockets",
+      "cone": 90,
+      "dry_reach": 8.0,
+      "dry_spread": 1.5,
+      "dry_deg": 12,
+      "marks": true,
+      "mark_color": "#FF5A1F"
+    },
     "radius": 0.24,
     "cluster_spin": false,
     "missile": {

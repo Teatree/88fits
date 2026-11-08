@@ -18,10 +18,15 @@
     "amount": 2,
     "area": 2.2,
     "range": 10,
-    "knockback": 8.0,
+    "knockback": 10.0,
     "speed": 9
   },
   "params": {
+    "aim": {
+      "family": "placed",
+      "min_r": 2.0,
+      "best_chance": 0.6
+    },
     "bomblets": 6,
     "bomblet_area": 1.4,
     "bomblet_damage_mult": 0.5

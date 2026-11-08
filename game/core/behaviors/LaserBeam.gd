@@ -40,6 +40,17 @@
 ## through the wind-up and while the beam pours, fading to the throat's dark in about a tenth of a second after and hidden
 ## once the jaw has shut; the floor on the jaw glows with it (`throat.walls`) and is hidden with it at rest. Older parts (Cavity, ThroatBack, Tongue)
 ## found on a model are hidden.
+## Pass 136 (lane HOMING; Garry: "Big Mouth: Let's actually make this one have no aiming assist either ... Make it like
+## Dragon's Breath - wherever Player is aiming it will shoot there. Make sure that it doesn't make the weapon overpowered
+## because of its ability to hit the opponents far. It should be that it ticks up damage in small bits little by little"):
+## while Aim.covers(inst) the mouth looks down the Outlaw's facing, turning after it at most `params.aim.turn_deg` a second
+## (no jitter), and the beam pours down that line (laid from the floating mouth through the spot `converge` m ahead of
+## him) and follows it while it pours (Sweep still pans round it). No assist: nothing turns it to a creature. When its
+## clock is up it waits up to `hold` s for a creature inside its `cone` ahead, then pours anyway. The damage comes in
+## small ticks (`tick` s, each the sheet's damage x tick / beam.tick) that ramp on each creature with the time the beam
+## has spent on it: `ramp_start` of full at first touch to `ramp_full` after `ramp_seconds` in the beam; time out of the
+## beam takes exposure off at `ramp_decay` s a second; a fresh pour starts every ramp again. Sweeping across a far crowd
+## does little; holding it on one creature pays. Fire and poison are laid at the old tick's rate. Off: as before.
 class_name LaserBeam
 extends WeaponBehavior
 
@@ -123,6 +134,15 @@ var _glow_core_rest := Vector3.ONE
 var _glow_core_mat: ShaderMaterial
 ## punches started so far (tests)
 var punches := 0
+## pass 136 (lane HOMING): the aim's seconds waited with nothing in the cone, the pour's own clock, each creature's time
+## in the beam {e: [serial, seconds, last touched on the pour's clock]}, burns this pour (the elements' cadence), and the
+## damage the ramped ticks dealt (tests, the probe)
+var _aim_wait := 0.0
+var _armed := false
+var _pour_clock := 0.0
+var _expo: Dictionary = {}
+var _burns := 0
+var ramp_dealt := 0.0
 
 
 func _beam_param(key: String, default: float) -> float:
@@ -498,6 +518,8 @@ func muzzle() -> Vector3:
 
 func _fire() -> bool:
 	var enemies: EnemyManager = game.enemies
+	if Aim.covers(inst):
+		return _fire_aimed()
 	# pass 73 (lane SNIPER): aim_index, the nearest with a special, an Elite or the boss within reach first
 	var t := aim_index(player.global_position, stat("range", 12.0))
 	if t < 0:
@@ -523,6 +545,77 @@ func _fire() -> bool:
 	return true
 
 
+## Pass 136: the clock is up under the aim: it pours down the facing, once something stands in its cone ahead or after
+## `hold` s of waiting (the mouth already looks down the facing: _tick turns it).
+func _fire_aimed() -> bool:
+	var c := Aim.cfg(inst)
+	if _beam_t <= 0.0 and _windup_t <= 0.0 and _aim_wait < float(c.get("hold", 0.5)):
+		var f := Aim.facing(player)
+		if Aim.pick(game.enemies, player.global_position, f, stat("range", 12.0), float(c.get("cone", 50.0)), false, float(c.get("cone", 50.0))) < 0:
+			_armed = true
+			return false
+	_aim_wait = 0.0
+	_armed = false
+	if _beam_t > 0.0:
+		_start_beam(false)
+		return true
+	if _windup_t > 0.0:
+		return true
+	_windup_len = windup_seconds()
+	_windup_t = _windup_len
+	if _windup_t <= 0.0:
+		_start_beam()
+	StrikeMarks.wedge_pulse()
+	return true
+
+
+## Pass 136: the mouth's yaw follows the Outlaw's facing at most `turn_deg` a second (the aim), and the clock's wait for
+## something in the cone counts while the weapon is ready.
+func _tick_aim(delta: float) -> void:
+	var c := Aim.cfg(inst)
+	var f := Aim.facing(player)
+	var want := atan2(-f.x, -f.z)
+	var step := deg_to_rad(float(c.get("turn_deg", 180.0))) * delta
+	var diff := wrapf(want - _yaw0, -PI, PI)
+	_yaw0 += clampf(diff, -step, step)
+	if _beam_t <= 0.0:
+		_aim_yaw = _converged(_yaw0)
+	if _armed:
+		_aim_wait += delta
+
+
+## Pass 136: the mouth floats beside him, so its line is laid through the spot `aim.converge` m down the facing `yaw`
+## from the Outlaw (a line parallel to his would miss what stands straight ahead of him by up to the orbit's radius).
+func _converged(yaw: float) -> float:
+	if player == null:
+		return yaw
+	var f := Vector3(-sin(yaw), 0.0, -cos(yaw))
+	var goal: Vector3 = player.global_position + f * float(Aim.cfg(inst).get("converge", 6.0))
+	var d: Vector3 = goal - muzzle()
+	d.y = 0.0
+	if d.length_squared() < 0.04:
+		return yaw
+	return atan2(-d.x, -d.z)
+
+
+## Pass 136: the share of a full tick creature `e` takes now (its time in the beam, ramp_start to ramp_full over
+## ramp_seconds; time out of the beam takes exposure off at ramp_decay s a second), the exposure moved on by `tick`.
+func ramp_of(e: int, tick: float) -> float:
+	var c := Aim.cfg(inst)
+	var em: EnemyManager = game.enemies
+	var rec: Array = _expo.get(e, [])
+	var t := 0.0
+	if not rec.is_empty() and int(rec[0]) == int(em.serial[e]):
+		t = float(rec[1])
+		var gap: float = _pour_clock - float(rec[2])
+		if gap > tick * 1.5:
+			t = maxf(t - (gap - tick) * float(c.get("ramp_decay", 2.0)), 0.0)
+	var f := clampf(t / maxf(float(c.get("ramp_seconds", 1.0)), 0.01), 0.0, 1.0)
+	var share := lerpf(float(c.get("ramp_start", 0.3)), float(c.get("ramp_full", 1.3)), f)
+	_expo[e] = [int(em.serial[e]), t + tick, _pour_clock]
+	return share
+
+
 ## The beam starts: the jaw is let go (its spring snaps it open), the flash at the lips, the punch (pass 87; pass 88: only
 ## when it starts from a shut mouth, `kick`).
 func _start_beam(kick := true) -> void:
@@ -532,6 +625,11 @@ func _start_beam(kick := true) -> void:
 	_boil_t = 0.0
 	_crack_t = 0.0
 	_hit_once.clear()
+	if kick:
+		# pass 136: a fresh pour from a shut mouth starts every creature's ramp again
+		_expo.clear()
+		_pour_clock = 0.0
+		_burns = 0
 	beams += 1
 	if kick:
 		_start_punch(1.0)
@@ -541,6 +639,9 @@ func _start_beam(kick := true) -> void:
 
 func _tick(delta: float) -> void:
 	_tick_punch(delta)
+	var aimed := Aim.covers(inst)
+	if aimed:
+		_tick_aim(delta)
 	if _windup_t > 0.0:
 		_windup_t -= delta
 		if _windup_t <= 0.0:
@@ -553,10 +654,14 @@ func _tick(delta: float) -> void:
 		if arch > 0.0:
 			var total: float = maxf(stat("duration", 2.0), 0.2)
 			var f: float = clampf(1.0 - _beam_t / total, 0.0, 1.0)
-			_aim_yaw = _yaw0 - arch * 0.5 + arch * f
+			_aim_yaw = (_converged(_yaw0) if aimed else _yaw0) - arch * 0.5 + arch * f
+		elif aimed:
+			_aim_yaw = _converged(_yaw0)
 		_tick_t -= delta
+		if aimed:
+			_pour_clock += delta
 		if _tick_t <= 0.0:
-			_tick_t = maxf(_beam_param("tick", 0.18), 0.05)
+			_tick_t = maxf(float(Aim.cfg(inst).get("tick", 0.09)), 0.03) if aimed else maxf(_beam_param("tick", 0.18), 0.05)
 			_burn()
 		_draw_beam()
 		_pulse_t -= delta
@@ -590,6 +695,14 @@ func _burn() -> void:
 	var bigs := BIG_GUSTS
 	var fx = game.get("fx") if not br.is_empty() else null
 	var gust_col := _rgb(br.get("gust_color"), _beam_colour()) if not br.is_empty() else Color.WHITE
+	# pass 136: under the aim small ticks that ramp per creature; the elements and the looks keep the old tick's rate
+	var aimed := Aim.covers(inst)
+	var base_tick := maxf(_beam_param("tick", 0.18), 0.05)
+	var tick := maxf(float(Aim.cfg(inst).get("tick", 0.09)), 0.03) if aimed else base_tick
+	var per := clampf(tick / base_tick, 0.05, 1.0)
+	var every := maxi(int(round(base_tick / tick)), 1)
+	var elements := not aimed or _burns % every == 0
+	_burns += 1
 	var steps := int(ceil(reach / maxf(width, 0.3)))
 	for k in range(steps + 1):
 		var p: Vector3 = from + dir * (float(k) * reach / float(maxi(steps, 1)))
@@ -597,9 +710,9 @@ func _burn() -> void:
 			if seen.has(e):
 				continue
 			seen[e] = true
-			if stat("fire_damage", 0.0) > 0.0:
+			if elements and stat("fire_damage", 0.0) > 0.0:
 				enemies.ignite(e, wid, stat("fire_damage", 4.0), stat("fire_duration", 1.8), stat("fire_spread", 0.4))
-			if stat("poison_damage", 0.0) > 0.0:
+			if elements and stat("poison_damage", 0.0) > 0.0:
 				enemies.poison(e, wid, stat("poison_damage", 3.0), maxi(stat_int("poison_stacks", 1), 1), stat("poison_duration", 8.0))
 			var knock := 0.0
 			var first := not _hit_once.has(e)
@@ -612,13 +725,17 @@ func _burn() -> void:
 					bigs -= 1
 					fx.breath_gust(gp, dir, gust_col, true)
 					gust_hits += 1
-				elif gusts > 0 and randf() < 0.5:
+				elif gusts > 0 and randf() < 0.5 * per:
 					gusts -= 1
 					fx.breath_gust(gp, dir, gust_col, false)
 					gust_hits += 1
-			if enemies.damage(e, dmg, wid, dir, knock):
+			var d_e := dmg
+			if aimed:
+				d_e = dmg * per * ramp_of(e, tick)
+				ramp_dealt += d_e
+			if enemies.damage(e, d_e, wid, dir, knock):
 				inst.kills += 1
-			if randf() < 0.5:
+			if randf() < 0.5 * per:
 				game.fx_hit(enemies.pos[e] + Vector3(0, enemies.size[e] * 0.4, 0), inst.def)
 
 

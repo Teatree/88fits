@@ -14,7 +14,7 @@
     "pierce": 2,
     "speed": 22,
     "range": 12,
-    "knockback": 0.6
+    "knockback": 0.75
   },
   "max_level": 5,
   "levels": [
@@ -76,6 +76,9 @@
   "evolves_with": "",
   "evolves_into": "chicago_typewriter",
   "params": {
+    "aim": {
+      "cone": 60
+    },
     "pierce_falloff": {
       "step": 0.8,
       "floor": 0.4,

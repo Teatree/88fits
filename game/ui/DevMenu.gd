@@ -138,10 +138,10 @@ func _refresh() -> void:
 	var hk_row := _switch("Full outlaw knockback", "hero_knockback")
 	hk_row.name = "HeroKnockbackRow"
 	_list.add_child(hk_row)
-	# pass 95 (lane ITEMS): "Fire forward", off by default (also in Settings' Debug panel): the Sabre, Spear, Hammer,
-	# Frisbee, Tumbleweed and Basketball fire along the hero's facing while no creature is within 75% of their range
-	var ff_row := _switch("Fire forward (Sabre, Spear, Hammer, Frisbee, Tumbleweed, Basketball)", "fire_forward")
-	ff_row.name = "FireForwardRow"
+	# pass 136 (lane GUNS): "Aim where you face", on by default (also in Settings' Debug panel): every weapon aims where
+	# the Outlaw faces (core/systems/Aim.gd); off, the old auto-aim. It replaces pass 95's "Fire forward" row
+	var ff_row := _switch("Aim where you face (off: the old auto-aim)", "aim_mode")
+	ff_row.name = "AimModeRow"
 	_list.add_child(ff_row)
 	# pass 125: the crowd's compiled loops (off: the script's, the same run, slower), read as a run starts
 	var nc_row := _switch("Compiled crowd (off: the script's, slower)", "native_crowd")

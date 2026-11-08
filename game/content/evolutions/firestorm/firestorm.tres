@@ -16,7 +16,7 @@ base = {
 "fire_damage": 6.0,
 "fire_duration": 2.4,
 "fire_spread": 0.7,
-"knockback": 2.0,
+"knockback": 2.5,
 "range": 12.0,
 "speed": 11.0
 }
@@ -31,6 +31,11 @@ sfx = {
 visual = ExtResource("3_jw4ty")
 visual_file = "firestorm_visual.tscn"
 params = {
+"aim": {
+"best_chance": 0.6,
+"family": "placed",
+"min_r": 2.0
+},
 "cloud_seconds": 4.0
 }
 id = "firestorm"

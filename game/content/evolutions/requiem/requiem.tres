@@ -26,10 +26,13 @@ sfx = {
 visual = ExtResource("3_dpj8y")
 visual_file = "requiem_visual.tscn"
 params = {
+"aim": {
+"family": "around"
+},
 "cone": {
 "color": [1.0, 0.7, 0.2],
 "deg": 360.0,
-"knock": 3.5,
+"knock": 4.375,
 "lift": 1.1,
 "lift_time": 0.6,
 "notes": 18.0

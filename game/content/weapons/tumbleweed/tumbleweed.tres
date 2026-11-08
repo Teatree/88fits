@@ -58,7 +58,7 @@ base = {
 "amount": 1.0,
 "cooldown": 3.2941,
 "damage": 16.0,
-"knockback": 9.0,
+"knockback": 11.25,
 "pierce": 40.0,
 "range": 16.0,
 "speed": 6.0
@@ -73,6 +73,9 @@ sfx = {
 visual = ExtResource("4_on5nm")
 visual_file = "tumbleweed_visual.tscn"
 params = {
+"aim": {
+"cone": 40.0
+},
 "fire_forward": true,
 "night_tint": {
 "albedo": "#E9D59C",

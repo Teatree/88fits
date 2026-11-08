@@ -19,12 +19,15 @@
     "pierce": 3,
     "speed": 36,
     "range": 15,
-    "knockback": 3.0
+    "knockback": 3.75
   },
   "levels": [
     []
   ],
   "params": {
+    "aim": {
+      "cone": 60
+    },
     "pierce_falloff": {
       "step": 0.8,
       "floor": 0.4,

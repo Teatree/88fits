@@ -15,10 +15,15 @@
     "amount": 1,
     "area": 2.8,
     "range": 10,
-    "knockback": 14.0,
+    "knockback": 17.5,
     "speed": 9
   },
   "params": {
+    "aim": {
+      "family": "placed",
+      "min_r": 2.0,
+      "best_chance": 0.6
+    },
     "fuse": {
       "seconds": 1.0,
       "out_before": 0.5,

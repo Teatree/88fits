@@ -15,7 +15,7 @@
     "pierce": 1,
     "speed": 13,
     "range": 10,
-    "knockback": 1.0,
+    "knockback": 1.25,
     "fire_damage": 6,
     "fire_duration": 2.4,
     "fire_spread": 0.7

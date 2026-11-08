@@ -14,7 +14,7 @@ base = {
 "area": 1.4,
 "cooldown": 1.4,
 "damage": 48.0,
-"knockback": 14.0,
+"knockback": 17.5,
 "range": 5.4
 }
 levels = [[]]

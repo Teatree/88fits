@@ -7,7 +7,7 @@
 [sub_resource type="Resource" id="Resource_labp7"]
 script = ExtResource("1_labp7")
 stat = "knockback"
-value = 11.0
+value = 13.75
 
 [sub_resource type="Resource" id="Resource_ugl13"]
 script = ExtResource("1_labp7")

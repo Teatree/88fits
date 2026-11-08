@@ -19,7 +19,7 @@
     "pierce": 0,
     "speed": 18,
     "range": 10,
-    "knockback": 6.0
+    "knockback": 7.5
   },
   "levels": [
     [
@@ -31,6 +31,9 @@
     ]
   ],
   "params": {
+    "aim": {
+      "cone": 60
+    },
     "fire_forward": true,
     "radius": 0.34,
     "roll_radius": 0.22,
@@ -55,7 +58,7 @@
         "at_heat": 10,
         "radius": 3.5,
         "damage_frac": 1.5,
-        "knockback": 12.0
+        "knockback": 15.0
       }
     },
     "heat_look": {

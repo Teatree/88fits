@@ -85,6 +85,10 @@ sfx = {
 }
 visual_file = "dragons_breath_visual.tscn"
 params = {
+"aim": {
+"cone": 50.0,
+"hold": 2.0
+},
 "breath": {
 "cone_deg": 50.0,
 "look": {

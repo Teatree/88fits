@@ -34,7 +34,8 @@ const BOT_NUMBERS := [["skill", "Skill", 0.0, 1.0, 0.05, "how well he picks card
 	["dodge", "Dodge", 0.0, 1.0, 0.05, "how often he steps out of a ring or a line"],
 	["daring", "Daring", 0.0, 1.0, 0.05, "how close he lets the crowd come"],
 	["stray", "Stray m", 0.0, 200.0, 5.0, "how far he walks for gems"],
-	["explore", "Explore", 0.0, 1.0, 0.05, "how much he wants to see the map"]]
+	["explore", "Explore", 0.0, 1.0, 0.05, "how much he wants to see the map"],
+	["aim", "Aim", 0.0, 1.0, 0.05, "pass 136: how well he aims by moving (the lean towards the crowd, turns timed to his shots)"]]
 ## the bot's choice options: [key, label, choices]
 const BOT_CHOICES := [["style", "Style", ["balanced", "damage", "safety", "greedy"]], ["boss", "Boss", ["leash", "free"]],
 	["cards", "Cards", ["tier", "score"]], ["portal", "Portal", ["endless", "extract"]]]

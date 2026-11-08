@@ -60,7 +60,7 @@ base = {
 "fire_damage": 4.0,
 "fire_duration": 1.8,
 "fire_spread": 0.5,
-"knockback": 1.0,
+"knockback": 1.25,
 "pierce": 0.0,
 "range": 9.0,
 "speed": 11.0

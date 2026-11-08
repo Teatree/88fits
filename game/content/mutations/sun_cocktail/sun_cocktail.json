@@ -15,7 +15,7 @@
     "land_blast": {
       "damage_frac": 1.5,
       "radius_frac": 0.9,
-      "knockback": 2.4,
+      "knockback": 3.0,
       "look": "sun"
     },
     "tint": {

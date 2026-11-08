@@ -40,6 +40,14 @@
 ## point and a red glow, both see-through by the count: glow_for, a hint building over the strokes before, full red on
 ## the crit stroke), the crit stroke's streak and crescent in `color`, and at full reach a red lance of light along the
 ## thrust (white-hot `core`), a red ring on the sand at the point, red sparks flung on (Fx.crit_thrust), a camera kick.
+## Pass 136 (lane MELEE; Garry: "Change the sword and the spear to be less actual weapons, and more thrusts or swings
+## effects"; "Spear: Should look very much like a good thrust VFX"): while the weapon aims by the new rule
+## (Aim.covers: Settings.aim_mode and a `params.aim` block, family "melee"), a stroke goes down the Outlaw's facing turned
+## at most `params.aim.assist` degrees to the best target (Aim.shot: the Sabre 20, the Spear 15), fires on every beat
+## with or without a creature, and shows no blade: every swing is a crescent slash and every thrust a stab streak
+## (core/systems/MeleeFx.gd, `params.aim.look` "slash" or "stab"; colours by _fx_arc_look / _fx_thrust_look). The hit
+## tests are the same code as before (the blades still move, unseen, so the tips and the sparks stay where they were).
+## Switched off, everything plays and looks as before.
 class_name Thruster
 extends WeaponBehavior
 
@@ -110,6 +118,13 @@ var _lance_mesh: ImmediateMesh
 var crit_strokes := 0
 var crit_hits := 0
 var lances := 0
+## Pass 136 (lane MELEE): whether this stroke is drawn as an effect (Aim.covers when it began), the effects, whether this
+## stroke's Riposte flick has its arc; stun rings shown and tip bolts thrown (tests).
+var _fx_on := false
+var _fx: MeleeFx
+var _flick_drawn := false
+var stun_rings := 0
+var tip_bolts := 0
 
 ## Defaults of the pass 53 knobs (every one lives in `params.thrust` when a weapon says otherwise).
 const WINDBACK := 0.05
@@ -204,6 +219,10 @@ func _fire() -> bool:
 		# it finishes, and the next starts the moment it ends (_end_phase)
 		_pending = true
 		return false
+	# pass 136 (lane MELEE): the new aim and the effects while the weapon is covered; the old path below otherwise
+	if Aim.covers(inst):
+		return _fire_aimed()
+	_fx_on = false
 	var reach := stat("range", 2.6)
 	# Heartseeker (pass 62): the crit stroke reaches further, so it may go for what only it can reach (the Thunder
 	# Lance's opens with its plain sweep, so it aims as far as that)
@@ -227,6 +246,44 @@ func _fire() -> bool:
 	_combo = 1 if _thrust_flag("alternate") else 0
 	_begin_phase(_slices())
 	return true
+
+
+## A stroke by the new aim (pass 136): down the facing turned at most `params.aim.assist` to the best target within
+## reach (Aim.shot; the crit stroke's longer reach for Heartseeker), on every beat, a creature there or not.
+func _fire_aimed() -> bool:
+	_fx_on = true
+	var reach := stat("range", 2.6)
+	var crit := next_is_crit()
+	if crit and not _thrust_flag("alternate"):
+		reach *= crit_reach_mult()
+	var res: Dictionary = Aim.shot(inst, game.enemies, player, player.global_position, reach + 0.6)
+	_dir = res["dir"]
+	target = int(res["target"])
+	strokes += 1
+	_count_stroke(crit)
+	_combo = 1 if _thrust_flag("alternate") else 0
+	_pulse_wedge(_dir)
+	_begin_phase(_slices())
+	return true
+
+
+## AimWedge.pulse_dir (lane GUNS's wedge on the sand) when the game has it; looks only.
+static var _wedge_script: Script = null
+static var _wedge_checked := false
+
+
+static func _pulse_wedge(dir: Vector3) -> void:
+	if not _wedge_checked:
+		_wedge_checked = true
+		var path := "res://core/systems/AimWedge.gd"
+		if ResourceLoader.exists(path):
+			_wedge_script = load(path)
+	if _wedge_script == null:
+		return
+	if _wedge_script.has_method("pulse_dir"):
+		_wedge_script.call("pulse_dir", dir)
+	elif _wedge_script.has_method("pulse"):
+		_wedge_script.call("pulse")
 
 
 ## The target line: at creature `t`, or along the hero's facing when it is gone.
@@ -253,6 +310,7 @@ func _begin_phase(slicing: bool) -> void:
 	_refund_done = false
 	_crackled = false
 	_clanged = false
+	_flick_drawn = false
 	_streak_p.clear()
 	_streak_t.clear()
 	if slicing:
@@ -261,14 +319,16 @@ func _begin_phase(slicing: bool) -> void:
 		var n: int = _active if _blades_mode else 1
 		_ensure_blades(n)
 		for k in range(_blades.size()):
-			_blades[k].visible = k < n
+			_blades[k].visible = k < n and not _fx_on
 		sweeps += 1
 	else:
 		_blades_mode = false
 		_ensure_blades(_active)
 		for k in range(_blades.size()):
-			_blades[k].visible = k < _active
+			_blades[k].visible = k < _active and not _fx_on
 		thrusts += 1
+		if _fx_on:
+			_fx_thrusts()
 		# a slice sounds on every swing (_tick_slice)
 		sfx("fire", player.aim_origin(_dir))
 	# Lunge: the stroke carries the hero at the target
@@ -293,6 +353,14 @@ func _end_phase() -> void:
 		_combo = 2
 		var em: EnemyManager = game.enemies
 		var t := target
+		if _fx_on:
+			# pass 136: the thrust half aims afresh down the facing (the Outlaw may have turned during the sweep)
+			var res: Dictionary = Aim.shot(inst, em, player, player.global_position, _reach() + 0.6)
+			_dir = res["dir"]
+			target = int(res["target"])
+			_pulse_wedge(_dir)
+			_begin_phase(false)
+			return
 		if t < 0 or t >= em.pool_max or em.alive[t] == 0 or em.state[t] == EnemyManager.STATE_DYING:
 			# the thrust half of Heartseeker's crit stroke reaches further (pass 62: _reach)
 			t = aim_index(player.global_position, _reach() + 0.6)
@@ -310,6 +378,8 @@ func _end_phase() -> void:
 
 func _tick(delta: float) -> void:
 	_clock += delta
+	if _fx:
+		_fx.tick(delta)
 	if _t >= 0.0 and not _blades.is_empty():
 		if _slicing:
 			_tick_slice(delta)
@@ -369,7 +439,7 @@ func _tick_thrust(delta: float) -> void:
 		b.global_position = base
 		b.rotation = Vector3(0, yaw, 0)
 		b.scale = Vector3(width, 1.0, maxf(reach * ext, 0.05))
-	if streak and _active > 0:
+	if streak and _active > 0 and not _fx_on:
 		_streak_p.append(_tip_of(_blades[0]))
 		_streak_t.append(_clock)
 	if not _hit_done and _t >= windback + out:
@@ -379,6 +449,9 @@ func _tick_thrust(delta: float) -> void:
 		# Heartseeker's crit thrust (pass 62): its red lance, ring and sparks at full reach, hit or not
 		if _phase_crit():
 			_crit_thrust_fx()
+		# the Thunder Lance's thrust (pass 136's look): one bolt from the point
+		if _fx_on and _combo == 2 and _thrust_flag("crackle"):
+			_tip_bolt()
 
 
 ## Where blade `b`'s point is now: its origin less its scaled -Z.
@@ -469,6 +542,13 @@ func _tick_slice(delta: float) -> void:
 		# Heartseeker's crit sweep (pass 62): the kick and the sound as it starts (its crescent is red: _trail_colour)
 		if k == 0 and _phase_crit():
 			_crit_kick(player.global_position + Vector3(0, 0.95, 0) + _dir * reach)
+		if _fx_on:
+			_fx_swing(k, yaw0, reach, width, s, n)
+	if _fx_on:
+		for j in range(n):
+			_cut(yaw0 + _blade_off(j), _edge_prev, a, reach, width, s)
+		_edge_prev = a
+		return
 	while _trails.size() < n:
 		_trails.append([])
 	for j in range(n):
@@ -570,6 +650,12 @@ func _stun_roll(em: EnemyManager, i: int) -> void:
 	em.stun(i, seconds)
 	_stunned_until[i] = _clock + seconds
 	stuns += 1
+	# pass 136's look: a small yellow ring pops on the stunned one
+	if _fx_on:
+		var tg = game.get("telegraphs") if game else null
+		if tg and tg.has_method("flash_ring"):
+			tg.flash_ring(Vector3(em.pos[i].x, em.pos[i].y + 0.05, em.pos[i].z), maxf(float(em.radius[i]) * 1.3, 0.45), STUN_RING, 0.3)
+			stun_rings += 1
 
 
 ## Whether creature `i` is stunned right now: EnemyManager's word when it has one, else this blade's own stuns.
@@ -900,9 +986,12 @@ static func flick_at(u: float) -> float:
 ## While the blade flicks: its crescent runs backwards behind it (spokes, no cut) and, once, at the peak, the clang: a
 ## spark two thirds of the way up the blade and the sound.
 func _tick_flick(fu: float, yaw0: float, a: float, reach: float, s: float, n: int) -> void:
-	while _trails.size() < n:
+	if _fx_on and not _flick_drawn:
+		_flick_drawn = true
+		_fx_flick(yaw0, a, reach, s, n)
+	while _trails.size() < n and not _fx_on:
 		_trails.append([])
-	for j in range(n):
+	for j in range(n if not _fx_on else 0):
 		var off := _blade_off(j)
 		var steps := maxi(ceili(absf(a - _edge_prev) / 0.12), 1)
 		for q in range(1, steps + 1):
@@ -1182,10 +1271,12 @@ func _crit_thrust_fx() -> void:
 		var along := tip - b.global_position
 		along.y = 0.0
 		var d := along.normalized() if along.length_squared() > 0.0001 else _dir
-		if _lances.size() >= LANCE_MAX:
-			_lances.pop_front()
-		_lances.append({"a": player.global_position + Vector3(0, 0.95, 0) + d * 0.35, "b": tip + d * LANCE_OVER, "t": _clock})
-		lances += 1
+		# pass 136: the effects' red-hot streak is the lance (MeleeFx); the blade's look keeps its own
+		if not _fx_on:
+			if _lances.size() >= LANCE_MAX:
+				_lances.pop_front()
+			_lances.append({"a": player.global_position + Vector3(0, 0.95, 0) + d * 0.35, "b": tip + d * LANCE_OVER, "t": _clock})
+			lances += 1
 		if first == Vector3.INF:
 			first = tip
 		if fx and fx.has_method("crit_thrust"):
@@ -1345,3 +1436,197 @@ func _lance(a: Vector3, b: Vector3, half: float, c: Color) -> void:
 		for v in [[q0 - s0, c0], [q0 + s0, c0], [q1 + s1, c1], [q0 - s0, c0], [q1 + s1, c1], [q1 - s1, c1]]:
 			_lance_mesh.surface_set_color(v[1])
 			_lance_mesh.surface_add_vertex(v[0])
+
+
+# ---------------------------------------------------------------- the strokes as effects (pass 136, lane MELEE)
+
+## Stunning Thrust's ring on a stunned creature.
+const STUN_RING := Color(1.0, 0.86, 0.2)
+## The steel of a plain swing and thrust, the brass of Riposte, the warm orange Heartseeker builds up to.
+const FX_STEEL_EDGE := Color(0.38, 0.66, 1.0)
+const FX_STEEL_SMEAR := Color(0.72, 0.86, 1.0)
+const FX_STEEL_GLOW := Color(0.36, 0.6, 1.0)
+const FX_BRASS_EDGE := Color(1.0, 0.7, 0.16)
+const FX_BRASS_SMEAR := Color(1.0, 0.86, 0.55)
+const FX_WARM := Color(1.0, 0.5, 0.1)
+## A thrust's streak shoots out in this long, ending as the hit lands (the stroke's own `out` when that is shorter), and
+## fades in FX_THRUST_FADE; a swing's arc fades in FX_ARC_FADE after its sweep.
+const FX_THRUST_EXT := 0.08
+const FX_THRUST_FADE := 0.22
+const FX_ARC_FADE := 0.12
+
+
+## This behaviour's effects, made on first use (a child: they go with the weapon).
+func _effects() -> MeleeFx:
+	if _fx == null:
+		_fx = MeleeFx.new()
+		add_child(_fx)
+	return _fx
+
+
+## The effects (tests, captures), null before the first stroke drawn as one.
+func effects() -> MeleeFx:
+	return _fx
+
+
+## Whether the stroke running is drawn as an effect (tests).
+func fx_on() -> bool:
+	return _fx_on
+
+
+## "slash" (the Sabre's crescent) or "stab" (the Spear's streak): `params.aim.look`.
+func _fx_kind() -> String:
+	return str(Aim.cfg(inst).get("look", "slash"))
+
+
+## A swing's colours by what the build carries: Heartseeker's crit red, the blade's element, the weapon's own
+## `trail_color` (the Whirlwind's pale cyan, the Thunder Lance's blue-white), Riposte's brass, else steel; Critical
+## Thinking makes the edge a razor-white hairline with a faint gold halo; the Spear's sweep (Wide Sweep) is narrow and
+## tipped; the Thunder Lance's sweep crackles.
+func _fx_arc_look() -> Dictionary:
+	var edge := FX_STEEL_EDGE
+	var smear := FX_STEEL_SMEAR
+	var core := Color.WHITE
+	var edge_w := 0.34
+	var smear_a := 0.45
+	var tc = inst.params.get("trail_color")
+	if _phase_crit():
+		edge = crit_color()
+		smear = crit_color().lerp(Color.WHITE, 0.45)
+		core = _crit_core()
+		edge_w = 0.3
+		smear_a = 0.45
+	elif stat("fire_damage", 0.0) > 0.0:
+		edge = Color(1.0, 0.62, 0.22)
+		smear = Color(1.0, 0.8, 0.55)
+		core = Color(1.0, 0.95, 0.75)
+	elif stat("poison_damage", 0.0) > 0.0:
+		edge = Color(0.62, 1.0, 0.4)
+		smear = Color(0.8, 1.0, 0.65)
+		core = Color(0.92, 1.0, 0.85)
+	elif tc != null and str(tc) != "":
+		# the weapon's own colour, saturated enough to read on the pale sand
+		var tcc := Color(str(tc))
+		edge = Color.from_hsv(tcc.h, maxf(tcc.s, 0.75), 1.0)
+		smear = Color.from_hsv(tcc.h, 0.3, 1.0)
+	elif not _riposte().is_empty():
+		edge = FX_BRASS_EDGE
+		smear = FX_BRASS_SMEAR
+		core = Color(1.0, 0.97, 0.85)
+		edge_w = 0.26
+	if not _razor().is_empty() and not _phase_crit():
+		# a razor-white hairline edge with a faint gold halo (the streak's own colours, params.razor)
+		edge = Color(str(_razor().get("color", "#FFFFFF")))
+		core = edge
+		smear = Color(str(_razor().get("glow", "#FFE7A0")))
+		edge_w = 0.12
+		smear_a = 0.32
+	var look := {"edge": edge, "smear": smear, "core": core, "edge_w": edge_w, "smear_a": smear_a, "inner": 0.42}
+	if _fx_kind() == "stab":
+		# the Spear's sweep: a narrow fan of light with a sharp bright point
+		look["inner"] = 0.7
+		look["tipped"] = 1.0
+		look["trail"] = 0.6
+		if (tc == null or str(tc) == "") and not _phase_crit():
+			var tl := _fx_thrust_look()
+			look["edge"] = tl["glow"]
+			look["smear"] = tl["body"]
+	if _thrust_flag("crackle"):
+		look["crackle"] = 1.0
+	return look
+
+
+## A thrust's colours: Heartseeker's three strokes before warming to orange and the 4th red-hot and thicker with a red
+## tip flash, the blade's element, the Thunder Lance's thrust white with a blue glow, else white on steel blue.
+func _fx_thrust_look() -> Dictionary:
+	var glow := FX_STEEL_GLOW
+	var body := Color(0.82, 0.92, 1.0)
+	var core := Color.WHITE
+	var width := 1.0
+	var flash_size := 1.0
+	if _phase_crit():
+		glow = crit_color()
+		body = crit_color().lerp(_crit_core(), 0.35)
+		core = _crit_core()
+		width = 1.5
+		flash_size = 1.5
+	elif stat("fire_damage", 0.0) > 0.0:
+		glow = Color(1.0, 0.4, 0.08)
+		body = Color(1.0, 0.75, 0.4)
+	elif stat("poison_damage", 0.0) > 0.0:
+		glow = Color(0.3, 0.85, 0.15)
+		body = Color(0.75, 1.0, 0.55)
+	elif crit_every() > 0:
+		# the warm-up: steel to orange over the strokes before the crit (glow_for: 1/3, 2/3, then full)
+		var w := clampf(_tip_glow / CRIT_HINT, 0.0, 1.0)
+		glow = FX_STEEL_GLOW.lerp(FX_WARM, w)
+		body = Color(0.82, 0.92, 1.0).lerp(Color(1.0, 0.82, 0.55), w)
+	elif _combo == 2:
+		glow = Color(0.45, 0.7, 1.0)
+		body = Color(0.92, 0.97, 1.0)
+	return {"glow": glow, "body": body, "core": core, "width": width, "flash": glow, "flash_size": flash_size}
+
+
+## The angle each side a swing's arc shows: the slice's own half angle and the edge's width at 70% of the reach (what
+## the hit test pads it with, so Area items widen the arc as they widen the cut), at most a full circle.
+func _fx_half(reach: float, width: float) -> float:
+	var half := deg_to_rad(_thrust("slice_deg", 150.0)) * 0.5
+	return minf(half + atan2(width * 0.5, maxf(reach * 0.7, 0.3)), PI)
+
+
+## Swing `k` begins: one arc a blade (blades mode fans them), swept from the side the swing starts on over the slice
+## time; the Whirlwind's full circle the same way.
+func _fx_swing(_k: int, yaw0: float, reach: float, width: float, s: float, n: int) -> void:
+	var fx := _effects()
+	var sl := maxf(_thrust("slice", 0.16), 0.02)
+	var look := _fx_arc_look()
+	var half := _fx_half(reach, width)
+	for j in range(n):
+		fx.arc(player, yaw0 + _blade_off(j), half, reach, sl, FX_ARC_FADE, s, look)
+	_pulse_wedge(_dir)
+
+
+## Riposte's flick: a short brass arc swept back against the last swing, inside the stroke's back time.
+func _fx_flick(yaw0: float, a: float, reach: float, s: float, n: int) -> void:
+	var fx := _effects()
+	var fl := deg_to_rad(float(_riposte().get("flick_deg", 38.0)))
+	var t := flick_time(_thrust("back", 0.12))
+	var look := _fx_arc_look()
+	look["inner"] = 0.55
+	look["smear_a"] = 0.45
+	for j in range(n):
+		fx.arc(player, yaw0 + _blade_off(j) + a - s * fl * 0.5, fl * 0.5 + 0.08, reach * 0.92, maxf(t * FLICK_PEAK, 0.03), FX_ARC_FADE, -s, look)
+
+
+## The thrust begins: one streak a blade down its own line (the fan), shooting out to the reach so its point arrives as
+## the hit lands (windback + out), holding with the tip flash, fading after.
+func _fx_thrusts() -> void:
+	var fx := _effects()
+	var windback := maxf(_thrust("windback", WINDBACK), 0.0)
+	var out := maxf(_thrust("out", 0.12), 0.01)
+	var ext := minf(FX_THRUST_EXT, out)
+	var hold := minf(_thrust("hold", 0.08), 0.06)
+	var width := _thrust("width", 0.7) * stat("area", 1.0)
+	var fan := deg_to_rad(_thrust("fan_deg", 35.0))
+	var reach := _reach()
+	var look := _fx_thrust_look()
+	for k in range(_active):
+		var off: float = (float(k) - float(_active - 1) * 0.5) * fan
+		fx.thrust(player, _dir.rotated(Vector3.UP, off), reach, width * 0.5, windback + out - ext, ext, hold, FX_THRUST_FADE, look)
+
+
+## The Thunder Lance's thrust throws one bolt from its point: to the nearest creature within 3.5 m of it, else a short
+## fork on down the line. Looks only.
+func _tip_bolt() -> void:
+	var fx = game.get("fx") if game else null
+	if fx == null or not fx.has_method("lightning") or _blades.is_empty():
+		return
+	var tip := _tip_of(_blades[0])
+	var em: EnemyManager = game.enemies
+	var to := tip + _dir * 1.8
+	if em:
+		var i: int = em.nearest_index(tip, 3.5)
+		if i >= 0:
+			to = em.pos[i] + Vector3(0, em.size[i] * 0.6, 0)
+	fx.lightning([tip, to], Color(0.6, 0.78, 1.0), 0.5)
+	tip_bolts += 1

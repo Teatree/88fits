@@ -57,7 +57,7 @@ base = {
 "amount": 1.0,
 "cooldown": 7.0588,
 "damage": 4.0,
-"knockback": 4.0,
+"knockback": 5.0,
 "lifetime": 12.0,
 "range": 8.0,
 "speed": 16.0
@@ -73,6 +73,13 @@ sfx = {
 visual = ExtResource("4_gf3xs")
 visual_file = "turret_buddy_visual.tscn"
 params = {
+"aim": {
+"apart": 1.0,
+"best_chance": 0.6,
+"family": "placed",
+"max_r": 3.0,
+"min_r": 2.0
+},
 "marks": false,
 "pierce_falloff": {
 "first_mult": 1.1,

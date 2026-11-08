@@ -235,6 +235,8 @@ func _ready() -> void:
 	_place()
 	_enter()
 	Audio.play_music(["mu_title"], 1)
+	# pass 136 (lane LOAD): once the title has come in, the run PLAY would start loads its strips on the loader threads
+	get_tree().create_timer(PREFETCH_AFTER).timeout.connect(_prefetch_run)
 	# the play-data card (pass 59): once, the first time a build that can send starts, after the title has come in
 	if Analytics.consent_needed():
 		get_tree().create_timer(CONSENT_DELAY).timeout.connect(func():
@@ -385,6 +387,22 @@ func _refresh_map() -> void:
 		if int(best.get("kills", 0)) > 0:
 			bits.append("%s kills" % W.num(int(best.get("kills", 0))))
 	_map_line.text = " · ".join(bits)
+
+
+## Pass 136 (lane LOAD; Garry: "it takes quite a while for the first level to load"): PREFETCH_AFTER s after the title
+## opens (its entrance played), the strips of the run PLAY would start (the Outlaw shown, stage 1, or the stage the
+## Stages menu is likely to start: StagesScreen.likely_stage) are asked for on the loader threads (RunLooks.prefetch_next,
+## never waiting), so most of the loading screen's work is done at the tap. Once; nothing while a curtain is up.
+const PREFETCH_AFTER := 2.0
+
+
+func _prefetch_run() -> void:
+	if not is_inside_tree() or get_tree().get_first_node_in_group(&"run_curtain") != null:
+		return
+	var c: CharacterDef = _heroes[_index] if not _heroes.is_empty() else null
+	var hero := c.id if c != null and not _is_locked(c) else ""
+	var stage := StagesScreenScript.likely_stage(_map_id) if StagesScreenScript.opens_for(_map_id) else 0
+	RunLooks.prefetch_next(get_tree(), stage, hero, _map_id)
 
 
 func _on_play() -> void:

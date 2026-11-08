@@ -62,7 +62,7 @@ base = {
 "area": 1.0,
 "cooldown": 2.1176,
 "damage": 30.0,
-"knockback": 12.0,
+"knockback": 15.0,
 "range": 4.6
 }
 levels = [[], [SubResource("Resource_8lbaj"), SubResource("Resource_nndpq")], [SubResource("Resource_a2so5"), SubResource("Resource_uvm3r"), SubResource("Resource_iwile")], [SubResource("Resource_mbdi8")], [SubResource("Resource_8c31y"), SubResource("Resource_5m5mk")]]
@@ -75,6 +75,13 @@ sfx = {
 visual = ExtResource("4_uvm3r")
 visual_file = "pike_visual.tscn"
 params = {
+"aim": {
+"assist": 15.0,
+"big_cone": 90.0,
+"cone": 40.0,
+"family": "melee",
+"look": "stab"
+},
 "fire_forward": true,
 "pierce_falloff": {
 "first_mult": 1.15,

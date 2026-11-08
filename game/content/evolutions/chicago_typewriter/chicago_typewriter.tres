@@ -11,7 +11,7 @@ base = {
 "amount": 14.0,
 "cooldown": 1.0,
 "damage": 5.5,
-"knockback": 0.8,
+"knockback": 1.0,
 "pierce": 3.0,
 "range": 13.0,
 "speed": 24.0,
@@ -28,6 +28,9 @@ sfx = {
 visual = ExtResource("3_prn4q")
 visual_file = "chicago_typewriter_visual.tscn"
 params = {
+"aim": {
+"cone": 60.0
+},
 "burst": true,
 "drum_axis": "forward",
 "familiar": {

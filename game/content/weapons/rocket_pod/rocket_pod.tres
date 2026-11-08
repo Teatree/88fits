@@ -59,7 +59,7 @@ base = {
 "area": 1.5,
 "cooldown": 2.5882,
 "damage": 14.0,
-"knockback": 3.0,
+"knockback": 3.75,
 "range": 12.0,
 "speed": 13.0
 }
@@ -73,6 +73,16 @@ sfx = {
 visual = ExtResource("4_bafhi")
 visual_file = "rocket_pod_visual.tscn"
 params = {
+"aim": {
+"cone": 90.0,
+"dry_deg": 12.0,
+"dry_reach": 8.0,
+"dry_spread": 1.5,
+"family": "aimed",
+"mark_color": "#FF8A2A",
+"marks": true,
+"mode": "rockets"
+},
 "familiar": {
 "bob": 0.1,
 "height": 1.65,

@@ -29,6 +29,9 @@ sfx = {
 visual = ExtResource("3_y6p8i")
 visual_file = "singularity_visual.tscn"
 params = {
+"aim": {
+"family": "placed"
+},
 "familiar": {
 "bob": 0.08,
 "height": 1.45,

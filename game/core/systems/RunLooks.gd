@@ -24,20 +24,33 @@ static var last_paths: Array = []
 
 
 ## Loads and pins the run's strips (LookArt.pin_only) and returns the creature defs (each in its played look) whose
-## types Warmup draws once. `launch` is the tool's launch dictionary when there is one.
+## types Warmup draws once. `launch` is the tool's launch dictionary when there is one. Pass 136 (lane LOAD): the strips
+## a curtain or the title asked for ahead (prefetch_next) are in LookArt already, so pinning them waits for nothing.
 static func prepare(game: Node, launch: Dictionary = {}) -> Array:
 	var reg: Node = game.get_tree().root.get_node_or_null("Registry")
 	var run: Node = game.get_tree().root.get_node_or_null("Run")
 	if reg == null or run == null:
 		return []
+	var plan := plan_for(reg, run.get("map"), int(run.get("stage")), bool(run.get("arena")), run.get("character"),
+		launch, true)
+	LookArt.pin_only(plan["paths"])
+	last_pairs = plan["pairs"]
+	last_paths = plan["paths"]
+	return plan["defs"]
+
+
+## The run's set without loading anything: {pairs, paths (the strips, the Outlaw's look last), defs (only `with_defs`)}
+## for `map`'s stage `stage` (or the arena's), the Outlaw `character` and a tool's `launch`.
+static func plan_for(reg: Node, map: MapDef, stage: int, arena: bool, character, launch: Dictionary = {},
+		with_defs: bool = false) -> Dictionary:
 	var pairs: Array = []
-	if bool(run.get("arena")):
+	if arena:
 		for id: String in ARENA_IDS:
 			pairs.append([id, ""])
 		if launch.has("spawn_enemy"):
 			pairs.append([str(launch["spawn_enemy"]), str(launch.get("variant", ""))])
 	else:
-		pairs = pairs_for(reg, run.get("map"), int(run.get("stage")))
+		pairs = pairs_for(reg, map, stage)
 	var paths: Array = []
 	var defs: Array = []
 	var seen_ids := {}
@@ -50,24 +63,54 @@ static func prepare(game: Node, launch: Dictionary = {}) -> Array:
 			paths.append(path)
 		# one type per creature for Warmup to draw, in the first look the stage brings it in (its played look's strip is
 		# not loaded for a creature that only comes in another)
-		if not seen_ids.has(d.id):
+		if with_defs and not seen_ids.has(d.id):
 			seen_ids[d.id] = true
 			var vd: EnemyDef = reg.enemy_with(d.id, str(p[1]))
 			defs.append(vd if vd != null else d)
 	# the hero in the look he is played in, and a tool's launch look
-	var c = run.get("character")
-	if c is CharacterDef:
-		var look: CharacterDef = reg.played_look(c)
+	if character is CharacterDef:
+		var look: CharacterDef = reg.played_look(character)
 		if look and look.strip_path() != "":
 			paths.append(look.strip_path())
 		if launch.has("look"):
-			var lp := (c as CharacterDef).look_strip_path(str(launch["look"]))
+			var lp := (character as CharacterDef).look_strip_path(str(launch["look"]))
 			if lp != "" and not paths.has(lp):
 				paths.append(lp)
-	LookArt.pin_only(paths)
-	last_pairs = pairs
-	last_paths = paths
-	return defs
+	return {"pairs": pairs, "paths": paths, "defs": defs}
+
+
+## Pass 136 (lane LOAD): the strips of the run a tap is about to start, before its Game exists, chosen as Game._ready
+## chooses: the save's last Outlaw (a playable one, else Astro) and map (else the first), Run.stage_next (clamped as
+## Run.start_stage clamps it), the arena when Run.arena_next. `stage` >= 0, `hero_id` and `map_id` stand in for those (the
+## title asks for the Outlaw it shows, the Stages menu for the stage it expects).
+static func next_run_paths(tree: SceneTree, stage: int = -1, hero_id: String = "", map_id: String = "") -> Array:
+	var root := tree.root
+	var reg: Node = root.get_node_or_null("Registry")
+	var run: Node = root.get_node_or_null("Run")
+	var save: Node = root.get_node_or_null("Save")
+	var settings: Node = root.get_node_or_null("Settings")
+	if reg == null or run == null or save == null:
+		return []
+	var data: Dictionary = save.get("data")
+	var hid := hero_id if hero_id != "" else str(data.get("last_character", "drifter"))
+	var c = reg.playable_character(hid)
+	if c == null and not (reg.get("characters") as Dictionary).is_empty():
+		c = reg.playable_character("astro")
+	var mid := map_id if map_id != "" else str(data.get("last_map", "red_canyon"))
+	var m: MapDef = reg.map(mid)
+	if m == null:
+		var maps: Array = reg.sorted_maps()
+		m = maps[0] if not maps.is_empty() else null
+	var arena := bool(run.get("arena_next")) and not (settings != null and bool(settings.call("is_prod")))
+	var st := stage if stage >= 0 else int(run.get("stage_next"))
+	if m != null and m.timeline != null:
+		st = m.timeline.stage_clamp(st)
+	return plan_for(reg, m, st, arena, c)["paths"]
+
+
+## Asks for the next run's strips on the loader threads (LookArt.request; see next_run_paths); returns how many were asked.
+static func prefetch_next(tree: SceneTree, stage: int = -1, hero_id: String = "", map_id: String = "") -> int:
+	return LookArt.request(next_run_paths(tree, stage, hero_id, map_id))
 
 
 ## Every [id, variant] the map's stage `stage` (0-based) can bring (see the header); variant "" = the creature's played

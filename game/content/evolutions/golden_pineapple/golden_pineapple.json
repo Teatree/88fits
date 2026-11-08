@@ -17,10 +17,15 @@
     "amount": 2,
     "area": 3.0,
     "range": 11,
-    "knockback": 18.0,
+    "knockback": 22.5,
     "speed": 9
   },
   "params": {
+    "aim": {
+      "family": "placed",
+      "min_r": 2.0,
+      "best_chance": 0.6
+    },
     "model": "res://art/props/golden_grenade.glb",
     "model_scale": 1.0,
     "model_metallic": 0.45,

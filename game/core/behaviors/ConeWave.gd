@@ -151,7 +151,12 @@ func _tick(delta: float) -> void:
 	var em: EnemyManager = game.enemies
 	if em:
 		var from := _apex()
-		var near := aim_index(from, stat("range", 6.0))
+		if Aim.covers(inst):
+			# pass 136 (lane GUNS): it leans where the next chord goes: down the facing, turned to the best in the cone
+			var want: Vector3 = Aim.shot(inst, em, player, from, stat("range", 6.0))["dir"]
+			_aim = _aim.lerp(want, clampf(delta * 8.0, 0.0, 1.0))
+			_aim = _aim.normalized() if _aim.length_squared() > 0.0001 else want
+		var near := aim_index(from, stat("range", 6.0)) if not Aim.covers(inst) else -1
 		if near >= 0:
 			var to: Vector3 = em.pos[near] - from
 			to.y = 0.0
@@ -178,13 +183,23 @@ func _tick(delta: float) -> void:
 func _fire() -> bool:
 	var em: EnemyManager = game.enemies
 	var from := _apex()
-	# pass 73 (lane SNIPER): aim_index, the nearest with a special, an Elite or the boss within reach first
-	var t := aim_index(from, stat("range", 6.0))
-	if t < 0:
-		return false
-	var dir: Vector3 = em.pos[t] - from
-	dir.y = 0.0
-	dir = dir.normalized() if dir.length_squared() > 0.0001 else player.forward()
+	var dir := Vector3.ZERO
+	if Aim.covers(inst):
+		# pass 136 (lane GUNS): "Aim where you face": the chord goes down the facing, turned up to `aim.assist` (20 degrees)
+		# to the best in the cone (Aim.shot); with nobody there it strums the sand ahead anyway (R5)
+		var sh := Aim.shot(inst, em, player, from, stat("range", 6.0))
+		dir = sh["dir"]
+		if int(sh["target"]) < 0:
+			Aim.note_dry(inst)
+		AimWedge.pulse_dir(dir)
+	else:
+		# pass 73 (lane SNIPER): aim_index, the nearest with a special, an Elite or the boss within reach first
+		var t := aim_index(from, stat("range", 6.0))
+		if t < 0:
+			return false
+		dir = em.pos[t] - from
+		dir.y = 0.0
+		dir = dir.normalized() if dir.length_squared() > 0.0001 else player.forward()
 	_aim = dir
 	_wave(dir, 1.0, false)
 	var n: int = maxi(stat_int("amount", 1), 1)

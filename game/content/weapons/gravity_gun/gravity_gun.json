@@ -17,7 +17,7 @@
     "amount": 1,
     "range": 7.0,
     "area": 1.0,
-    "knockback": 9.0
+    "knockback": 11.25
   },
   "max_level": 5,
   "levels": [
@@ -79,6 +79,9 @@
   "evolves_with": "",
   "evolves_into": "singularity",
   "params": {
+    "aim": {
+      "cone": 60
+    },
     "gravity": {
       "blast": 1.9,
       "grab": 0.32,

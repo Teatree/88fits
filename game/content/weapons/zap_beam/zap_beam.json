@@ -12,7 +12,13 @@
     "chains": 2,
     "range": 9,
     "amount": 1,
-    "knockback": 3.0
+    "knockback": 3.75
+  },
+  "params": {
+    "aim": {
+      "family": "placed",
+      "min_r": 2.0
+    }
   },
   "max_level": 5,
   "levels": [

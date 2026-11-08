@@ -12,10 +12,13 @@
     "amount": 1,
     "range": 16,
     "pierce": 40,
-    "knockback": 9.0,
+    "knockback": 11.25,
     "speed": 6
   },
   "params": {
+    "aim": {
+      "cone": 40
+    },
     "fire_forward": true,
     "night_tint": {
       "albedo": "#E9D59C",

@@ -229,6 +229,9 @@ static func words_of(info: Dictionary) -> Dictionary:
 			return {"text": "Kiting", "sub": "keeping the crowd at arm's length", "tone": "calm"}
 		"special":
 			return {"text": "Hunting a special%s" % ((": " + name) if name != "" else ""), "sub": why, "tone": "special"}
+		# pass 136 (lane BOT, R9): a turn-and-fire beat (every weapon aims where the Outlaw faces)
+		"aim":
+			return {"text": "Turning to fire", "sub": "a turn on the spot to the thickest front as a shot leaves", "tone": "calm"}
 	return {"text": goal_text(intent, name, why), "sub": why, "tone": "goal"}
 
 

@@ -61,7 +61,7 @@ base = {
 "area": 1.0,
 "cooldown": 1.2941,
 "damage": 16.0,
-"knockback": 6.0,
+"knockback": 7.5,
 "range": 2.6
 }
 levels = [[], [SubResource("Resource_cxtc7"), SubResource("Resource_d2vsb"), SubResource("Resource_wqb54")], [SubResource("Resource_t272n"), SubResource("Resource_wdn7y")], [SubResource("Resource_o08gb")], [SubResource("Resource_26381"), SubResource("Resource_a2173")]]
@@ -74,6 +74,13 @@ sfx = {
 visual = ExtResource("4_t272n")
 visual_file = "sabre_visual.tscn"
 params = {
+"aim": {
+"assist": 20.0,
+"big_cone": 90.0,
+"cone": 60.0,
+"family": "melee",
+"look": "slash"
+},
 "fire_forward": true,
 "thrust": {
 "back": 0.12,

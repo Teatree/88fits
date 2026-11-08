@@ -47,9 +47,12 @@ const RED_CANYON := preload("res://world/maps/red_canyon/RedCanyon.gd")
 
 func before_test() -> void:
 	Save.data = Save._default()
+	# pass 136 (lane PLACED): these pin the old aim (Aim.covers false); the aim's own placing: pass136_placed_test
+	Settings.aim_mode = false
 
 
 func after_test() -> void:
+	Settings.aim_mode = true
 	Run.debug_clear_items()
 	Run.end()
 	Run.forced_map_seed = 0

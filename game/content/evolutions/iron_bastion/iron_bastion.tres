@@ -12,7 +12,7 @@ base = {
 "amount": 2.0,
 "cooldown": 5.0,
 "damage": 8.0,
-"knockback": 7.0,
+"knockback": 8.75,
 "lifetime": 30.0,
 "pierce": 1.0,
 "range": 10.0,
@@ -30,6 +30,13 @@ sfx = {
 visual = ExtResource("3_nf1nj")
 visual_file = "iron_bastion_visual.tscn"
 params = {
+"aim": {
+"apart": 1.0,
+"best_chance": 0.6,
+"family": "placed",
+"max_r": 3.0,
+"min_r": 2.0
+},
 "final": {
 "focus": {
 "mult": 0.2,
@@ -40,7 +47,7 @@ params = {
 "barrels": 2.0,
 "boom": {
 "damage_mult": 6.0,
-"knockback": 12.0,
+"knockback": 15.0,
 "radius": 4.5
 },
 "style": "bunker",

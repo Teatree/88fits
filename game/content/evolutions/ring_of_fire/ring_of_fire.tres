@@ -16,7 +16,7 @@ base = {
 "fire_damage": 6.0,
 "fire_duration": 2.4,
 "fire_spread": 0.7,
-"knockback": 3.0,
+"knockback": 3.75,
 "orbit_radius": 3.2
 }
 levels = [[]]

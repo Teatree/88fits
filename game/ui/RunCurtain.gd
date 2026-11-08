@@ -40,8 +40,10 @@ const SNAP_HOLD := 0.05
 const REVEAL := 0.3
 ## The run is seen through the cylinder opening from the spawn beam in OPEN s.
 const OPEN := 0.4
-## The Game is built no sooner than this before MIN_SHOW (its build and its first draw hold a frame each).
-const BUILD_LEAD := 1.0 / 30.0
+## The Game is built no sooner than this before MIN_SHOW (its build and its first draw hold a frame each). Pass 136 (lane
+## LOAD): 0.15 s (was 1/30), so the build starts as the slam settles (settle_time 1.02 s) and its few long frames (the map,
+## the rest, the warm-up's steps: each counts at most MAX_STEP on this clock) fill the time to MIN_SHOW.
+const BUILD_LEAD := 0.15
 ## The close's size: e^(-ZOOM k) x (1 - k^SNAP_POW) of the full radius at k (0..1) of the wipe: a steady pull away (the
 ## whole cylinder is on a portrait screen from about a third of the way) and a snap at the end.
 const ZOOM := 2.5
@@ -76,6 +78,17 @@ const OPEN_MARGIN := 120.0
 ## The cylinder's spin from the tap: the first of these the sound map binds.
 const SPIN := ["w_hip_spin", "ui_reel_tick"]
 const FAIL_RUN := "The run did not load. Back to the title."
+## Pass 136 (lane LOAD; Garry: "it takes quite a while for the first level to load ... the loading screen doesn't move
+## while the game is loading"): the run's sprite strips load on the loader threads from the tap (RunLooks.prefetch_next;
+## the title and the Stages menu may have asked for them already) while the wipe and the loading screen move; the Game is
+## built once they have landed (or STRIP_WAIT s past the time it could have been: then its pin waits for the rest), and
+## the run is opened on once its staged warm-up has been drawn (Warmup.warmed; at most WARM_WAIT s more). A frame longer
+## than SLOW_MS under the screen is a freeze; _report says them (the log and the run record's header `load`).
+const STRIP_WAIT := 8.0
+const WARM_WAIT := 3.0
+const SLOW_MS := 100.0
+## Runs this curtain has opened since the app started (the first is the session's cold one).
+static var session_runs := 0
 
 enum Phase { WIPE_IN, LOADING, OPENING }
 
@@ -91,6 +104,15 @@ var _blocking := true
 var _aborted := false
 var _open_mid := Vector2.ZERO
 var _open_full := 0.0
+# pass 136: the strips asked from the tap, the frames under the screen and the waits (_report)
+var _t_tap := 0
+var _last_us := 0
+var _seen := 0
+var _longest := 0.0
+var _slow := 0
+var _strips := {}
+var _strip_wait_from := -1.0
+var _warm_wait_from := -1.0
 
 
 ## Starts the way into a run: the curtain on its layer over everything, closing on the current scene, loading `path`.
@@ -122,6 +144,26 @@ func _ready() -> void:
 	super._ready()
 	_note("wipe")
 	W.sfx_first(SPIN)
+	_t_tap = Time.get_ticks_usec()
+	_last_us = _t_tap
+	if title_path == GAME:
+		_ask_strips()
+
+
+## The run's strips on the loader threads (pass 136): how many it has, how many were held already (the title's or the
+## Stages menu's ask, the run before's pin), how many are asked now.
+func _ask_strips() -> void:
+	var paths := RunLooks.next_run_paths(get_tree())
+	# what an ask ahead has loaded meanwhile is collected first (it waits to be fetched)
+	LookArt.poll()
+	var held := 0
+	for p in paths:
+		if LookArt.is_held(str(p)):
+			held += 1
+	var in_flight := LookArt.pending()
+	var asked := LookArt.request(paths)
+	_strips = {"strips": paths.size(), "held_at_tap": held, "asked_at_tap": asked,
+		"in_flight_at_tap": in_flight}
 
 
 ## A curtain never opens the replay viewer (Boot does, at the app's start).
@@ -149,6 +191,10 @@ func _build() -> void:
 func _process(delta: float) -> void:
 	if _aborted:
 		return
+	if phase != Phase.OPENING:
+		_count_frame()
+		if LookArt.pending() > 0:
+			LookArt.poll()
 	if _blocking:
 		_keep_on_top()
 	if not _handing and phase != Phase.OPENING and _left_alone():
@@ -235,7 +281,61 @@ func _back_to_title() -> void:
 # ---------------------------------------------------------------- the load (Boot's), built a little later
 
 func _may_build() -> bool:
-	return not _aborted and phase == Phase.LOADING and is_settled() and _clock >= MIN_SHOW - BUILD_LEAD
+	return not _aborted and phase == Phase.LOADING and is_settled() and _clock >= MIN_SHOW - BUILD_LEAD and _strips_in()
+
+
+## Pass 136: the run's strips have landed (or the Game is built anyway STRIP_WAIT s after it could have been).
+func _strips_in() -> bool:
+	if title_path != GAME or LookArt.pending() == 0:
+		if _strip_wait_from >= 0.0 and not timings.has("strips_wait"):
+			timings["strips_wait"] = (_clock - _strip_wait_from) * 1000.0
+		return true
+	if _strip_wait_from < 0.0:
+		_strip_wait_from = _clock
+	if _clock - _strip_wait_from >= STRIP_WAIT:
+		timings["strips_wait"] = (_clock - _strip_wait_from) * 1000.0
+		return true
+	return false
+
+
+## Pass 136: the run is seen once its warm-up has drawn everything it draws in steps (Warmup.warmed), at most WARM_WAIT s
+## after MIN_SHOW.
+func _may_open() -> bool:
+	if title == null or not is_instance_valid(title):
+		return true
+	if title.get("building") == true:
+		return false
+	var w := title.get_node_or_null("Warmup")
+	if w == null or not w.has_method("warmed") or bool(w.call("warmed")):
+		if _warm_wait_from >= 0.0 and not timings.has("warm_wait"):
+			timings["warm_wait"] = (_clock - _warm_wait_from) * 1000.0
+		return true
+	if _warm_wait_from < 0.0:
+		_warm_wait_from = _clock
+	return _clock - _warm_wait_from >= WARM_WAIT
+
+
+## One frame under the screen (pass 136): the longest, and those over SLOW_MS.
+func _count_frame() -> void:
+	var now := Time.get_ticks_usec()
+	var dt := (now - _last_us) / 1000.0
+	_last_us = now
+	_seen += 1
+	_longest = maxf(_longest, dt)
+	if dt > SLOW_MS:
+		_slow += 1
+
+
+## What the way in cost (pass 136), for the log and the run record: from the tap to the open, the longest frame under the
+## screen (the freeze), the frames over SLOW_MS, the Game's load, build and first frame, the strips and the waits.
+func load_report() -> Dictionary:
+	var r := {"tap_to_open_ms": roundi((Time.get_ticks_usec() - _t_tap) / 1000.0), "longest_frame_ms": roundi(_longest),
+		"slow_frames": _slow, "frames": _seen, "session_run": session_runs + 1,
+		"load_ms": roundi(float(timings.get("load", 0))), "build_ms": roundi(float(timings.get("build", 0))),
+		"first_frame_ms": roundi(float(timings.get("first_frame", 0))),
+		"strips_wait_ms": roundi(float(timings.get("strips_wait", 0))), "warm_wait_ms": roundi(float(timings.get("warm_wait", 0)))}
+	r.merge(_strips)
+	return r
 
 
 ## The run under the root as the current scene, the curtain kept over it (and hearing input first).
@@ -249,6 +349,17 @@ func _report() -> void:
 	print("RunCurtain: %s loaded in %d ms, built in %d ms, first frame %d ms, open at %.2f s on the loading screen's clock" % [
 		title_path.get_file(), int(timings.get("load", 0)), int(timings.get("build", 0)),
 		int(timings.get("first_frame", 0)), _clock])
+	# pass 136 (lane LOAD): the whole way in, said in the log and kept in the run's record (a phone run can tell later)
+	var r := load_report()
+	timings["report"] = r
+	print("RunCurtain: run %d of the session: tap to open %d ms, longest frame %d ms, %d frames over %d ms; strips %s" % [
+		int(r["session_run"]), int(r["tap_to_open_ms"]), int(r["longest_frame_ms"]), int(r["slow_frames"]), int(SLOW_MS),
+		str(_strips)])
+	if title_path == GAME:
+		session_runs += 1
+		var ra: RunAnalytics = RunAnalytics.I
+		if ra != null and is_instance_valid(ra) and ra.game == title:
+			ra.header["load"] = r
 
 
 # ---------------------------------------------------------------- the open

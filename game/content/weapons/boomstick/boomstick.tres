@@ -36,7 +36,7 @@ value = 2.0
 [sub_resource type="Resource" id="Resource_6evrd"]
 script = ExtResource("2_l40a8")
 stat = "knockback"
-value = 2.0
+value = 2.5
 
 [sub_resource type="Resource" id="Resource_s6flg"]
 script = ExtResource("2_l40a8")
@@ -56,7 +56,7 @@ base = {
 "amount": 5.0,
 "cooldown": 1.6471,
 "damage": 6.0,
-"knockback": 8.0,
+"knockback": 10.0,
 "pierce": 0.0,
 "range": 6.0,
 "speed": 16.0,
@@ -72,6 +72,11 @@ sfx = {
 visual = ExtResource("4_u2jn2")
 visual_file = "boomstick_visual.tscn"
 params = {
+"aim": {
+"assist": 15.0,
+"cone": 60.0,
+"dry_db": -6.0
+},
 "pierce_falloff": {
 "first_mult": 1.1,
 "floor": 0.4,

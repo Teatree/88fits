@@ -138,6 +138,8 @@ func _ready() -> void:
 	if mapdef == null and not Registry.maps.is_empty():
 		mapdef = Registry.sorted_maps()[0]
 	Run.start(character, mapdef)
+	# pass 136 (lane GUNS): the aim's own dice start over with the run (Aim.dice, the placed weapons' spots)
+	Aim.reset()
 	Run.arena = arena
 	# pass 87 (lane SGAME): the stage this run plays (the Stages menu's or the Watch's Run.choose_stage; a tool's launch
 	# `stage`, 1-based), a fresh run at its window's start; the next run plays stage 1 unless chosen again
@@ -150,6 +152,9 @@ func _ready() -> void:
 	world.add_child(map)
 	if map.has_method("bind_game"):
 		map.bind_game(self)
+	# pass 136 (lane LOAD): under a run's curtain the map is built in a frame of its own (the loading screen moves between)
+	if get_tree().get_first_node_in_group(&"run_curtain") != null:
+		await _build_pause()
 	# player
 	player = PLAYER_SCENE.instantiate()
 	player.setup(character)
@@ -194,6 +199,8 @@ func _ready() -> void:
 	enemies.arena_radius = map.arena_radius
 	telegraphs.height_fn = map.height_at
 	telegraphs.set_ground(map)
+	# pass 136 (lane GUNS, R7): the aim wedge on the sand in front of the Outlaw (Settings.show_aim, Aim.on)
+	add_child(AimWedge.make(self))
 	enemies.enemy_died.connect(_on_enemy_died)
 	projectiles.game = self
 	pickups.game = self
@@ -356,6 +363,25 @@ func _ready() -> void:
 		_start_run()
 		# pass 112 (lane WANTED): a tool's instant start may ask for the floating posters (`bounty_board`: true)
 		if bool(debug_launch.get("bounty_board", false)): _offer_bounty(true)
+
+
+## Pass 136 (lane LOAD; Garry: "the loading screen doesn't move while the game is loading"): one frame between the map's
+## build and the rest of _ready, only under a run's curtain (RunCurtain; a tool's or a test's Game builds in one go as
+## before). Nothing of the run ticks meanwhile (this node and the map are held off), and the run's clock is put back as it
+## was, so the run plays exactly as if it had been built in one frame (replays compare it). `building` is true meanwhile
+## (the curtain never opens on a half-built run).
+var building := false
+
+
+func _build_pause() -> void:
+	building = true
+	var was := process_mode
+	var clock0: float = Run.play_clock
+	process_mode = Node.PROCESS_MODE_DISABLED
+	await get_tree().process_frame
+	process_mode = was
+	Run.play_clock = clock0
+	building = false
 
 
 func _read_debug_launch() -> Dictionary:

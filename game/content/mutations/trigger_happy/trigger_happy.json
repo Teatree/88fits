@@ -8,8 +8,8 @@
   "kind": "hero",
   "element": "",
   "hero": "may",
-  "text": "The Tommy Gun never stops firing, even with nobody in range: a steady stream of two thirds more rounds, each 35% weaker.",
-  "vfx": "an unbroken stream of rounds from the companion gun, straight ahead of her when nothing is in range",
+  "text": "The Tommy Gun never stops firing: a steady stream of two thirds more rounds, each 35% weaker, swaying 12° to either side on its own so it sprays the whole front.",
+  "vfx": "an unbroken stream of rounds from the companion gun, sweeping slowly left and right across the front",
   "effects": [
     {
       "stat": "damage",
@@ -24,7 +24,8 @@
   ],
   "params": {
     "fire_without_target": true,
-    "stream": true
+    "stream": true,
+    "stream_sway_deg": 12
   },
   "art_prompt": "a black tommy gun with a round drum magazine spraying a long unbroken stream of golden bullets, a magenta-gloved finger holding its trigger down",
   "placeholder": {

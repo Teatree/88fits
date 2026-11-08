@@ -14,13 +14,16 @@
     "amount": 3,
     "range": 18,
     "pierce": 80,
-    "knockback": 14.0,
+    "knockback": 17.5,
     "speed": 7
   },
   "levels": [
     []
   ],
   "params": {
+    "aim": {
+      "cone": 40
+    },
     "fire_forward": true,
     "night_tint": {
       "albedo": "#D6D0C6",

@@ -11,7 +11,7 @@ base = {
 "amount": 3.0,
 "cooldown": 0.15,
 "damage": 12.0,
-"knockback": 3.0,
+"knockback": 3.75,
 "pierce": 3.0,
 "range": 10.0,
 "speed": 18.0

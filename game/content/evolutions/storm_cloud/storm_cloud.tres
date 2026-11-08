@@ -13,7 +13,7 @@ base = {
 "chains": 3.0,
 "cooldown": 0.35,
 "damage": 10.0,
-"knockback": 4.0,
+"knockback": 5.0,
 "range": 7.0
 }
 levels = [[]]
@@ -27,6 +27,10 @@ sfx = {
 visual = ExtResource("3_gb3gc")
 visual_file = "storm_cloud_visual.tscn"
 params = {
+"aim": {
+"family": "placed",
+"min_r": 2.0
+},
 "final": {
 "echo_zap": {
 "chance": 0.35,

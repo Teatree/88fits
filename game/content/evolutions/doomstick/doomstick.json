@@ -16,7 +16,7 @@
     "spread_deg": 45,
     "range": 7,
     "pierce": 1,
-    "knockback": 10.0,
+    "knockback": 12.5,
     "speed": 18
   },
   "params": {

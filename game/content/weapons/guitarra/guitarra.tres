@@ -72,10 +72,14 @@ sfx = {
 visual = ExtResource("4_qlwr3")
 visual_file = "guitarra_visual.tscn"
 params = {
+"aim": {
+"assist": 20.0,
+"cone": 70.0
+},
 "cone": {
 "color": [1.0, 0.82, 0.35],
 "deg": 70.0,
-"knock": 2.5,
+"knock": 3.125,
 "lift": 0.6,
 "lift_time": 0.45,
 "notes": 8.0

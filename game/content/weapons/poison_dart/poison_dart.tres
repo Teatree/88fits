@@ -58,7 +58,7 @@ base = {
 "amount": 1.0,
 "cooldown": 1.2941,
 "damage": 2.0,
-"knockback": 0.5,
+"knockback": 0.625,
 "pierce": 0.0,
 "poison_damage": 3.0,
 "poison_duration": 10.0,

@@ -13,7 +13,7 @@ params = {
 "turret": {
 "boom": {
 "damage_mult": 4.0,
-"knockback": 9.0,
+"knockback": 11.25,
 "radius": 3.0
 }
 }

@@ -24,7 +24,7 @@ vfx = "what the chord lifts comes down thrown to one side or the other"
 effects = [SubResource("Resource_f0tmd"), SubResource("Resource_2ka7b")]
 params = {
 "cone": {
-"knock": 7.0,
+"knock": 8.75,
 "side_random": true
 }
 }

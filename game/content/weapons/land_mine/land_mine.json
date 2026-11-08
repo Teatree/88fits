@@ -14,7 +14,7 @@
     "cooldown": 3.0588,
     "amount": 1,
     "area": 2.4,
-    "knockback": 9.0,
+    "knockback": 11.25,
     "lifetime": 25
   },
   "max_level": 5,
@@ -72,6 +72,11 @@
   "evolves_with": "",
   "evolves_into": "jackrabbit_mines",
   "params": {
+    "aim": {
+      "family": "placed",
+      "lay_ahead": 2.0,
+      "spread_deg": 30.0
+    },
     "max_mines": 8,
     "trigger_radius": 0.7
   },

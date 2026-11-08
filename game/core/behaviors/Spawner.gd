@@ -41,6 +41,8 @@ func standing() -> Array:
 func _fire() -> bool:
 	var amount: int = max(stat_int("amount", 1), 1)
 	var cap := max_turrets()
+	if Aim.covers(inst):
+		return _fire_placed(amount, cap)
 	var a0 := Dice.r.randf() * TAU
 	for k in range(amount):
 		var t := Turret.new()
@@ -61,6 +63,43 @@ func _fire() -> bool:
 			old.expire()
 	sfx("place", player.global_position)
 	return true
+
+
+## Pass 136 (lane PLACED; the aim proposal: "The turret is set down 2 to 3 m ahead, on the crowd's side ... Its own gun
+## keeps aiming by itself"; Garry's R6: in a circle, not a cone): while Aim.covers(this weapon) each turret of a drop
+## goes on a spot in the ring `params.aim.min_r`..`max_r` (2-3 m) round the Outlaw (Aim.circle_spots), each candidate
+## scored by the creatures within its gun's `range` of it (the crowd's side), the best `best_chance` of the time; the
+## turrets of a drop keep `apart` (1 m) x APART from each other. Every turret starts with its head turned down his facing
+## (the Bunker's slow traverse: its first shots go where he looked); then it aims by itself as ever.
+func _fire_placed(amount: int, cap: int) -> bool:
+	var c := Aim.cfg(inst)
+	var hero: Vector3 = player.global_position
+	var lo := float(c.get("min_r", 2.0))
+	var hi := maxf(float(c.get("max_r", 3.0)), lo + 0.1)
+	var reach := stat("range", 8.0)
+	var em: EnemyManager = game.enemies
+	var scorer := func(cands: Array) -> Array:
+		var out: Array = []
+		for p: Vector3 in cands:
+			out.append(Aim.spot_score(em, p, reach))
+		return out
+	var spots: Array = Aim.circle_spots(em, hero, lo, hi, amount, float(c.get("apart", 1.0)), float(c["best_chance"]), "", [], Aim.arena_ok(game), scorer)
+	var f := Aim.facing(player)
+	for at: Vector3 in spots:
+		var t := Turret.new()
+		t.setup(self, _proto, _turret_mesh, _turret_mat)
+		game.add_child(t)
+		var p := at
+		p.y = game.map.height_at(p.x, p.z) if game.map else 0.0
+		t.global_position = p
+		t._set_head_yaw(atan2(-f.x, -f.z))
+		_turrets.append(t)
+	while _turrets.size() > cap:
+		var old: Turret = _turrets.pop_front()
+		if is_instance_valid(old):
+			old.expire()
+	sfx("place", player.global_position)
+	return not spots.is_empty()
 
 
 func _tick(_delta: float) -> void:

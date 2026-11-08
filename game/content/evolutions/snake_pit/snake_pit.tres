@@ -13,7 +13,7 @@ base = {
 "area": 1.4,
 "cooldown": 0.3,
 "damage": 8.0,
-"knockback": 2.0,
+"knockback": 2.5,
 "orbit_radius": 3.8,
 "poison_damage": 6.0,
 "poison_duration": 12.0,

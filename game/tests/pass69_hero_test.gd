@@ -13,11 +13,15 @@ const DT := 1.0 / 60.0
 
 
 func before_test() -> void:
+	# pass 136 (lane GUNS): these tests pin the old auto-aim: the aim switch off (core/systems/Aim.gd)
+	Settings.aim_mode = false
 	Save.data = Save._default()
 	Run.arena_next = false
 
 
 func after_test() -> void:
+	# pass 136: the aim switch back to its default
+	Settings.aim_mode = true
 	if Save.sandboxed():
 		Save.end_sandbox()
 	Save.data = Save._default()

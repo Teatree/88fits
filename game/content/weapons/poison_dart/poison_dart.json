@@ -13,7 +13,7 @@
     "pierce": 0,
     "speed": 16,
     "range": 9,
-    "knockback": 0.5,
+    "knockback": 0.625,
     "poison_damage": 3,
     "poison_stacks": 1,
     "poison_duration": 10

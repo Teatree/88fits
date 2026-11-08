@@ -104,7 +104,14 @@ const FAMILIES := {"boomstick": "blunderbuss", "peashooter": "pea_cannon", "tomm
 
 
 func before_test() -> void:
+	# pass 136 (lane GUNS): these tests pin the old auto-aim: the aim switch off (core/systems/Aim.gd)
+	Settings.aim_mode = false
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
+
+
+func after_test() -> void:
+	# pass 136: the aim switch back to its default
+	Settings.aim_mode = true
 
 
 func _script(src: String) -> GDScript:

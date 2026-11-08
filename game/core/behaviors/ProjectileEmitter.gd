@@ -65,6 +65,13 @@ var _aim_yaw := 0.0
 var _aim_dir := Vector3.ZERO
 ## Pass 95 (lane ITEMS): the facing this pull fires along under "Fire forward" (FireForward.dir), ZERO when it aims as usual.
 var _forward_dir := Vector3.ZERO
+## Pass 136 (lane GUNS): this pull aims where the Outlaw faces (Aim.covers), and whether it found a target in its cone;
+## a ball thrown by the rule drops and bounces when it hits nothing (_throw_ball); the Trigger Happy stream's sway clock.
+var _aimed := false
+var _aim_target := -1
+var _sway_t := 0.0
+## Dry pulls so far (tests).
+var dry_pulls := 0
 var _orbit := 0.0
 var _flap := 0.0
 # params.burst: the shots of one trigger pull leave one after another (a submachine gun) instead of all at once
@@ -497,17 +504,30 @@ static func burst_fan_angle(k: int, step: float) -> float:
 	return step * float(n) * (1.0 if k % 2 == 1 else -1.0)
 
 
-func _fire_burst_shot() -> void:
+func _fire_burst_shot(first: bool = false) -> void:
 	if _burst.is_empty():
 		return
 	var b: Dictionary = _burst.pop_front()
 	var dir: Vector3 = _aim_dir if _aim_dir.length_squared() > 0.0001 else player.forward()
-	if _stream_gap > 0.0:
-		dir = _stream_dir()
-	if _familiar:
-		# every round aims from where the companion is now (pass 35: it circles a metre off the hero, and the hero's line
-		# to the target sent a tight round, the Revolver's, a metre wide of it)
-		dir = _from_familiar(dir)
+	if _aimed:
+		# pass 136 (lane GUNS): the first round on the pull's aim, every later one reads the facing again as it leaves (turning
+		# while it fires hoses the cone); a stream (Trigger Happy) sways on its own (_sway)
+		var t := _aim_target
+		if not first:
+			var sh := _aim_now(stat("range", 9.0))
+			dir = sh["dir"]
+			t = int(sh["target"])
+		if _stream_gap > 0.0:
+			dir = dir.rotated(Vector3.UP, _sway())
+		if _familiar:
+			dir = _aim_fam(dir, t)
+	else:
+		if _stream_gap > 0.0:
+			dir = _stream_dir()
+		if _familiar:
+			# every round aims from where the companion is now (pass 35: it circles a metre off the hero, and the hero's line
+			# to the target sent a tight round, the Revolver's, a metre wide of it)
+			dir = _from_familiar(dir)
 	# Sweep Fire: the rounds walk across a fan instead of scattering
 	var d: Vector3 = dir.rotated(Vector3.UP, float(b["angle"])) if b.has("angle") else dir.rotated(Vector3.UP, Dice.r.randf_range(-float(b["spread"]), float(b["spread"])))
 	var punchy := _familiar != null and not _fam_dict("kick").is_empty()
@@ -554,6 +574,7 @@ func _stream_dir() -> Vector3:
 
 
 func _tick(_delta: float) -> void:
+	_sway_t += _delta
 	_tick_rings(_delta)
 	_tick_looks(_delta)
 	_tick_heat_look(_delta)
@@ -599,7 +620,10 @@ func _tick(_delta: float) -> void:
 		_track_cd -= _delta
 		if _track_cd <= 0.0 or _track_i < 0 or enemies.alive[_track_i] == 0 or enemies.state[_track_i] == EnemyManager.STATE_DYING:
 			_track_cd = TRACK_EVERY
-			if inst.def.targeting == "healthy":
+			if Aim.covers(inst):
+				# pass 136 (lane GUNS): the gun points where the next shot will go: the best in the cone, else down the facing
+				_track_i = int(_aim_now(stat("range", 9.0))["target"])
+			elif inst.def.targeting == "healthy":
 				# pass 73 (lane SNIPER): a special, an Elite or the boss within reach first
 				_track_i = priority_pick(hero, stat("range", 9.0))
 				if _track_i < 0:
@@ -773,8 +797,11 @@ func _second_barrel() -> void:
 		_volley(1.0)
 		return
 	var hero := player.global_position
-	var t := aim_index(hero, float(bl["range"]))
+	var t := aim_index(hero, float(bl["range"])) if not Aim.covers(inst) else -1
 	var dir: Vector3 = (game.enemies.pos[t] - hero) if t >= 0 else _aim_dir
+	if Aim.covers(inst):
+		# pass 136 (lane GUNS): the second barrel follows the facing of the moment
+		dir = _aim_now(float(bl["range"]))["dir"]
 	dir.y = 0.0
 	dir = dir.normalized() if dir.length_squared() > 0.0001 else player.forward()
 	_aim_dir = dir
@@ -806,7 +833,13 @@ func _hip_volley() -> void:
 	_hip_left -= 1
 	_hip_t = _hip_gap
 	var dir: Vector3 = _aim_dir if _aim_dir.length_squared() > 0.0001 else player.forward()
-	if _familiar:
+	if _aimed:
+		# pass 136 (lane GUNS): each volley reads his facing again as it leaves, so turning sweeps the string across a pack
+		var sh := _aim_now(stat("range", 9.0))
+		dir = sh["dir"]
+		if _familiar:
+			dir = _aim_fam(dir, int(sh["target"]))
+	elif _familiar:
 		dir = _from_familiar(dir)
 	var punchy := _familiar != null and _fam_base_set and not _fam_dict("kick").is_empty()
 	var from: Vector3 = ((_fam_base if punchy else _familiar.global_position) + dir * 0.45) if _familiar else shot_origin(dir)
@@ -845,6 +878,52 @@ func _fire() -> bool:
 	var half_spread := 0.0
 	var target := -1
 	_forward_dir = Vector3.ZERO
+	# pass 136 (lane GUNS): "Aim where you face" (Aim.covers): down the facing, turned to the best target in the cone
+	# (Aim.shot, R2-R4); it fires on its clock with nothing there (R5). Free Throw still goes at the evaded creature (the
+	# old aim below). Off, or a weapon without an aim block, plays as before.
+	_aimed = Aim.covers(inst) and not _free_throw
+	_aim_target = -1
+	if _aimed:
+		var reach := float(bl["range"]) if not bl.is_empty() else range_m
+		var sh := Aim.shot(inst, enemies, player, hero, reach)
+		target = int(sh["target"])
+		_aim_target = target
+		dir = sh["dir"]
+		if inst.def.targeting == "forward":
+			half_spread = deg_to_rad(stat("spread_deg", 30.0)) * 0.5
+			# a dry blast does not jolt the gun (Garry's pass 53 wish kept as far as it goes: quiet and still)
+			if _held and target >= 0:
+				_held.scale = Vector3(1.0, 1.0, 0.7)
+		else:
+			half_spread = _fan_half(amount)
+		if target < 0:
+			dry_pulls += 1
+			Aim.note_dry(inst)
+	else:
+		target = _old_aim(enemies, hero, range_m, bl, amount)
+		if target == -2:
+			return false
+		dir = _old_dir
+		half_spread = _old_half
+	dir.y = 0.0
+	if dir.length_squared() < 0.0001:
+		dir = player.forward()
+	dir = dir.normalized()
+	_aim_dir = dir
+	_aim_yaw = atan2(-dir.x, -dir.z)
+	return _fire_on(dir, target, amount, speed, range_m, damage, pierce, knock, prad, bl, hero, half_spread)
+
+
+## Pass 136 (lane GUNS): the old aim (every weapon before the rule, and with the switch off): the target, or -2 when the
+## pull does not go; the way and the half spread in _old_dir / _old_half.
+var _old_dir := Vector3.ZERO
+var _old_half := 0.0
+
+
+func _old_aim(enemies: EnemyManager, hero: Vector3, range_m: float, bl: Dictionary, amount: int) -> int:
+	var target := -1
+	var dir := Vector3.ZERO
+	var half_spread := 0.0
 	match inst.def.targeting:
 		"forward":
 			# a lane or a cone (pass 48) aims at what is within its own reach
@@ -853,7 +932,7 @@ func _fire() -> bool:
 				# nobody in reach (pass 53, Garry: "Boomstick seems to be firing all the time, this should only happen after
 				# it's Evolved"): no shot, no kick, no flash, no bang; the Blunderbuss's `fire_blind` keeps it blasting on its
 				# clock along the facing
-				return false
+				return -2
 			dir = (enemies.pos[target] - hero) if target >= 0 else player.forward()
 			half_spread = deg_to_rad(stat("spread_deg", 30.0)) * 0.5
 			if _held:
@@ -864,7 +943,7 @@ func _fire() -> bool:
 			if target < 0:
 				target = enemies.random_in_range(hero, range_m)
 			if target < 0:
-				return false
+				return -2
 			dir = (enemies.pos[target] - hero)
 			half_spread = _fan_half(amount)
 		"healthy":
@@ -876,7 +955,7 @@ func _fire() -> bool:
 			if target < 0:
 				target = enemies.nearest_index(hero, range_m)
 			if target < 0:
-				return false
+				return -2
 			dir = (enemies.pos[target] - hero)
 			half_spread = _fan_half(amount)
 		_:
@@ -886,21 +965,27 @@ func _fire() -> bool:
 			# the nearest, or (pass 48, "priority") the strong and the close
 			target = aim_index(hero, range_m) if _forward_dir == Vector3.ZERO else -1
 			if target < 0 and _forward_dir == Vector3.ZERO and not bool(inst.params.get("fire_without_target", false)):
-				return false
+				return -2
 			# pass 69 (lane HERO, May's Trigger Happy): `fire_without_target` fires along her facing when nobody is in range
 			dir = (enemies.pos[target] - hero) if target >= 0 else (_forward_dir if _forward_dir != Vector3.ZERO else player.forward())
 			half_spread = _fan_half(amount)
-	dir.y = 0.0
-	if dir.length_squared() < 0.0001:
-		dir = player.forward()
-	dir = dir.normalized()
-	_aim_dir = dir
-	_aim_yaw = atan2(-dir.x, -dir.z)
+	_old_dir = dir
+	_old_half = half_spread
+	return target
+
+
+## The pull itself once aimed (pass 136 split it from _fire): `dir` flat and unit, `target` the creature (or -1).
+func _fire_on(dir: Vector3, target: int, amount: int, speed: float, range_m: float, damage: float, pierce: int, knock: float, prad: float, bl: Dictionary, hero: Vector3, half_spread: float) -> bool:
+	var enemies: EnemyManager = game.enemies
 	var from: Vector3 = shot_origin(dir)
+	# pass 136 (lane GUNS, R7): the aim wedge brightens, the shot's line flashing down it
+	if _aimed:
+		AimWedge.pulse_dir(dir)
 	if _familiar:
 		# shots leave the companion's mouth, wherever it is circling right now, aimed from there
 		if inst.def.targeting != "random":
-			dir = _from_familiar(dir, target)
+			# pass 136: under the aim rule only towards the pull's own target (never the old aim's pick)
+			dir = _aim_fam(dir, target) if _aimed else _from_familiar(dir, target)
 			_aim_dir = dir
 		if not _fam_dict("kick").is_empty() and _fam_base_set:
 			# pass 75: a punchy companion fires from its rest place, along its own line, and swells with its kick instead
@@ -922,7 +1007,7 @@ func _fire() -> bool:
 		_blast(bl, dir, damage, amount, knock, speed)
 		_arm_second_barrel()
 		muzzle_flash(from, dir)
-		sfx("fire", from)
+		_fire_sfx(from)
 		return true
 	var hs = inst.params.get("hip_shot")
 	if hs is Dictionary and int((hs as Dictionary).get("every", 0)) > 0 and _shots % int(hs["every"]) == 0:
@@ -950,7 +1035,7 @@ func _fire() -> bool:
 		_stream_gap = stream_gap(stat("cooldown", 1.0), amount) if bool(inst.params.get("stream", false)) else 0.0
 		if _stream_gap > 0.0:
 			_burst_t = _stream_gap
-		_fire_burst_shot()
+		_fire_burst_shot(true)
 	elif _bounces():
 		# pass 67 (the basketball): one ball, its amount past the first more hops
 		_throw_ball(dir, from, amount, damage, speed, pierce, prad, life, knock)
@@ -974,8 +1059,52 @@ func _fire() -> bool:
 		enemies.damage_radius(player.global_position, 1.8, damage * 0.5, inst.def.id, knock)
 		game.telegraphs.flash_ring(player.global_position, 1.8, Color(1.0, 0.7, 0.3))
 	muzzle_flash(from, dir)
-	sfx("fire", from)
+	_fire_sfx(from)
 	return true
+
+
+## Pass 136 (lane GUNS): the pull's bang; a dry pull of a weapon whose `params.aim.dry_db` says so is quieter by that
+## many dB (the Boomstick: half as loud, Garry's pass 53 wish kept as far as it goes).
+func _fire_sfx(at: Vector3) -> void:
+	var quiet := float(Aim.cfg(inst).get("dry_db", 0.0)) if (_aimed and _aim_target < 0) else 0.0
+	if quiet == 0.0:
+		sfx("fire", at)
+		return
+	var id := str(inst.def.sfx.get("fire", ""))
+	if id != "":
+		Audio.play(id, at, quiet)
+
+
+## Pass 136 (lane GUNS): an aimed shot's line from the companion: towards the pull's target `t` from the companion's mouth
+## when the assist reached it (the line the hero's own would miss by the companion's offset), else `dir` as aimed (the
+## assist stopped short of the creature, or none: straight down the facing).
+func _aim_fam(dir: Vector3, t: int) -> Vector3:
+	var em: EnemyManager = game.enemies
+	if t < 0 or t >= em.pool_max or em.alive[t] == 0:
+		return dir
+	var direct := em.pos[t] - player.global_position
+	direct.y = 0.0
+	if direct.length_squared() < 0.0001 or direct.normalized().angle_to(dir) > 0.03:
+		return dir
+	return _from_familiar(dir, t)
+
+
+## Pass 136 (lane GUNS): the aimed shot again now (a burst's later round, a hip-shot volley, the second barrel: each reads
+## the facing as it leaves), {dir, target}.
+func _aim_now(range_m: float) -> Dictionary:
+	return Aim.shot(inst, game.enemies, player, player.global_position, range_m)
+
+
+## Pass 136 (lane GUNS, May's Trigger Happy under the aim rule): the stream's sway off the aim, radians: +-`stream_sway_deg`
+## (params) over SWAY_PERIOD seconds, so the stream paints the cone without her turning; 0 without it.
+const SWAY_PERIOD := 1.4
+
+
+func _sway() -> float:
+	var deg := float(inst.params.get("stream_sway_deg", 0.0))
+	if deg <= 0.0:
+		return 0.0
+	return deg_to_rad(deg) * sin(TAU * _sway_t / SWAY_PERIOD)
 
 
 ## Pass 48, `params.blast` (Birdshot's lane, the Blunderbuss's cone; WeaponInstance.blast reads it): no pellet does the
@@ -1457,6 +1586,12 @@ func _throw_ball(dir: Vector3, from: Vector3, amount: int, damage: float, speed:
 		# pass 95 (lane ITEMS, "Fire forward"): a ball thrown along his facing with nobody to bounce off at the end of its
 		# flight drops to the sand and is gone (ProjectileManager._drop_alone): no return, no catch, no Heat
 		pm.extra[j]["drop_alone"] = true
+	elif _aimed:
+		# pass 136 (lane GUNS; Garry: "Can just fall on the ground and bounce couple of times before disappearing"): a ball
+		# thrown down the facing that hits nothing falls, bounces twice and is gone: no return, no catch refund, no Heat; a
+		# ball that hit comes home as today
+		pm.extra[j]["drop_alone"] = true
+		pm.extra[j]["drop_bounce"] = true
 	throws += 1
 	return j
 

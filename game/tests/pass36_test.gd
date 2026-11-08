@@ -32,6 +32,15 @@ const A := Vector3(6.0, 0, 0)
 const B := Vector3(-6.0, 0, 0.5)
 
 
+## Pass 136 (lane PLACED): these pin the old aim (Aim.covers false); the aim's own placing: pass136_placed_test.
+func before_test() -> void:
+	Settings.aim_mode = false
+
+
+func after_test() -> void:
+	Settings.aim_mode = true
+
+
 func _script(src: String) -> GDScript:
 	var s := GDScript.new()
 	s.source_code = src

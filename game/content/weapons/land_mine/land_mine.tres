@@ -62,7 +62,7 @@ base = {
 "area": 2.4,
 "cooldown": 3.0588,
 "damage": 28.0,
-"knockback": 9.0,
+"knockback": 11.25,
 "lifetime": 25.0
 }
 levels = [[], [SubResource("Resource_1khjf"), SubResource("Resource_2rwqc")], [SubResource("Resource_e7w21"), SubResource("Resource_8v23b"), SubResource("Resource_f7mbw")], [SubResource("Resource_4t1lu")], [SubResource("Resource_k3qhb"), SubResource("Resource_onn10")]]
@@ -75,6 +75,11 @@ sfx = {
 visual = ExtResource("4_8v23b")
 visual_file = "land_mine_visual.tscn"
 params = {
+"aim": {
+"family": "placed",
+"lay_ahead": 2.0,
+"spread_deg": 30.0
+},
 "max_mines": 8.0,
 "trigger_radius": 0.7
 }

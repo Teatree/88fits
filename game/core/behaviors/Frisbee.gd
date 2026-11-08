@@ -147,11 +147,23 @@ func _fire() -> bool:
 	var range_m := maxf(stat("range", 12.0), 1.0)
 	# pass 95 (lane ITEMS): "Fire forward" (FireForward.dir, Settings.fire_forward): along his facing, the arc crossing its
 	# line at the range's end, while no creature stands within 75% of the range; else at the nearest as before
-	var fwd: Vector3 = FireForward.dir(inst, player, em, 12.0)
+	var aimed := Aim.covers(inst) and em != null
+	var fwd: Vector3 = FireForward.dir(inst, player, em, 12.0) if not aimed else Vector3.ZERO
 	var tgt: int = -1 if fwd != Vector3.ZERO else (aim_index(pp, range_m) if em else -1)
 	var aim: Vector3 = fwd
 	var dist := range_m
-	if tgt >= 0:
+	if aimed:
+		# pass 136 (lane GUNS): "Aim where you face" (Aim.shot): the arc laid about the facing, turned to the best target in
+		# the cone, crossing its line at the target (or at the range's end when nothing is there: a dry throw, R5)
+		var sh := Aim.shot(inst, em, player, pp, range_m)
+		tgt = int(sh["target"])
+		aim = sh["dir"]
+		if tgt >= 0:
+			dist = Vector2(em.pos[tgt].x - pp.x, em.pos[tgt].z - pp.z).length()
+		else:
+			Aim.note_dry(inst)
+		AimWedge.pulse_dir(aim)
+	elif tgt >= 0:
 		aim = em.pos[tgt] - pp
 		aim.y = 0.0
 		dist = aim.length()

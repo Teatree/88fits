@@ -13,7 +13,7 @@ base = {
 "area": 1.2,
 "cooldown": 0.2,
 "damage": 12.0,
-"knockback": 6.0,
+"knockback": 7.5,
 "orbit_radius": 2.6
 }
 levels = [[]]

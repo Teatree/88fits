@@ -15,13 +15,17 @@
     "spread_deg": 75,
     "range": 10,
     "pierce": 1,
-    "knockback": 12.0,
+    "knockback": 15.0,
     "speed": 18,
     "fire_damage": 6,
     "fire_duration": 2.2,
     "fire_spread": 0.2
   },
   "params": {
+    "aim": {
+      "cone": 75,
+      "assist": 15
+    },
     "tracer": true,
     "tracer_step": 0.02,
     "tracer_size": 0.32,

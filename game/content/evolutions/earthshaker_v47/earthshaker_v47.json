@@ -17,12 +17,17 @@
     "amount": 2,
     "range": 5.2,
     "area": 1.5,
-    "knockback": 14.0
+    "knockback": 17.5
   },
   "levels": [
     []
   ],
   "params": {
+    "aim": {
+      "family": "placed",
+      "min_r": 1.0,
+      "best_chance": 0.6
+    },
     "smash": {
       "radius": 1.7,
       "rise": 0.12,
