@@ -1146,6 +1146,22 @@ func mark_seen(kind: String, id: String) -> void:
 	request_save()
 
 
+## Developer cheat (2026-11-09): every weapon, item, perk and creature met, and every quest that unlocks an item done,
+## so the Collection shows everything (Trail-gated items stay with the Trail). DevMenu "Collection · unlock everything".
+func reveal_collection() -> void:
+	var reg := get_node("/root/Registry")
+	for id in reg.weapons: mark_seen("weapon", id)
+	for id in reg.passives: mark_seen("passive", id)
+	for id in reg.perks: mark_seen("perk", id)
+	for id in reg.mutations: mark_seen("mutation", id)
+	for id in reg.enemies: mark_seen("enemy", id)
+	for q in reg.quests.values():
+		var kind := str(q.unlocks.get("type", q.unlocks.get("kind", "")))
+		if kind in ["weapon", "passive", "line", "perk", "item"]:
+			mark_quest(q.id)
+	request_save()
+
+
 ## Pass 88 (lane STAGEMENU): a creature or boss met = the Collection's rule (pass 44): it has been on the sand in a
 ## run once (seen, EnemyManager.spawn marks it) or killed once. The Stages menu hides a boss not met yet.
 func enemy_met(id: String) -> bool:

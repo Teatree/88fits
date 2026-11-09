@@ -125,6 +125,11 @@ func _refresh() -> void:
 		_refresh())
 	own_row.name = "OwnEveryHero"
 	_list.add_child(own_row)
+	var col_row := _row("Collection · unlock everything", "›", func():
+		Save.reveal_collection()
+		_refresh())
+	col_row.name = "RevealCollection"
+	_list.add_child(col_row)
 	var forget_row := _row("Outlaws · forget the bought ones", "›", func():
 		Save.forget_bought_heroes()
 		_refresh())
