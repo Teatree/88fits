@@ -1,6 +1,8 @@
 // The thrust's tip flash (pass 136, lane MELEE; core/systems/MeleeFx.gd): a camera-facing star where the point lands, a
 // round glow with four long thin rays (two along the thrust's line on screen, `rot`) and four short diagonal ones,
-// popping out and gone over `t` 0..1. One quad, VERTEX.xy -1..1, `size` metres across its half.
+// popping out and gone over `t` 0..1. One quad, VERTEX.xy -1..1, `size` metres across its half. Pass 137 (lane SPEAR): a
+// hit adds a thin shock ring racing out (`ring` its strength) and a dark rim under the rays (`ink`), so the star reads
+// on the pale sand.
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, depth_test_disabled, blend_mix, fog_disabled, shadows_disabled, skip_vertex_transform;
 
@@ -9,6 +11,8 @@ uniform float size = 0.8;
 uniform float rot = 0.0;
 uniform vec4 col : source_color = vec4(0.55, 0.75, 1.0, 1.0);
 uniform vec4 core_col : source_color = vec4(1.0);
+uniform float ring = 0.0;
+uniform float ink = 0.0;
 
 varying vec2 v_p;
 
@@ -48,6 +52,19 @@ void fragment() {
 	float rays = max(ray(p, 1.0, 0.16), ray(vec2(p.y, p.x), 0.62, 0.12));
 	vec2 q = vec2(p.x + p.y, p.x - p.y) * 0.7071;
 	rays = max(rays, 0.7 * max(ray(q, 0.42, 0.1), ray(vec2(q.y, q.x), 0.42, 0.1)));
+	if (ring > 0.001) {
+		// the shock ring: out from the middle, thinning as it goes
+		float rr = mix(0.25, 0.95, 1.0 - pow(1.0 - life, 2.0));
+		float rw = mix(0.07, 0.015, life);
+		float band = 1.0 - smoothstep(rw * 0.5, rw, abs(d - rr));
+		over(c, a, vec3(0.05, 0.04, 0.06), ring * 0.55 * (1.0 - smoothstep(0.0, rw * 1.8, abs(d - rr - rw))) * (1.0 - life));
+		over(c, a, mix(col.rgb, core_col.rgb, 0.4), ring * band * (1.0 - life * life));
+	}
+	if (ink > 0.001) {
+		// a dark rim under the long rays (grown a little), drawn before them
+		float rays_o = max(ray(p, 1.08, 0.3), ray(vec2(p.y, p.x), 0.7, 0.24));
+		over(c, a, vec3(0.06, 0.05, 0.08), ink * 0.85 * rays_o * k);
+	}
 	over(c, a, mix(col.rgb, core_col.rgb, 0.5), rays * k);
 	float core = exp(-d * d * 60.0);
 	over(c, a, core_col.rgb, core * k);

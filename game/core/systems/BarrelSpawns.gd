@@ -29,6 +29,8 @@
 ##     coins           its coins: a number, or [min, max] rolled per barrel (today: none from a brown one, 1-5 from a
 ##                     black one). The start barrels' coins are held back from the creatures' first coins of the run
 ##                     (pass 87, PickupManager.coin_debt); a respawned barrel's are extra.
+##     shots           (pass 137) the Outlaw's flying rounds it takes to break (exp 2, coins 3, powerup 5; at least 1):
+##                     each one before the last knocks it back (BarrelField.shot_through); walking into it breaks it at once.
 ## A respawn spot is never seen: the barrel and its shadow (SEEN_SPHERES) lie outside the camera's frustum by
 ## view_margin; the rest of the start's rules hold (BarrelField.spawn_ok: in the arena, off the flats, the rocks and the
 ## water, out of every painting's cover band and structure ring, MIN_GAP from every standing barrel). The searching is
@@ -49,11 +51,14 @@ const RESPAWN_DEFAULTS := {
 ## kind reads powerup_chance / powerups / throw_distance; the other two never throw one. The old keys migrate on read:
 ## `brown` -> exp, `black` -> coins (their power-up keys ignored; the powerup kind takes the old black list when it has
 ## none of its own); the old respawn `black_chance` is ignored (the weights decide).
+## Pass 137 (lane BARRELS; Garry: "If a shot (projectile) flies through it the Barrel gets knocked back the first time and
+## the second time it gets destroyed ... Wooden 2 shots, Golden 3, Power-up 5"): `shots`, the Outlaw's rounds a barrel of
+## the kind takes to break (every one before the last knocks it back; BarrelField.shot_through), at least 1.
 const CONTENT_DEFAULTS := {
-	"exp": {"weight": 0.648, "gems_small": 8, "gems_medium": 0, "coins": 0},
-	"coins": {"weight": 0.22, "gems_small": 10, "gems_medium": 4, "coins": [1, 5]},
+	"exp": {"weight": 0.648, "gems_small": 8, "gems_medium": 0, "coins": 0, "shots": 2},
+	"coins": {"weight": 0.22, "gems_small": 10, "gems_medium": 4, "coins": [1, 5], "shots": 3},
 	"powerup": {"weight": 0.132, "powerup_chance": 1.0, "powerups": [], "throw_distance": [5.0, 7.0], "gems_small": 0,
-		"gems_medium": 0, "coins": 0},
+		"gems_medium": 0, "coins": 0, "shots": 5},
 }
 ## Pass 135 (Garry: "Barrels aren't clear, make them glint occasionally"): the `barrels` block's `glint` {strength 0..1
 ## (0 = none), every (seconds between one barrel's glints, each barrel 0.75..1.25 of it), length (seconds the band takes to
@@ -193,6 +198,8 @@ static func contents_of(block, kind) -> Dictionary:
 	var co := range_of(out["coins"], Vector2.ZERO)
 	out["coins"] = Vector2i(maxi(int(co.x), 0), maxi(int(co.y), maxi(int(co.x), 0)))
 	out["powerups"] = weight_list(out["powerups"])
+	# pass 137 (lane BARRELS): the rounds it takes to break, a whole number at least 1 (the kind's own default otherwise)
+	out["shots"] = maxi(int(_num(out.get("shots"), float(CONTENT_DEFAULTS[key]["shots"]))), 1)
 	return out
 
 

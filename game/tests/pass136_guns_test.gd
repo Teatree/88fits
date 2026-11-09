@@ -101,6 +101,8 @@ func before_test() -> void:
 	_keep_show = Settings.show_aim
 	_keep_ff = Settings.fire_forward
 	Settings.aim_mode = true
+	# pass 137 (lane AIM): these pin pass 136's rule (every aimed weapon hard); pass137_aim_test pins the soft one
+	Aim.soft_rule = false
 	Settings.show_aim = true
 	Settings.fire_forward = false
 	Aim.reset()
@@ -109,6 +111,7 @@ func before_test() -> void:
 
 func after_test() -> void:
 	Settings.aim_mode = _keep_aim
+	Aim.soft_rule = true
 	Settings.show_aim = _keep_show
 	Settings.fire_forward = _keep_ff
 	Run.debug_clear_items()

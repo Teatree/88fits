@@ -158,6 +158,7 @@ func _fire() -> bool:
 		var sh := Aim.shot(inst, em, player, pp, range_m)
 		tgt = int(sh["target"])
 		aim = sh["dir"]
+		Aim.note_soft(inst, sh)
 		if tgt >= 0:
 			dist = Vector2(em.pos[tgt].x - pp.x, em.pos[tgt].z - pp.z).length()
 		else:
@@ -282,8 +283,11 @@ func _fly(d: Dictionary, delta: float) -> void:
 		if s1 >= float(d["range"]):
 			d["phase"] = 1
 	p.y = _ground(p) + float(d["height"])
+	var p0: Vector3 = d["pos"]
 	d["pos"] = p
 	_hits(d)
+	# pass 137 (lane BARRELS): a disc flying through a barrel knocks it back or breaks it, once a flight (none as it glides)
+	_barrels(d, p0)
 	_carry_follow(d)
 	_trail_push(d, delta)
 	_haze(d, delta)
@@ -349,6 +353,21 @@ func _hits(d: Dictionary) -> void:
 			continue
 		seen[key] = true
 		_strike(d, e)
+
+
+## Pass 137 (lane BARRELS): the barrels the disc passed this tick, from `p0` to where it is (BarrelField.shot_through, its
+## memory in d["brl"]), while the player's switch is on.
+func _barrels(d: Dictionary, p0: Vector3) -> void:
+	var bf = game.get("barrels") if game != null else null
+	if not (bf is BarrelField) or not (bf as BarrelField).shootable():
+		return
+	var p1: Vector3 = d["pos"]
+	var cell := (bf as BarrelField).grid_at((p0.x + p1.x) * 0.5, (p0.z + p1.z) * 0.5)
+	if cell == 0:
+		return
+	if not d.has("brl"):
+		d["brl"] = {}
+	(bf as BarrelField).shot_through(p0, p1, float(d["hit_r"]), d["brl"], cell)
 
 
 func _strike(d: Dictionary, e: int) -> void:

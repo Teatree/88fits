@@ -850,7 +850,7 @@ func _draw_royale() -> void:
 	if dots.x > 0 and not locked:
 		_dots(R.NAVY, gold)
 	if _evolved and not locked and not mystery:
-		_plaque("EVO", R.PLAQUE_EVO_TOP, R.PLAQUE_EVO_BOTTOM, R.PLAQUE_EVO_TEXT)
+		_plaque(Loc.t("ui.plate.evo"), R.PLAQUE_EVO_TOP, R.PLAQUE_EVO_BOTTOM, R.PLAQUE_EVO_TEXT)
 	elif level_plaque > 0:
 		_plaque(plaque_text(level_plaque), R.PLAQUE_TOP, R.PLAQUE_BOTTOM, R.PLAQUE_TEXT)
 	elif level_text != "":
@@ -861,7 +861,7 @@ func _draw_royale() -> void:
 
 ## What the level plaque says for level `n` on this frame: "LV n", a plain "n" on a frame of R.PLAQUE_PLAIN_AT or less.
 func plaque_text(n: int) -> String:
-	return str(n) if side <= R.PLAQUE_PLAIN_AT else "LV %d" % n
+	return str(n) if side <= R.PLAQUE_PLAIN_AT else Loc.t("ui.plate.level", {"level": str(n)})
 
 
 ## The plaque's box: its height, type size and edge from the side (R.PLAQUE_*), hanging PLAQUE_HANG of its height below

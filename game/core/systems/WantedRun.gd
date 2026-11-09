@@ -143,6 +143,21 @@ func _on_boss_died(def: EnemyDef, _pos: Vector3) -> void:
 		_finish(false)
 
 
+## Pass 137 (lane POLISH; Garry: "Choosing a weapon task on the Wanted poster slightly raises the chance of that weapon
+## being offered (level-up or chest)"): the factor on weapon `def`'s card weight (CardPool.weight_of: the level-up's
+## cards, the chest's roll, the Shop and the Stranger) while the run's contract is open (neither done nor failed) and its
+## target is a weapon of `def`'s family: the config's `weapon_task_weight` (1.5); 1.0 otherwise.
+static func task_weapon_mult(def: WeaponDef) -> float:
+	if def == null or current == null or not is_instance_valid(current) or current.done or current.failed:
+		return 1.0
+	var target := str(current.contract.get("target", ""))
+	if target == "" or Registry.weapon(target) == null:
+		return 1.0
+	if def.id != target and not _family_ids(target).has(def.id):
+		return 1.0
+	return maxf(float(WantedBoard.config().get("weapon_task_weight", 1.0)), 0.0)
+
+
 ## The weapon ids a family's kills count under: the weapon and its evolutions (Registry.item_family).
 static func _family_ids(id: String) -> Array:
 	var out: Array = [id] if id != "" else []
@@ -253,11 +268,11 @@ func _finish(ok: bool) -> void:
 			{"target": str(contract.get("target", "")), "reward": int(contract.get("reward", 0))})
 	if hud and not Run.sim_mode:
 		if ok:
-			hud.banner("BOUNTY DONE", W.SAGE, WPoster.thumb_texture(contract.get("still", {})))
-			hud.toast("BOUNTY +%s GOLD" % W.num(int(contract.get("reward", 0))), W.TOAST_GREEN)
+			hud.banner(Loc.t("banner.bounty_done"), W.SAGE, WPoster.thumb_texture(contract.get("still", {})))
+			hud.toast(Loc.t("toast.bounty_paid", {"gold": W.num(int(contract.get("reward", 0)))}), W.TOAST_GREEN)
 			Audio.play("ui_fanfare")
 		else:
-			hud.toast("BOUNTY FAILED", W.ROCK)
+			hud.toast(Loc.t("toast.bounty_failed"), W.ROCK)
 			Audio.play("ui_buzzer")
 	_refresh_plate()
 
@@ -308,18 +323,18 @@ static func record_now() -> Dictionary:
 ## The words for how far a contract has come: "34 / 60", "0:32 left", "DONE", "FAILED".
 func progress_text() -> String:
 	if done:
-		return "DONE"
+		return Loc.t("ui.bounty.done")
 	if failed:
-		return "FAILED"
+		return Loc.t("ui.bounty.failed")
 	var type := str(contract.get("type", ""))
 	if type == "boss_fast":
 		if _boss_on:
-			return "%s left" % WantedBoard.clock_of(maxf(float(contract.get("n", 0)) - (Run.run_time() - _boss_t0), 0.0))
-		return "%s fight" % WantedBoard.clock_of(float(contract.get("n", 0)))
+			return Loc.t("ui.bounty.left", {"clock": WantedBoard.clock_of(maxf(float(contract.get("n", 0)) - (Run.run_time() - _boss_t0), 0.0))})
+		return Loc.t("ui.bounty.fight", {"clock": WantedBoard.clock_of(float(contract.get("n", 0)))})
 	if type == "hp_floor":
-		return "low %d%%" % int(round(_min_hp * 100.0))
+		return Loc.t("ui.bounty.low", {"pct": str(int(round(_min_hp * 100.0)))})
 	if type == "beat_stage" or type == "evolve_item":
-		return "not yet"
+		return Loc.t("ui.bounty.not_yet")
 	var p := progress()
 	return "%s / %s" % [W.num(mini(p.x, p.y)), W.num(p.y)]
 
@@ -351,7 +366,7 @@ func _build_plate() -> void:
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(col)
-	_plate_label = W.label("Bounty", 16, W.INK_SOFT, 0.2)
+	_plate_label = W.label(Loc.t("ui.bounty.title"), 16, W.INK_SOFT, 0.2)
 	col.add_child(_plate_label)
 	_plate_text = W.text("", W.slab(), 28, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 30.0)
 	_plate_text.name = "Progress"
@@ -468,7 +483,7 @@ static func results_panel(rec: Dictionary) -> Control:
 	v.add_theme_constant_override("separation", 10)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(v)
-	v.add_child(W.label("Bounty", 22, W.INK_SOFT))
+	v.add_child(W.label(Loc.t("ui.bounty.title"), 22, W.INK_SOFT))
 	var paid_n := int(rec.get("paid", 0))
 	var right := ""
 	var col := W.INK
@@ -476,11 +491,11 @@ static func results_panel(rec: Dictionary) -> Control:
 		right = "+%s" % W.num(paid_n)
 		col = W.BRASS_DARK
 	elif bool(rec.get("failed", false)):
-		right = "FAILED"
+		right = Loc.t("ui.bounty.failed")
 		col = W.ROCK
 	else:
 		right = "%s / %s" % [W.num(mini(int(rec.get("have", 0)), int(rec.get("need", 0)))), W.num(int(rec.get("need", 0)))] \
-			if int(rec.get("need", 0)) > 1 else "NOT DONE"
+			if int(rec.get("need", 0)) > 1 else Loc.t("ui.bounty.not_done")
 		col = W.INK_SOFT
 	v.add_child(row_for(rec, right, col))
 	return p

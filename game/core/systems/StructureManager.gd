@@ -1007,7 +1007,7 @@ func bring_back() -> Structure:
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
 	var hud = game.get("hud") if game else null
 	if hud and hud.has_method("toast") and (cam == null or not _on_screen(cam, at)):
-		hud.toast("A STRONGBOX DRIFTS DOWN", Color(1.0, 0.85, 0.35))
+		hud.toast(Loc.t("toast.strongbox"), Color(1.0, 0.85, 0.35))
 	return s
 
 

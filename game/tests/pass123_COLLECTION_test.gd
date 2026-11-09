@@ -102,7 +102,7 @@ func test_royale_grid_frame_tabs_plate_and_pill() -> void:
 			assert_str(lab.text).is_equal("WEAPONS %d/%d" % [n0.x, n0.y])
 			assert_bool(R.is_display(lab.font) or lab.font_size < R.ULTRA_MIN).is_true()
 		else:
-			assert_str(lab.text).is_equal(str(CollectionScreen.TABS[k]).to_upper())
+			assert_str(lab.text).is_equal(Loc.t(str(CollectionScreen.TABS[k])).to_upper())
 			assert_bool(R.is_display(lab.font)).is_false()
 			assert_int(lab.font_size).is_equal(CollectionScreen.RY_TAB_PX)
 	# the found total on its black plate, from the data

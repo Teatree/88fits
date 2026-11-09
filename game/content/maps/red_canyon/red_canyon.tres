@@ -179,8 +179,8 @@ roster = [{
 "role": "fodder",
 "stats": {
 "damage_mult": 1.25,
-"hp_mult": 1.5,
-"size": [1.25, 2.3]
+"hp_mult": 1.0,
+"size": [1.25, 1.75]
 },
 "t": 332.0,
 "until": 389.0,

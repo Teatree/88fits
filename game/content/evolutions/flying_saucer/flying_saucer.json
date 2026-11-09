@@ -27,6 +27,10 @@
   ],
   "params": {
     "aim": {
+      "feel": "soft",
+      "threat_reach": 3.0,
+      "threat_ratio": 0.45,
+      "lone_reach": 6.0,
       "cone": 60
     },
     "fire_forward": true,

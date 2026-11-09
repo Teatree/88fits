@@ -81,7 +81,7 @@ var _path_row: Control
 ## The turning shine (pass 58): over the dim, under the reveal's bursts, the rail, the header and the cards.
 var _shine: WShineScript
 ## The level-up's title as given ("LEVEL 3"), put back when banish mode ends.
-var _title_text := "LEVEL 1"
+var _title_text := Loc.t("ui.cards.level_title", {"level": "1"})
 ## What banish mode says under its title (pass 58), in the header's stack under its line: the header line itself does
 ## not wrap, and this says two sentences.
 var _banish_wrap: MarginContainer
@@ -150,17 +150,17 @@ const PATH_SHINE_R := 500.0
 ## moment (LOOT, A PATH OPENS, PICK A MUTATION) and its title the thing itself, so LEVEL UP over LEVEL 12 reads as one
 ## poster with the number kept big; the ribbon cut into the title's capitals and is a piece no other screen has, and the
 ## big LEVEL UP! pushed the number into the small line.
-const LEVEL_UP_WORDS := "Level up"
+const LEVEL_UP_KEY := "ui.cards.level_up"
 ## The level-up's own line.
-const PICK_LINE := "Pick one. The desert waits."
-const HINT_LINE := "Pick one. The plate's colour says what it is."
+const PICK_KEY := "ui.cards.pick"
+const HINT_KEY := "ui.cards.pick_hint"
 ## Banish mode's words (pass 58): what a banish does, in plain words, and the first time a little more of it.
-const BANISH_TITLE := "BANISH"
-const BANISH_LINE := "Tap a new item to strike it from this run. It will not be offered again."
-const BANISH_FIRST := "Tap a new item to strike it from this run: it will not be offered again, on level-ups or in chests. What you already have can't be banished, so its upgrades stay yours."
-const NOTHING_TO_BANISH := "Nothing here can be banished: you already have all of these."
+const BANISH_TITLE_KEY := "ui.cards.banish_title"
+const BANISH_LINE_KEY := "ui.cards.banish_line"
+const BANISH_FIRST_KEY := "ui.cards.banish_first"
+const NOTHING_TO_BANISH_KEY := "ui.cards.nothing_to_banish"
 ## Banish mode's star line over its red BANISH (the review: LEVEL UP over BANISH spelled out Garry's "Level Up Banish?").
-const BANISH_KICKER := "Strike one off"
+const BANISH_KICKER_KEY := "ui.cards.banish_kicker"
 ## How long a refusal stands in banish mode's line before the mode's words come back (the review: a refused REROLL or
 ## SKIP had replaced them until the mode was opened again).
 const NOTE_HOLD := 2.2
@@ -260,7 +260,7 @@ func _ready() -> void:
 ## SKIP_FOOT over the screen's foot.
 func _make_path_skip() -> WButton:
 	var b: WButton
-	b = WConfirm.make_button(["SKIP"], WButton.SLATE, ROYALE_SKIP_H, ROYALE_SKIP_PX)
+	b = WConfirm.make_button([Loc.t("ui.cards.skip")], WButton.SLATE, ROYALE_SKIP_H, ROYALE_SKIP_PX)
 	b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	b.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	b.offset_left = -ROYALE_SKIP_W * 0.5
@@ -279,7 +279,7 @@ func _make_path_skip() -> WButton:
 ## and the stars (W.text, WStarLine) and a navy drop straight down under the dry line.
 func _build_head() -> void:
 	# build_header's header with a larger star line (STAR_LINE_PX: LEVEL UP)
-	header = WModalHeader.make(LEVEL_UP_WORDS, "LEVEL 1", PICK_LINE, 150, W.PAPER, STAR_LINE_PX, HEADER_TOP, star_colour())
+	header = WModalHeader.make(Loc.t(LEVEL_UP_KEY), Loc.t("ui.cards.level_title", {"level": "1"}), Loc.t(PICK_KEY), 150, W.PAPER, STAR_LINE_PX, HEADER_TOP, star_colour())
 	add_child(header)
 	_drop(header.line, 2)
 	_build_banish_note()
@@ -460,7 +460,7 @@ func _build_path_head() -> void:
 
 ## The mutation offer's head line (pass 79, lane MUT): "Level 12! Pick a mutation" on a level-up's, the old words else.
 static func mutlvl_line(hero_level: int) -> String:
-	return "Level %d! Pick a mutation" % hero_level if hero_level > 0 else "Pick a mutation"
+	return Loc.t("ui.cards.path_line_level", {"level": "%d" % hero_level}) if hero_level > 0 else Loc.t("ui.cards.path_line")
 
 
 ## `level` (pass 48): the weapon's level held, its plate's colour.
@@ -531,7 +531,7 @@ func _royale_count_row(def: ContentDef, taken: int, offered: int) -> HBoxContain
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", ROYALE_PILL_GAP)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var p1 := W.pill("Mutation")
+	var p1 := W.pill(Loc.t("ui.cards.mutation_pill"))
 	p1.name = "MutationPill"
 	var fam: String = (def as WeaponDef).evolved_from if def is WeaponDef and (def as WeaponDef).is_evolution and (def as WeaponDef).evolved_from != "" else def.id
 	var total := maxi(Registry.mutations_of(fam).size(), 1)
@@ -554,8 +554,8 @@ func _royale_count_row(def: ContentDef, taken: int, offered: int) -> HBoxContain
 ## with the number in the kit's gold, "1 skip left this stage", "No skips left this stage".
 static func skips_parts(n: int) -> Array:
 	if n <= 0:
-		return ["No skips left this stage"]
-	return [[str(n), R.GOLD_TEXT, "bold"], " skip left this stage" if n == 1 else " skips left this stage"]
+		return [Loc.t("ui.cards.skips_none")]
+	return [[str(n), R.GOLD_TEXT, "bold"], " " + Loc.t("ui.cards.skips_left", {"count": n})]
 
 
 ## The pill in its holder, built again when the count changes (or the theme: the holder is shown under Royale only).
@@ -599,7 +599,7 @@ static func _words_in(n: Node) -> String:
 static func leave_line(offered: int) -> String:
 	if offered <= 1:
 		return ""
-	return "· the other comes back next stage" if offered == 2 else "· the others come back next stage"
+	return Loc.t("ui.cards.comes_back", {"others": offered - 1})
 
 
 func show_offer(offer: Array, title: String, with_hints: bool, path: bool = false) -> void:
@@ -681,13 +681,13 @@ func shine() -> Control:
 
 ## The level-up's header: LEVEL UP on the star line, the title LEVEL N in paper.
 func _say_level_up() -> void:
-	header.set_star(LEVEL_UP_WORDS, star_colour())
+	header.set_star(Loc.t(LEVEL_UP_KEY), star_colour())
 	header.set_title_fit(_title_text, 150, W.PAPER, get_viewport_rect().size.x - 80.0)
 
 
 ## The level-up's dry line: the hint's on the first offers of a save, else the desert's.
 func _pick_line() -> String:
-	return HINT_LINE if _with_hints else PICK_LINE
+	return Loc.t(HINT_KEY) if _with_hints else Loc.t(PICK_KEY)
 
 
 ## The weapons the mutation offer's reel runs past (pass 54): those with a path still open (Run.path_offer_weapons, the
@@ -791,11 +791,11 @@ func skip_reel() -> void:
 
 func _refresh_buttons() -> void:
 	# spent buttons stay tappable but locked-looking, so the tap can say why
-	_set_button(_reroll_btn, count_parts("REROLL", Run.rerolls_left))
+	_set_button(_reroll_btn, count_parts(Loc.t("ui.cards.reroll"), Run.rerolls_left))
 	_reroll_btn.locked = Run.rerolls_left <= 0
 	# a skip pays nothing since pass 47: it is one of the stage's skips, shared with the chests
 	for b: WButton in [_skip_btn, _path_skip]:
-		_set_button(b, count_parts("SKIP", Run.skips_left))
+		_set_button(b, count_parts(Loc.t("ui.cards.skip"), Run.skips_left))
 		b.locked = Run.skips_left <= 0
 	# pass 123: the Royale mutation offer says its skips left in words over its SKIP
 	_set_skips_pill(Run.skips_left)
@@ -803,10 +803,10 @@ func _refresh_buttons() -> void:
 	# pass 58: in banish mode the button takes it back (CANCEL); outside it, it locks with no banish left or nothing on the
 	# table that may go (every card an upgrade of something the hero has)
 	if _banish_mode:
-		_set_button(_banish_btn, ["CANCEL"])
+		_set_button(_banish_btn, [Loc.t("ui.cards.cancel")])
 		_banish_btn.locked = false
 	else:
-		_set_button(_banish_btn, count_parts("BANISH", Run.banishes_left))
+		_set_button(_banish_btn, count_parts(Loc.t("ui.cards.banish"), Run.banishes_left))
 		_banish_btn.locked = Run.banishes_left <= 0 or CardPool.banishable(_offer).is_empty()
 	_banish_btn.show_held(_banish_mode)
 
@@ -836,7 +836,7 @@ func _skip() -> void:
 		return
 	RunReplay.note("card_skip")
 	if not Run.use_skip():
-		_say("No skips left this stage.")
+		_say(Loc.t("ui.cards.no_skips"))
 		Audio.play("ui_locked")
 		_refresh_buttons()
 		return
@@ -1122,7 +1122,7 @@ func _banish_pick(card: Dictionary, button: Control) -> void:
 		return
 	if not Run.banish_card(card):
 		_set_banish(false)
-		_say("No banishes left this stage.")
+		_say(Loc.t("ui.cards.no_banishes"))
 		Audio.play("ui_locked")
 		return
 	if RunAnalytics.I: RunAnalytics.I.event("banish", str(card["id"]))
@@ -1133,7 +1133,7 @@ func _banish_pick(card: Dictionary, button: Control) -> void:
 			ids.append(c["id"])
 	var more := CardPool.level_up_offer(1, ids)
 	_set_banish(false)
-	header.set_line("%s is banished for this run. Pick one." % gone)
+	header.set_line(Loc.t("ui.cards.banished", {"item": gone}))
 	# a stamp's thud (pass 58: "ui_stamp" when the lead binds one, the chest's knock until then)
 	W.sfx_first(["ui_stamp", "ui_chest_knock"])
 	if i < 0:
@@ -1247,16 +1247,16 @@ func _shake(i: int) -> void:
 ## What a refused banish says (pass 58), in plain words: why this card cannot go. `why` is Run.banish_refusal's.
 static func refusal_line(card: Dictionary, why: String) -> String:
 	var def: ContentDef = card.get("def")
-	var nm := def.display_name if def else "That"
+	var nm := def.display_name if def else Loc.t("ui.cards.that")
 	match why:
 		"held":
-			return "You have %s: banishing it would lock its upgrades." % nm
+			return Loc.t("ui.cards.no_banish_held", {"item": nm})
 		"evolution":
-			return "%s evolves what you have: it can't be banished." % nm
+			return Loc.t("ui.cards.no_banish_evolution", {"item": nm})
 		"mutation":
-			return "%s is a mutation: mutations can't be banished." % nm
+			return Loc.t("ui.cards.no_banish_mutation", {"item": nm})
 		"gold":
-			return "Gold cannot be banished."
+			return Loc.t("ui.cards.no_banish_gold")
 	return ""
 
 
@@ -1279,7 +1279,7 @@ func take_pick() -> Dictionary:
 func _reroll() -> void:
 	RunReplay.note("card_reroll")
 	if Run.rerolls_left <= 0:
-		_say("No rerolls left. The Choice upgrade gives more.")
+		_say(Loc.t("ui.cards.no_rerolls"))
 		Audio.play("ui_locked")
 		return
 	Run.rerolls_left -= 1
@@ -1287,7 +1287,7 @@ func _reroll() -> void:
 	# a fresh table ends banish mode (pass 58): BANISH again strikes from the new cards
 	if _banish_mode:
 		_set_banish(false)
-	header.set_line("Rerolled. Pick one.")
+	header.set_line(Loc.t("ui.cards.rerolled"))
 	_offer = CardPool.level_up_offer(_offer.size())
 	_refresh_buttons()
 	_rebuild()
@@ -1304,12 +1304,12 @@ func _toggle_banish() -> void:
 		header.set_line(_pick_line())
 		return
 	if Run.banishes_left <= 0:
-		_say("No banishes left this stage.")
+		_say(Loc.t("ui.cards.no_banishes"))
 		Audio.play("ui_locked")
 		_refresh_buttons()
 		return
 	if CardPool.banishable(_offer).is_empty():
-		_say(NOTHING_TO_BANISH)
+		_say(Loc.t(NOTHING_TO_BANISH_KEY))
 		Audio.play("ui_locked")
 		_refresh_buttons()
 		return
@@ -1323,11 +1323,11 @@ func _set_banish(on: bool) -> void:
 	if on:
 		# the first time it says a little more (the "banish" hint, pass 58)
 		var first := not Save.hint_seen("banish")
-		header.set_star(BANISH_KICKER, star_colour())
-		header.set_title_fit(BANISH_TITLE, 150, W.ROCK, vw - 80.0)
+		header.set_star(Loc.t(BANISH_KICKER_KEY), star_colour())
+		header.set_title_fit(Loc.t(BANISH_TITLE_KEY), 150, W.ROCK, vw - 80.0)
 		header.set_line("")
 		_stop_note_hold()
-		_banish_text = BANISH_FIRST if first else BANISH_LINE
+		_banish_text = Loc.t(BANISH_FIRST_KEY) if first else Loc.t(BANISH_LINE_KEY)
 		_banish_note.text = _banish_text
 		_banish_wrap.visible = true
 		if first:
@@ -1394,16 +1394,16 @@ class BanishMark extends Control:
 		var at := _anchor()
 		match style:
 			"strike":
-				_stamp("BANISH", Vector2(at.end.x + 8.0 - 96.0, at.get_center().y), 32, deg_to_rad(-8.0), 1.0, 0.92)
+				_stamp(Loc.t("ui.cards.banish_stamp"), Vector2(at.end.x + 8.0 - 96.0, at.get_center().y), 32, deg_to_rad(-8.0), 1.0, 0.92)
 			"held":
-				_tag("YOU HAVE THIS", at)
+				_tag(Loc.t("ui.cards.tag_held"), at)
 			"evolution":
-				_tag("EVOLVES YOURS", at)
+				_tag(Loc.t("ui.cards.tag_evolves"), at)
 			"banished":
 				var k := clampf(slam, 0.0, 1.2)
 				var mid := size * 0.5
 				draw_line(Vector2(24.0, mid.y + 6.0), Vector2(size.x - 24.0, mid.y - 6.0), Color(rock(), 0.85 * minf(k, 1.0)), 8.0, true)
-				_stamp("BANISHED", mid, 64, deg_to_rad(-6.0), lerpf(1.8, 1.0, minf(k, 1.0)), minf(k, 1.0))
+				_stamp(Loc.t("ui.cards.banished_stamp"), mid, 64, deg_to_rad(-6.0), lerpf(1.8, 1.0, minf(k, 1.0)), minf(k, 1.0))
 
 	## A rubber stamp in red-rock ink: a double frame round tracked slab capitals, turned `angle`, at `at`.
 	func _stamp(t: String, at: Vector2, px: int, angle: float, scale_k: float, alpha: float) -> void:

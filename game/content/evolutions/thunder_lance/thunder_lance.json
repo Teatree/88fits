@@ -63,6 +63,10 @@
       "stunned_mult": 1.5
     },
     "aim": {
+      "feel": "soft",
+      "threat_reach": 3.0,
+      "threat_ratio": 0.45,
+      "lone_reach": 6.0,
       "family": "melee",
       "look": "stab",
       "cone": 40,

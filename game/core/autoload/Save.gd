@@ -20,6 +20,10 @@ signal saved(ok: bool)
 ## The hero a clean save opens on (pass 53: the Drifter, unlocked from the start; Astro before). A save whose hero is gone
 ## from the content falls back to him too.
 const DEFAULT_HERO := "drifter"
+## Pass 137 (lane POLISH; Garry: "Give Player 50 coins at the start. Don't adjust any balancing because of this"): the gold
+## a save that starts here holds: no file to read (load_save's "new") or a wipe. `_default()` keeps 0, so a file read
+## over it keeps its own gold (an existing save is never given these), and no migration adds them.
+const START_GOLD := 50
 
 var data: Dictionary = {}
 ## where the file lives (the tests point it at user://test_saves so they never touch a real save)
@@ -145,12 +149,15 @@ func load_save() -> void:
 			n += 1
 			aside = "%s.corrupt-%d-%d" % [p, int(Time.get_unix_time_from_system()), n]
 		DirAccess.rename_absolute(p, aside)
-		last_error = "could not read %s (kept as %s)" % [p.get_file(), aside.get_file()]
+		last_error = Loc.t("ui.save.unreadable", {"file": p.get_file(), "aside": aside.get_file()})
 		push_warning("Save: " + last_error)
 	if loaded_from == "backup" or loaded_from == "tmp":
 		# the recovered data goes back in place as save.json right away
 		_dirty = true
 		_due_ms = 0
+	# pass 137 (lane POLISH): a save that starts here starts with START_GOLD (never one read from a file)
+	if loaded_from == "new":
+		data["gold"] = START_GOLD
 	_migrate()
 	# pass 83 (lane META): a hero this save had freed by his quest, who is bought now, stays its own
 	_keep_freed_heroes()
@@ -178,6 +185,8 @@ func load_save() -> void:
 	_migrate_dust_bowl()
 	# pass 129 (lane TRAILCORE): the old Upgrade board's coins back and what this save already has kept, once the Trail has nodes
 	_migrate_trail()
+	# pass 137 (lane TUTOR): the Trail's first steps: a save from before them skips them, once
+	_migrate_tutorial()
 	# pass 119 (lane LOADUI): the painted title, once
 	_migrate_painted()
 	_survey_counted_from_runs()
@@ -609,6 +618,10 @@ func wipe() -> void:
 			keep[k] = data[k]
 	data = _default()
 	data.merge(keep, true)
+	# pass 137 (lane POLISH): a wiped save is a new one: it starts with START_GOLD
+	data["gold"] = START_GOLD
+	# pass 137 (lane TUTOR): and meets the Trail's first steps again
+	data["tutorial"] = tutorial_fresh()
 	# pass 129 (lane TRAILCORE): a wiped save is a new one to the Trail: nothing is kept from before it (_migrate_trail
 	# would otherwise take its first runs for a save older than the Trail at the next launch)
 	if Trail.has_nodes():
@@ -616,8 +629,8 @@ func wipe() -> void:
 	save_now()
 	# pass 76 (lane LOOKS): the weapon looks kept here went with the progress: every family plays its JSON's look again
 	Registry.apply_item_looks()
-	# the saved gold went with it (pass 61: the balance chart drops to it)
-	if had > gold():
+	# the saved gold went with it (pass 61: the balance chart drops to it; pass 137: to START_GOLD, up when it held less)
+	if had != gold():
 		gold_moved.emit(gold() - had, "wipe", gold(), {})
 	if FileAccess.file_exists(bak_path()):
 		DirAccess.remove_absolute(bak_path())
@@ -968,6 +981,84 @@ func _migrate_trail() -> int:
 	return back
 
 
+# ---------------------------------------------------------------- the Trail's first steps (pass 137, lane TUTOR)
+
+## Garry: "Lock the Trail button on the main menu the way the Store is locked. After the first run the Results screen [...]
+## shows a big fat highlight of the Upgrade button [...]. On the Trail screen the Buy button is highlighted the same way
+## until the first tap. The first time the Player comes back to a screen with the bottom tab tray after the Trail
+## unlocked, its Trail tab unlocks with a visible animation." The save's `tutorial` block, a bool a step:
+##   trail_open        the first run counted (record_run: a death, an extract, a give-up from the pause, each followed by
+##                     the Results; the arena and a replay never count): the tab and every way in open (WTabBar, Nav)
+##   upgrade_tapped    UPGRADE tapped on the Results (until then it is grey through the show and highlighted after it)
+##   buy_tapped        BUY tapped on the Trail with the purse able to pay (until then it is highlighted)
+##   tab_unlock_shown  the tab's unlock played (the first screen with the tab bar after the Trail opened, the Trail's own
+##                     excepted: its tab is the open one there)
+## A step missing, or no block at all (a save read before _migrate_tutorial, a test's `_default()`), counts as done: only a
+## new save (load_save's "new", a wipe) or the developer menu's reset meets the steps.
+const TUTORIAL_STEPS := ["trail_open", "upgrade_tapped", "buy_tapped", "tab_unlock_shown"]
+const TUTORIAL_ONCE := "trail_tutorial_v137"
+
+
+## The block a save that starts here holds: every step still to come.
+func tutorial_fresh() -> Dictionary:
+	var t := {}
+	for s: String in TUTORIAL_STEPS:
+		t[s] = false
+	return t
+
+
+## Whether step `step` is behind the player (true for a step this save never had to meet).
+func tutorial_done(step: String) -> bool:
+	var t = data.get("tutorial")
+	if not (t is Dictionary):
+		return true
+	return bool((t as Dictionary).get(step, true))
+
+
+## Step `step` done, for good.
+func mark_tutorial(step: String) -> void:
+	if tutorial_done(step):
+		return
+	(data["tutorial"] as Dictionary)[step] = true
+	request_save()
+
+
+## Whether the Trail is open to the player: the tab, the Results' UPGRADE, the "Reach Trail Level N" links (Nav.to_trail).
+func trail_open() -> bool:
+	return tutorial_done("trail_open")
+
+
+## The developer menu's "The Trail · reset the tutorial": every step to come again (the tab locks until the next run ends).
+func reset_trail_tutorial() -> void:
+	data["tutorial"] = tutorial_fresh()
+	request_save()
+
+
+## Every step done (a test, a tool).
+func skip_trail_tutorial() -> void:
+	var t := tutorial_fresh()
+	for s: String in TUTORIAL_STEPS:
+		t[s] = true
+	data["tutorial"] = t
+	request_save()
+
+
+## Once per save (TUTORIAL_ONCE): a save with no block yet gets one. Garry: "saves that bought any Trail node or played a
+## run before this build skip the tutorial": a run started or counted, or a node bought, marks every step done; any
+## other save (a new one, or one that never started a run) meets them all.
+func _migrate_tutorial() -> void:
+	if once(TUTORIAL_ONCE):
+		return
+	if not (data.get("tutorial") is Dictionary):
+		var played := int(data.get("runs_started", 0)) > 0 or total("runs") > 0 or not trail_bought().is_empty()
+		if played:
+			skip_trail_tutorial()
+		else:
+			data["tutorial"] = tutorial_fresh()
+	mark_once(TUTORIAL_ONCE)
+	request_save()
+
+
 
 # ---------------------------------------------------------------- the homestead
 
@@ -1024,6 +1115,8 @@ func record_run(map_id: String, time: float, level: int, stage: int, kills: int 
 	best["kills"] = max(int(best.get("kills", 0)), kills)
 	data["best_runs"][map_id] = best
 	add_total("runs", 1)
+	# pass 137 (lane TUTOR): the first run counted opens the Trail (the tab, the Results' UPGRADE, its links)
+	mark_tutorial("trail_open")
 	request_save()
 
 

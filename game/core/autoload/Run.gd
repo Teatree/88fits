@@ -499,11 +499,11 @@ func _build_player_sheet() -> void:
 			var e3 := Effect.new()
 			e3.stat = "evade"; e3.op = "add"; e3.value = eb * momentum; e3.target = "player"
 			mfx.append(e3)
-		player_sheet.add_effects(mfx, "Momentum %d%%" % int(round(momentum * 100.0)), "momentum:" + (character.id if character else ""))
+		player_sheet.add_effects(mfx, Loc.t("gen.stat.source.momentum", {"pct": str(int(round(momentum * 100.0)))}), "momentum:" + (character.id if character else ""))
 	if stranger_cost > 0.0:
 		var sc := Effect.new()
 		sc.stat = "max_hp"; sc.op = "mul"; sc.value = -stranger_cost; sc.target = "player"
-		player_sheet.add_effects([sc], "The Stranger's cut", "stranger")
+		player_sheet.add_effects([sc], Loc.t("gen.stat.source.stranger"), "stranger")
 	# pass 73 (lane STRUCT): the Totem Poles' gifts, before the passives (Heavyweight reads the max HP they give)
 	_apply_totem_boons()
 	# pass 118 (lane ITEMS): what the keys banked from the chests opened
@@ -520,17 +520,17 @@ func _build_player_sheet() -> void:
 			a1.stat = "move_speed"; a1.op = "mul"; a1.value = sp; a1.target = "player"
 			var a2 := Effect.new()
 			a2.stat = "might"; a2.op = "mul"; a2.value = mg; a2.target = "player"
-			player_sheet.add_effects([a1, a2], "Adrenaline ×%d" % adrenaline, _ramp_sid("adrenaline_speed", "adrenaline_might"))
+			player_sheet.add_effects([a1, a2], Loc.t("gen.stat.source.adrenaline", {"stacks": str(adrenaline)}), _ramp_sid("adrenaline_speed", "adrenaline_might"))
 	if crescendo > 0 and has_perk("crescendo"):
 		var c1 := Effect.new()
 		c1.stat = "might"; c1.op = "mul"; c1.value = crescendo_might(); c1.target = "player"
-		player_sheet.add_effects([c1], "Crescendo +%d%%" % int(round(crescendo_might() * 100.0)), _perk_sid("crescendo"))
+		player_sheet.add_effects([c1], Loc.t("gen.stat.source.crescendo", {"pct": str(int(round(crescendo_might() * 100.0)))}), _perk_sid("crescendo"))
 	# Overdrive (pass 67, Buck's perk): the gears his full charge has counted, each the perk's `step` of attack damage
 	var od := overdrive_might()
 	if od > 0.0:
 		var o1 := Effect.new()
 		o1.stat = "might"; o1.op = "mul"; o1.value = od; o1.target = "player"
-		player_sheet.add_effects([o1], "Overdrive +%d%%" % int(round(od * 100.0)), _perk_sid("overdrive"))
+		player_sheet.add_effects([o1], Loc.t("gen.stat.source.overdrive", {"pct": str(int(round(od * 100.0)))}), _perk_sid("overdrive"))
 	# Last Stand (pass 69): while its slowed time runs, its attack damage stays on through any rebuild
 	_apply_last_stand()
 	haste = player_sheet.get_stat("haste", 1.0)
@@ -564,7 +564,7 @@ func hero_sheet(c: CharacterDef, at_level: int = 1) -> StatSheet:
 ## The name the signature stat goes by on the sheet (the pause screen's breakdown): "Last Dance (Lv 12)".
 static func trait_source(c: CharacterDef, at_level: int) -> String:
 	var n := c.trait_name if c.trait_name != "" else c.display_name
-	return "%s (Lv %d)" % [n, at_level]
+	return Loc.t("gen.stat.source.trait", {"name": n, "level": str(at_level)})
 
 
 # ---------------------------------------------------------------- pass 76 (lane UI): the stats as the run began
@@ -673,7 +673,7 @@ func _apply_streak() -> void:
 	var v := hot_streak_bonus()
 	if v <= 0.0:
 		return
-	_streak_source = "Hot Streak +%d%%" % int(round(v * 100.0))
+	_streak_source = Loc.t("gen.stat.source.hot_streak", {"pct": str(int(round(v * 100.0)))})
 	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _streak_source, _ramp_sid("kill_might"))
 
 
@@ -794,7 +794,7 @@ func _apply_purse() -> void:
 		player_sheet.add_effects([Effect.make("might", "mul", float(b.x) / 100.0, "player")], s1, _ramp_sid("purse_might_per"))
 		_purse_sources.append(s1)
 	if b.y > 0:
-		var s2 := "%s +%d%% HP" % [item_name, b.y]
+		var s2 := Loc.t("gen.stat.source.purse_hp", {"name": item_name, "pct": str(b.y)})
 		player_sheet.add_effects([Effect.make("max_hp", "mul", float(b.y) / 100.0, "player")], s2, _ramp_sid("purse_hp_per"))
 		_purse_sources.append(s2)
 
@@ -861,7 +861,7 @@ func skedaddle() -> bool:
 	var secs := player_sheet.get_stat("hurt_speed_seconds", 0.0)
 	if sp <= 0.0 or secs <= 0.0:
 		return false
-	_speed_boost(SKEDADDLE, "SKEDADDLE", sp, secs)
+	_speed_boost(SKEDADDLE, Loc.t("gen.stat.source.skedaddle"), sp, secs)
 	return true
 
 
@@ -907,7 +907,7 @@ func counterpunch_evaded() -> bool:
 				player_sheet.remove_source(str(tb["source"]))
 				timed.erase(tb)
 				break
-		add_timed_effects(COUNTERPUNCH, "Counterpunch", effs, secs, true)
+		add_timed_effects(COUNTERPUNCH, Loc.t("gen.stat.source.counterpunch"), effs, secs, true)
 		did = true
 	return did
 
@@ -963,7 +963,7 @@ func _apply_heavyweight() -> void:
 	var v := heavyweight_might()
 	if v <= 0.0:
 		return
-	_heavy_source = "Heavyweight +%d%%" % int(round(v * 100.0))
+	_heavy_source = Loc.t("gen.stat.source.heavyweight", {"pct": str(int(round(v * 100.0)))})
 	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _heavy_source, _ramp_sid("heavyweight"))
 
 
@@ -1001,16 +1001,17 @@ func last_stand_mult() -> float:
 	return 1.0 + maxf(player_sheet.get_stat("last_stand", 0.0), 0.0)
 
 
-const _LAST_STAND_SOURCE := "Last Stand"
+## Pass 137: the source's name is this row of content/strings/en.json.
+const _LAST_STAND_SOURCE_KEY := "gen.stat.source.last_stand"
 
 
 func _apply_last_stand() -> void:
-	player_sheet.remove_source(_LAST_STAND_SOURCE)
+	player_sheet.remove_source(Loc.t(_LAST_STAND_SOURCE_KEY))
 	if not last_stand_active:
 		return
 	var v := player_sheet.get_stat("last_stand", 0.0)
 	if v > 0.0:
-		player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _LAST_STAND_SOURCE, _ramp_sid("last_stand"))
+		player_sheet.add_effects([Effect.make("might", "mul", v, "player")], Loc.t(_LAST_STAND_SOURCE_KEY), _ramp_sid("last_stand"))
 
 
 ## Phoenix Feather (pass 48): the hero carries a free revive (the player stat `phoenix_revive`) not spent this run.
@@ -1085,9 +1086,9 @@ func spent_words(def: ContentDef) -> String:
 		var now_name := now.display_name if now else str(grind_used.get("id", ""))
 		var was_name := was.display_name if was else now_name
 		if bool(grind_used.get("evolved", false)):
-			return "Used: it evolved the %s into the %s" % [was_name, now_name]
-		return "Used: it ground the %s to level %d" % [now_name, int(grind_used.get("level_to", 0))]
-	return "Used: it stood you up once this run"
+			return Loc.t("gen.passive.used.evolved", {"from": was_name, "into": now_name})
+		return Loc.t("gen.passive.used.level", {"weapon": now_name, "level": str(int(grind_used.get("level_to", 0)))})
+	return Loc.t("gen.passive.used.revive")
 
 
 ## The map's pace knob (pass 48, WaveTimeline.move_pace): the hero, the creatures and their shots move at this fraction,
@@ -1127,7 +1128,7 @@ func _apply_desperado() -> void:
 		return
 	var e := Effect.new()
 	e.stat = "might"; e.op = "mul"; e.value = v; e.target = "player"
-	_desperado_source = "Desperado +%d%%" % int(round(v * 100.0))
+	_desperado_source = Loc.t("gen.stat.source.desperado", {"pct": str(int(round(v * 100.0)))})
 	player_sheet.add_effects([e], _desperado_source, _ramp_sid("desperado"))
 
 
@@ -1225,7 +1226,7 @@ func _apply_steady() -> void:
 	var v := steady_might()
 	if v <= 0.0:
 		return
-	_steady_source = "Steady Hand +%d%%" % int(round(v * 100.0))
+	_steady_source = Loc.t("gen.stat.source.steady_hand", {"pct": str(int(round(v * 100.0)))})
 	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _steady_source, _ramp_sid("still_might"))
 
 
@@ -1791,7 +1792,7 @@ func barrel_rush() -> bool:
 	var secs := player_sheet.get_stat("barrel_seconds", 0.0)
 	if sp <= 0.0 or secs <= 0.0:
 		return false
-	_speed_boost(BARREL_RUSH, "Barrel Rush", sp, secs)
+	_speed_boost(BARREL_RUSH, Loc.t("gen.stat.source.barrel_rush"), sp, secs)
 	return true
 
 
@@ -2188,7 +2189,7 @@ func stranger_take(offer: Dictionary, hp_cost: float) -> String:
 				break
 	stranger_cost = minf(stranger_cost + hp_cost, 0.6)
 	rebuild_sheets()
-	return "%s Lv %d" % [def.display_name, to]
+	return Loc.t("gen.item.level", {"name": def.display_name, "level": str(to)})
 
 
 ## The rarities the Stranger never sells.
@@ -2280,7 +2281,7 @@ func _apply_chest_banks() -> void:
 			continue
 		var def: PassiveDef = Registry.passive(str(pid))
 		var n := int(b.get("chests", 0))
-		player_sheet.add_effects(fx, "%s · %d chest%s" % [def.display_name if def else str(pid), n, "" if n == 1 else "s"], "chest:" + str(pid))
+		player_sheet.add_effects(fx, Loc.t("gen.stat.source.chests", {"name": def.display_name if def else str(pid), "chests": str(n)}), "chest:" + str(pid))
 
 
 ## A held item's params block (pass 119, lane LEGEND_B): [the item's id, its params[`key`]] for the first held passive
@@ -2353,7 +2354,7 @@ func _grindstone() -> WeaponInstance:
 		_note("grind", w.def.id, w.level, {"level": w.level})
 		# pass 121 (lane GRIND): what it did, for the show and the pause screen's "Used:" line
 		grind_used = {"id": w.def.id, "from": w.def.id, "level_from": lv0, "level_to": w.level, "evolved": false}
-		grindstone_worked.emit(w.def.id, "level %d" % w.level)
+		grindstone_worked.emit(w.def.id, Loc.t("gen.passive.grind_level", {"level": str(w.level)}))
 		return w
 	var from_id := w.def.id
 	var from_level := w.level
@@ -2488,16 +2489,17 @@ func evolution_ready(w: WeaponInstance) -> bool:
 func evolution_status(w: WeaponInstance) -> String:
 	## One line for the pause screen: what is still missing.
 	if w.def.is_evolution:
-		return "Evolved form of " + str(Registry.weapon(w.def.evolved_from).display_name if Registry.weapon(w.def.evolved_from) else w.def.evolved_from) + "."
+		return Loc.t("gen.weapon.evo.form_of", {"name": str(Registry.weapon(w.def.evolved_from).display_name if Registry.weapon(w.def.evolved_from) else w.def.evolved_from)})
 	if w.def.evolves_into == "":
-		return "Does not evolve."
+		return Loc.t("gen.weapon.evo.none")
 	var into: WeaponDef = Registry.weapon(w.def.evolves_into)
 	var parts: Array = []
 	var pp := path_progress(w)
-	parts.append("%d/%d mutations %s" % [pp.x, pp.y, "✓" if pp.y > 0 and pp.x >= pp.y else "✗"])
-	parts.append("%s Lv %d/%d %s" % [w.def.display_name, w.level, w.def.max_level, "✓" if w.level >= w.def.max_level else "✗"])
-	parts.append("then open a chest")
-	return "Evolves into %s · %s" % [into.display_name if into else w.def.evolves_into, " · ".join(parts)]
+	parts.append(Loc.t("gen.weapon.evo.mutations", {"have": str(pp.x), "need": str(pp.y), "mark": "✓" if pp.y > 0 and pp.x >= pp.y else "✗"}))
+	parts.append(Loc.t("gen.weapon.evo.level", {"name": w.def.display_name, "level": str(w.level), "max": str(w.def.max_level),
+		"mark": "✓" if w.level >= w.def.max_level else "✗"}))
+	parts.append(Loc.t("gen.weapon.evo.chest"))
+	return Loc.t("gen.weapon.evo.into", {"name": into.display_name if into else w.def.evolves_into, "steps": " · ".join(parts)})
 
 
 func evolve(w: WeaponInstance) -> WeaponInstance:
@@ -2625,7 +2627,7 @@ func chest_take(r: Dictionary) -> String:
 			if md and add_mutation(md.id, true):
 				return md.display_name
 			add_gold(60, "chest")
-			return "+60 gold"
+			return Loc.t("gen.chest.gold", {"gold": "60"})
 		"evolution":
 			var src := weapon_instance(str(r.get("src_id", "")))
 			if src:
@@ -2636,20 +2638,20 @@ func chest_take(r: Dictionary) -> String:
 			# the build can have changed under the reel (an evolution replaced the weapon): then gold instead
 			if weapon_instance(r["id"]) == null:
 				add_gold(int(r.get("gold", 50)), "chest")
-				return "+%d gold" % int(r.get("gold", 50))
+				return Loc.t("gen.chest.gold", {"gold": str(int(r.get("gold", 50)))})
 			level_weapon(r["id"])
-			return Registry.weapon(r["id"]).display_name + " Lv " + str(weapon_instance(r["id"]).level)
+			return Loc.t("gen.item.level", {"name": Registry.weapon(r["id"]).display_name, "level": str(weapon_instance(r["id"]).level)})
 		"passive":
 			# the same: a passive that evolved under the reel is no longer there to level (a new passive item, pass 47,
 			# is taken; one that cannot be is gold)
 			var pid := str(r["id"])
 			if (not bool(r.get("is_new", false)) and not passives.has(pid)) or not add_or_level_passive(pid):
 				add_gold(int(r.get("gold", 50)), "chest")
-				return "+%d gold" % int(r.get("gold", 50))
-			return Registry.passive(pid).display_name + " Lv " + str(passives[pid])
+				return Loc.t("gen.chest.gold", {"gold": str(int(r.get("gold", 50)))})
+			return Loc.t("gen.item.level", {"name": Registry.passive(pid).display_name, "level": str(passives[pid])})
 		_:
 			add_gold(int(r.get("gold", 50)), "chest")
-			return "+%d gold" % int(r.get("gold", 50))
+			return Loc.t("gen.chest.gold", {"gold": str(int(r.get("gold", 50)))})
 
 
 ## The chest left shut (pass 47, Garry: the stage's skips "work for both Level Ups and Chests"): a skip spent, nothing
@@ -2660,7 +2662,7 @@ func chest_skip(r: Dictionary) -> String:
 	chests_opened += 1
 	_note("chest", str(r.get("id", "")), 0, {"roll": str(r.get("type", "")), "take": false, "skip": true, "left": skips_left, "boss": bool(r.get("boss", false))})
 	Save.add_total("chests", 1)
-	return "Chest skipped"
+	return Loc.t("gen.chest.skipped")
 
 
 ## What the chest held, banished (pass 47): a banish spent, its id out of this run (no card, no chest, no Stranger offers

@@ -70,13 +70,13 @@ static func of(id: String) -> String:
 ## Its name ("Gold").
 static func name_of(id: String) -> String:
 	var d := def(of(id))
-	return d.display_name if d else "Gold"
+	return d.display_name if d else Loc.t("gen.currency.gold_name")
 
 
 ## The word a sentence uses ("gold": "250 gold from your purse").
 static func word_of(id: String) -> String:
 	var d := def(of(id))
-	return d.word_of() if d else "gold"
+	return d.word_of() if d else Loc.t("gen.currency.gold_word")
 
 
 ## Its colour.
@@ -97,7 +97,7 @@ static func icon(id: String) -> Texture2D:
 
 ## "2,000 gold".
 static func price_words(id: String, n: int) -> String:
-	return "%s %s" % [_grouped(n), word_of(id)]
+	return Loc.t("gen.currency.price", {"amount": _grouped(n), "word": word_of(id)})
 
 
 static func _grouped(n: int) -> String:

@@ -431,7 +431,7 @@ func _run_event(ev: Dictionary) -> void:
 					em.spawn_ring(id, count, game.player.global_position, 16.0, variant, est, src)
 			em.force_special = false
 			if not forced:
-				game.toast("SWARM!", SWARM_COLOR)
+				game.toast(Loc.t("toast.swarm"), SWARM_COLOR)
 			_log84("swarm", id, count)
 		"boss":
 			_start_boss(_pick_id(ev.get("enemy", map.boss), ev.get("weights", [])), Vector3.INF, variant, stats)
@@ -2008,7 +2008,7 @@ func _spawn_pickup() -> void:
 	p = mb.clamp_to_arena(p)
 	p.y = mb.height_at(p.x, p.z)
 	game.pickups.spawn_special(def, p)
-	game.toast("%s nearby" % def.display_name, def.color)
+	game.toast(Loc.t("toast.nearby", {"name": def.display_name}), def.color)
 
 
 ## The four screen sides a spawn may come from (pass 54) and the turn of each side's axis from the camera's forward in

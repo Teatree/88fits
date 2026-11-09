@@ -100,7 +100,8 @@ func test_a_wipe_keeps_the_player_and_takes_the_progress() -> void:
 	assert_str(Save.player_name()).is_equal(name)
 	assert_str(Save.consent()).is_equal("yes")
 	assert_array(Save.survey_state().get("answered", [])).contains(["s-run"])
-	assert_int(Save.gold()).is_equal(0)
+	# (pass 137, lane POLISH, re-pinned: a wiped save starts with Save.START_GOLD)
+	assert_int(Save.gold()).is_equal(Save.START_GOLD)
 	Save.dir = _save_dir
 	Save.load_save()
 

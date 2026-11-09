@@ -156,6 +156,7 @@ import eyes_io as EYESIO  # noqa: E402  (pass 98, lane GEMINI: /api/eyes, Check 
 import skins_io as SKINIO  # noqa: E402  (pass 111, lane SKINS: a hero's looks sold as skins, the currency registry)
 import wanted_io as WIO  # noqa: E402  (pass 111, lane WANTED: the Bounty Board's config, /api/wanted...)
 import trail_io as TRAILIO  # noqa: E402  (pass 129, lane TRAIL-EDITOR: the Trail tab, /api/trail...)
+import strings_io as STRIO  # noqa: E402  (pass 137, lane LOCKIT: the Texts tab, /api/strings...)
 
 _write_lock = threading.Lock()
 # a test hook: a module-like object standing in for jobs.py (selftest_S.py); None = import jobs.py when it is there
@@ -4299,6 +4300,9 @@ class Handler(BaseHTTPRequestHandler):
         if parts[:1] == ["wanted"]:
             # pass 111 (lane WANTED): the Bounty Board's config and the poster imitation's pictures (wanted_io.py)
             return WIO.api_get(self, sys.modules[__name__], parts[1:], query)
+        if parts[:1] == ["strings"]:
+            # pass 137 (lane LOCKIT): the texts a player reads, their CSV, the icons and the guide (strings_io.py)
+            return STRIO.api_get(self, sys.modules[__name__], parts[1:], query)
         if parts[:1] == ["trail"]:
             # pass 129 (lane TRAIL-EDITOR): the Trail's file, its pick lists and the upgrade icons (trail_io.py)
             return TRAILIO.api_get(self, sys.modules[__name__], parts[1:], query)
@@ -4674,6 +4678,9 @@ class Handler(BaseHTTPRequestHandler):
             if parts[:2] == ["api", "wanted"]:
                 # pass 111 (lane WANTED): the Bounty Board's config saved (wanted_io.py)
                 return WIO.api_post(self, sys.modules[__name__], parts[2:])
+            if parts[:2] == ["api", "strings"]:
+                # pass 137 (lane LOCKIT): the texts saved, a CSV checked or applied (strings_io.py)
+                return STRIO.api_post(self, sys.modules[__name__], parts[2:])
             if parts[:2] == ["api", "trail"]:
                 # pass 129 (lane TRAIL-EDITOR): the Trail saved (trail_io.py)
                 return TRAILIO.api_post(self, sys.modules[__name__], parts[2:])

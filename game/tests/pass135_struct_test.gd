@@ -37,7 +37,8 @@ func test_every_structure_you_stand_in_takes_three_seconds() -> void:
 		if d.hidden:
 			continue
 		n += 1
-		assert_float(d.interact_time).override_failure_message(d.id + " is not 3 s").is_equal_approx(3.0, 0.001)
+		# (pass 137, lane POLISH, re-pinned: Garry "All structures 2.5 s to activate instead of 3")
+		assert_float(d.interact_time).override_failure_message(d.id + " is not 2.5 s").is_equal_approx(2.5, 0.001)
 	assert_int(n).is_greater_equal(8)
 
 

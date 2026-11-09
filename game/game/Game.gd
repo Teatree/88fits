@@ -185,7 +185,7 @@ func _ready() -> void:
 	player.deep_breath.connect(func():
 		telegraphs.flash_ring(player.global_position, 1.4, UiKit.GOOD, 0.45)
 		fx.burst(player.global_position + Vector3(0, 0.9, 0), UiKit.GOOD, 1.0)
-		if hud: hud.toast("DEEP BREATH", UiKit.GOOD)
+		if hud: hud.toast(Loc.t("toast.deep_breath"), UiKit.GOOD)
 		Audio.play("pk_heart", player.global_position))
 	# pass 69, the new passive items: Hot Springs' heal pulse, Last Stand's slowed time, Counterpunch's armed fist
 	player.heal_pulsed.connect(_heal_pulse)
@@ -1522,7 +1522,7 @@ func _on_evolved(id: String) -> void:
 		return
 	var def := Registry.weapon(id)
 	Audio.play("w_evo_reveal")
-	hud.banner("EVOLVED · " + (def.display_name if def else id).to_upper(), UiKit.TYPE_COLORS["evolution"], def.icon if def else null)
+	hud.banner(Loc.t("banner.evolved", {"item": (def.display_name if def else id).to_upper()}), UiKit.TYPE_COLORS["evolution"], def.icon if def else null)
 	camera.shake(1.2)
 
 
@@ -1533,9 +1533,9 @@ func _on_skip_paid(coins: int, xp: float) -> void:
 		return
 	var parts: Array = []
 	if coins > 0:
-		parts.append("+%d gold" % coins)
+		parts.append(Loc.t("toast.skip_paid.gold", {"gold": "%d" % coins}))
 	if xp > 0.0:
-		parts.append("+%d XP" % maxi(roundi(xp), 1))
+		parts.append(Loc.t("toast.skip_paid.xp", {"xp": "%d" % maxi(roundi(xp), 1)}))
 	var d: PassiveDef = Registry.passive("assayers_scale")
 	hud.toast(" ".join(parts), UiKit.ACCENT, d.icon_at(Run.passive_level(d.id)) if d else null)
 	Audio.play("pk_coin")
@@ -1552,13 +1552,13 @@ func _on_grindstone_worked(id: String, words: String) -> void:
 	var def := Registry.weapon(id) if id != "" else null
 	var stone := PassiveDef.display_name_of("grindstone", "Grindstone").to_upper()
 	if def == null:
-		hud.toast("%s: NO WEAPON TO SHARPEN" % stone, UiKit.ACCENT)
+		hud.toast(Loc.t("toast.grind.nothing", {"stone": stone}), UiKit.ACCENT)
 	elif not Run.sim_mode and not _ended and not Run.grind_used.is_empty():
 		_request_modal(Modal.GRIND, _open_grind.bind(Run.grind_used.duplicate()))
 	elif words == "evolved":
-		hud.toast("%s: EVOLVED INTO %s" % [stone, def.display_name.to_upper()], UiKit.ACCENT, def.icon)
+		hud.toast(Loc.t("toast.grind.evolved", {"stone": stone, "item": def.display_name.to_upper()}), UiKit.ACCENT, def.icon)
 	else:
-		hud.toast("%s: %s TO %s" % [stone, def.display_name.to_upper(), words.to_upper()], UiKit.ACCENT, def.icon)
+		hud.toast(Loc.t("toast.grind.level", {"stone": stone, "item": def.display_name.to_upper(), "level": words.to_upper()}), UiKit.ACCENT, def.icon)
 
 
 ## Pass 121 (lane GRIND): the Grindstone's show (the opener of Modal.GRIND): time stops (the run paused, every sound
@@ -1630,7 +1630,7 @@ func _process(delta: float) -> void:
 	if RunAnalytics.I: RunAnalytics.I.tick(delta)
 	Run.timeline.tick(delta)
 	for label in Run.tick_timed():
-		hud.toast("%s wore off" % label, UiKit.INK3)
+		hud.toast(Loc.t("toast.wore_off", {"label": label}), UiKit.INK3)
 	_tick_perks(delta)
 	_tick_legends(delta)   # pass 119 (lane LEGEND_A): the Iron Horse, Personal Storm
 	_tick_tether(delta)
@@ -1687,11 +1687,11 @@ func _announce_quests() -> void:
 			# pass 111 (lane SKINS): a look's goal done: on sale (or his at once when it is free), with its badge
 			var sc := def as CharacterDef
 			var free := Registry.skin_state(sc, sc.look_code()) == "owned"
-			hud.banner(("NEW SKIN: " if free else "NEW SKIN FOR SALE: ") + sc.skin_name(sc.look_code()), UiKit.GOOD, sc.icon)
+			hud.banner(Loc.t("banner.new_skin", {"skin": sc.skin_name(sc.look_code())}) if free else Loc.t("banner.new_skin_for_sale", {"skin": sc.skin_name(sc.look_code())}), UiKit.GOOD, sc.icon)
 		elif def is CharacterDef and Registry.hero_state(def as CharacterDef) == "buyable":
-			hud.banner("A NEW OUTLAW IS FOR SALE", UiKit.GOOD, null)
+			hud.banner(Loc.t("banner.new_outlaw_for_sale"), UiKit.GOOD, null)
 		else:
-			hud.banner("UNLOCKED: " + (def.display_name if def else q.display_name), UiKit.GOOD, def.icon if def else null)
+			hud.banner(Loc.t("banner.unlocked", {"item": def.display_name if def else q.display_name}), UiKit.GOOD, def.icon if def else null)
 		Audio.play("ui_unlock")
 
 
@@ -1877,7 +1877,7 @@ func _tick_supply(delta: float) -> void:
 	var warn := Run.perk_param("supply_drop", "warn", 1.5)
 	var r := Run.perk_param("supply_drop", "radius", 2.6)
 	telegraphs.ring(at, r, warn, Color(1.0, 0.22, 0.16))
-	hud.toast("SUPPLY DROP", Color(0.55, 0.85, 1.0))
+	hud.toast(Loc.t("toast.supply_drop"), Color(0.55, 0.85, 1.0))
 	var pod := MeshInstance3D.new()
 	var cap := CapsuleMesh.new()
 	cap.radius = 0.35
@@ -1973,7 +1973,7 @@ func _tick_high_noon(delta: float) -> void:
 	_noon_left = Run.perk_param("high_noon", "seconds", 3.0)
 	enemies.time_scale = Run.perk_param("high_noon", "slow", 0.3)
 	hud.flash(Color(1.0, 0.78, 0.3, 0.32), _noon_left)
-	hud.toast("HIGH NOON", Color(1.0, 0.82, 0.35))
+	hud.toast(Loc.t("toast.high_noon"), Color(1.0, 0.82, 0.35))
 	Audio.play("w_evo_reveal", player.global_position)
 
 
@@ -2076,7 +2076,7 @@ func _periodic_buff(def: PerkDef) -> void:
 	Run.add_timed_effects(def.id, def.display_name, effects, secs, true)
 	var gold := Color(1.0, 0.82, 0.35)
 	if hud:
-		hud.toast("%s: %d s" % [def.display_name.to_upper(), int(round(Run.buff_seconds(secs)))], gold)
+		hud.toast(Loc.t("toast.buff_seconds", {"name": def.display_name.to_upper(), "seconds": "%d" % int(round(Run.buff_seconds(secs)))}), gold)
 		hud.flash(Color(1.0, 0.78, 0.3, 0.25), 0.3)
 	if player and telegraphs:
 		telegraphs.flash_ring(player.global_position, 2.4, gold, 0.4)
@@ -2106,7 +2106,7 @@ func _count_bounty() -> void:
 	enemies.max_hp[b] *= mult
 	enemies.bounty_i = b
 	var bd: EnemyDef = enemies.types[enemies.type_idx[b]]["def"]
-	hud.toast("WANTED: " + bd.display_name, Color(1.0, 0.82, 0.35))
+	hud.toast(Loc.t("toast.wanted", {"name": bd.display_name}), Color(1.0, 0.82, 0.35))
 	# where it is: a gold ring and a burst on the one wearing the bounty (its warm glow alone is lost in a crowd)
 	telegraphs.flash_ring(enemies.pos[b], 1.6, Color(1.0, 0.82, 0.35), 0.8)
 	fx.burst(enemies.pos[b] + Vector3(0, 1.0, 0), Color(1.0, 0.82, 0.35), 1.1)
@@ -2156,7 +2156,7 @@ func _open_path_offer() -> bool:
 	_modal = Modal.PATH
 	set_paused(true)
 	Audio.play("ui_levelup")
-	cards.show_offer(offer, "MUTATION · %s" % w.def.display_name.to_upper(), not Save.hint_seen("paths"), true)
+	cards.show_offer(offer, Loc.t("ui.cards.title_mutation", {"item": w.def.display_name.to_upper()}), not Save.hint_seen("paths"), true)
 	cards.chosen.connect(_on_path_chosen, CONNECT_ONE_SHOT)
 	return true
 
@@ -2165,7 +2165,7 @@ func _on_path_chosen(card: Dictionary) -> void:
 	Perf.context = "path chosen"
 	if card.get("skipped", false):
 		# a skip pays nothing (pass 47): two a stage, shared with the chests (the card screen spends it)
-		hud.toast("Mutation skipped", UiKit.INK2)
+		hud.toast(Loc.t("toast.mutation_skipped"), UiKit.INK2)
 		if RunAnalytics.I: RunAnalytics.I.event("skip", "path", 0, {"left": Run.skips_left})
 	else:
 		if RunAnalytics.I: RunAnalytics.I.via = "path"
@@ -2195,11 +2195,11 @@ func _show_next_level_cards() -> bool:
 		var offer: Array = FtueDynamite.offer(3) if FtueDynamite.due(Run.level - _pending_levels) else CardPool.level_up_offer(3, [], true)
 		if offer.is_empty():
 			Run.add_gold(10, "empty_offer")
-			hud.toast("Nothing left to pick. +10 gold", UiKit.INK2)
+			hud.toast(Loc.t("toast.nothing_to_pick"), UiKit.INK2)
 			continue
 		_modal = Modal.CARDS
 		set_paused(true)
-		cards.show_offer(offer, "LEVEL %d!" % Run.level, not Save.hint_seen("cards"))
+		cards.show_offer(offer, Loc.t("ui.cards.title_level", {"level": "%d" % Run.level}), not Save.hint_seen("cards"))
 		cards.chosen.connect(_on_card_chosen, CONNECT_ONE_SHOT)
 		return true
 	return false
@@ -2222,7 +2222,7 @@ func _mutlvl_open() -> bool:
 	Audio.play("ui_levelup")
 	if "path_level" in cards:
 		cards.path_level = Run.level
-	cards.show_offer(offer, "LEVEL %d! · MUTATION · %s" % [Run.level, w.def.display_name.to_upper()], not Save.hint_seen("paths"), true)
+	cards.show_offer(offer, Loc.t("ui.cards.title_level_mutation", {"level": "%d" % Run.level, "item": w.def.display_name.to_upper()}), not Save.hint_seen("paths"), true)
 	cards.chosen.connect(_on_path_chosen, CONNECT_ONE_SHOT)
 	return true
 
@@ -2232,7 +2232,7 @@ func _on_card_chosen(card: Dictionary) -> void:
 	if card.get("skipped", false):
 		# a skip pays nothing (pass 47, Garry: "only two skips per Stage, and those skips work for both Level Ups and
 		# Chests"); the card screen spends it
-		hud.toast("Skipped", UiKit.INK2)
+		hud.toast(Loc.t("toast.skipped"), UiKit.INK2)
 		if RunAnalytics.I: RunAnalytics.I.event("skip", "", 0, {"left": Run.skips_left})
 	else:
 		if RunAnalytics.I: RunAnalytics.I.via = "card"
@@ -2386,7 +2386,7 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 		enemies.hero_throw_radius(at, fr, Run.perk_param("grand_finale", "throw", 16.0))
 		telegraphs.flash_ring(at, fr, Color(1.0, 0.82, 0.35), 0.6)
 		fx.burst(at + Vector3(0, 1.0, 0), Color(1.0, 0.82, 0.35), 4.0)
-		hud.toast("GRAND FINALE", Color(1.0, 0.82, 0.35))
+		hud.toast(Loc.t("toast.grand_finale"), Color(1.0, 0.82, 0.35))
 		camera.shake(1.2)
 	# materials for the homestead: bones from every Elite, relics from every boss; deeper stages and Mira's trait add one
 	# the permanent upgrades (the Trail) spend gold, so what the deep parts of a run used to pay in bones and relics they pay in coin:
@@ -2398,7 +2398,7 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 		# pass 88 (lane MIRROR): x the Stakes' bounty on its kind (MirrorDanger)
 		var purse := int(elite_purse(Run.stage) * lode * MirrorDanger.factor_of(def, "bounty"))
 		Run.add_gold(purse, "elite_purse")
-		hud.toast("+%d GOLD" % purse, Color(1.0, 0.85, 0.35))
+		hud.toast(Loc.t("toast.gold_gain", {"gold": "%d" % purse}), Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
 		var chest_gold := int(boss_purse(Run.stage) * lode * MirrorDanger.factor_of(def, "bounty"))
 		# pass 118 (lane BOSSCHEST): the purse goes into the boss's chest (the kill's catch), no longer straight in
@@ -2407,7 +2407,7 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 			c["gold"] = float(c.get("gold", 0.0)) + float(chest_gold)
 		else:
 			Run.add_gold(chest_gold, "boss_purse")
-			hud.toast("+%d GOLD" % chest_gold, Color(1.0, 0.85, 0.35))
+			hud.toast(Loc.t("toast.gold_gain", {"gold": "%d" % chest_gold}), Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
 		_end_ring()
 		_hell_lines.clear()
@@ -2417,10 +2417,10 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 		for k in range(int(def.drops.get("chests", 1)) - 1):
 			pickups.spawn_chest(at + Vector3(-2.0 - 1.6 * k, 0, 1.5))
 		# pass 118 (lane BOSSCHEST): its own chest now (WaveDirector._on_boss_died), its gold and XP inside
-		hud.toast("%s: OPEN IT FOR THE SPOILS" % str(BossChest.look(def.id)["name"]).to_upper(), Color(1.0, 0.82, 0.35))
+		hud.toast(Loc.t("toast.boss_chest_open", {"chest": str(BossChest.look(def.id)["name"]).to_upper()}), Color(1.0, 0.82, 0.35))
 		fx.burst(at + Vector3(0, 1, 0), Color(1.0, 0.75, 0.3), 5.0)
 		camera.shake(1.5)
-		hud.banner("BOSS DOWN", Color(1.0, 0.8, 0.3))
+		hud.banner(Loc.t("banner.boss_down"), Color(1.0, 0.8, 0.3))
 	elif def.archetype == "elite":
 		fx.burst(at + Vector3(0, 0.8, 0), Color(1.0, 0.65, 0.3), 3.0)
 		camera.shake(0.9)
@@ -2487,7 +2487,7 @@ func _last_stand() -> void:
 		add_child(last_stand_fx)
 	last_stand_fx.start()
 	if hud:
-		hud.toast("LAST STAND", Color(1.0, 0.32, 0.3))
+		hud.toast(Loc.t("toast.last_stand"), Color(1.0, 0.32, 0.3))
 	Audio.play("it_last_stand")
 
 
@@ -2555,7 +2555,7 @@ func _on_player_hit() -> void:
 	if Run.has_perk("tough_love"):
 		var e1 := Effect.make("might", "mul", Run.perk_param("tough_love", "might", 0.15), "player")
 		var e2 := Effect.make("area", "mul", Run.perk_param("tough_love", "area", 0.15), "player")
-		Run.add_timed_effects("tough_love", "Tough Love", [e1, e2], Run.perk_param("tough_love", "seconds", 4.0))
+		Run.add_timed_effects("tough_love", Loc.t("ui.run.buff.tough_love"), [e1, e2], Run.perk_param("tough_love", "seconds", 4.0))
 		player.refresh_stats()
 	_thorns_burst()
 	# the hit is felt (pass 54, Garry: a hit on his health had only a number and a shake): a red rim round the screen
@@ -2598,7 +2598,7 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 			if not streamed:
 				Run.gold_changed.emit(Run.run_gold)
 				Audio.play("pk_coin", player.global_position)
-			hud.toast("BANKED %d GOLD" % carried, Color(1.0, 0.85, 0.35))
+			hud.toast(Loc.t("toast.banked_gold", {"gold": "%d" % carried}), Color(1.0, 0.85, 0.35))
 		"vacuum_all":
 			pickups.vacuum_all(true)
 			hud.banner(def.display_name.to_upper(), def.color)
@@ -2608,7 +2608,7 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 			var offer := Run.stranger_offer()
 			if offer.is_empty():
 				Run.add_gold(60, "stranger_empty")
-				hud.toast("The Stranger had nothing for you. +60 gold", UiKit.ACCENT)
+				hud.toast(Loc.t("toast.stranger_nothing"), UiKit.ACCENT)
 				return
 			var cost := float(offer.get("hp_cost", p.get("hp_cost", 0.15)))
 			_request_modal(Modal.STRANGER, func() -> bool:
@@ -2621,16 +2621,16 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 						if RunAnalytics.I: RunAnalytics.I.via = "stranger"
 						var line := Run.stranger_take(offer, cost)
 						player.refresh_stats()
-						hud.toast("The deal: %s, for %d%% of your health" % [line, int(round(cost * 100.0))], Color(0.75, 0.6, 1.0))
+						hud.toast(Loc.t("toast.stranger_deal", {"deal": line, "percent": "%d" % int(round(cost * 100.0))}), Color(0.75, 0.6, 1.0))
 					else:
-						hud.toast("The Stranger is gone. Only his cloak stays.", UiKit.INK2)
+						hud.toast(Loc.t("toast.stranger_gone"), UiKit.INK2)
 					_modal_done({}, false), CONNECT_ONE_SHOT)
 				return true)
 		"shop":
 			var offer := CardPool.level_up_offer(3)
 			if offer.is_empty():
 				Run.add_gold(50, "shop_empty")
-				hud.toast("The shop had nothing left. +50 gold", UiKit.ACCENT)
+				hud.toast(Loc.t("toast.shop_nothing"), UiKit.ACCENT)
 				return
 			_request_modal(Modal.SHOP, func() -> bool:
 				_modal = Modal.SHOP
@@ -2639,14 +2639,14 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 				structure_shop.open(offer)
 				structure_shop.closed.connect(func(bought):
 					if bought:
-						hud.toast("Bought!", UiKit.ACCENT)
+						hud.toast(Loc.t("toast.bought"), UiKit.ACCENT)
 					_modal_done({}, false), CONNECT_ONE_SHOT)
 				return true)
 		"heal":
 			var amount: float = player.max_hp * float(p.get("fraction", 0.5))
 			# named, so the Down! list shows it (pass 46); pass 113 (lane TASKS): counted for the structure's own tasks
 			player.heal(amount, def.display_name, "structure:" + def.id)
-			hud.toast("+%d HP" % int(round(amount)), UiKit.GOOD)
+			hud.toast(Loc.t("toast.hp_gain", {"hp": "%d" % int(round(amount))}), UiKit.GOOD)
 		"loot":
 			var gold := int(p.get("gold", 60))
 			Run.add_gold(gold, "loot_cache")
@@ -2654,17 +2654,17 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 				pickups.spawn(PickupManager.KIND_GEM_L, at + Vector3(Dice.r.randf_range(-1.5, 1.5), 0, Dice.r.randf_range(-1.5, 1.5)), 25.0)
 			for k in range(int(p.get("coins", 4))):
 				pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at + Vector3(Dice.r.randf_range(-1.5, 1.5), 0, Dice.r.randf_range(-1.5, 1.5)), 3.0), "loot_cache")
-			hud.toast("+%d gold and gems" % gold, UiKit.ACCENT)
+			hud.toast(Loc.t("toast.gold_and_gems", {"gold": "%d" % gold}), UiKit.ACCENT)
 		"buff":
 			# pass 106 (lane DRUM): a buff with a `moment` (the War Drum) stops time for its show, then boosts (_use_drum)
 			if p.get("moment") is Dictionary:
 				_use_drum(def)
 				return
 			Run.add_timed_effects("structure:" + def.id, def.display_name, def.effects, float(p.get("seconds", 30.0)))
-			hud.toast("%s: %s for %d s" % [def.display_name.to_upper(), TextGen.describe_effects(def.effects), int(p.get("seconds", 30.0))], def.color)
+			hud.toast(Loc.t("toast.timed_effect", {"name": def.display_name.to_upper(), "effects": TextGen.describe_effects(def.effects), "seconds": "%d" % int(p.get("seconds", 30.0))}), def.color)
 		"level_up":
 			Run.add_xp(Run.xp_to_next() - Run.xp + 0.01)
-			hud.toast("LEVEL UP!", UiKit.XP)
+			hud.toast(Loc.t("toast.level_up"), UiKit.XP)
 		"dice":
 			_roll_dice(def, at)
 		"totem":
@@ -2711,7 +2711,7 @@ func _drum_boost_start(def: StructureDef) -> void:
 	drum_boost.start(def)
 	# short: the moment has said what it gives (the HUD's plate counts the seconds)
 	if hud:
-		hud.toast("%s: %d s" % [def.display_name.to_upper(), int(round(drum_boost.left()))], def.color)
+		hud.toast(Loc.t("toast.buff_seconds", {"name": def.display_name.to_upper(), "seconds": "%d" % int(round(drum_boost.left()))}), def.color)
 
 
 ## A Totem Pole used (pass 73, lane STRUCT; use_structure's "totem"): its menu of gifts (ui/TotemScreen.gd) through the
@@ -2825,7 +2825,7 @@ func teleport_hero(def: StructureDef) -> void:
 	fx.burst(best + Vector3(0, 0.3, 0), Color(1, 1, 1), 1.0)
 	telegraphs.flash_ring(best, 2.6, col, 0.5)
 	hud.flash(Color(col.r, col.g, col.b, 0.35), 0.4)
-	hud.toast("TELEPORTED", col)
+	hud.toast(Loc.t("toast.teleported"), col)
 	Audio.play("st_teleport", best)
 
 
@@ -2836,19 +2836,19 @@ func _roll_dice(def: StructureDef, at: Vector3) -> void:
 	match pick:
 		"heal":
 			player.heal(player.max_hp, def.display_name, "structure:" + def.id)
-			hud.banner("DICE: FULL HEAL", UiKit.GOOD)
+			hud.banner(Loc.t("banner.dice.heal"), UiKit.GOOD)
 		"gold":
 			Run.add_gold(150, "dice")
-			hud.banner("DICE: +150 GOLD", UiKit.ACCENT)
+			hud.banner(Loc.t("banner.dice.gold"), UiKit.ACCENT)
 		"level":
 			Run.add_xp(Run.xp_to_next() - Run.xp + 0.01)
-			hud.banner("DICE: LEVEL UP", UiKit.XP)
+			hud.banner(Loc.t("banner.dice.level"), UiKit.XP)
 		"swarm":
 			var id: String = Run.map.skins.get("swarmer", Run.map.skins.values()[0]) if Run.map and not Run.map.skins.is_empty() else ""
 			if id != "":
 				enemies.spawn_ring(id, 14, at, 9.0)
 			pickups.spawn_chest(at + Vector3(2.0, 0, 0))
-			hud.banner("DICE: AMBUSH, BUT A CHEST", UiKit.DANGER)
+			hud.banner(Loc.t("banner.dice.ambush"), UiKit.DANGER)
 		_:
 			hud.toast(pick, def.color)
 
@@ -2869,7 +2869,7 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 			var cs := str(def.params.get("credit_stat", ""))
 			player.heal(amount, def.display_name, ("stat:" + cs) if cs != "" else ("pickup:" + def.id))
 			if not bool(def.params.get("quiet", false)):
-				hud.toast("+%d HP" % int(round(amount)), UiKit.GOOD)
+				hud.toast(Loc.t("toast.hp_gain", {"hp": "%d" % int(round(amount))}), UiKit.GOOD)
 			Audio.play("pk_heart", at)
 		"gold":
 			# the coin bag: a handful of coins at once
@@ -2880,7 +2880,7 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 			var pu_s: float = Run.powerup_seconds(def.duration)
 			Run.add_timed_effects(def.id, def.display_name, def.effects, pu_s)
 			# the seconds as they run on this hero (pass 54: Solenne's buffs last longer, Run.buff_seconds)
-			hud.toast("%s: %s for %d s" % [def.display_name.to_upper(), TextGen.describe_effects(def.effects), int(round(Run.buff_seconds(pu_s)))], def.color)
+			hud.toast(Loc.t("toast.powerup_effect", {"name": def.display_name.to_upper(), "effects": TextGen.describe_effects(def.effects), "seconds": "%d" % int(round(Run.buff_seconds(pu_s)))}), def.color)
 			Audio.play("pk_powerup", at)
 			# a power-up that makes him faster (a Sprint, by its effects, pass 48): its blue look runs while it lasts
 			if _speeds_up(def) and player:
@@ -2891,19 +2891,19 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 		"shield":
 			var sh_s: float = Run.buff_seconds(Run.powerup_seconds(def.duration))
 			player.shield(sh_s)
-			hud.toast("SHIELD for %d s" % int(round(sh_s)), def.color)
+			hud.toast(Loc.t("toast.shield", {"seconds": "%d" % int(round(sh_s))}), def.color)
 			Audio.play("pk_powerup", at)
 		"vacuum":
 			# everything on the map, the coins and the chests too, as a boss kill does it
 			pickups.vacuum_all(true, true)
-			hud.toast("MAGNET PULSE", def.color)
+			hud.toast(Loc.t("toast.magnet_pulse"), def.color)
 		"magnet":
 			# pass 95 (lane WORLD): a timed wide pull round the hero instead
 			_apply_magnet_pickup(def)
 		"nuke":
 			var np: Dictionary = def.params
 			nuke_blast(player.global_position, float(np.get("radius", 16.0)), def.value, float(np.get("knockback", 14.0)))
-			hud.toast("NUKE", def.color)
+			hud.toast(Loc.t("toast.nuke"), def.color)
 		"leap":
 			# pass 67, Fadeaway's Timeout: he leaps clear towards the emptiest ground (Thruster Burst's scan, `directions`
 			# of them, and its push and lift; his own move, so it carries him under the Invincibility bubble too; of
@@ -2948,7 +2948,7 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 func _apply_magnet_pickup(def: PickupDef) -> void:
 	var secs: float = pickups.magnet_start(def, Run.powerup_seconds(def.duration))
 	var r: float = pickups.magnet_r
-	hud.toast("%s: gems and coins within %d m for %d s" % [def.display_name.to_upper(), int(round(r)), int(round(secs))], def.color)
+	hud.toast(Loc.t("toast.magnet", {"name": def.display_name.to_upper(), "range": "%d" % int(round(r)), "seconds": "%d" % int(round(secs))}), def.color)
 	telegraphs.flash_ring(player.global_position, r, def.color, 0.5)
 
 
@@ -3070,7 +3070,7 @@ func _open_chest_now(boss: bool) -> bool:
 	if boss:
 		# the boss's chest: opening it is what calls everything on the map in, and the reel only holds mutations
 		pickups.vacuum_all(true, true)
-		hud.toast("THE SPOILS COME TO YOU", Color(1.0, 0.82, 0.35))
+		hud.toast(Loc.t("toast.spoils_come"), Color(1.0, 0.82, 0.35))
 	var r := Run.chest_roll(boss)
 	_modal = Modal.CHEST
 	set_paused(true)
@@ -3090,12 +3090,12 @@ func _on_chest_closed(take: bool) -> void:
 		skipped = Run.chest_skip(r) != ""
 	if skipped:
 		Audio.play("ui_tap")
-		hud.toast("Chest skipped", UiKit.INK2)
+		hud.toast(Loc.t("toast.chest_skipped"), UiKit.INK2)
 	else:
 		var line := Run.chest_take(r)
 		Audio.play("ui_chest_take")   # pass 67: the poker chip's clack; purchases keep their ka-ching (ui_buy)
 		if str(r.get("type", "")) != "evolution":
-			hud.toast("Chest: " + line, UiKit.ACCENT)
+			hud.toast(Loc.t("toast.chest_line", {"line": line}), UiKit.ACCENT)
 	if _pending_levels > 0:
 		_request_modal(Modal.CARDS, _show_next_level_cards, 0, true)
 	_modal_done(chest_screen.take_pick() if chest_screen.has_method("take_pick") else {})
@@ -3107,7 +3107,7 @@ func _on_portal_ready(at: Vector3) -> void:
 	portal.global_position = at
 	portal.entered.connect(_on_portal_entered)
 	# pass 87 (lane SGAME): extract, or Endless when the countdown runs out
-	hud.toast("PORTAL OPEN: extract before Endless", UiKit.GOOD)
+	hud.toast(Loc.t("toast.portal_open"), UiKit.GOOD)
 
 
 ## The hero walked into the portal: the stage-clear dialog (pass 60: its turn, behind a chest he touched first).
@@ -3187,7 +3187,7 @@ func _on_endless_started() -> void:
 		if hud.has_method("on_endless_started"):
 			hud.call("on_endless_started")
 		else:
-			hud.banner("ENDLESS", UiKit.DANGER)
+			hud.banner(Loc.t("banner.endless"), UiKit.DANGER)
 
 
 ## An Endless wave came (1-based): the HUD's own when it has one (lane SUI's on_endless_wave), a toast otherwise.
@@ -3198,7 +3198,7 @@ func _on_endless_wave(w: int) -> void:
 	if hud.has_method("on_endless_wave"):
 		hud.call("on_endless_wave", w)
 	elif w > 1:
-		hud.toast("WAVE %d" % w, UiKit.DANGER)
+		hud.toast(Loc.t("toast.wave", {"wave": "%d" % w}), UiKit.DANGER)
 
 
 ## "Not yet" (pass 48, PortalDialog.declined: the button, or back): the run goes on with the portal where it is, and it
@@ -3209,7 +3209,7 @@ func _on_portal_declined() -> void:
 		return
 	if portal_dialog.visible:
 		portal_dialog.visible = false
-	hud.toast("The portal waits", UiKit.GOOD)
+	hud.toast(Loc.t("toast.portal_waits"), UiKit.GOOD)
 	Audio.play("st_portal_wait", portal.global_position if portal and is_instance_valid(portal) else player.global_position)
 	if RunAnalytics.I: RunAnalytics.I.event("portal_wait", "", Run.stage + 1)
 	_modal_done({}, false)
@@ -3264,7 +3264,7 @@ func _on_player_died() -> void:
 			var wp: Vector3 = player.global_position + Vector3(0, 1.2, 0)
 			if not camera.camera.is_position_behind(wp):
 				hud.fly_item(feather, camera.camera.unproject_position(wp), PHOENIX_COLOUR)
-		hud.banner("PHOENIX FEATHER", PHOENIX_COLOUR, feather.icon if feather else null)
+		hud.banner(Loc.t("banner.phoenix_feather"), PHOENIX_COLOUR, feather.icon if feather else null)
 		await Lockstep.after(self, PHOENIX_DELAY, false).timeout
 		if _ended or player == null:
 			return
@@ -3330,11 +3330,11 @@ func _revive(kind: String) -> void:
 		fx.burst(at + Vector3(0, 1.0, 0), PHOENIX_COLOUR, 2.0)
 		Audio.play("it_phoenix", at)
 		hud.show_player_bar()
-		hud.banner("PHOENIX FEATHER", PHOENIX_COLOUR)
+		hud.banner(Loc.t("banner.phoenix_feather"), PHOENIX_COLOUR)
 	else:
 		telegraphs.flash_ring(player.global_position, 6.0, UiKit.GOOD, 0.6)
 		hud.show_player_bar()
-		hud.banner({"debug": "DEBUG REVIVE", "replay": "SAFETY NET"}.get(kind, "REVIVED"), UiKit.GOOD)
+		hud.banner({"debug": "DEBUG REVIVE", "replay": "SAFETY NET"}.get(kind, Loc.t("banner.revived")), UiKit.GOOD)
 	Perf.context = "revived " + kind
 	# what came while he was down (pass 60): the banked level-ups, a chest, a path offer, one after another, once his
 	# blast has read (he blinks for two seconds, so nothing bites him in the beat)
@@ -3362,7 +3362,7 @@ func arena_respawn() -> void:
 	arena_respawns += 1
 	if hud:
 		hud.show_player_bar()
-		hud.toast("RESPAWNED", UiKit.GOOD)
+		hud.toast(Loc.t("toast.respawned"), UiKit.GOOD)
 
 
 ## The arena's hero swap (pass 55, Garry: "an option in the hero tab of the Arena Debug menu which allows switching
@@ -3903,7 +3903,7 @@ func enemy_missile(shooter: int, from: Vector3, speed: float, turn: float, damag
 		dir = Vector3.FORWARD
 	projectiles.launch_enemy_rocket(_rocket_kind, shooter, from, dir.normalized(), speed, turn, damage, area, speed_of_hero, info, blast)
 	fx.burst(from, Color(1.0, 0.5, 0.2), 1.2)
-	hint_once("rocketeer", "ROCKETEER: his rocket hunts you. Follow its smoke line back to him: kill him and it loses you.")
+	hint_once("rocketeer", Loc.t("hint.rocketeer"))
 
 
 ## Whether the rocketeer at creature index `shooter` has his rocket in the air (he reloads only once it is gone).
@@ -4115,7 +4115,7 @@ func on_creature_died_index(i: int) -> void:
 		Run.add_gold(gold, "bounty")
 		pickups.spawn_chest(at)
 		fx.burst(at + Vector3(0, 0.8, 0), Color(1.0, 0.82, 0.35), 1.3)
-		hud.toast("BOUNTY +%d" % gold, Color(1.0, 0.82, 0.35))
+		hud.toast(Loc.t("toast.bounty", {"gold": "%d" % gold}), Color(1.0, 0.82, 0.35))
 		Audio.play("pk_coin", at)
 	_count_bounty()
 
@@ -4265,7 +4265,7 @@ func revive_blast() -> void:
 	var at: Vector3 = player.global_position
 	enemies.damage_radius(at, r, 100000.0, "revive", 12.0)
 	nuke_blast(at, r, 0.0, 12.0)
-	hud.toast("BACK UP", Color(1.0, 0.9, 0.5))
+	hud.toast(Loc.t("toast.back_up"), Color(1.0, 0.9, 0.5))
 
 
 var _berserk_t := 0.0
@@ -4300,7 +4300,7 @@ func barrel_rush_fx(fresh: bool) -> void:
 	if player == null or player.dead:
 		return
 	if fresh:
-		hud.toast("BARREL RUSH", Fx.RUSH_GOLD)
+		hud.toast(Loc.t("toast.barrel_rush"), Fx.RUSH_GOLD)
 		Audio.play("pk_powerup", player.global_position)
 	_rush_running = true
 
@@ -4593,8 +4593,8 @@ func tether_start(shooter: int, cfg: Dictionary) -> void:
 	hud.flash(Color(0.85, 0.05, 0.03, 0.42), 0.5)
 	fx.burst(player.global_position + Vector3(0, 1.0, 0), Color(1.0, 0.18, 0.1), 1.3)
 	telegraphs.flash_ring(player.global_position, 1.3, Color(1.0, 0.15, 0.1), 0.45)
-	hud.toast("HOOKED!", UiKit.DANGER)
-	hint_once("harpoon", "HOOKED: walking away drags it and slows you. Walk to it, or kill it, to get free.")
+	hud.toast(Loc.t("toast.hooked"), UiKit.DANGER)
+	hint_once("harpoon", Loc.t("hint.harpoon"))
 	Audio.play("en_beetle_charge", player.global_position)
 	# pass 111 (lane ENEMY): the hook bites: a clank at him and at the hand, the chain snaps taut, a short camera kick
 	var hk := player.global_position + Vector3(0, 0.85, 0)
@@ -4848,7 +4848,7 @@ func _on_boss_started(def: EnemyDef) -> void:
 	var c: Vector3 = enemies.pos[enemies.boss_index] if enemies.boss_index >= 0 else player.global_position
 	_ring = {"center": Vector3(c.x, map.height_at(c.x, c.z) if map else c.y, c.z), "r": float(cfg.get("radius", 21.0)), "t": 0.0, "cfg": cfg}
 	_ring_mark = telegraphs.hold_ring(_ring["center"], _ring["r"], Color(1.0, 0.4, 0.1, 0.85))
-	hud.toast("THE RING OF FIRE CLOSES IN", Color(1.0, 0.45, 0.15))
+	hud.toast(Loc.t("toast.ring_of_fire"), Color(1.0, 0.45, 0.15))
 
 
 func _end_ring() -> void:

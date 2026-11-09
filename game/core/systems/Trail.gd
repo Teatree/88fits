@@ -37,12 +37,12 @@ const KINDS := ["node", "choice", "optional"]
 ## (its text alone).
 const UPGRADE_KINDS := ["percent", "flat", "count", "seconds", "word"]
 const MOTIFS := ["cactus", "star", "skull", "horseshoe", "moon", "flame", "dust", "none"]
-## The features a node may open, and the words for each.
-const FEATURES := {"wanted": "The Bounty Board"}
+## The features a node may open, and the row of the words for each (pass 137: content/strings/en.json).
+const FEATURES := {"wanted": "gen.trail.feature.wanted"}
 ## `price` when the file leaves a key out.
 const PRICE := {"base": 40.0, "k": 1.5, "power": 2.0, "round": 10.0}
-## The name of an upgrade type's source on the sheet (the pause screen's Stats tab).
-const SOURCE := "The Trail: %s"
+## The row of the name of an upgrade type's source on the sheet (the pause screen's Stats tab): source_name.
+const SOURCE_KEY := "gen.trail.source"
 ## The reason the saved gold moves under when a node is bought (gold_meta).
 const SINK := "trail"
 ## pass 130: the bundle's words for a Trail that gives nothing, and how its unlocks are counted: [one, many, the gift
@@ -486,7 +486,7 @@ static func _ensure_states() -> void:
 					var op := str((e as Dictionary).get("op", "add"))
 					list.append(Effect.make(str(e["stat"]), op if op == "mul" else "add", sum * _num((e as Dictionary).get("per"), 1.0), "player"))
 		if not list.is_empty():
-			_effects.append({"effects": list, "name": SOURCE % str(u.get("name", ut)), "source": "trail:" + str(ut), "type": str(ut), "value": sum})
+			_effects.append({"effects": list, "name": source_name(str(u.get("name", ut))), "source": "trail:" + str(ut), "type": str(ut), "value": sum})
 
 
 static func _is_closed(id: String, visiting: Dictionary) -> bool:
@@ -660,7 +660,12 @@ static func level_for(type: String, id: String) -> int:
 ## What a locked thing reads: "Reach Trail Level N" ("" when no node gives it).
 static func requirement_text(type: String, id: String) -> String:
 	var n := level_for(type, id)
-	return "Reach Trail Level %d" % n if n > 0 else ""
+	return Loc.t("gen.trail.reach_level", {"level": str(n)}) if n > 0 else ""
+
+
+## The name of upgrade type `name`'s source on the sheet: "The Trail: Might".
+static func source_name(name: String) -> String:
+	return Loc.t(SOURCE_KEY, {"name": name})
 
 
 ## The gate id of stage `i` (0-based) of map `map_id`: "<map>:<stage id>" ("" for a map or a timeline the game lacks).
@@ -748,34 +753,35 @@ static func give_text(n: Dictionary) -> String:
 			var words := str(u.get("text", u.get("name", str(g.get("upgrade", "")))))
 			var amount := amount_text(str(u.get("kind", "flat")), _num(g.get("value"), 0.0))
 			return words if amount == "" else "%s %s" % [words, amount]
+		# pass 137: one row a gift, gen.trail.gives.<type>
 		"outlaw":
-			return "Outlaw: %s" % _name_in(reg, "characters", id)
+			return Loc.t("gen.trail.gives.outlaw", {"name": _name_in(reg, "characters", id)})
 		"skin":
 			var hero := id.get_slice(":", 0)
 			var code := id.get_slice(":", 1)
 			var chars: Variant = reg.get("characters") if reg else null
 			var c: Variant = (chars as Dictionary).get(hero) if chars is Dictionary else null
 			var skin := str((c as Object).call("skin_name", code)) if c is Object and (c as Object).has_method("skin_name") else code
-			return "Skin: %s, %s" % [_name_in(reg, "characters", hero), skin]
+			return Loc.t("gen.trail.gives.skin", {"outlaw": _name_in(reg, "characters", hero), "skin": skin})
 		"weapon":
-			return "Weapon: %s" % _name_in(reg, "weapons", id)
+			return Loc.t("gen.trail.gives.weapon", {"name": _name_in(reg, "weapons", id)})
 		"passive":
 			var ps: Variant = reg.get("passives") if reg else null
 			var p: Variant = (ps as Dictionary).get(id) if ps is Dictionary else null
 			var line := p is Object and bool((p as Object).get("line"))
-			return "%s: %s" % ["Card" if line else "Item", _name_in(reg, "passives", id)]
+			return Loc.t("gen.trail.gives.card" if line else "gen.trail.gives.item", {"name": _name_in(reg, "passives", id)})
 		"stage":
 			var map_id := str(g.get("map", id.get_slice(":", 0)))
 			var stage_id := str(g.get("stage", id.get_slice(":", 1)))
-			return "Stage: %s" % _stage_name(reg, map_id, stage_id)
+			return Loc.t("gen.trail.gives.stage", {"name": _stage_name(reg, map_id, stage_id)})
 		"map":
-			return "Map: %s" % _name_in(reg, "maps", id)
+			return Loc.t("gen.trail.gives.map", {"name": _name_in(reg, "maps", id)})
 		"structure":
-			return "Structure: %s" % _name_in(reg, "structures", id)
+			return Loc.t("gen.trail.gives.structure", {"name": _name_in(reg, "structures", id)})
 		"powerup":
-			return "Power-up: %s" % _name_in(reg, "pickups", id)
+			return Loc.t("gen.trail.gives.powerup", {"name": _name_in(reg, "pickups", id)})
 		"feature":
-			return str(FEATURES.get(id, id.capitalize()))
+			return Loc.t(str(FEATURES[id])) if FEATURES.has(id) else id.capitalize()
 	return ""
 
 
@@ -815,8 +821,8 @@ static func note_text(note: Dictionary) -> String:
 		return ""
 	var n := int(note.get("gold", 0))
 	if n <= 0:
-		return "The Upgrade board is now the Trail."
-	return "The Upgrade board is now the Trail. Your %s coin%s back." % [_grouped(n), " is" if n == 1 else "s are"]
+		return Loc.t("gen.trail.note")
+	return Loc.t("gen.trail.note_coins", {"coins": _grouped(n)})
 
 
 static func _grouped(n: int) -> String:

@@ -12,8 +12,8 @@ extends RefCounted
 
 ## The choices an offer holds when the structure does not say (`params.choices`).
 const CHOICES := 3
-## The sheet's source of a taken boon: "Totem: <its word>".
-const SOURCE := "Totem: %s"
+## The row of the sheet's source of a taken boon: "Totem: <its word>" (pass 137: content/strings/en.json).
+const SOURCE_KEY := "gen.structure.totem.source"
 
 
 ## The well-formed entries of a structure's pool (a stat, a positive weight, numbers for min and max), in its order.
@@ -144,7 +144,7 @@ static func title(boon: Dictionary) -> String:
 
 ## The sheet's source name of a taken boon.
 static func source(boon: Dictionary) -> String:
-	return SOURCE % str(boon.get("name", boon.get("id", "?")))
+	return Loc.t(SOURCE_KEY, {"name": str(boon.get("name", boon.get("id", "?")))})
 
 
 # ---------------------------------------------------------------- the Spirit Pole screen's data (pass 82, lane TOTEM)
@@ -221,8 +221,8 @@ static func toast_text(boon: Dictionary) -> String:
 static func pole_label(index: int, total: int) -> String:
 	var n := maxi(index, 1)
 	if total <= 0:
-		return "%s TOTEM" % ordinal(n)
-	return "TOTEM %d OF %d" % [n, maxi(total, n)]
+		return Loc.t("gen.structure.totem.nth", {"nth": ordinal(n)})
+	return Loc.t("gen.structure.totem.of", {"n": str(n), "total": str(maxi(total, n))})
 
 
 ## 1ST, 2ND, 3RD, 4TH ... 11TH, 12TH, 13TH ... 21ST.

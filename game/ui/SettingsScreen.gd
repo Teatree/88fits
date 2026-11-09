@@ -75,7 +75,7 @@ func board_side() -> float:
 
 
 func build() -> void:
-	set_title("Settings")
+	set_title(Loc.t("ui.settings.title"))
 	_build_foot_royale()
 	Save.saved.connect(_on_saved)
 	_refresh()
@@ -86,19 +86,19 @@ func build() -> void:
 ## or the error in red.
 func _saved_text() -> String:
 	if Save.last_error != "":
-		return "save failed · " + Save.last_error
+		return Loc.t("ui.settings.save_failed", {"error": Save.last_error})
 	if Save.last_saved_unix <= 0:
-		return "nothing saved yet"
+		return Loc.t("ui.settings.nothing_saved")
 	var ago: int = int(Time.get_unix_time_from_system()) - int(Save.last_saved_unix)
-	var when := "just now"
+	var when := Loc.t("ui.settings.just_now")
 	if ago >= 86400:
 		var local: int = int(Save.last_saved_unix) + int(Time.get_time_zone_from_system().get("bias", 0)) * 60
 		when = Time.get_datetime_string_from_unix_time(local, true)
 	elif ago >= 3600:
-		when = "%d h ago" % int(ago / 3600.0)
+		when = Loc.t("ui.settings.hours_ago", {"hours": "%d" % int(ago / 3600.0)})
 	elif ago >= 60:
-		when = "%d min ago" % int(ago / 60.0)
-	return "saved %s%s" % [when, " · from the backup" if Save.loaded_from == "backup" else ""]
+		when = Loc.t("ui.settings.minutes_ago", {"minutes": "%d" % int(ago / 60.0)})
+	return Loc.t("ui.settings.saved_backup" if Save.loaded_from == "backup" else "ui.settings.saved", {"when": when})
 
 
 func _on_saved(_ok: bool) -> void:
@@ -175,6 +175,15 @@ func _debug_panel() -> PanelContainer:
 		sw4.toggled.connect(func(on: bool): Settings.set_value("aim_mode", on))
 		r4.add_child(sw4)
 		col.add_child(r4)
+	# "Coins x25" (pass 137, lane POLISH; Garry: "x25 the coin gains temporarily (per coin) ... a flag in the Debug version
+	# of the Settings, I'll turn it off whenever I feel like it"): on by default, every coin picked up pays x25
+	if "coins_x25" in Settings:
+		var r5 := _row("Coins x25")
+		var sw5 := WSwitch.make(bool(Settings.get("coins_x25")))
+		sw5.name = "CoinsX25"
+		sw5.toggled.connect(func(on: bool): Settings.set_value("coins_x25", on))
+		r5.add_child(sw5)
+		col.add_child(r5)
 	return p
 
 
@@ -242,8 +251,9 @@ func _refresh_royale() -> void:
 	var cam := _panel_royale(R_PAD_CAMERA, 14)
 	cam.name = "CameraPanel"
 	var cc: VBoxContainer = cam.get_child(0)
-	cc.add_child(W.label("Camera", R_LABEL_PX))
-	var choice := WChoice.make(_choice_words([["Fixed", "north stays up"], ["Follow", "swings behind the outlaw"]]),
+	cc.add_child(W.label(Loc.t("ui.settings.camera"), R_LABEL_PX))
+	var choice := WChoice.make(_choice_words([[Loc.t("ui.settings.camera_fixed"), Loc.t("ui.settings.camera_fixed_sub")], [Loc.t("ui.settings.camera_follow"),
+		Loc.t("ui.settings.camera_follow_sub")]]),
 		Settings.camera_mode, R_CHOICE_PX, R_CHOICE_SUB_PX, R_CAMERA_PAD, HORIZONTAL_ALIGNMENT_CENTER, 4)
 	choice.name = "CameraChoice"
 	choice.chosen.connect(func(i: int): Settings.set_value("camera_mode", i))
@@ -253,34 +263,36 @@ func _refresh_royale() -> void:
 	var sl := _panel_royale(R_PAD_Y, 0)
 	sl.name = "SliderPanel"
 	var box: VBoxContainer = sl.get_child(0)
-	box.add_child(_slider_row_royale("Joystick size", Settings.stick_size, 0.6, 1.4, func(v): Settings.set_value("stick_size", v), 100.0))
-	box.add_child(_slider_row_royale("Screen shake", Settings.screen_shake, 0.0, 1.5, func(v): Settings.set_value("screen_shake", v), 100.0))
-	box.add_child(_slider_row_royale("Sound", Settings.sfx_volume, 0.0, 1.0, func(v): Settings.set_value("sfx_volume", v), 0.0, 5))
-	box.add_child(_slider_row_royale("Music", Settings.music_volume, 0.0, 1.0, func(v): Settings.set_value("music_volume", v), 0.0, 5))
+	box.add_child(_slider_row_royale(Loc.t("ui.settings.joystick_size"), Settings.stick_size, 0.6, 1.4, func(v): Settings.set_value("stick_size", v), 100.0))
+	box.add_child(_slider_row_royale(Loc.t("ui.settings.screen_shake"), Settings.screen_shake, 0.0, 1.5, func(v): Settings.set_value("screen_shake", v), 100.0))
+	box.add_child(_slider_row_royale(Loc.t("ui.settings.sound"), Settings.sfx_volume, 0.0, 1.0, func(v): Settings.set_value("sfx_volume", v), 0.0, 5))
+	box.add_child(_slider_row_royale(Loc.t("ui.settings.music"), Settings.music_volume, 0.0, 1.0, func(v): Settings.set_value("music_volume", v), 0.0, 5))
 	content.add_child(sl)
 	# the floating text: a switch per kind, then the size
 	var ft := _panel_royale(R_PAD_Y, 0)
 	ft.name = "FloatPanel"
 	var fc: VBoxContainer = ft.get_child(0)
-	for spec in [["Damage numbers", "damage_numbers", "DamageNumbers"], ["Heal numbers", "float_heal", "HealNumbers"],
-			["XP numbers", "float_xp", "XpNumbers"], ["Coin numbers", "float_coins", "CoinNumbers"],
+	for spec in [["ui.settings.damage_numbers", "damage_numbers", "DamageNumbers"], ["ui.settings.heal_numbers", "float_heal", "HealNumbers"],
+			["ui.settings.xp_numbers", "float_xp", "XpNumbers"], ["ui.settings.coin_numbers", "float_coins", "CoinNumbers"],
 			# pass 136 (lane GUNS, R7): the aim wedge on the sand (core/systems/AimWedge.gd)
-			["Show aim", "show_aim", "ShowAim"]]:
-		var r := _row_royale(str(spec[0]))
+			["ui.settings.show_aim", "show_aim", "ShowAim"],
+			# pass 137 (lane BARRELS): the Outlaw's rounds knock barrels back and break them (Settings.shoot_barrels)
+			["ui.settings.shoot_barrels", "shoot_barrels", "ShootBarrels"]]:
+		var r := _row_royale(Loc.t(str(spec[0])))
 		var key: String = spec[1]
 		var s := _switch_royale(bool(Settings.get(key)))
 		s.name = str(spec[2])
 		s.toggled.connect(func(on: bool): Settings.set_value(key, on))
 		r.add_child(s)
 		fc.add_child(r)
-	var lab := W.label("Floating text size", R_LABEL_PX)
+	var lab := W.label(Loc.t("ui.settings.float_size"), R_LABEL_PX)
 	var lm := MarginContainer.new()
 	lm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lm.add_theme_constant_override("margin_top", 18)
 	lm.add_theme_constant_override("margin_bottom", 10)
 	lm.add_child(lab)
 	fc.add_child(lm)
-	var size_choice := WChoice.make(_choice_words([["Small"], ["Normal"], ["Large"]]), Settings.float_size, R_CHOICE_PX, R_CHOICE_SUB_PX,
+	var size_choice := WChoice.make(_choice_words([[Loc.t("ui.settings.float_small")], [Loc.t("ui.settings.float_normal")], [Loc.t("ui.settings.float_large")]]), Settings.float_size, R_CHOICE_PX, R_CHOICE_SUB_PX,
 		R_SIZE_PAD, HORIZONTAL_ALIGNMENT_CENTER, 0)
 	size_choice.name = "FloatSize"
 	size_choice.chosen.connect(func(i: int): Settings.set_value("float_size", i))
@@ -290,7 +302,7 @@ func _refresh_royale() -> void:
 	# the hints: the switch (ten taps flip the player's debug mode, as today) and RESET for next run
 	var hp := _panel_royale(R_PAD_Y, 0)
 	hp.name = "HintsPanel"
-	var hints := _row_royale("First-play hints")
+	var hints := _row_royale(Loc.t("ui.settings.hints"))
 	var sw := _switch_royale(Settings.show_hints)
 	sw.name = "HintsSwitch"
 	sw.toggled.connect(func(on: bool):
@@ -298,22 +310,22 @@ func _refresh_royale() -> void:
 		_count_hint_tap())
 	hints.add_child(sw)
 	hp.get_child(0).add_child(hints)
-	var again := _row_royale("Show the hints again next run")
-	var reset := _small_button("Reset", WButton.SECONDARY, WButton.SLATE)
+	var again := _row_royale(Loc.t("ui.settings.hints_again"))
+	var reset := _small_button(Loc.t("ui.settings.reset"), WButton.SECONDARY, WButton.SLATE)
 	reset.name = "ResetHints"
 	reset.pressed.connect(func():
 		Save.reset_hints()
-		reset.set_parts(["DONE"])
+		reset.set_parts([Loc.t("ui.settings.reset_done")])
 		var tw := reset.create_tween()
 		tw.tween_interval(1.2)
-		tw.tween_callback(func(): reset.set_parts(["RESET"])))
+		tw.tween_callback(func(): reset.set_parts([Loc.t("ui.settings.reset_again")])))
 	again.add_child(reset)
 	hp.get_child(0).add_child(again)
 	content.add_child(hp)
 	# anonymous play data (pass 57): the switch with its line under the name; the end-of-run questions (pass 59)
 	var ap := _panel_royale(R_PAD_Y, 0)
 	ap.name = "AnalyticsPanel"
-	var arow := _row_royale("Anonymous play data", Analytics.settings_line())
+	var arow := _row_royale(Loc.t("ui.settings.play_data"), Analytics.settings_line())
 	var aline: WText = arow.find_child("Sub", true, false)
 	if aline:
 		aline.name = "AnalyticsLine"
@@ -322,7 +334,7 @@ func _refresh_royale() -> void:
 	asw.toggled.connect(func(on: bool): Settings.set_value("analytics", on))
 	arow.add_child(asw)
 	ap.get_child(0).add_child(arow)
-	var srow := _row_royale("Questions after a run")
+	var srow := _row_royale(Loc.t("ui.settings.surveys"))
 	var ssw := _switch_royale(Settings.surveys)
 	ssw.name = "SurveySwitch"
 	ssw.toggled.connect(func(on: bool): Analytics.set_surveys(on, "settings"))
@@ -335,9 +347,9 @@ func _refresh_royale() -> void:
 	# wiping the save (pass 45): its row straight in the panel (the debug panel finds it there), a red WIPE that asks
 	var wp := _panel_royale(R_PAD_Y, 0, false)
 	wp.name = "WipePanel"
-	var wr := _row_royale("Wipe the save", "gold, unlocks, everything · asks twice", false)
+	var wr := _row_royale(Loc.t("ui.settings.wipe_row"), Loc.t("ui.settings.wipe_row_sub"), false)
 	wp.add_child(wr)
-	_wipe = _small_button("Wipe", WButton.DANGER, WButton.RED)
+	_wipe = _small_button(Loc.t("ui.settings.wipe"), WButton.DANGER, WButton.RED)
 	_wipe.name = "Wipe"
 	_wipe.pressed.connect(_ask_wipe)
 	wr.add_child(_wipe)
@@ -502,8 +514,8 @@ static func _spacer(h: float) -> Control:
 
 ## The question before the save goes (pass 45): a pop-up over the screen; the wipe itself runs only from its rock button.
 func _ask_wipe() -> void:
-	WConfirm.open(self, "Wipe the save?", "Gold, unlocks, the Trail, quests and records: everything goes, and nothing brings it back.",
-		"Wipe", "Keep it", _wipe_now)
+	WConfirm.open(self, Loc.t("ui.settings.wipe_title"), Loc.t("ui.settings.wipe_body"),
+		Loc.t("ui.settings.wipe_confirm"), Loc.t("ui.settings.wipe_keep"), _wipe_now)
 
 
 func _wipe_now() -> void:

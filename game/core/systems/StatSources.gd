@@ -109,7 +109,7 @@ static func grid_stats(sheet: StatSheet, core: Array) -> Array:
 ## merged into it)}.
 static func rows(sheet: StatSheet, stat: String) -> Dictionary:
 	var base_v := float(sheet.base.get(stat, default_of(stat)))
-	var start_rows: Array = [{"key": "base", "sid": "base", "kind": "base", "name": "Base", "icon": null, "def": null,
+	var start_rows: Array = [{"key": "base", "sid": "base", "kind": "base", "name": Loc.t("gen.stat.source.base"), "icon": null, "def": null,
 		"round": false, "text": TextGen.player_value(stat, base_v), "value": base_v, "op": "set", "worse": false,
 		"clock": -1.0, "count": 1}]
 	var run_rows: Array = []
@@ -147,7 +147,7 @@ static func rows(sheet: StatSheet, stat: String) -> Dictionary:
 			var r1 := _row(stat, sid, op, v - first, 1, str(a["source"]))
 			if not r1.is_empty():
 				r1["key"] = sid + "|" + op + "|growth"
-				r1["name"] = "%s · Lv %d" % [str(r1["name"]), Run.card_level()]
+				r1["name"] = Loc.t("gen.stat.source.level", {"name": str(r1["name"]), "level": str(Run.card_level())})
 				run_rows.append(r1)
 			continue
 		var r := _row(stat, sid, op, v, int(a["count"]), str(a["source"]))
@@ -205,7 +205,7 @@ static func describe_source(sid: String, source: String = "", count: int = 1) ->
 	out["kind"] = kind if i > 0 or kind == "base" or kind == "stranger" else ""
 	match kind:
 		"base":
-			out["name"] = "Base"
+			out["name"] = Loc.t("gen.stat.source.base")
 		"hero", "trait", "momentum":
 			var c: CharacterDef = Registry.character(id)
 			if c:
@@ -221,7 +221,7 @@ static func describe_source(sid: String, source: String = "", count: int = 1) ->
 			# pass 129 (lane TRAILCORE): the Trail's bought upgrades of one type ("trail:might"): "The Trail: Might", its icon
 			var tu := Trail.upgrade(id)
 			if not tu.is_empty():
-				out["name"] = Trail.SOURCE % str(tu.get("name", id))
+				out["name"] = Trail.source_name(str(tu.get("name", id)))
 				out["icon"] = Trail.icon(id)
 		"passive", "favourite":
 			var p: PassiveDef = Registry.passive(id)
@@ -230,9 +230,9 @@ static func describe_source(sid: String, source: String = "", count: int = 1) ->
 				out["icon"] = p.icon
 				var lv := int(Run.passives.get(id, 0))
 				if kind == "favourite":
-					out["name"] = "%s · favourite" % p.display_name
+					out["name"] = Loc.t("gen.stat.source.favourite", {"name": p.display_name})
 				else:
-					out["name"] = p.display_name + (" · Lv %d" % lv if p.max_level > 1 and lv > 0 else "")
+					out["name"] = Loc.t("gen.stat.source.level", {"name": p.display_name, "level": str(lv)}) if p.max_level > 1 and lv > 0 else p.display_name
 		"chest":
 			# pass 118 (lane ITEMS): what a key banked from the chests ("Jade Key · 7 chests"); pass 119 (lane LEGEND_B): the
 			# Grindstone's "grind:" sources are gone with its bonuses
@@ -241,7 +241,7 @@ static func describe_source(sid: String, source: String = "", count: int = 1) ->
 				out["def"] = cp
 				out["icon"] = cp.icon
 				var n := int((Run.chest_bank.get(id, {}) as Dictionary).get("chests", 0))
-				out["name"] = "%s · %d chest%s" % [cp.display_name, n, "" if n == 1 else "s"]
+				out["name"] = Loc.t("gen.stat.source.chests", {"name": cp.display_name, "chests": str(n)})
 		"perk":
 			var pk: PerkDef = Registry.perk(id)
 			if pk:

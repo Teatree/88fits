@@ -888,6 +888,7 @@ func _fire() -> bool:
 		var sh := Aim.shot(inst, enemies, player, hero, reach)
 		target = int(sh["target"])
 		_aim_target = target
+		Aim.note_soft(inst, sh)
 		dir = sh["dir"]
 		if inst.def.targeting == "forward":
 			half_spread = deg_to_rad(stat("spread_deg", 30.0)) * 0.5

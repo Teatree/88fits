@@ -80,7 +80,11 @@ visual = ExtResource("4_wy63a")
 visual_file = "tommy_gun_visual.tscn"
 params = {
 "aim": {
-"cone": 60.0
+"cone": 60.0,
+"feel": "soft",
+"lone_reach": 6.0,
+"threat_ratio": 0.45,
+"threat_reach": 3.0
 },
 "burst": true,
 "drum_axis": "forward",

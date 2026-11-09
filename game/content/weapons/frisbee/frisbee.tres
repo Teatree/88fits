@@ -72,7 +72,11 @@ sfx = {
 visual_file = "frisbee_visual.tscn"
 params = {
 "aim": {
-"cone": 60.0
+"cone": 60.0,
+"feel": "soft",
+"lone_reach": 6.0,
+"threat_ratio": 0.45,
+"threat_reach": 3.0
 },
 "bend_deg": 25.0,
 "bend_per_extra": 12.0,

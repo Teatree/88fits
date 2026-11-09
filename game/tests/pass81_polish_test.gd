@@ -143,9 +143,10 @@ func _inst(id: String) -> WeaponInstance:
 
 func test_the_raider_names_85_percent_of_the_hero() -> void:
 	var ms: Dictionary = Registry.enemy("rocketeer").artillery["missile"]
-	assert_float(float(ms["speed_of_hero"])).is_equal_approx(0.85, 0.0001)
+	# (pass 137, lane POLISH, re-pinned: Garry "The Rocketeer's rocket 10% slower": 0.85 x 0.9)
+	assert_float(float(ms["speed_of_hero"])).is_equal_approx(0.765, 0.0001)
 	var d := _json("res://content/enemies/rocketeer/rocketeer.json")
-	assert_float(float(d["artillery"]["missile"]["speed_of_hero"])).is_equal_approx(0.85, 0.0001)
+	assert_float(float(d["artillery"]["missile"]["speed_of_hero"])).is_equal_approx(0.765, 0.0001)
 	# the rest of its behaviour kept: the turn, the slow on every hit (pass 73)
 	assert_float(float(ms["turn"])).is_greater(0.0)
 	assert_bool(ms.get("hit_slow") is Dictionary and (ms["hit_slow"] as Dictionary).has("mult")).is_true()

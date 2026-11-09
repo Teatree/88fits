@@ -75,7 +75,11 @@ params = {
 "aim": {
 "assist": 15.0,
 "cone": 60.0,
-"dry_db": -6.0
+"dry_db": -6.0,
+"feel": "soft",
+"lone_reach": 6.0,
+"threat_ratio": 0.45,
+"threat_reach": 3.0
 },
 "pierce_falloff": {
 "first_mult": 1.1,

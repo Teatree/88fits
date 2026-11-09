@@ -5,7 +5,7 @@
   "doc": "Stand in its small circle for three seconds and the pole offers three gifts of its carved spirits; take one and it stays with you for the whole run. Ten to twelve stand on every map; a used pole turns grey and stays.",
   "effect": "totem",
   "radius": 1.2,
-  "interact_time": 3.0,
+  "interact_time": 2.5,
   "color": "#2FB5A8",
   "prop": "",
   "height": 1.8,

@@ -33,7 +33,11 @@ params = {
 "big_cone": 90.0,
 "cone": 60.0,
 "family": "melee",
-"look": "slash"
+"feel": "soft",
+"lone_reach": 6.0,
+"look": "slash",
+"threat_ratio": 0.45,
+"threat_reach": 3.0
 },
 "final": {
 "crit_refund": 0.2

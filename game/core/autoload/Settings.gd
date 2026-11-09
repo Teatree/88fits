@@ -65,6 +65,16 @@ var fire_forward: bool = false
 var aim_mode: bool = true
 ## Pass 136 (R7): the faint aim wedge on the sand in front of the Outlaw (core/systems/AimWedge.gd); a player setting.
 var show_aim: bool = true
+## Pass 137 (lane BARRELS; Garry: "If a shot (projectile) flies through it the Barrel gets knocked back the first time and
+## the second time it gets destroyed ... A togglable option in the settings, on by default"): the Outlaw's flying rounds
+## knock barrels back and break them (BarrelField.shot_through, BALANCING 78.BARRELS); off, only walking into one breaks it.
+## A player setting (the Settings screen's "Shoot barrels"), not held in prod.
+var shoot_barrels: bool = true
+## Pass 137 (lane POLISH; Garry: "x25 the coin gains temporarily (per coin) ... Make it a flag in the Debug version of the
+## Settings, I'll turn it off whenever I feel like it"): TEMPORARY. On (the default for now), every coin the Outlaw picks
+## up in a run pays 25 times its gold (PickupManager.coin_pay; never a bounty, a boss chest's purse or any other gold).
+## The developer menu's row "Coins x25" and the Debug panel's switch; the production build holds it off.
+var coins_x25: bool = true
 ## Pass 125 (the performance report's option C): the crowd's hot loops run compiled where the library is (EnemyManager._nat,
 ## game/bin). On by default; off, the script runs them as before, the same run to the last digit: the developer menu's switch
 ## for comparing the two on a phone (a run reads it as it starts). The run record says which ran (`native`).
@@ -144,7 +154,7 @@ var frame_cap: int = default_frame_cap(OS.has_feature("mobile")):
 const PROD_LOCKED := {"debug_mode": false, "debug_panel": false, "debug_modal_buttons": false, "free_revive_button": false,
 	"hit_log": false, "preview_locked_heroes": false, "ranged_on_screen": true,
 	"pierce_falloff": true, "hero_knockback": false, "fire_forward": false, "aim_mode": true, "native_crowd": true,
-	"hud_slot_rarity": true}
+	"hud_slot_rarity": true, "coins_x25": false}
 var _prod_forced := -1
 
 
@@ -214,7 +224,8 @@ func to_dict() -> Dictionary:
 		"preview_locked_heroes": preview_locked_heroes, "top_inset": top_inset, "debug_mode": debug_mode,
 		"ranged_on_screen": ranged_on_screen, "pierce_falloff": pierce_falloff,
 		"hero_knockback": hero_knockback, "fire_forward": fire_forward, "aim_mode": aim_mode, "show_aim": show_aim, "native_crowd": native_crowd,
-		"hud_slot_rarity2": hud_slot_rarity,
+		"shoot_barrels": shoot_barrels,
+		"hud_slot_rarity2": hud_slot_rarity, "coins_x25": coins_x25,
 		"dummy_count": dummy_count, "dummy_hp": dummy_hp,
 		"dummy_patrol": dummy_patrol, "attacker_dummy_hp": attacker_dummy_hp,
 		"elite_dummy_hp": elite_dummy_hp, "elite_dummy_mode": elite_dummy_mode,
@@ -249,6 +260,8 @@ func from_dict(d: Dictionary) -> void:
 	fire_forward = bool(d.get("fire_forward", fire_forward))
 	aim_mode = bool(d.get("aim_mode", aim_mode))
 	show_aim = bool(d.get("show_aim", show_aim))
+	shoot_barrels = bool(d.get("shoot_barrels", shoot_barrels))
+	coins_x25 = bool(d.get("coins_x25", coins_x25))
 	native_crowd = bool(d.get("native_crowd", native_crowd))
 	# pass 123 (Garry: "Weapon Rarity isn't displayed at the top left"): on by default; a new key, so a save written with
 	# pass 122's default (off) plays the new one

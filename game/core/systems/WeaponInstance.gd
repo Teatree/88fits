@@ -380,16 +380,16 @@ func stat_rows() -> Array:
 			var sr: float = (float((sun as Dictionary).get("radius", 1.3)) if sun is Dictionary else 1.3) * stat("area", 1.0)
 			srows.append({"stat": "damage", "name": TextGen.stat_name("damage"), "value": TextGen.format_value("damage", stat("damage"))})
 			srows.append({"stat": "cooldown", "name": TextGen.stat_name("cooldown"), "value": TextGen.format_value("cooldown", stat("cooldown"))})
-			srows.append({"stat": "amount", "name": "pillars", "value": TextGen.format_value("amount", float(maxi(stat_int("amount", 1), 1)))})
+			srows.append({"stat": "amount", "name": Loc.t("gen.weapon.row.pillars"), "value": TextGen.format_value("amount", float(maxi(stat_int("amount", 1), 1)))})
 			srows.append({"stat": "radius", "name": TextGen.stat_name("radius"), "value": TextGen.format_value("radius", sr)})
 			var zn = params.get("zenith")
 			if zn is Dictionary:
-				srows.append({"stat": "zenith", "name": "sweep", "value": "every %d, %d%%" % [int((zn as Dictionary).get("every", 10)), int(round(float((zn as Dictionary).get("frac", 0.8)) * 100.0))]})
+				srows.append({"stat": "zenith", "name": Loc.t("gen.weapon.row.sweep"), "value": Loc.t("gen.weapon.row.sweep_value", {"every": str(int((zn as Dictionary).get("every", 10))), "pct": str(int(round(float((zn as Dictionary).get("frac", 0.8)) * 100.0)))})})
 			var gd = params.get("gold_dust")
 			if gd is Dictionary:
-				srows.append({"stat": "gold_dust", "name": "coin a kill", "value": "%d%%" % int(round(float((gd as Dictionary).get("chance", 0.3)) * 100.0))})
+				srows.append({"stat": "gold_dust", "name": Loc.t("gen.weapon.row.coin_a_kill"), "value": "%d%%" % int(round(float((gd as Dictionary).get("chance", 0.3)) * 100.0))})
 			_element_rows(srows)
-			srows.append({"stat": "dps", "name": "dps", "value": str(int(round(dps_estimate())))})
+			srows.append({"stat": "dps", "name": Loc.t("gen.weapon.row.dps"), "value": str(int(round(dps_estimate())))})
 			return srows
 		"ConeWave":
 			# the Guitarra (pass 46): its reach, the cone's width and lift, and its waves (`amount`: the first and its echoes)
@@ -398,12 +398,12 @@ func stat_rows() -> Array:
 			var cd: Dictionary = cone if cone is Dictionary else {}
 			rows.append({"stat": "damage", "name": TextGen.stat_name("damage"), "value": TextGen.format_value("damage", stat("damage"))})
 			rows.append({"stat": "cooldown", "name": TextGen.stat_name("cooldown"), "value": TextGen.format_value("cooldown", stat("cooldown"))})
-			rows.append({"stat": "range", "name": "reach", "value": TextGen.format_value("range", stat("range"))})
+			rows.append({"stat": "range", "name": Loc.t("gen.weapon.row.reach"), "value": TextGen.format_value("range", stat("range"))})
 			rows.append({"stat": "cone_deg", "name": TextGen.stat_name("cone_deg"), "value": TextGen.format_value("cone_deg", TextGen.cone_width(params, stat("area", 1.0)))})
-			rows.append({"stat": "amount", "name": "waves", "value": TextGen.format_value("amount", float(maxi(stat_int("amount", 1), 1)))})
+			rows.append({"stat": "amount", "name": Loc.t("gen.weapon.row.waves"), "value": TextGen.format_value("amount", float(maxi(stat_int("amount", 1), 1)))})
 			rows.append({"stat": "lift", "name": TextGen.stat_name("lift"), "value": TextGen.format_value("lift", float(cd.get("lift", 0.6)))})
 			_element_rows(rows)
-			rows.append({"stat": "dps", "name": "dps", "value": str(int(round(dps_estimate())))})
+			rows.append({"stat": "dps", "name": Loc.t("gen.weapon.row.dps"), "value": str(int(round(dps_estimate())))})
 			return rows
 		"ProjectileEmitter":
 			keys = ["damage", "cooldown", "amount", "range", "pierce", "knockback", "speed"]
@@ -435,7 +435,7 @@ func stat_rows() -> Array:
 	if str(params.get("amount_mode", "")) == "bounces":
 		for r: Dictionary in rows:
 			if str(r["stat"]) == "amount":
-				r["name"] = "bounces"
+				r["name"] = Loc.t("gen.weapon.row.bounces")
 				r["value"] = str(ball_bounces())
 	# the Spear (pass 46): how long the first creature it strikes is pinned, and how long it stands in the sand after
 	var pin = params.get("pin")
@@ -446,7 +446,7 @@ func stat_rows() -> Array:
 		rows.append({"stat": "plant", "name": TextGen.stat_name("plant"), "value": TextGen.format_value("plant", float((plant as Dictionary).get("seconds", 0.6)))})
 	_gun_rows(rows)
 	_element_rows(rows)
-	rows.append({"stat": "dps", "name": "dps", "value": str(int(round(dps_estimate())))})
+	rows.append({"stat": "dps", "name": Loc.t("gen.weapon.row.dps"), "value": str(int(round(dps_estimate())))})
 	return rows
 
 
@@ -457,25 +457,25 @@ func _gun_rows(rows: Array) -> void:
 	if not bl.is_empty():
 		var per: float = float(bl["frac"]) * stat("damage") * float(maxi(stat_int("amount", 1), 1))
 		if str(bl["shape"]) == "cone":
-			rows.append({"stat": "blast", "name": "cone", "value": "%d° × %.1f m" % [int(round(float(bl["deg"]))), float(bl["range"])]})
+			rows.append({"stat": "blast", "name": Loc.t("gen.weapon.row.cone"), "value": "%d° × %.1f m" % [int(round(float(bl["deg"]))), float(bl["range"])]})
 		else:
-			rows.append({"stat": "blast", "name": "lane", "value": "%.1f × %.1f m" % [float(bl["width"]), float(bl["range"])]})
-		rows.append({"stat": "blast_hit", "name": "each hit", "value": TextGen.format_value("damage", per)})
+			rows.append({"stat": "blast", "name": Loc.t("gen.weapon.row.lane"), "value": "%.1f × %.1f m" % [float(bl["width"]), float(bl["range"])]})
+		rows.append({"stat": "blast_hit", "name": Loc.t("gen.weapon.row.each_hit"), "value": TextGen.format_value("damage", per)})
 	var de := int(params.get("double_every", 0))
 	if de > 0:
-		rows.append({"stat": "double_every", "name": "fires twice", "value": "every %d" % de})
+		rows.append({"stat": "double_every", "name": Loc.t("gen.weapon.row.fires_twice"), "value": Loc.t("gen.weapon.row.every", {"n": str(de)})})
 	var hs = params.get("hip_shot")
 	if hs is Dictionary and int((hs as Dictionary).get("every", 0)) > 0:
-		rows.append({"stat": "hip_shot", "name": "hip shot", "value": "%d volleys, every %d" % [int((hs as Dictionary).get("volleys", 3)), int(hs["every"])]})
+		rows.append({"stat": "hip_shot", "name": Loc.t("gen.weapon.row.hip_shot"), "value": Loc.t("gen.weapon.row.hip_shot_value", {"volleys": str(int((hs as Dictionary).get("volleys", 3))), "every": str(int(hs["every"]))})})
 	var ra = params.get("ricochet_any")
 	if ra is Dictionary and str(params.get("amount_mode", "")) == "bounces":
 		# pass 67: the ball's bounces are its amount row; here what each one strikes for
-		rows.append({"stat": "ricochet_any", "name": "each bounce", "value": "%d%%" % int(round(float((ra as Dictionary).get("frac", 0.8)) * 100.0))})
+		rows.append({"stat": "ricochet_any", "name": Loc.t("gen.weapon.row.each_bounce"), "value": "%d%%" % int(round(float((ra as Dictionary).get("frac", 0.8)) * 100.0))})
 	elif ra is Dictionary and int((ra as Dictionary).get("count", 0)) > 0:
-		rows.append({"stat": "ricochet_any", "name": "ricochets", "value": "%d at %d%%" % [int(ra["count"]), int(round(float((ra as Dictionary).get("frac", 0.8)) * 100.0))]})
+		rows.append({"stat": "ricochet_any", "name": Loc.t("gen.weapon.row.ricochets"), "value": Loc.t("gen.weapon.row.ricochets_value", {"count": str(int(ra["count"])), "pct": str(int(round(float((ra as Dictionary).get("frac", 0.8)) * 100.0)))})})
 	var mc := float(params.get("mini_crit", 0.0))
 	if mc > 0.0:
-		rows.append({"stat": "mini_crit", "name": "mini crits", "value": "%d%%" % int(round(mc * 100.0))})
+		rows.append({"stat": "mini_crit", "name": Loc.t("gen.weapon.row.mini_crits"), "value": "%d%%" % int(round(mc * 100.0))})
 
 
 ## The poison and burn rows, when the weapon carries either.
@@ -489,7 +489,7 @@ func _element_rows(rows: Array) -> void:
 		rows.append({"stat": k, "name": TextGen.stat_name(k), "value": TextGen.format_value(k, sheet.get_stat(k))})
 	# a fire that takes only some of what it hits (pass 51: Dragon's Breath)
 	if sheet.get_stat("fire_damage", 0.0) > 0.0 and ignite_chance() < 1.0:
-		rows.append({"stat": "ignite_chance", "name": "catches fire", "value": "%d%%" % int(round(ignite_chance() * 100.0))})
+		rows.append({"stat": "ignite_chance", "name": Loc.t("gen.weapon.row.catches_fire"), "value": "%d%%" % int(round(ignite_chance() * 100.0))})
 
 
 ## The Frisbee's estimate (pass 69, lane FRIS): a disc is counted as cutting FRISBEE_CROWD creatures a flight, each at its
@@ -567,19 +567,19 @@ func breath_dps() -> float:
 func breath_rows() -> Array:
 	var bd := breath_block()
 	var rows: Array = []
-	rows.append({"stat": "damage", "name": "damage a second", "value": TextGen.format_value("damage", stat("damage", 12.0))})
+	rows.append({"stat": "damage", "name": Loc.t("gen.weapon.row.damage_a_second"), "value": TextGen.format_value("damage", stat("damage", 12.0))})
 	rows.append({"stat": "cooldown", "name": TextGen.stat_name("cooldown"), "value": TextGen.format_value("cooldown", stat("cooldown", 10.0))})
-	rows.append({"stat": "duration", "name": "breath", "value": TextGen.format_value("duration", breath_seconds())})
-	rows.append({"stat": "range", "name": "reach", "value": TextGen.format_value("range", stat("range", 5.0))})
+	rows.append({"stat": "duration", "name": Loc.t("gen.weapon.row.breath"), "value": TextGen.format_value("duration", breath_seconds())})
+	rows.append({"stat": "range", "name": Loc.t("gen.weapon.row.reach"), "value": TextGen.format_value("range", stat("range", 5.0))})
 	rows.append({"stat": "cone_deg", "name": TextGen.stat_name("cone_deg"), "value": TextGen.format_value("cone_deg", breath_cone_deg())})
 	var knock := float(bd.get("knock", 0.0))
 	if knock > 0.0:
-		rows.append({"stat": "knockback", "name": "shove a second", "value": TextGen._plain(knock)})
+		rows.append({"stat": "knockback", "name": Loc.t("gen.weapon.row.shove_a_second"), "value": TextGen._plain(knock)})
 	var st = bd.get("still")
 	if st is Dictionary:
-		rows.append({"stat": "still", "name": "held breath", "value": "×%s long, ×%s hits" % [TextGen._plain(float((st as Dictionary).get("duration_mult", 2.0))), TextGen._plain(float((st as Dictionary).get("damage_mult", 1.5)))]})
+		rows.append({"stat": "still", "name": Loc.t("gen.weapon.row.held_breath"), "value": Loc.t("gen.weapon.row.held_breath_value", {"long": TextGen._plain(float((st as Dictionary).get("duration_mult", 2.0))), "hits": TextGen._plain(float((st as Dictionary).get("damage_mult", 1.5)))})})
 	_element_rows(rows)
-	rows.append({"stat": "dps", "name": "dps", "value": str(int(round(dps_estimate())))})
+	rows.append({"stat": "dps", "name": Loc.t("gen.weapon.row.dps"), "value": str(int(round(dps_estimate())))})
 	return rows
 
 
@@ -591,13 +591,13 @@ func salt_rows() -> Array:
 	var rows: Array = []
 	rows.append({"stat": "damage", "name": TextGen.stat_name("damage"), "value": TextGen.format_value("damage", stat("damage", 6.0) * float(sd.get("damage_mult", 1.0)))})
 	rows.append({"stat": "cooldown", "name": TextGen.stat_name("cooldown"), "value": TextGen.format_value("cooldown", stat("cooldown", 1.6))})
-	rows.append({"stat": "amount", "name": "patches", "value": TextGen.format_value("amount", float(maxi(stat_int("amount", 1), 1)))})
-	rows.append({"stat": "radius", "name": "patch radius", "value": "%.1f m" % TextGen.salt_radius(sheet, params)})
-	rows.append({"stat": "duration", "name": "lasts", "value": TextGen.format_value("duration", stat("duration", 4.0) * float(sd.get("duration_mult", 1.0)))})
+	rows.append({"stat": "amount", "name": Loc.t("gen.weapon.row.patches"), "value": TextGen.format_value("amount", float(maxi(stat_int("amount", 1), 1)))})
+	rows.append({"stat": "radius", "name": Loc.t("gen.weapon.radius.patch"), "value": "%.1f m" % TextGen.salt_radius(sheet, params)})
+	rows.append({"stat": "duration", "name": Loc.t("gen.weapon.row.lasts"), "value": TextGen.format_value("duration", stat("duration", 4.0) * float(sd.get("duration_mult", 1.0)))})
 	if float(sd.get("slow", 0.0)) > 0.0:
-		rows.append({"stat": "slow", "name": "slow", "value": "%d%%" % int(round(float(sd.get("slow", 0.0)) * 100.0))})
+		rows.append({"stat": "slow", "name": Loc.t("gen.weapon.row.slow"), "value": "%d%%" % int(round(float(sd.get("slow", 0.0)) * 100.0))})
 	if float(sd.get("luck_mult", 1.0)) > 1.0:
-		rows.append({"stat": "luck_mult", "name": "power-up odds", "value": "×%s" % TextGen._plain(float(sd.get("luck_mult", 1.0)))})
+		rows.append({"stat": "luck_mult", "name": Loc.t("gen.weapon.row.power_up_odds"), "value": "×%s" % TextGen._plain(float(sd.get("luck_mult", 1.0)))})
 	_element_rows(rows)
-	rows.append({"stat": "dps", "name": "dps", "value": str(int(round(dps_estimate())))})
+	rows.append({"stat": "dps", "name": Loc.t("gen.weapon.row.dps"), "value": str(int(round(dps_estimate())))})
 	return rows

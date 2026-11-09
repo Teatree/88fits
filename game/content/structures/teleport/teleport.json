@@ -1,7 +1,7 @@
 {
   "id": "teleport",
   "radius": 1.4,
-  "interact_time": 3.0,
+  "interact_time": 2.5,
   "name": "Teleport",
   "flavour": "Step in. Come out somewhere quieter.",
   "effect": "teleport",

@@ -901,6 +901,15 @@ entries = {
 "voices": 2,
 "volume_db": -4.0
 },
+"st_barrel_hit": {
+"category": "pickup",
+"file": "real/ui_chest_knock.wav",
+"loop": false,
+"pitch_spread": 0.1,
+"stream": ExtResource("129_f13m7"),
+"voices": 3,
+"volume_db": -6.0
+},
 "st_deposit": {
 "category": "ui",
 "file": "real/st_deposit.wav",

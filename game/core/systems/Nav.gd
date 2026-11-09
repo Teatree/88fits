@@ -37,7 +37,7 @@ static func _go(path: String) -> void:
 static func to_trail(type: String, id: String, from: Node = null) -> bool:
 	var t := _tree()
 	var cur: Node = from if from else (t.current_scene if t else null)
-	if cur == null or not Trail.gated(type, id):
+	if cur == null or not Trail.gated(type, id) or not trail_open():
 		return false
 	var state: Dictionary = {}
 	if cur.has_method("nav_state"):
@@ -51,6 +51,13 @@ static func to_trail(type: String, id: String, from: Node = null) -> bool:
 		script.call("open_on", type, id)
 	_go(TRAIL)
 	return true
+
+
+## Pass 137 (lane TUTOR): whether the Trail is open to the player (Save.trail_open: the first run counted; true without a
+## save, as in a tool). Until then to_trail opens nothing (its callers say ui_locked).
+static func trail_open() -> bool:
+	var save := W.node("Save")
+	return save == null or not save.has_method("trail_open") or bool(save.call("trail_open"))
 
 
 ## The Trail asks once, as it is built: true when it was opened by to_trail (its Back is Nav.back); false forgets the

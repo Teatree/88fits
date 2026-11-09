@@ -159,6 +159,14 @@ func _fire_aimed(em: EnemyManager, reach: float, n: int) -> bool:
 		if sc < INF:
 			ranked.append([sc, e])
 	ranked.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]) or (float(a[0]) == float(b[0]) and int(a[1]) < int(b[1])))
+	# pass 137 (lane AIM): the soft rule (Aim.soft_target): a near threat outside the cone is grabbed first; with the cone
+	# empty, the lone creature within `lone_reach`
+	if Aim.soft(inst):
+		var ok := func(e: int) -> bool: return em.grabbable(e) and em.screen_ok(e)
+		var s := Aim.soft_target(em, pp, f, reach, cone, int(ranked[0][1]) if not ranked.is_empty() else -1, Aim.cfg(inst), false, "", [], ok)
+		if int(s["i"]) >= 0:
+			ranked.push_front([0.0, int(s["i"])])
+			Aim.note_soft(inst, s)
 	if ranked.is_empty():
 		# the dry shot: at the sand ahead, and nothing happens
 		dry_shots += 1

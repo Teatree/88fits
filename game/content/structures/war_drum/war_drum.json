@@ -1,7 +1,7 @@
 {
   "id": "war_drum",
   "radius": 2.2,
-  "interact_time": 3.0,
+  "interact_time": 2.5,
   "name": "War Drum",
   "flavour": "Hit it. Then hit everything else.",
   "effect": "buff",

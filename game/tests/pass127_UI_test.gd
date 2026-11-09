@@ -157,8 +157,11 @@ func test_the_screens_say_skins_never_looks() -> void:
 	_all_words(s, words)
 	assert_bool(" ".join(words).to_upper().contains("LOOKS")).is_false()
 	var src := FileAccess.get_file_as_string("res://ui/HeroesScreen.gd")
-	assert_bool(src.contains("WButton.make([\"SKINS\"]")).is_true()
-	assert_bool(src.contains("make_star(\"Skins\")")).is_true()
+	# pass 137 (lane W2-HUB): the words are rows of the string table
+	assert_bool(src.contains("WButton.make([Loc.t(\"ui.heroes.skins\")]")).is_true()
+	assert_str(Loc.t("ui.heroes.skins")).is_equal("SKINS")
+	assert_bool(src.contains("make_star(Loc.t(\"ui.heroes.skins_star\"))")).is_true()
+	assert_str(Loc.t("ui.heroes.skins_star")).is_equal("Skins")
 
 
 func test_no_player_facing_string_in_the_skin_flows_says_look() -> void:

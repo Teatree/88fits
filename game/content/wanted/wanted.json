@@ -1,5 +1,5 @@
 {
-  "doc": "The Bounty Board (pass 111, lane WANTED): before a stage run the player picks one of `choices` Wanted posters (or none); each is a task rolled from `tasks` by weight, its numbers from the stage's range grown with progression, its difficulty from where the number fell in that range, its reward from the difficulty. Paid only when done, at the run's end. Edited in the Level Editor's Wanted tab; every rule is in BALANCING.md 54.WANTED.",
+  "doc": "The Bounty Board (pass 111, lane WANTED): before a stage run the player picks one of `choices` Wanted posters (or none); each is a task rolled from `tasks` by weight, its numbers from the stage's range grown with progression, its difficulty from where the number fell in that range, its reward from the difficulty. Paid only when done, at the run's end. Edited in the Level Editor's Wanted tab; every rule is in BALANCING.md 54.WANTED. Pass 137: `weapon_task_weight` multiplies the card weight of the weapon an open poster's task names (level-ups and chests; BALANCING 78).",
   "enabled": true,
   "choices": 3,
   "rerolls": 0,
@@ -8,6 +8,7 @@
   "items_seen_only": true,
   "progress": {"param_growth": 0.15},
   "reward": {"base": 40, "per_point": 60, "progress_growth": 0.5, "stage_mult": [1.0, 1.25, 1.4, 1.5], "round": 5, "currency": "gold"},
+  "weapon_task_weight": 1.5,
   "tasks": [
     {"type": "kill_enemy", "on": true, "weight": 14, "difficulty": [1.0, 3.0], "n": [[40, 120], [50, 150], [55, 165], [60, 180]], "step": 5, "per_minute_cap": 30, "min_seconds": 40, "name": "{target}", "text": "Kill {n} of them"},
     {"type": "kill_weapon", "on": true, "weight": 10, "difficulty": [1.0, 3.0], "n": [[150, 450], [200, 600], [225, 675], [250, 750]], "step": 25, "start_weight": 3, "other_bonus": 1.0, "name": "{target}", "text": "Kill {n} with it"},

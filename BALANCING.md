@@ -10392,3 +10392,234 @@ creature inside his flee distance. With the switch off he plays exactly as befor
 turned within 25° of the front once the crowd is 3 m past his keep distance) is built but weighs 0 (`Bot.LEAN_SHARE`):
 measured, it cost 75-90% more HP a minute with the beats for no more kills.
 
+## 78. Pass 137: soft and hard aim, Coins x25 (temporary), 50 gold, the Results' count, shots break barrels, the Trail tutorial, scenery tints, the string table
+
+Garry (2026-11-09): "Aiming-Hard - These are the Laser and Dragon's Breath ... Aiming-Soft - ... these weapons will actually
+shoot behind the Player in cases when the enemy is obviously much closer"; "x25 the coin gains temporarily (per coin)";
+"Give Player 50 coins at the start"; the Results' coins "ramps up linearly with higher intensity the higher the amount of
+Coins is"; "Make it so the Barrels now Break from damage"; "Spear VFX doesn't look good at all"; "Reduce the Speed of the
+Rocketeer's Rocket by 10%"; "Add slight, colour differences to the Environment Art assets"; "Make all structures 2.5s to
+activate"; a Wanted weapon task "slightly increases the chances"; "I'd like to Tutorialize the Trail"; the localization
+start. His answers: the melee weapons get the soft rule too; a fresh save starts with 50 (no 100); only flying rounds break
+barrels; saves that already used the Trail skip the tutorial; the string table holds everything a player reads, one
+description row per item, short variables, English only.
+
+**78.AIM. Aiming-Hard and Aiming-Soft** (pass 137, lane AIM; core/systems/Aim.gd). Garry (2026-11-09): "The `Aimed` family
+of weapons seems to have too high a prio to what's in front of the Player ... *Aiming-Hard* - These are the `Laser` and
+`Dragon's Breath`. They are very much shoot where Player is facing with little wiggle room around this. *Aiming-Soft* - all
+the other weapons that were previously classified as `Aimed`. These weapons will actually shoot behind the Player in cases
+when the enemy is obviously much closer and therefore a bigger threat than the enemy Player is aiming at. This effect should
+be much 'weaker' than the not aiming version ... And they still shoot at all times, of course. And in the case of absence of
+any other enemy to shoot, it should be good that at certain close enough distance the weapon does still shoot the only
+enemy on the screen"; the melee weapons soft too. Every aimed and melee weapon's `params.aim.feel`:
+- **hard**: the Big Mouth, Loudmouth, the Dragon's Breath, Fire Eater. As pass 136 built them (checked, unchanged): the
+  mouth follows the facing at most 180°/s and never turns to a creature (77.AIM.BEAM); the breath's cone is his facing every
+  frame. Never shot behind.
+- **soft** (the default of the aimed and melee families; written in each JSON): the Revolver, Tommy Gun, Boomstick,
+  Basketball, Frisbee, Tumbleweed, Guitarra, Gravity Gun, Rocket Pod, the Sabre, the Spear (`pike`) and their evolutions
+  (Golden Revolver, Chicago Typewriter, Blunderbuss, Slam Dunk, Flying Saucer, Dust Devil, Hellfire Battery, the hidden
+  Missile Massacre, Whirlwind, Thunder Lance). The cone leads as in 77.AIM (R2-R4), then:
+  - **S1, a threat**: the nearest creature **outside** the cone whose body stands within `threat_reach` **3 m** of him AND
+    within `threat_ratio` **0.45** x the cone pick's body distance (with the cone empty, any within 3 m) is shot instead.
+    E.g. one 2 m behind beats one 10 m ahead; one 6 m behind does not beat one 7 m ahead; one 2.5 m behind does not beat
+    one 4 m ahead.
+  - **S2, the lone creature**: with nothing in the cone and no threat, the nearest creature whose body stands within
+    `lone_reach` **6 m**, wherever it stands, is shot. One 12 m behind is not (the shot goes dry down the facing).
+  - Both only within the weapon's range (its centre, as R4; a melee stroke's reach + 0.6 m), on the screen as R4, and the
+    shot turns all the way to it (the cone's assist limit is for the cone's own pick). Body distance = centre distance less
+    the creature's radius. Distances only, ties to the lower index: no dice, replays unchanged.
+  - The Gravity Gun grabs the soft pick first (then the cone's best for its other grabs); a rocket of a volley takes the
+    soft pick when no other rocket of the volley has it (the next ones the fan's pick), its re-pick on a kill still inside
+    the fan ahead.
+  - Every weapon still fires on its clock (R5).
+- `threat_reach`, `threat_ratio`, `lone_reach` per weapon in its `params.aim` (defaults Aim.THREAT_REACH 3.0,
+  THREAT_RATIO 0.45, LONE_REACH 6.0 for a block without them). Placed and around weapons have no feel. The developer
+  Settings' "Aim where you face" off still plays the old auto-aim for everything. Tools: `Aim.soft_rule` false (sim_run
+  `aim_soft=0` or SIM_AIM_SOFT=0) plays pass 136's rule (all hard); sim_run records `weapon_soft` {threat, lone} a weapon.
+
+**78.POLISH.**
+
+Garry (2026-11-09): "x25 the coin gains temporarily (per coin) ... Make it a flag in the Debug version of the Settings, I'll
+turn it off whenever I feel like it"; "Give Player 50 coins at the start. Don't adjust any balancing because of this";
+"Pause Screen during gameplay, x2 the size of the arrow on the Weapon buttons"; "Downed Screen - The count down number isn't
+centered because of the 'Get Up' text. Remove the text and center the number"; "The Rocketeer's rocket 10% slower, its
+turning a bit worse"; "All structures 2.5 s to activate instead of 3"; "Choosing a weapon task on the Wanted poster slightly
+raises the chance of that weapon being offered (level-up or chest)".
+
+**78.COINS25 (TEMPORARY).** `Settings.coins_x25`, **on by default**: every coin the Outlaw picks up in a run pays **x25** its
+gold (PickupManager.coin_pay: the coin's value x the stage's coin factor x 25, then greed as all gold; so a plain coin pays
+25 on stage 1). Only picked-up coins: a creature's, an Elite's or a boss's coins on the sand, a black barrel's, Gold Dust's,
+Loose Change's. Never a bounty, an Elite's or boss's purse paid at once, a chest's gold, the Assayer's skip, the Shop's
+empty-shelf 50, nor a boss chest's pieces (they pay exactly what its pop-up counted: the boss chest's purse is unchanged).
+The developer menu's row "Coins x25 (temporary)" and the Settings' Debug panel switch "Coins x25" turn it off; the
+production build holds it off. The run record's `settings.coins_x25` says which played. Garry turns it off when he likes;
+nothing else was rebalanced for it.
+
+**78.STARTGOLD.** A save that starts here holds **50 gold** (`Save.START_GOLD`): the first launch with no save file, or a
+wipe (the developer menu's). An existing save is never given them (a file read keeps its own gold; `_default()` stays 0;
+no migration adds them). No price moved.
+
+**78.PAUSEARROW.** The chevron on every Build row of the pause screen (weapons, Cards, passive items, perks: WRow) is twice
+its size: a 48 x 80 box with an 80 px glyph (24 x 40 and 40 px before), vertically centred in the row's head as before;
+open, it turns down about its own centre.
+
+**78.DOWN.** The Down! screen's "get up" under the count is gone; the count's line is centred on the disc's centre
+(ReviveScreen.ROYALE_COUNT_LIFT corrects for the font's ink).
+
+**78.STRUCT2.** `interact_time` is **2.5 s** on every structure (3 s since pass 135; the code's default for a structure
+that leaves it out is 2.5 too). The Teleport's charge show follows its progress, so it plays in 2.5 s.
+
+**78.ROCKET.** The Rocketeer's rocket (`artillery.missile`): `speed_of_hero` 0.85 -> **0.765** of the Outlaw's top speed
+(x0.9; the fallback `speed` 4.0 -> 3.6), `turn` 1.3 -> **1.04** radians a second (x0.8). Its damage, blast, hit slow and
+loose dive are unchanged.
+
+**78.WANTEDWEIGHT.** While the run's Wanted poster task is open (neither done nor failed) and names a weapon (damage with a
+weapon, kills with a weapon, a weapon to max level, a weapon to level N, evolve a weapon), that weapon's card weight is
+x **`weapon_task_weight` 1.5** (content/wanted/wanted.json; CardPool.weight_of, so in every draw that uses it: the
+level-up's cards, a chest's roll, the Shop's offer). Its evolution counts as the
+family. Only weapons the run may be offered at all (the factor only scales a card that is already a candidate); a task
+that names a creature, a Card or a passive item lifts nothing; once the task is done or failed the weight is back to 1.
+
+**78.RESULTS.**
+
+78.RESULTS. The Results' gold count (pass 137, Garry: "ramp up linearly with higher intensity the higher the amount of
+Coins is ... the number font increasing in size as it gets bigger and then snapping to the original size"): the banked
+gold counts in a straight line from 0 (equal time, equal coins; the run's purse curve now feeds only the charts). Its
+intensity k = log(n / 10) / log(500), clamped 0..1 (0 up to 10 coins, 1 from 5,000; `GOLD_FEW`, `GOLD_MANY`); its
+length 0.8 + 1.6 k s (`GOLD_MIN_TIME`, `GOLD_MAX_TIME`: 100 coins 1.4 s, 1,000 2.0 s, 5,000+ 2.4 s; before: 2.5 s
+always); the number swells to 1.30 .. 1.45 (on k) of its size by the top (easing in, ^1.4), warms from its gold to
+ffa22e, each tick (every 0.11 s at the start down to 0.04 s at the top, a big purse starting faster) nudges it +0.05 for
+70 ms, a big count trembles up to 3 px near the top (x screen shake); at the top it snaps to 0.9 in 0.07 s and back with
+an overshoot in 0.26 s, a flash, 8 .. 22 coins sprayed (on k) and the clink. A paid Wanted poster's reward then pours in
+over 1.7 s (`BOUNTY_PAY_TIME`, was 1.1): 10 coins leave one after another over half of it, each flying 0.32 of it, each
+arrival adding a tenth (rounded down, the last the rest: the count ends at the reward exactly), the count swelling to
+1.35, the last snapping it as above and popping the purse line to 1.18. A tap still hurries (x4), a second lands it all.
+Nothing is paid differently: the show only shows what Game/WantedRun banked.
+
+This replaces the older lines that name `GOLD_TIME` 2.5 s and `BOUNTY_PAY_TIME` 1.1 s.
+
+**78.TUTOR The Trail's first steps** (Garry: "Tutorialize the Trail"; core/autoload/Save.gd `tutorial`, ui/wanted/WTabBar.gd,
+ui/wanted/WHighlight.gd, ui/ResultsScreen.gd, ui/TrailScreen.gd, core/systems/Nav.gd).
+- **The Trail opens with the first run counted**: `Save.record_run` (Game.end_run: a death, an extract, a give-up from the
+  pause or the Down! screen; every one goes on to the Results). The arena and a replay never count; a run left by closing
+  the app does not either. Until then the Trail's tab is locked exactly like STORE (grey, a padlock "UpgradeLock",
+  ui_locked and the shake, no red crumb), and every other way in refuses: `Nav.to_trail` (the "Reach Trail Level N" lines
+  on the title, the Outlaws screen, the hero sheet, the Stages) says ui_locked. A tool that opens the Trail screen directly
+  still can.
+- **Old saves skip it all** (Garry): once per save (`trail_tutorial_v137`), a save with a run started (`runs_started`) or
+  counted (`totals.runs`) or any Trail node bought marks every step done. A new save (no file) and a wipe meet every step;
+  the developer menu's "The Trail · reset the tutorial" puts every step back (the tab locks until the next run ends).
+  A save with no block at all counts every step done (only `Save._default()` in tests and tools has none).
+- **The Results' Trail button reads UPGRADE** (only there; the tab and the Trail's header still say TRAIL). While the step
+  is open it is grey and does nothing through the whole show (the gold, the bounty, the chart, the unlocks and the
+  progress bars); when the show ends (or is skipped) it wakes with the highlight: it grows to x1.09 with an overshoot and
+  pulses x1.055-x1.125 at 1.25 Hz, a gold glow breathes round it, a shine crosses it every 1.7 s and a white glove taps it
+  with a ripple. On every Results until the first tap of UPGRADE. A save past the step sees UPGRADE awake from the start.
+- **The Trail's BUY wears the same highlight** until the first BUY the purse can pay (bought, or a choice's / warned
+  node's confirm opened). Lane's call: a short purse keeps the button highlighted (its price in red and "N short" under it
+  say what it needs) and a refused tap (ui_locked) leaves the highlight on; a node that is not open has no BUY, so the
+  highlight waits hidden until an open one is chosen.
+- **The tab's unlock** plays once: on the first tab bar built after the Trail opened on a screen other than the Trail's own
+  (there its tab is the open gold one, so the unlock waits for the next screen). 0.7 s after the screen shows: the padlock
+  pops (x1.4) and falls away turning, the grey drains to the tab's colour in 0.65 s under a white flash and a shine, the tab
+  bounces (x1.14 from its foot), rays burst behind it, ui_unlock; its red crumb fades in after by pass 123's rule. A tap on
+  the tab before it plays goes to the Trail.
+
+### 78.BARRELS Shots break barrels (pass 137, lane BARRELS)
+Garry: "Barrels break from damage: if a shot (projectile) flies through it the Barrel gets knocked back the first time and
+the second time it gets destroyed. Wooden 2 shots, Golden 3, Power-up 5. A togglable option in the settings, on by
+default. Walking at a barrel still breaks it." (answers: flying rounds only; Wooden = the EXP barrel, Golden = EXP + Coins.)
+- **Hits to break** (`timeline_data.barrels.<kind>.shots`, BarrelSpawns.CONTENT_DEFAULTS; the Level Editor's Barrels card
+  "shots to break", at least 1): EXP barrel **2**, EXP + Coins barrel **3**, Power-up barrel **5**. Red Canyon's block
+  names none, so the defaults play.
+- **What counts**: the Outlaw's flying rounds (the list in this lane's status: straight ProjectileManager rounds including
+  the Boomstick's / Blunderbuss's seen pellets and a Basketball on its way home, his homing rockets and bees, the Frisbee's
+  discs in flight). Not lobbed throws in the air, blasts, beams, flames, saws, melee, the Gravity Gun, mines, salt, ghost
+  bolts or anything a creature fires.
+- **A hit**: a round within 0.36 m (the painted barrel's half width) + its own radius (at most 0.6 m) of the barrel's axis,
+  between 0.4 m under and 1.7 m over its foot. Each round strikes a barrel **once** (a boomerang or ball out and back
+  too) and **flies on**: no pierce spent, no damage taken from it, its creatures still hit. A barrel that stands again in
+  a broken one's slot is a new barrel to an old round.
+- **The knock** (every hit before the last; a new rule's numbers, BarrelField constants): the barrel moves **0.6 m** along
+  the round's flight at once (KNOCK_M; half that when the whole would end inside another barrel's 0.82 m, a rock's
+  collider + 0.41 m, the water, a structure's ring, a painting's cover band or past 0.92 of the arena; not at all when half
+  is blocked too; the hit still counts). Its drawing slides there over 0.22 s with a 0.1 m hop and a squash that rings
+  down over 0.5 s; 9 chips and a puff; the sound `st_barrel_hit` (the chest's wooden knock, -6 dB). Looks only past the
+  0.6 m: none of them is a rule.
+- **The last hit** breaks it exactly as walking into it does (`_break`): the same gems, coins, power-up throw, debris,
+  sound, camera kick, "A GOOD BARREL" toast, Barrel Rush boost and the barrel tasks' count (`Run.barrels_broken`); the
+  debris flies away from the round's side instead of the Outlaw's. **Not asked for, named here**: a barrel shot apart far
+  from the Outlaw still starts Barrel Rush and the camera kick, as a walked-into one does (the brief's "the same `_break`").
+- **Walking** into a barrel still breaks it at once, whatever hits it has taken.
+- **The switch**: Settings "Shoot barrels" (`Settings.shoot_barrels`, a player setting, on by default, saved, not held in
+  prod, in the run record's switches and replayed with the run's settings); off, rounds pass barrels by as before pass 137.
+- **Cost**: see "Numbers measured" below.
+
+**78.SPEAR - the Spear's thrust redrawn (looks only).** Under the aim rule the Spear and the Thunder Lance's thrust are
+drawn by `core/systems/MeleeFx.gd` + `core/shaders/melee_thrust.gdshader`: a steel spearhead with a brass collar leads a
+streak; it shows at the Outlaw's hand for the last 0.08 s before the stroke (`THRUST_ANTI`), darts out in 0.08 s
+(`Thruster.FX_THRUST_EXT`) so its point reaches **the hit's own reach from his centre** (pass 136's streak was drawn
+0.45 m past it) at the moment of the hit, overshoots 0.1 m and settles over the hold, snaps back in 0.09 s
+(`THRUST_SNAP`) leaving an afterimage 0.16 s (`THRUST_GHOST`); the streak fades 0.22 s. The hit's moment calls
+`MeleeFx.land(hit)`: an impact star with a shock ring and a dark rim when the stroke bit anything, a small glint when it
+bit nothing (a Level 5 fan's two heads share the stroke's verdict). Sparks fly back against the thrust on a hit. Each
+build's touch: Heartseeker's warm-up heats the head towards orange, its crit red-hot; fire orange; Venom Tip green; the
+Thunder Lance's thrust pale blue with a crackle along the streak. No dice, no change to any hit, knockback or timing.
+
+### 78.ENV Colour differences in the scenery (art/sprites/props/props.json, core/systems/PropField.gd)
+
+Garry: "Slight colour differences on the environment art, each asset its own sensible Hue/Saturation/Darkness variation (no
+regeneration) ... Subtle but noticeable when two stand next to each other. Random at map generation, with a higher chance
+in clusters of obviously same-looking assets."
+
+Pass 85's tints (every prop rolled a hue / saturation / value from a hash of its spot, within one narrow range a kind)
+stay the mechanism; what changed:
+
+- **Each painting its own rule** (props.json `tint`; ranges are the full reach, a variant takes its kind's unless it has
+  its own):
+
+| Kind | Hue shift | Saturation | Value (darkness) | Reads as |
+|---|---|---|---|---|
+| saguaros, barrel cactus | -0.04..+0.03 (greens only) | x0.80-1.12 | x0.80-1.02 | olive and drier to bluer and lusher, a little darker |
+| agave | -0.04..+0.03 (blue-greens) | x0.80-1.15 | x0.80-1.02 | the same on its blue-green |
+| ocotillo | stems as the cacti (sat_min 0.06); flowers -0.025..+0.02 | x0.85-1.12 | flowers x0.84-1.03 | greyer or greener stems, deeper or brighter flowers |
+| desert bush, creosote | -0.045..+0.03 / -0.035..+0.03 | x0.72-1.15 / x0.75-1.15 | x0.78-1.00 | greener / yellower / olive / dustier, never lighter |
+| brittlebush | flowers -0.02..+0.012, leaves -0.03..+0.03 | x0.85-1.12, x0.75-1.20 | x0.85-1.02, x0.80-1.00 | |
+| dead shrub | -0.015..+0.012 | x0.75-1.20 | x0.80-1.02 | |
+| mesquite, joshua tree, fan palm, palo verde | leaves -0.04..+0.03, bark -0.012..+0.012 | x0.78-1.15, x0.85-1.12 | x0.80-1.02, x0.84-1.02 | |
+| dead tree | -0.006..+0.006 | x0.90-1.10 | **x0.82-0.99** | only slightly darker |
+| rocks, boulders | -0.006..**+0.014** (towards orange) | x0.94-1.08 | **x0.86-1.00** | slightly darker, a touch orange / brown, especially subtle |
+| skulls, bones | -0.006..+0.01 | x0.75-1.25 | x0.86-1.00 | older or cleaner bone |
+| the cart | -0.01..+0.01 | x0.85-1.12 | x0.86-1.02 | |
+
+- **A strength per prop** (the tint code is r1 + 8 r2 + 64 r3 + 512 level: the rolls have 8 steps now, was 12; level 0..3 =
+  none, a third, two thirds, all of the reach; under 2048 for the half float, still INSTANCE_CUSTOM.w, no new draw).
+- **Lone props**: a prop shows its tint at two thirds of the reach with its painting's **`tint_chance`**, else stays as
+  painted: rocks and bones 0.35, the dead tree 0.40, cacti and trees 0.45, bushes and the cart 0.50 (default 0.45).
+- **Clusters** (`PropField.settle_tints`, run by `settle_rare` once the map is laid, in the order the map laid the props):
+  a prop with props of the **same painting** within **5 m + a quarter of the two heights** is tinted with `tint_chance` +
+  **`tint_cluster`** per such neighbour (0.30, bushes 0.35; two neighbours make it near certain), at the **full** reach;
+  it is **never plain beside a plain one**, and takes the most different of **6** rolls from its neighbours already settled
+  (difference measured against the rule's own reach, darkness counting 1.5, hue 1, saturation 0.75).
+- **`tint_strength`** on a row scales its whole reach (1 = as written, 0 = off, at most 2): the one knob to make a kind
+  stronger or fainter.
+- The rolls are the spot's hash (and the attempt), never randf: a map seed lays the same tints every time.
+
+Measured: seed 7's map (Sundown, 253 props): 101 stand by one of the same painting, 155 tinted (61 %); the probe's
+paintings drawn a run and instances are unchanged (draw calls the same); the map build is within its noise (before 380-422 ms, after 348-365 ms on 20 seeds a stage).
+
+**78.LOC. The string table** (no rule of play changed). Every text a player reads lives in one of two places: a content
+item's own JSON fields (`name`, `flavour`, `description`, ... as before) or `game/content/strings/en.json` (screens,
+buttons, toasts, hints, TextGen's sentences and fragments, stat names, one `weapon.<id>.desc` / `evolution.<id>.desc` /
+`passive.<id>.desc` row per item). Code reads it through `core/systems/Loc.gd` (`Loc.t(key, vars)`): `{name}` variables,
+`{n?one:many}` selectors (the first part when the value is exactly 1), `{{` `}}` for a brace; a missing key shows the key
+and warns once. Garry edits both in the Level Editor's **Texts** tab (or as CSV); developer surfaces (the developer menu,
+the arena, the debug panels, the Watch, the replay viewer) stay in code. The pass changed no text: the census
+(`game/tools/text_census.gd`) of every generated text (5,196) is identical before and after, every converted screen was
+compared before and after, and `tools/loc_verify.py` accounts for every removed literal. English logic that still reads
+English words (HUD.banner's "EVOLVED"/"UNLOCKED", PauseScreen's "Knocks enemies back" and "Evolved:" checks,
+StagesScreen's "Reach Trail Level", WHeroSheet's " per level", the ordinal suffixes, plurals) works today and needs
+reworking before a second language.
+
+**78.SIM.** The run sim (game/tools/sim_run.gd) always plays with Coins x25 off, so its gold measures the real economy.
+

@@ -90,11 +90,13 @@ func test_every_prop_kind_has_a_natural_tint_rule_within_bounds() -> void:
 				assert_float(float(x)).is_between(PropField.TINT_S_RANGE.x, PropField.TINT_S_RANGE.y)
 			for x in v:
 				assert_float(float(x)).is_between(PropField.TINT_V_RANGE.x, PropField.TINT_V_RANGE.y)
-	# the rocks barely move: a boulder's value within 5 % either way, its hue within 0.01
+	# the rocks barely move: pass 137 (Garry: "slightly darker, maybe slight orange / brown, especially subtle") a
+	# boulder's value 0.85..1, its hue within 0.015 (pass137_env_test pins every rock's whole reach)
 	for r: Dictionary in pf.tint_rules("boulder"):
-		assert_float(float(r["v"][0])).is_greater_equal(0.95)
-		assert_float(float(r["v"][1])).is_less_equal(1.05)
-		assert_float(absf(float(r["h"][0]))).is_less_equal(0.01)
+		assert_float(minf(float(r["v"][0]), float(r["v"][1]))).is_greater_equal(0.85)
+		assert_float(maxf(float(r["v"][0]), float(r["v"][1]))).is_less_equal(1.0)
+		assert_float(absf(float(r["h"][0]))).is_less_equal(0.015)
+		assert_float(absf(float(r["h"][1]))).is_less_equal(0.015)
 	# a variant without its own takes its kind's
 	assert_array(pf.tint_rules("joshua_tree_d")).is_equal(pf.tint_rules("joshua_tree"))
 

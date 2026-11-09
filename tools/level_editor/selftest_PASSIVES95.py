@@ -197,7 +197,10 @@ def game_checks(check):
     check("static func rung_of(def: ContentDef, level: int = 0) -> String:" in w and "static func is_evolved_rung(def: ContentDef, level: int) -> bool:" in w and "static func icon_at(def: ContentDef, level: int = 0) -> Texture2D:" in w,
           "PASSIVES95 game: W.gd: rung_of, is_evolved_rung, icon_at")
     tg = _read(os.path.join(g, "core", "systems", "TextGen.gd"))
-    check("static func rung_name(def: PassiveDef, level: int) -> String:" in tg and '"Next level (%s): %s"' in tg, "PASSIVES95 game: TextGen names the rungs")
+    # pass 137 (lane W2-TEXTGEN): the words are the row gen.next.rung of content/strings/en.json
+    en = _read(os.path.join(g, "content", "strings", "en.json"))
+    check("static func rung_name(def: PassiveDef, level: int) -> String:" in tg and '"gen.next.rung"' in tg
+          and '"gen.next.rung": "Next level ({rung}): {effects}"' in en, "PASSIVES95 game: TextGen names the rungs")
     wi = _read(os.path.join(g, "ui", "wanted", "WItem.gd"))
     check("static func rung_word(card: Dictionary) -> String:" in wi and '"EVOLVED": W.EMBER' in wi, "PASSIVES95 game: WItem: the rung after the kind's word, the EVOLVED tag")
     t = _read(os.path.join(g, "tests", "pass95_PASSIVES_test.gd"))

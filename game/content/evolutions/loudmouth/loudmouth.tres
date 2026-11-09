@@ -31,6 +31,7 @@ params = {
 "cone": 50.0,
 "converge": 6.0,
 "family": "aimed",
+"feel": "hard",
 "hold": 0.5,
 "ramp_decay": 2.0,
 "ramp_full": 1.3,

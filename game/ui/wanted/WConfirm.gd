@@ -204,7 +204,7 @@ func _build(title: String, body: String, confirm_label: String, cancel_label: St
 	var deed := {"id": "confirm", "text": confirm_label, "role": role}
 	if not confirm_parts.is_empty():
 		deed["parts"] = confirm_parts
-	_build_shell({"star": "Hold on", "title": title, "body": body, "min_h": R.MODAL_MIN_H,
+	_build_shell({"star": Loc.t("ui.confirm.star"), "title": title, "body": body, "min_h": R.MODAL_MIN_H,
 		"buttons": [{"id": "cancel", "text": cancel_label, "role": WButton.SLATE}, deed]})
 	return
 

@@ -143,6 +143,10 @@ func _refresh() -> void:
 	var ff_row := _switch("Aim where you face (off: the old auto-aim)", "aim_mode")
 	ff_row.name = "AimModeRow"
 	_list.add_child(ff_row)
+	# pass 137 (lane POLISH): every coin picked up pays x25, on by default (temporary; also in Settings' Debug panel)
+	var cx_row := _switch("Coins x25 (temporary)", "coins_x25")
+	cx_row.name = "CoinsX25Row"
+	_list.add_child(cx_row)
 	# pass 125: the crowd's compiled loops (off: the script's, the same run, slower), read as a run starts
 	var nc_row := _switch("Compiled crowd (off: the script's, slower)", "native_crowd")
 	nc_row.name = "NativeCrowdRow"
@@ -303,6 +307,17 @@ func _surveys_block() -> void:
 		_refresh())
 	trail_new.name = "TrailResetNew"
 	_list.add_child(trail_new)
+	# pass 137 (lane TUTOR): the Trail's first steps again (the tab locks until the next run ends, then UPGRADE, BUY and
+	# the tab's unlock are shown as on a new save)
+	var steps_left := 0
+	for st: String in Save.TUTORIAL_STEPS:
+		if not Save.tutorial_done(st):
+			steps_left += 1
+	var tutor_row := _row("The Trail · reset the tutorial", "%d / %d to come" % [steps_left, Save.TUTORIAL_STEPS.size()], func():
+		Save.reset_trail_tutorial()
+		_refresh())
+	tutor_row.name = "TrailTutorialReset"
+	_list.add_child(tutor_row)
 
 
 func _ask_reset_surveys() -> void:

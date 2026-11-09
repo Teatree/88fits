@@ -41,10 +41,13 @@ const SWIPE := 90.0
 ## shadow; "88fits" was 210).
 const LOGO_PX := 190
 ## The trait's numbers under short names (the rest fall back to TextGen's stat names: ATTACK DAMAGE, AREA OF EFFECT,
-## COIN GAIN since pass 45, so the words live in one place).
-const SHORT := {"max_hp": "HP", "damage_reduction": "DEFENCE", "move_speed": "SPEED", "magnet": "REACH",
-	"cooldown": "COOLDOWN", "luck": "LUCK", "regen": "REGEN", "regen_delay": "REGEN DELAY", "revives": "REVIVES",
-	"projectile_speed": "SHOT SPEED", "xp_gain": "XP", "crit_chance": "CRIT", "amount": "PROJECTILES"}
+## COIN GAIN since pass 45, so the words live in one place). Pass 137: each a row of the string table (short_word).
+const SHORT := {"max_hp": "ui.title.stat_short.max_hp", "damage_reduction": "ui.title.stat_short.damage_reduction",
+	"move_speed": "ui.title.stat_short.move_speed", "magnet": "ui.title.stat_short.magnet",
+	"cooldown": "ui.title.stat_short.cooldown", "luck": "ui.title.stat_short.luck", "regen": "ui.title.stat_short.regen",
+	"regen_delay": "ui.title.stat_short.regen_delay", "revives": "ui.title.stat_short.revives",
+	"projectile_speed": "ui.title.stat_short.projectile_speed", "xp_gain": "ui.title.stat_short.xp_gain",
+	"crit_chance": "ui.title.stat_short.crit_chance", "amount": "ui.title.stat_short.amount"}
 ## A unit after a number whose stat has none of its own (regen is health a second: "+1.2/s" over REGEN).
 const UNIT := {"regen": "/s"}
 ## Stats a hero is better off with less of: a negative on these is a buff, and stays sage.
@@ -329,17 +332,22 @@ func _stats_of(c: CharacterDef) -> Array:
 			if e is Effect:
 				var x: Effect = e
 				var up: bool = (x.value >= 0.0) != (x.stat in LOWER_BETTER)
-				out.append([TextGen.hero_step(x) + str(UNIT.get(x.stat, "")), str(SHORT.get(x.stat, TextGen.stat_name(x.stat).to_upper())) + " / LV", up])
+				out.append([TextGen.hero_step(x) + str(UNIT.get(x.stat, "")), Loc.t("ui.title.stat_per_level", {"stat": short_word(x.stat)}), up])
 		if c.level_heal > 0.0:
-			out.append(["%d%%" % int(round(c.level_heal * 100.0)), "HEAL / LV", true])
+			out.append(["%d%%" % int(round(c.level_heal * 100.0)), Loc.t("ui.title.heal_per_level"), true])
 		return out.slice(0, 3)
 	for e in c.trait_effects:
 		if e is Effect and (e.target == "player" or e.target == ""):
 			var good: bool = e.op == "set" or ((e.value >= 0.0) != (e.stat in LOWER_BETTER))
-			out.append([TextGen.describe_effect(e, false) + str(UNIT.get(e.stat, "")), SHORT.get(e.stat, TextGen.stat_name(e.stat).to_upper()), good])
+			out.append([TextGen.describe_effect(e, false) + str(UNIT.get(e.stat, "")), short_word(e.stat), good])
 	if c.level_heal > 0.0:
-		out.append(["%d%%" % int(round(c.level_heal * 100.0)), "HEAL / LV", true])
+		out.append(["%d%%" % int(round(c.level_heal * 100.0)), Loc.t("ui.title.heal_per_level"), true])
 	return out.slice(0, 3)
+
+
+## A stat's short name on the plaque: its SHORT row, else TextGen's stat name in capitals (pass 137).
+static func short_word(stat: String) -> String:
+	return Loc.t(str(SHORT[stat])) if SHORT.has(stat) else TextGen.stat_name(stat).to_upper()
 
 
 ## One of the trait's numbers on the plaque: sage slab (dark red for a debuff) and its tracked label beside it, on one
@@ -381,11 +389,11 @@ func _refresh_map() -> void:
 	var played := not best.is_empty() and float(best.get("time", 0.0)) > 0.0
 	_map_tap.visible = played or _maps.size() > 1
 	if played:
-		bits.append("best " + W.mmss(float(best.get("time", 0.0))))
+		bits.append(Loc.t("ui.stages.best", {"time": W.mmss(float(best.get("time", 0.0)))}))
 		bits.append(W.lv(int(best.get("level", 0))))
-		bits.append("stage %d" % int(best.get("stage", 1)))
+		bits.append(Loc.t("ui.stages.stage", {"stage": str(int(best.get("stage", 1)))}))
 		if int(best.get("kills", 0)) > 0:
-			bits.append("%s kills" % W.num(int(best.get("kills", 0))))
+			bits.append(Loc.t("ui.stages.kills", {"kills": W.num(int(best.get("kills", 0)))}))
 	_map_line.text = " · ".join(bits)
 
 
@@ -457,7 +465,7 @@ func _show_unknown(c: CharacterDef) -> void:
 			q = null
 		_req_go.visible = on_trail
 		_req_tap.visible = on_trail
-		_req_text.text = Registry.hero_requirement_text(c) if q or on_trail else "Not in the game yet."
+		_req_text.text = Registry.hero_requirement_text(c) if q or on_trail else Loc.t("ui.title.not_in_game")
 		var line: Control = _req.get_node("Rows/Line")
 		var old := line.get_node_or_null("Bar")
 		if old:
@@ -494,9 +502,9 @@ func ask_buy() -> void:
 		Audio.play("ui_locked")
 		return
 	# pass 123 (lane MAINMENU): under Royale the shared confirm's buy (green; Wanted keeps its card as it was)
-	WConfirm.open(self, "Buy this outlaw?", "%s from your purse. Yours to play from then on." % Currency.price_words(c.currency_type, maxi(c.price, 0)),
-		"Buy · %s" % W.num(maxi(c.price, 0)), "Not now", func(): _buy_now(c), Callable(), "buy",
-		WButton.price_parts(maxi(c.price, 0), "BUY", R.MODAL_BUTTON_PX, Currency.of(c.currency_type)))
+	WConfirm.open(self, Loc.t("ui.buy_outlaw.title"), Loc.t("ui.buy_outlaw.body", {"price": Currency.price_words(c.currency_type, maxi(c.price, 0))}),
+		Loc.t("ui.buy_outlaw.confirm", {"price": W.num(maxi(c.price, 0))}), Loc.t("ui.buy_outlaw.not_now"), func(): _buy_now(c), Callable(), "buy",
+		WButton.price_parts(maxi(c.price, 0), Loc.t("ui.buy_outlaw.buy"), R.MODAL_BUTTON_PX, Currency.of(c.currency_type)))
 
 
 ## The purchase: the gold spent (Save.buy_hero, the sink "hero"), the mask lifted with a burst, the plaque and PLAY his.
@@ -680,7 +688,7 @@ func _build_royale() -> void:
 	_trait_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_trait_row)
 	var dv := (RY_DETAILS.y - 8.0 - float(RY_DETAILS_PX)) * 0.5
-	_details_btn = WButton.make(["DETAILS"], RY_DETAILS_PX, WButton.UPGRADE, 4, 5, dv, 18.0, float(RY_DETAILS_PX), WButton.BLUE)
+	_details_btn = WButton.make([Loc.t("ui.title.details")], RY_DETAILS_PX, WButton.UPGRADE, 4, 5, dv, 18.0, float(RY_DETAILS_PX), WButton.BLUE)
 	_details_btn.name = "Details"
 	_details_btn.custom_minimum_size = RY_DETAILS
 	_details_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -690,7 +698,7 @@ func _build_royale() -> void:
 	add_child(_details_btn)
 	# START: gold, today's PLAY flow (_on_play); LOCKED for a hero not owned
 	var sv := (RY_START.y - 8.0 - float(RY_START_PX)) * 0.5
-	_play = WButton.make(["START"], RY_START_PX, WButton.PRIMARY, 4, 8, sv, 22.0, float(RY_START_PX))
+	_play = WButton.make([Loc.t("ui.title.start")], RY_START_PX, WButton.PRIMARY, 4, 8, sv, 22.0, float(RY_START_PX))
 	_play.name = "Start"
 	_play.pressed.connect(_on_play)
 	add_child(_play)
@@ -739,7 +747,7 @@ func _build_unknown_royale() -> void:
 	v.add_theme_constant_override("separation", 8)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_req.add_child(v)
-	v.add_child(W.label("To unlock", 18, W.ROCK))
+	v.add_child(W.label(Loc.t("ui.title.to_unlock"), 18, W.ROCK))
 	var line := HBoxContainer.new()
 	line.name = "Line"
 	line.add_theme_constant_override("separation", 20)
@@ -760,8 +768,9 @@ func _build_unknown_royale() -> void:
 	_req_tap.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	_req_tap.visible = false
 	_req_tap.pressed.connect(func() -> void:
-		if not _heroes.is_empty():
-			Nav.to_trail("outlaw", (_heroes[_index] as CharacterDef).id))
+		# pass 137 (lane TUTOR): refused while the Trail is closed (no run counted yet)
+		if not _heroes.is_empty() and not Nav.to_trail("outlaw", (_heroes[_index] as CharacterDef).id):
+			W.sfx("ui_locked"))
 	_req.add_child(_req_tap)
 	_req.visible = false
 	add_child(_req)
@@ -778,8 +787,8 @@ func _build_unknown_royale() -> void:
 ## A hero not owned reads UNKNOWN with a "?" for each of his numbers (today's rule), START LOCKED.
 func _show_royale(c: CharacterDef) -> void:
 	var locked := _is_locked(c)
-	var shown := ("The " + c.display_name) if c.id == "drifter" else c.display_name
-	_name.text = ("Unknown" if locked else shown).to_upper()
+	var shown := Loc.t("ui.outlaw.the_name", {"name": c.display_name}) if c.id == "drifter" else c.display_name
+	_name.text = (Loc.t("ui.title.unknown") if locked else shown).to_upper()
 	if _trait_pill:
 		_trait_row.remove_child(_trait_pill)
 		_trait_pill.queue_free()
@@ -791,7 +800,7 @@ func _show_royale(c: CharacterDef) -> void:
 		_trait_row.add_child(_trait_pill)
 		_trait_row.move_child(_trait_pill, 0)
 	_play.locked = locked
-	_play.set_parts(["LOCKED" if locked else "START"])
+	_play.set_parts([Loc.t("ui.title.locked") if locked else Loc.t("ui.title.start")])
 	if not locked:
 		Save.data["last_character"] = c.id
 		# the HEROES tab wears the hero shown (its portrait is made once: a new bar when he changes)
@@ -821,9 +830,13 @@ func trait_parts(c: CharacterDef, locked: bool) -> Array:
 	return out
 
 
-## "CRIT / LV" -> "CRIT per Level" (Garry: "per Level", never "/ LV").
+## "CRIT / LV" -> "CRIT per Level" (Garry: "per Level", never "/ LV"; pass 137: the two rows ui.title.stat_per_level and
+## ui.title.stat_per_level_long).
 static func per_level(label: String) -> String:
-	return label.replace(" / LV", " per Level")
+	var tail := Loc.t("ui.title.stat_per_level", {"stat": ""})
+	if tail != "" and label.ends_with(tail):
+		return Loc.t("ui.title.stat_per_level_long", {"stat": label.substr(0, label.length() - tail.length())})
+	return label
 
 
 ## The BUY over a hero on sale: the green price button (WButton.price; short of it, the locked grey with the price alone
@@ -835,13 +848,13 @@ func _fill_buy_royale(c: CharacterDef) -> void:
 	var cur := Currency.of(c.currency_type)
 	var price := maxi(c.price, 0)
 	var short := maxi(price - Currency.balance(cur), 0)
-	_buy = WButton.price(price, "BUY", WButton.GREEN, RY_BUY_PX, short, cur, true, RY_BUY_H)
+	_buy = WButton.price(price, Loc.t("ui.title.buy"), WButton.GREEN, RY_BUY_PX, short, cur, true, RY_BUY_H)
 	_buy.name = "Buy"
 	_buy.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_buy.pressed.connect(ask_buy)
 	_buy_col.add_child(_buy)
 	# "n short" in red on a black pill (it reads over the black figure), as the shops' shortfall
-	var note := W.pill([["%s short" % W.num(short), R.ROLES["red"]["top"], "bold"]], 24, 40.0)
+	var note := W.pill([[Loc.t("ui.kit.short", {"short": W.num(short)}), R.ROLES["red"]["top"], "bold"]], 24, 40.0)
 	note.name = "BuyNote"
 	note.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	note.visible = short > 0

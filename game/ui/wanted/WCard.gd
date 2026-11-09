@@ -53,6 +53,8 @@ var _shadow := 10
 const STAR_PX := 40.0
 ## The tag's type size and a change row's (pass 58).
 const TAG_PX := 26
+## A tag's word: the string table's row for WItem.tag's id (pass 137; tag_pill).
+const TAG_KEY := "ui.card.tag.%s"
 const CHANGE_PX := 30
 ## The favourite's heart, as a share of the plate's side, and how far it reaches past the plate's corner (pass 62); the
 ## word's type size on a card.
@@ -168,7 +170,7 @@ static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 		if short > 0:
 			# Royale: the grey (locked) face, the shortfall in red
 			pb = WButton.make([{"coin": 40, "fill": W.BRASS}, [W.num(price), W.INK]], 36, WButton.SECONDARY, 4, 0, 8.0, 26.0, 0.0, WButton.LOCKED)
-			var sh := W.serif_text("· %d short" % short, 24, R.role("red")["top"], 400, false, HORIZONTAL_ALIGNMENT_LEFT, 30.0)
+			var sh := W.serif_text(Loc.t("ui.card.short", {"short": str(short)}), 24, R.role("red")["top"], 400, false, HORIZONTAL_ALIGNMENT_LEFT, 30.0)
 			sh.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			pb._row.add_child(sh)
 		else:
@@ -269,6 +271,8 @@ static func royale_word(word: String, px: int, def: ContentDef, plate: WPlate) -
 ## EVOLUTION on ember (WItem.tag_color), in ink Alfa Slab inside a 3 px ink border; the chest's landed item wears it too.
 ## Pass 122, under Royale: a pill by the tag table (WItem.tag_fill / tag_text: NEW gold, UPGRADE green, EVOLUTION purple),
 ## a 3 px navy edge, 4 px corners, the word in Rubik 700 (Garry's font rule) at 18 px or seven tenths of `px`, no chevron.
+## Pass 137 (lane W2-HUB): `t` is WItem.tag's id (UPGRADE, NEW, EVOLUTION, EVOLVED: the colour tables' keys); the word
+## shown is the string table's row TAG_KEY % the id in lower case (ui.card.tag.upgrade, ...), any other word as it is.
 static func tag_pill(t: String, px: int = TAG_PX) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.name = "Tag"
@@ -287,7 +291,8 @@ static func tag_pill(t: String, px: int = TAG_PX) -> PanelContainer:
 	sb.content_margin_top = 4.0 + R.TAG_EDGE
 	sb.content_margin_bottom = 4.0 + R.TAG_EDGE
 	p.add_theme_stylebox_override("panel", sb)
-	var rl := W.text(t.to_upper(), R.body(R.LABEL_WEIGHT, false, W.em(tpx, 0.05)), tpx, WItem.tag_text(t), HORIZONTAL_ALIGNMENT_LEFT, roundf(tpx * 1.1))
+	var key := TAG_KEY % t.to_lower()
+	var rl := W.text((Loc.t(key) if Loc.has(key) else t).to_upper(), R.body(R.LABEL_WEIGHT, false, W.em(tpx, 0.05)), tpx, WItem.tag_text(t), HORIZONTAL_ALIGNMENT_LEFT, roundf(tpx * 1.1))
 	rl.name = "Word"
 	p.add_child(rl)
 	return p
@@ -296,7 +301,7 @@ static func tag_pill(t: String, px: int = TAG_PX) -> PanelContainer:
 ## The favourite's word (pass 62): FAVOURITE in tracked slab, brass-dark on the paper, no box, so it reads beside the tag
 ## without shouting over it.
 static func favourite_word(px: int = FAV_WORD_PX) -> WText:
-	var l := W.text("FAVOURITE", W.slab(W.em(px, 0.06)), px, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, roundf(px * 1.1))
+	var l := W.text(Loc.t("ui.card.favourite"), W.slab(W.em(px, 0.06)), px, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, roundf(px * 1.1))
 	l.name = "Favourite"
 	l.size_flags_horizontal = Control.SIZE_SHRINK_END
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER

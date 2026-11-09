@@ -62,7 +62,7 @@ func _ready() -> void:
 	add_child(_strings)
 	var top := W.safe_top()
 	# pass 123: the posters' pop-up keeps its Wanted words under both themes (Garry)
-	_title = W.wanted_text("WANTED", 92, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 96.0)
+	_title = W.wanted_text(Loc.t("ui.bounty_posters.title"), 92, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 96.0)
 	_title.name = "Title"
 	_title.stroke = 7
 	_title.shadow = 7
@@ -70,7 +70,7 @@ func _ready() -> void:
 	_title.offset_top = 170.0 + top
 	_title.offset_bottom = 266.0 + top
 	add_child(_title)
-	_hint = W.wanted_serif_text("Take a bounty for this run. Done, it pays when the run ends.", 30, W.PAPER, 600, true, HORIZONTAL_ALIGNMENT_CENTER, 36.0, true)
+	_hint = W.wanted_serif_text(Loc.t("ui.bounty_posters.hint"), 30, W.PAPER, 600, true, HORIZONTAL_ALIGNMENT_CENTER, 36.0, true)
 	_hint.name = "Hint"
 	_hint.stroke = 4
 	_hint.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -79,7 +79,7 @@ func _ready() -> void:
 	_hint.offset_top = 272.0 + top
 	_hint.offset_bottom = 316.0 + top
 	add_child(_hint)
-	_none = WButton.make(["No bounty"], 36, WButton.SECONDARY, 5, 8, 22.0, 34.0)
+	_none = WButton.make([Loc.t("ui.bounty_posters.no_bounty")], 36, WButton.SECONDARY, 5, 8, 22.0, 34.0)
 	_none.name = "NoBounty"
 	_none.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_none.grow_horizontal = Control.GROW_DIRECTION_BOTH
@@ -227,7 +227,7 @@ func _take(i: int) -> void:
 	var tw0 := p.create_tween()
 	tw0.tween_property(p, "rotation", 0.0, 0.12)
 	var layer: Control = p.get_node_or_null("Over")
-	var st := WStamp.make("TAKEN", W.ROCK, int(52 * POSTER_W / WPoster.W_PX))
+	var st := WStamp.make(Loc.t("ui.bounty_posters.taken"), W.ROCK, int(52 * POSTER_W / WPoster.W_PX))
 	st.name = "Taken"
 	(layer if layer else p).add_child(st)
 	st.position = Vector2(p.size.x * 0.5 - st.size.x * 0.5, p.size.y * 0.3)

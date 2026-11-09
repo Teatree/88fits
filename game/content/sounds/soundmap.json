@@ -916,6 +916,13 @@
       "volume_db": -4,
       "file": "real/st_barrel_break.wav"
     },
+    "st_barrel_hit": {
+      "category": "pickup",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -6,
+      "file": "real/ui_chest_knock.wav"
+    },
     "ui_fanfare": {
       "category": "ui",
       "voices": 1,

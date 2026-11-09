@@ -34,9 +34,13 @@ params = {
 "dry_reach": 8.0,
 "dry_spread": 1.5,
 "family": "aimed",
+"feel": "soft",
+"lone_reach": 6.0,
 "mark_color": "#FF5A1F",
 "marks": true,
-"mode": "rockets"
+"mode": "rockets",
+"threat_ratio": 0.45,
+"threat_reach": 3.0
 },
 "cluster_spin": false,
 "familiar": {

@@ -3,142 +3,148 @@
 class_name TextGen
 extends RefCounted
 
-## stat -> [display name, kind]. kind: "num" plain number, "pct" shown as percent when mul, "sec" seconds, "m" metres, "count" integer
-## The one place a stat's shown name lives (every card, pause line, toast and plaque reads it; TitleScreen.SHORT only
-## shortens a few). Pass 45: might is "attack damage", area "area of effect", greed "coin gain" (the ids stay).
+## stat -> kind. kind: "num" plain number, "pct" shown as percent when mul, "sec" seconds, "m" metres, "count" integer
+## Pass 137 (lane W2-TEXTGEN): a stat's shown name is the row stat.<id>.name of content/strings/en.json (stat_name: every
+## card, pause line, toast and plaque reads it there; TitleScreen.SHORT only shortens a few); a "hidden" stat has none.
+## Pass 45: might is "attack damage", area "area of effect", greed "coin gain" (the ids stay).
 const STATS := {
-	"damage": ["damage", "num"], "cooldown": ["cooldown", "sec"], "amount": ["projectiles", "count"],
-	"pierce": ["pierce", "count"], "area": ["area of effect", "pct"], "speed": ["projectile speed", "num"],
-	"duration": ["duration", "sec"], "knockback": ["knockback", "num"], "chains": ["chain jumps", "count"],
-	"range": ["range", "m"], "spread_deg": ["spread", "deg"], "orbit_radius": ["orbit radius", "m"],
-	"max_hp": ["max HP", "num"], "damage_reduction": ["damage reduction", "pct"], "regen": ["regen per second", "num"],
-	"move_speed": ["move speed", "num"], "might": ["attack damage", "pct"], "projectile_speed": ["projectile speed", "pct"],
-	"magnet": ["pickup radius", "m"], "luck": ["luck", "pct"], "greed": ["coin gain", "pct"], "revives": ["revives", "count"],
-	"rerolls": ["rerolls", "count"], "skips": ["skips", "count"], "banishes": ["banishes", "count"],
-	"hp": ["HP", "num"], "size": ["size", "pct"], "turn_rate": ["turn rate", "num"], "lifetime": ["turret lifetime", "sec"],
-	"poison_damage": ["poison per tick", "num"], "poison_stacks": ["poison stacks", "count"], "poison_duration": ["poison lasts", "sec"],
-	"lifesteal": ["life steal", "pct"], "fire_damage": ["burn per tick", "num"], "fire_duration": ["burns for", "sec"], "fire_spread": ["spread chance", "pct"],
-	"crit_chance": ["crit chance", "pct"], "crit_damage": ["crit damage", "pct"], "execute_frac": ["execute threshold", "pct"],
-	"thorns": ["thorns damage", "num"], "adrenaline_speed": ["speed per kill stack", "pct"], "adrenaline_might": ["attack damage per kill stack", "pct"],
-	"overkill": ["overkill splash", "pct"], "cooldown_on_kill": ["cooldown cut per kill", "sec"], "xp_gain": ["XP gain", "pct"],
-	"ricochet": ["ricochet chance", "pct"], "homing_turn": ["homing agility", "pct"], "haste": ["weapon speed", "pct"],
-	"evade": ["evade chance", "pct"], "evade_invuln": ["untouchable after an evade", "sec"], "shield_max": ["shield", "num"],
-	"shield_delay": ["shield recharge wait", "sec"], "shield_rate": ["shield recharge a second", "pct"],
-	"regen_delay": ["regen wait after a hit", "sec"], "lifesteal_cap": ["life steal cap a second", "pct"],
-	"heal_drop": ["cake drop chance", "pct"], "coin_drop": ["coin bag drop chance", "pct"],
-	"brand_chance": ["chance a kill burns the ground", "pct"],
+	"damage": "num", "cooldown": "sec", "amount": "count",
+	"pierce": "count", "area": "pct", "speed": "num",
+	"duration": "sec", "knockback": "num", "chains": "count",
+	"range": "m", "spread_deg": "deg", "orbit_radius": "m",
+	"max_hp": "num", "damage_reduction": "pct", "regen": "num",
+	"move_speed": "num", "might": "pct", "projectile_speed": "pct",
+	"magnet": "m", "luck": "pct", "greed": "pct", "revives": "count",
+	"rerolls": "count", "skips": "count", "banishes": "count",
+	"hp": "num", "size": "pct", "turn_rate": "num", "lifetime": "sec",
+	"poison_damage": "num", "poison_stacks": "count", "poison_duration": "sec",
+	"lifesteal": "pct", "fire_damage": "num", "fire_duration": "sec", "fire_spread": "pct",
+	"crit_chance": "pct", "crit_damage": "pct", "execute_frac": "pct",
+	"thorns": "num", "adrenaline_speed": "pct", "adrenaline_might": "pct",
+	"overkill": "pct", "cooldown_on_kill": "sec", "xp_gain": "pct",
+	"ricochet": "pct", "homing_turn": "pct", "haste": "pct",
+	"evade": "pct", "evade_invuln": "sec", "shield_max": "num",
+	"shield_delay": "sec", "shield_rate": "pct",
+	"regen_delay": "sec", "lifesteal_cap": "pct",
+	"heal_drop": "pct", "coin_drop": "pct",
+	"brand_chance": "pct",
 	# pass 46
-	"desperado": ["attack damage as health falls", "pct"], "revive_hp": ["health on revive", "pct"],
-	"hit_invuln": ["invulnerability after a hit", "sec"],
+	"desperado": "pct", "revive_hp": "pct",
+	"hit_invuln": "sec",
 	# pass 46, the weapons' own rows (WeaponInstance.stat_rows): the Guitarra's cone, the Spear's pin
-	"cone_deg": ["cone width", "deg"], "lift": ["lift", "m"], "pin": ["pins for", "sec"], "plant": ["stands in the sand for", "sec"],
+	"cone_deg": "deg", "lift": "m", "pin": "sec", "plant": "sec",
 	# pass 47, the new lines and passive items
-	"freeze_chance": ["chance a hit freezes for 1 s", "pct"], "crit_heal_chance": ["chance a crit heals 2% max HP", "pct"],
-	"gold_on_hit": ["gold when hit", "num"],
-	"debuff_duration": ["debuff duration", "pct"], "difficulty": ["difficulty", "pct"],
-	"still_regen": ["regen per second standing still", "num"], "still_might": ["attack damage per second standing still", "pct"],
-	"barrel_speed": ["move speed after a barrel", "pct"], "barrel_seconds": ["barrel boost", "sec"],
-	"xp_drop_chance": ["extra XP gem chance", "pct"], "elite_damage": ["damage to Elites and bosses", "pct"],
+	"freeze_chance": "pct", "crit_heal_chance": "pct",
+	"gold_on_hit": "num",
+	"debuff_duration": "pct", "difficulty": "pct",
+	"still_regen": "num", "still_might": "pct",
+	"barrel_speed": "pct", "barrel_seconds": "sec",
+	"xp_drop_chance": "pct", "elite_damage": "pct",
 	# pass 48, the new passive items
-	"phoenix_revive": ["free revive", "count"], "phoenix_hp": ["", "hidden"], "hurt_speed": ["move speed after a hit", "pct"],
-	"hurt_speed_seconds": ["boost after a hit", "sec"], "powder_keg_chance": ["chance a kill blows up", "pct"],
-	"coin_on_hit": ["chance a hit knocks a coin out", "pct"], "gas_mask_cap": ["damage reduction from poisoned enemies", "pct"],
-	"kill_might": ["attack damage per 1,000 kills", "pct"],
+	"phoenix_revive": "count", "phoenix_hp": "hidden", "hurt_speed": "pct",
+	"hurt_speed_seconds": "sec", "powder_keg_chance": "pct",
+	"coin_on_hit": "pct", "gas_mask_cap": "pct",
+	"kill_might": "pct",
 	# pass 54, Solenne's stats and the Sun Scepter's own row (WeaponInstance.stat_rows)
-	"buff_duration": ["buff duration", "pct"], "heal_mult": ["healing", "pct"], "radius": ["pillar radius", "m"],
+	"buff_duration": "pct", "heal_mult": "pct", "radius": "m",
 	# pass 62, the Pocket Watch
-	"powerup_duration": ["power-up duration", "pct"], "powerup_chance": ["power-up drop chance", "pct"],
+	"powerup_duration": "pct", "powerup_chance": "pct",
 	# pass 69, the new passive items; "word": a stat said in words, never with its number (the Magnet's pulls come more
 	# often a level, and Garry never wants their interval named), and left out of an item's totals (_sum_effects)
-	"counter_damage": ["damage of the next attack after an evade", "pct"], "counter_haste": ["attack speed after an evade", "pct"],
-	"counter_speed": ["move speed after an evade", "pct"], "counter_seconds": ["boost after an evade", "sec"],
-	"heavyweight": ["attack damage per 10 max HP", "pct"], "overheal": ["overheal past full health", "pct"],
-	"heal_pulse": ["damage a heal sends out", "num"], "last_stand": ["attack damage in Last Stand", "pct"],
-	"xp_pull_radius": ["EXP pull radius", "m"], "xp_pull_rate": ["pulls more often", "word"],
-	# pass 70 (lane LINES), the new lines' evolutions; "rule": a stat said in its RULE_TEXT words with its number inside
-	"bronco_chance": ["chance a knocked-back enemy is launched", "pct"], "debuff_jump": ["debuff jumps", "rule"],
-	"star_block_every": ["seconds between star blocks", "rule"], "gem_sweep_every": ["seconds between gem sweeps", "rule"],
-	"vein_chance": ["chance a kill bursts into 5 XP gems", "pct"], "gold_might": ["attack damage per 100 gold gained", "pct"],
+	"counter_damage": "pct", "counter_haste": "pct",
+	"counter_speed": "pct", "counter_seconds": "sec",
+	"heavyweight": "pct", "overheal": "pct",
+	"heal_pulse": "num", "last_stand": "pct",
+	"xp_pull_radius": "m", "xp_pull_rate": "word",
+	# pass 70 (lane LINES), the new lines' evolutions; "rule": a stat said in its rule words (stat.<id>.rule) with its number inside
+	"bronco_chance": "pct", "debuff_jump": "rule",
+	"star_block_every": "rule", "gem_sweep_every": "rule",
+	"vein_chance": "pct", "gold_might": "pct",
 	# pass 88 (lane MIRROR), the Stakes (MirrorDanger; the Trail's Stakes nodes since pass 129); "hidden": a stat never written anywhere (Garry: the
 	# coins and XP they pay more "we don't write that in the description")
-	"danger_hp": ["enemy HP", "pct"], "danger_attack": ["enemy attack", "pct"], "danger_speed": ["enemy speed", "pct"],
-	"danger_bounty": ["", "hidden"], "boss_danger_hp": ["boss and Elite HP", "pct"],
-	"boss_danger_attack": ["boss and Elite attack", "pct"], "boss_danger_speed": ["boss and Elite speed", "pct"],
-	"boss_danger_bounty": ["", "hidden"],
+	"danger_hp": "pct", "danger_attack": "pct", "danger_speed": "pct",
+	"danger_bounty": "hidden", "boss_danger_hp": "pct",
+	"boss_danger_attack": "pct", "boss_danger_speed": "pct",
+	"boss_danger_bounty": "hidden",
 	# pass 118 (lane ITEMS): the keys' per-chest stats (Run.chest_opened)
-	"chest_luck": ["luck per chest opened", "pct"], "chest_might": ["attack damage per chest opened", "pct"],
+	"chest_luck": "pct", "chest_might": "pct",
 	# pass 119 (lane LEGEND_B): the Grindstone's levels taken, each a level for the weakest weapon (Run._grindstone)
-	"grind_levels": ["levels for your weakest weapons", "count"],
-	# pass 119 (lane LEGEND_B): the four legendary items' rules, said in their RULE_TEXT words with their number inside
+	"grind_levels": "count",
+	# pass 119 (lane LEGEND_B): the four legendary items' rules, said in their rule words (stat.<id>.rule) with their number inside
 	# (each level "set"s its number, so the Evolved card names the Evolved numbers)
-	"crit_arcs": ["creatures a crit arcs to", "rule"], "crit_arc_pct": ["of a crit in each arc", "rule"],
-	"crit_arc_stun": ["arc stun", "rule"], "grave_every": ["kills a grave", "rule"], "grave_max": ["ghosts at once", "rule"],
-	"grave_seconds": ["ghost fights for", "rule"], "grave_damage_pct": ["ghost damage", "rule"],
-	"purse_might_per": ["gold per 1% attack damage", "rule"], "purse_might_cap": ["purse attack damage cap", "rule"],
-	"purse_hp_per": ["gold per 1% max HP", "rule"], "purse_hp_cap": ["purse max HP cap", "rule"],
-	"hit_cap_pct": ["most a hit takes", "rule"], "boss_hit_cap_pct": ["most a boss's hit takes", "rule"],
-	"hit_block_every": ["seconds between blocks", "rule"],
-	# pass 119 (lane LEGEND_A): the Iron Horse's and Personal Storm's clocks, said in their RULE_TEXT words
-	"train_every": ["seconds between ghost trains", "rule"], "train_cross": ["crossing train", "rule"],
-	"storm_every": ["seconds between storms", "rule"], "storm_seconds": ["storm strikes for", "rule"],
+	"crit_arcs": "rule", "crit_arc_pct": "rule",
+	"crit_arc_stun": "rule", "grave_every": "rule", "grave_max": "rule",
+	"grave_seconds": "rule", "grave_damage_pct": "rule",
+	"purse_might_per": "rule", "purse_might_cap": "rule",
+	"purse_hp_per": "rule", "purse_hp_cap": "rule",
+	"hit_cap_pct": "rule", "boss_hit_cap_pct": "rule",
+	"hit_block_every": "rule",
+	# pass 119 (lane LEGEND_A): the Iron Horse's and Personal Storm's clocks, said in their rule words (stat.<id>.rule)
+	"train_every": "rule", "train_cross": "rule",
+	"storm_every": "rule", "storm_seconds": "rule",
 	# pass 126 (lane ITEMS): the Assayer's Scale's pay for a spent skip (Run._pay_skip), the Canteen (Player._tick_canteen,
 	# EnemyManager.damage); "word": water_walk is the rule itself, never a number
-	"skip_coins": ["coins a skip pays", "num"], "skip_xp": ["next level's XP a skip pays", "pct"],
-	"water_walk": ["water no longer slows you", "word"], "leave_water_regen": ["HP a second after leaving water", "num"],
-	"leave_water_seconds": ["healing after leaving water", "sec"], "water_damage": ["damage to enemies in water", "pct"],
+	"skip_coins": "num", "skip_xp": "pct",
+	"water_walk": "word", "leave_water_regen": "num",
+	"leave_water_seconds": "sec", "water_damage": "pct",
 	# pass 129 (lane TRAILCORE): the Trail's own stats (Run.start, TotemBoons.boosted, BossChest.net)
-	"start_gold": ["coins at the start of a run", "num"], "totem_boost": ["bigger Totem gifts", "pct"],
-	"boss_purse": ["boss chest pay", "pct"],
+	"start_gold": "num", "totem_boost": "pct",
+	"boss_purse": "pct",
 }
-## A count stat's name for exactly one (pass 118: _singular cuts only a last "s", and a name with its plural inside says
-## its singular here; pass 119: the Grindstone's levels).
-const SINGULAR := {"grind_levels": "level for your weakest weapon"}
-## The words of a "rule" stat (pass 70, lane LINES: the evolved lines' twists), {n} its amount, then the unit its number
-## carries on a pause row or a change row.
-const RULE_TEXT := {
-	"debuff_jump": ["a burn or poison that ends jumps to the nearest enemy, up to {n} times", ""],
-	"star_block_every": ["a star blocks a whole hit every {n} s", " s"],
-	"gem_sweep_every": ["every gem on the screen flies to you every {n} s", " s"],
+## A count stat's name for exactly one is its row stat.<id>.one when it has one (pass 118: _singular cuts only a last
+## "s", and a name with its plural inside says its singular there; pass 119: the Grindstone's levels).
+## The words of a "rule" stat (pass 70, lane LINES: the evolved lines' twists) are its row stat.<id>.rule, {n} its amount
+## (pass 137); here the unit its number carries on a pause row or a change row: " s", "%", none, or a row's key whose
+## text holds the number as {n} (gen.unit.gold, "{n} gold").
+const RULE_UNIT := {
+	"debuff_jump": "",
+	"star_block_every": " s",
+	"gem_sweep_every": " s",
 	# pass 119 (lane LEGEND_B): Lightning in a Bottle, the Undertaker's Shovel, Fool's Gold, the Pocket Bible
-	"crit_arcs": ["a crit arcs to up to {n} more enemies", ""],
-	"crit_arc_pct": ["each arc deals {n}% of the crit", "%"],
-	"crit_arc_stun": ["each arc stuns for {n} s", " s"],
-	"grave_every": ["one kill in {n} leaves a grave", ""],
-	"grave_max": ["at most {n} ghosts at once", ""],
-	"grave_seconds": ["a ghost fights for {n} s", " s"],
-	"grave_damage_pct": ["at {n}% of your first weapon's damage", "%"],
-	"purse_might_per": ["+1% attack damage for every {n} gold in your purse", " gold"],
-	"purse_might_cap": ["up to +{n}% attack damage from the purse", "%"],
-	"purse_hp_per": ["+1% max HP for every {n} gold in your purse", " gold"],
-	"purse_hp_cap": ["up to +{n}% max HP from the purse", "%"],
-	"hit_cap_pct": ["no hit takes more than {n}% of your max HP", "%"],
-	"boss_hit_cap_pct": ["a boss's hit no more than {n}%", "%"],
-	"hit_block_every": ["a hit is stopped outright every {n} s (never a boss's)", " s"],
+	"crit_arcs": "",
+	"crit_arc_pct": "%",
+	"crit_arc_stun": " s",
+	"grave_every": "",
+	"grave_max": "",
+	"grave_seconds": " s",
+	"grave_damage_pct": "%",
+	"purse_might_per": "gen.unit.gold",
+	"purse_might_cap": "%",
+	"purse_hp_per": "gen.unit.gold",
+	"purse_hp_cap": "%",
+	"hit_cap_pct": "%",
+	"boss_hit_cap_pct": "%",
+	"hit_block_every": " s",
 	# pass 119 (lane LEGEND_A)
-	"train_every": ["a ghost train charges down your line every {n} s", " s"],
-	"train_cross": ["a second train crosses it", ""],
-	"storm_every": ["a lightning storm gathers over you every {n} s", " s"],
-	"storm_seconds": ["its lightning strikes for {n} s", " s"],
+	"train_every": " s",
+	"train_cross": "",
+	"storm_every": " s",
+	"storm_seconds": " s",
 }
 ## Who a weapon with priority targeting goes for (pass 48: peashooter, revolver, tommy gun, tumbleweed, pike, sabre,
-## turret, the Killer Bees and their evolutions), in its description.
+## turret, the Killer Bees and their evolutions), in its description. Pass 137: the description reads the row
+## gen.weapon.who.priority; this copy is the old tests' reference (pass48_p0_test, pass137_loc_test).
 const PRIORITY_WHO := "the strongest enemy nearby"
-## Words in front of a stat's amount (pass 46: Desperado's bonus is a ceiling, "up to +12% attack damage as health falls"
-## a level, +60% at level 5; pass 48: Gas Mask's is too, one point a poisoned enemy).
-const PREFIX := {"desperado": "up to ", "gas_mask_cap": "up to "}
+## The template a stat's amount sits in (pass 46: Desperado's bonus is a ceiling, "up to +12% attack damage as health
+## falls" a level, +60% at level 5; pass 48: Gas Mask's is too, one point a poisoned enemy). Pass 137: a row's key.
+const PREFIX := {"desperado": "gen.effect.up_to", "gas_mask_cap": "gen.effect.up_to"}
 
-const RARITY_NAMES := {"common": "Common", "uncommon": "Uncommon", "rare": "Rare", "epic": "Epic", "legendary": "Legendary"}
+## The rarities' names are rows gen.rarity.<id> (pass 137; rarity_name).
 
 
 static func stat_name(stat: String) -> String:
+	var key := "stat.%s.name" % stat
+	if Loc.has(key):
+		return Loc.t(key)
+	# a "hidden" stat (pass 88) has no name
 	if STATS.has(stat):
-		return STATS[stat][0]
+		return ""
 	return stat.replace("_", " ")
 
 
 static func stat_kind(stat: String) -> String:
 	if STATS.has(stat):
-		return STATS[stat][1]
+		return STATS[stat]
 	return "num"
 
 
@@ -155,11 +161,19 @@ static func format_value(stat: String, v: float) -> String:
 		"count":
 			return str(int(round(v)))
 		"rule":
-			return _plain(v) + str(RULE_TEXT.get(stat, ["", ""])[1])
+			return rule_amount(stat, _plain(v))
 		_:
 			if abs(v - round(v)) < 0.001:
 				return str(int(round(v)))
 			return "%.1f" % v
+
+
+## A rule stat's number `n` (already written) with its unit (RULE_UNIT): "10 s", "25%", "3", "50 gold".
+static func rule_amount(stat: String, n: String) -> String:
+	var u := str(RULE_UNIT.get(stat, ""))
+	if u.begins_with("gen.unit."):
+		return Loc.t(u, {"n": n})
+	return n + u
 
 
 static func _signed(v: float, suffix: String = "") -> String:
@@ -187,7 +201,7 @@ static func describe_effect(e: Effect, with_name: bool = true) -> String:
 		return ""
 	# a rule (pass 70): its own words with the amount inside
 	if kind == "rule":
-		return rule_words(e.stat, e.value) if with_name else _plain(e.value) + str(RULE_TEXT.get(e.stat, ["", ""])[1])
+		return rule_words(e.stat, e.value) if with_name else rule_amount(e.stat, _plain(e.value))
 	var out := ""
 	match e.op:
 		"mul":
@@ -201,7 +215,7 @@ static func describe_effect(e: Effect, with_name: bool = true) -> String:
 					var n := int(round(e.value))
 					out = _signed(float(n))
 					if with_name:
-						out += " " + (name if n != 1 and n != -1 else str(SINGULAR.get(e.stat, _singular(name))))
+						out += " " + (name if n != 1 and n != -1 else singular_name(e.stat, name))
 				"sec":
 					out = _signed(e.value, " s") + (" " + name if with_name else "")
 				"m":
@@ -213,21 +227,23 @@ static func describe_effect(e: Effect, with_name: bool = true) -> String:
 		"set":
 			out = (name + " = " if with_name else "= ") + format_value(e.stat, e.value)
 	if e.op != "set" and PREFIX.has(e.stat):
-		out = str(PREFIX[e.stat]) + out
-	if e.target == "all_weapons":
-		out += ", all weapons"
-	elif e.target.begins_with("weapon:"):
-		out += ", " + weapon_name(e.target.trim_prefix("weapon:"))
-	return out
+		out = Loc.t(str(PREFIX[e.stat]), {"effect": out})
+	return out + _target_words(e.target)
 
 
-## A "rule" stat in words (pass 70, lane LINES): RULE_TEXT's sentence with `value` in it ("a star blocks a whole hit every
-## 10 s"); the stat's name when it has no sentence.
+## A count stat's name for exactly one (stat.<id>.one, else `name` without its last "s").
+static func singular_name(stat: String, name: String) -> String:
+	var key := "stat.%s.one" % stat
+	return Loc.t(key) if Loc.has(key) else _singular(name)
+
+
+## A "rule" stat in words (pass 70, lane LINES): its row stat.<id>.rule with `value` in it ("a star blocks a whole hit
+## every 10 s"); the stat's name when it has no sentence.
 static func rule_words(stat: String, value: float) -> String:
-	var r = RULE_TEXT.get(stat)
-	if not r is Array:
+	var key := "stat.%s.rule" % stat
+	if not Loc.has(key):
 		return stat_name(stat)
-	return str((r as Array)[0]).replace("{n}", _plain(value))
+	return Loc.t(key, {"n": _plain(value)})
 
 
 ## A weapon's name by its id (pass 49: an effect aimed at "weapon:hornet_nest", Pollen's buff, read "Hornet Nest", the
@@ -270,11 +286,12 @@ static func cone_width(params: Dictionary, area: float = 1.0) -> float:
 ## `params` are the weapon's as it is carried (WeaponInstance.params: its mutations' merged over its own); empty = the
 ## def's.
 ## "4th", "2nd", "11th" (pass 53: the Hellfire Battery's "every 4th volley").
+## Pass 137: the number in its row gen.word.ordinal.<st|nd|rd|th> ("{n}st"); which row is English's rule, here.
 static func ordinal(n: int) -> String:
 	var suffix := "th"
 	if n % 100 < 11 or n % 100 > 13:
 		suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
-	return str(n) + suffix
+	return Loc.t("gen.word.ordinal." + suffix, {"n": str(n)})
 
 
 ## Heartseeker's rule in words (pass 62, params.crit_stroke {every, reach_mult}): " Every 4th thrust is a guaranteed crit
@@ -288,11 +305,9 @@ static func crit_stroke_words(params: Dictionary) -> String:
 	var rm := float((cs as Dictionary).get("reach_mult", 1.0))
 	var th = params.get("thrust", {})
 	var td: Dictionary = th if th is Dictionary else {}
-	var word := "sweep" if float(td.get("slice_deg", 0.0)) > 0.0 and not bool(td.get("alternate", false)) else "thrust"
-	var s := " Every %s %s is a guaranteed crit" % [ordinal(every), word]
-	if rm > 1.001:
-		s += " and reaches %d%% further" % int(round((rm - 1.0) * 100.0))
-	return s + "."
+	var sweeps := float(td.get("slice_deg", 0.0)) > 0.0 and not bool(td.get("alternate", false))
+	var vars := {"nth": ordinal(every), "pct": str(int(round((rm - 1.0) * 100.0)))}
+	return " " + Loc.t("gen.weapon.crit_stroke.%s%s" % ["sweep" if sweeps else "thrust", "_reach" if rm > 1.001 else ""], vars)
 
 
 ## A Lobber's landing blast in words (pass 62, Sun Cocktail's params.land_blast {damage_frac, radius_frac, look}): " Each
@@ -304,8 +319,8 @@ static func land_blast_words(params: Dictionary, sheet: StatSheet) -> String:
 	var d: Dictionary = lb
 	var r := sheet.get_stat("area", 2.5) * float(d.get("radius_frac", 0.9))
 	var dmg := sheet.get_stat("damage", 0.0) * float(d.get("damage_frac", 1.0))
-	var how := "bursts with sunlight" if str(d.get("look", "")) == "sun" else "bursts"
-	return " Each one %s as it lands: %.0f damage within %.1f m and a light shove." % [how, dmg, r]
+	var key := "gen.weapon.land_blast.sun" if str(d.get("look", "")) == "sun" else "gen.weapon.land_blast.plain"
+	return " " + Loc.t(key, {"damage": "%.0f" % dmg, "radius": "%.1f" % r})
 
 
 ## The dynamite's fuse in words (pass 76, lane DYN, params.fuse {seconds}): " It lies where it lands and blows a second
@@ -317,9 +332,9 @@ static func fuse_words(pr: Dictionary, amount: int = 1) -> String:
 	var s := float((fz as Dictionary).get("seconds", 1.0))
 	if s <= 0.0:
 		return ""
-	var when := "a second later" if absf(s - 1.0) < 0.01 else "%s s later" % _plain(s)
-	var who := "One that sticks to nothing" if pr.get("sticky") is Dictionary else ("It" if amount <= 1 else "Each one")
-	return " %s lies where it lands and blows %s." % [who, when]
+	var when := Loc.t("gen.weapon.fuse.when_second") if absf(s - 1.0) < 0.01 else Loc.t("gen.weapon.fuse.when", {"seconds": _plain(s)})
+	var who := "sticky" if pr.get("sticky") is Dictionary else ("it" if amount <= 1 else "each")
+	return " " + Loc.t("gen.weapon.fuse." + who, {"when": when})
 
 
 ## The Drifter's Fire in the Hole in words (pass 76, lane DYN, params.mass_mini {min_hits}): " A blast that catches 9 or
@@ -328,7 +343,7 @@ static func mass_mini_words(pr: Dictionary) -> String:
 	var mm = pr.get("mass_mini")
 	if not mm is Dictionary:
 		return ""
-	return " A blast that catches %d or more enemies lands a Mini Crit on every one of them." % maxi(int((mm as Dictionary).get("min_hits", 9)), 1)
+	return " " + Loc.t("gen.weapon.mass_mini", {"hits": str(maxi(int((mm as Dictionary).get("min_hits", 9)), 1))})
 
 
 ## The basketball in words (pass 67, params.return_on_hit; its amount counts bounces with amount_mode "bounces"): "Throws
@@ -345,24 +360,41 @@ static func launch_words(pr: Dictionary) -> String:
 		return ""
 	var ch := int(round(float((lc as Dictionary).get("chance", 0.15)) * 100.0))
 	var fr := float((lc as Dictionary).get("fall_damage_frac", 1.0))
-	var again := "the hit again" if absf(fr - 1.0) < 0.01 else "%d%% of the hit" % int(round(fr * 100.0))
-	return " Each hit has a %d%% chance to throw the enemy into the air: it can't attack up there and takes %s when it lands." % [ch, again]
+	var again := Loc.t("gen.weapon.launch.again") if absf(fr - 1.0) < 0.01 else Loc.t("gen.weapon.launch.share", {"pct": str(int(round(fr * 100.0)))})
+	return " " + Loc.t("gen.weapon.launch", {"pct": str(ch), "again": again})
+
+
+## Pass 137 (lane W2-TEXTGEN): the ball's opening sentence, as the string table's key under gen.weapon.: "ball.bounces"
+## (it bounces on to more enemies first) or "ball.back".
+static func _ball_shape(sheet: StatSheet, pr: Dictionary) -> String:
+	var ra = pr.get("ricochet_any", {})
+	var hops := maxi(int((ra as Dictionary).get("count", 0)), 0) if ra is Dictionary else 0
+	if str(pr.get("amount_mode", "")) == "bounces":
+		hops += maxi(sheet.get_int("amount", 1), 1) - 1
+	return "ball.bounces" if hops > 0 else "ball.back"
+
+
+## Pass 137 (lane W2-TEXTGEN): an item's own description row (weapon.<id>.desc, evolution.<id>.desc) when its sentence is
+## the shape it comes with (`shape` = `home`), else "" (Loc.t_first then takes the shape's generic row): the pilot's rule
+## for the guns (_pe_shape), for every behaviour.
+static func _own_key(def: WeaponDef, shape: String, home: String) -> String:
+	if shape != home:
+		return ""
+	return ("evolution.%s.desc" if def.is_evolution else "weapon.%s.desc") % def.id
 
 
 static func ball_words(def: WeaponDef, sheet: StatSheet, pr: Dictionary) -> String:
-	var who := "the strongest enemy" if def.targeting == "priority" else "the nearest enemy"
+	var who := Loc.t("gen.weapon.ball.who_priority") if def.targeting == "priority" else Loc.t("gen.weapon.who.nearest")
 	var ra = pr.get("ricochet_any", {})
 	var rd: Dictionary = ra if ra is Dictionary else {}
 	var hops := maxi(int(rd.get("count", 0)), 0)
 	if str(pr.get("amount_mode", "")) == "bounces":
 		hops += maxi(sheet.get_int("amount", 1), 1) - 1
 	var rp := int(pr.get("return_pierce", 80))
-	var way := ", hitting everything on the way" if rp >= 80 else ((", hitting up to %d on the way" % rp) if rp > 0 else "")
-	var text := "Throws a ball at %s within %.0f m: " % [who, sheet.get_stat("range", 8.0)]
-	if hops > 0:
-		text += "it bounces to %d more enem%s within %.0f m, then flies back to his hand%s." % [hops, "y" if hops == 1 else "ies", float(rd.get("reach", 7.0)), way]
-	else:
-		text += "it flies back to his hand%s." % way
+	var way := (", " + Loc.t("gen.weapon.ball.way_all")) if rp >= 80 else ((", " + Loc.t("gen.weapon.ball.way_some", {"n": str(rp)})) if rp > 0 else "")
+	var vars := {"who": who, "range": "%.0f" % sheet.get_stat("range", 8.0), "hops": str(hops), "reach": "%.0f" % float(rd.get("reach", 7.0)), "way": way}
+	var shape := _ball_shape(sheet, pr)
+	var text := Loc.t_first([_own_key(def, shape, _ball_shape(sheet, _home_params(def))), "gen.weapon." + shape], vars)
 	# pass 69: Alley-Oop's launch (Slam Dunk's, amplified)
 	text += launch_words(pr)
 	var ct = pr.get("catch")
@@ -372,67 +404,81 @@ static func ball_words(def: WeaponDef, sheet: StatSheet, pr: Dictionary) -> Stri
 	var per := float(c.get("heat_per", 0.0))
 	var top := int(c.get("heat_max", 10))
 	if per > 0.0 and top > 0:
-		text += " Every caught ball that scored adds Heat: +%d%% damage, up to +%d%%." % [int(round(per * 100.0)), int(round(per * float(top) * 100.0))]
-		text += " Its Heat never cools." if bool(c.get("heat_keep", false)) else " A hit on him cools it."
+		text += " " + Loc.t("gen.weapon.ball.heat", {"pct": str(int(round(per * 100.0))), "top": str(int(round(per * float(top) * 100.0)))})
+		text += " " + Loc.t("gen.weapon.ball.heat_keep" if bool(c.get("heat_keep", false)) else "gen.weapon.ball.heat_cools")
 	var sl = c.get("slam")
 	if sl is Dictionary:
 		var at := int((sl as Dictionary).get("at_heat", top))
-		text += " At %s every catch is a dunk: %d%% of its damage to everything within %.1f m, thrown back." % ["full Heat" if at >= top else "%d Heat" % at,
-			int(round(float((sl as Dictionary).get("damage_frac", 1.0)) * 100.0)), float((sl as Dictionary).get("radius", 3.5))]
+		var at_words := Loc.t("gen.weapon.ball.at_full") if at >= top else Loc.t("gen.weapon.ball.at_heat", {"heat": str(at)})
+		text += " " + Loc.t("gen.weapon.ball.slam", {"at": at_words, "pct": str(int(round(float((sl as Dictionary).get("damage_frac", 1.0)) * 100.0))),
+			"radius": "%.1f" % float((sl as Dictionary).get("radius", 3.5))})
 	return text
 
 
 ## The Dragon's Breath in words (pass 95, lane BREATH; core/behaviors/FireBreath.gd): the cone, how long and how often
 ## it breathes (the amount's seconds in), what a second in it costs, then what the path adds (Backdraft's shove, Held
 ## Breath's held breath). The burn's line comes with the fire extras after it.
-static func breath_words(sheet: StatSheet, pr: Dictionary) -> String:
+static func breath_words(sheet: StatSheet, pr: Dictionary, def: WeaponDef = null) -> String:
 	var b = pr.get("breath", {})
 	var bd: Dictionary = b if b is Dictionary else {}
-	var deg: float = clampf(float(bd.get("cone_deg", 50.0)) * sheet.get_stat("area", 1.0), 15.0, 360.0)
 	var amount := maxi(sheet.get_int("amount", 1), 1)
 	var secs: float = clampf(sheet.get_stat("duration", 2.0) + float(amount - 1) * float(bd.get("seconds_per_amount", 1.0)), 0.1, maxf(float(bd.get("max_seconds", 6.0)), 0.1))
 	var tick: float = maxf(float(bd.get("tick", 1.0)), 0.1)
-	var shape := "a ring of fire" if deg >= 359.0 else "a %d° cone of fire" % int(round(deg))
-	var text := "Breathes %s %.0f m long where you face, %.1f s every %.1f s: whatever stands in it takes %d damage every %s and catches fire." % [
-		shape, sheet.get_stat("range", 5.0), secs, sheet.get_stat("cooldown", 10.0), int(round(sheet.get_stat("damage", 12.0))),
-		"second" if absf(tick - 1.0) < 0.01 else "%.1f s" % tick]
+	var each_second := absf(tick - 1.0) < 0.01
+	var vars := {"deg": str(int(round(_breath_deg(sheet, pr)))), "range": "%.0f" % sheet.get_stat("range", 5.0), "seconds": "%.1f" % secs,
+		"cooldown": "%.1f" % sheet.get_stat("cooldown", 10.0), "damage": str(int(round(sheet.get_stat("damage", 12.0)))),
+		"every": Loc.t("gen.weapon.breath.every_second") if each_second else Loc.t("gen.weapon.breath.every_tick", {"tick": "%.1f" % tick})}
+	var shape := _breath_shape(sheet, pr)
+	var own := _own_key(def, shape, _breath_shape(sheet, _home_params(def))) if def != null else ""
+	var text := Loc.t_first([own, "gen.weapon." + shape], vars)
 	if float(bd.get("seconds_per_amount", 1.0)) > 0.0:
-		text += " Every extra projectile adds %s s of breath." % _plain(float(bd.get("seconds_per_amount", 1.0)))
+		text += " " + Loc.t("gen.weapon.breath.extra", {"seconds": _plain(float(bd.get("seconds_per_amount", 1.0)))})
 	if float(bd.get("knock", 0.0)) > 0.0:
-		text += " Every %s in it shoves them away from you." % ("second" if absf(tick - 1.0) < 0.01 else "hit")
+		text += " " + Loc.t("gen.weapon.breath.shove_second" if each_second else "gen.weapon.breath.shove_hit")
 	var st = bd.get("still")
 	if st is Dictionary:
 		var sd: Dictionary = st
-		text += " Stand still %s s before a breath: it lasts ×%s, hits ×%s%s; a hit breaks the stillness." % [
-			_plain(float(sd.get("seconds", 2.0))), _plain(float(sd.get("duration_mult", 2.0))), _plain(float(sd.get("damage_mult", 1.5))),
-			" and comes from all sides" if bool(sd.get("ring", true)) else ""]
+		text += " " + Loc.t("gen.weapon.breath.still_ring" if bool(sd.get("ring", true)) else "gen.weapon.breath.still", {
+			"seconds": _plain(float(sd.get("seconds", 2.0))), "long": _plain(float(sd.get("duration_mult", 2.0))), "hits": _plain(float(sd.get("damage_mult", 1.5)))})
 	return text
+
+
+## The breath's cone in degrees now (pass 95): breath.cone_deg x the area stat, 15 at least, 360 at most.
+static func _breath_deg(sheet: StatSheet, pr: Dictionary) -> float:
+	var b = pr.get("breath", {})
+	var bd: Dictionary = b if b is Dictionary else {}
+	return clampf(float(bd.get("cone_deg", 50.0)) * sheet.get_stat("area", 1.0), 15.0, 360.0)
+
+
+## Pass 137: the breath's opening sentence under gen.weapon.: "breath.ring" (a full ring) or "breath.cone".
+static func _breath_shape(sheet: StatSheet, pr: Dictionary) -> String:
+	return "breath.ring" if _breath_deg(sheet, pr) >= 359.0 else "breath.cone"
 
 
 ## The Frisbee in words (pass 69, lane FRIS; core/behaviors/Frisbee.gd): its throw, its curve, its drop-off and floor,
 ## then what its path adds (Carry's ride, Trick Shot's share, a stun, the Flying Saucer's loop).
-static func frisbee_words(sheet: StatSheet, pr: Dictionary) -> String:
+static func frisbee_words(sheet: StatSheet, pr: Dictionary, def: WeaponDef = null) -> String:
 	var amount := maxi(sheet.get_int("amount", 1), 1)
 	var range_m := sheet.get_stat("range", 12.0)
 	var fo = pr.get("falloff", {})
 	var fd: Dictionary = fo if fo is Dictionary else {}
 	var less := int(round((1.0 - clampf(float(fd.get("step", 0.85)), 0.0, 1.0)) * 100.0))
 	var flo := int(round(clampf(float(fd.get("floor", 0.25)), 0.0, 1.0) * 100.0))
-	var text := ("Throws a frisbee" if amount == 1 else "Throws %d frisbees, fanned out," % amount)
-	text += " at the nearest enemy within %.0f m, curving left or right: %s through everything in a %.0f m flight, each enemy after the first taking %d%% less (never under %d%%)." % [
-		range_m, "it cuts" if amount == 1 else "they cut", range_m, less, flo]
+	var vars := {"amount": str(amount), "range": "%.0f" % range_m, "less": str(less), "floor": str(flo)}
+	var text := Loc.t_first([_own_key(def, "frisbee", "frisbee") if def != null else "", "gen.weapon.frisbee"], vars)
 	var cr = pr.get("carry")
 	if cr is Dictionary and float((cr as Dictionary).get("chance", 0.0)) > 0.0:
-		text += " It has a %d%% chance to carry the first enemy it hits away%s." % [int(round(float((cr as Dictionary).get("chance", 0.0)) * 100.0)),
-			" and drop it with a hit" if float((cr as Dictionary).get("drop_hit", 0.0)) > 0.0 else ""]
+		text += " " + Loc.t("gen.weapon.frisbee.carry_drop" if float((cr as Dictionary).get("drop_hit", 0.0)) > 0.0 else "gen.weapon.frisbee.carry",
+			{"pct": str(int(round(float((cr as Dictionary).get("chance", 0.0)) * 100.0)))})
 	var pm := float(pr.get("proc_mult", 1.0))
 	if pm > 1.001:
-		text += " Life steal, stun, crits, Cold Snap and Vulture work %d%% better with it." % int(round((pm - 1.0) * 100.0))
+		text += " " + Loc.t("gen.weapon.frisbee.procs", {"pct": str(int(round((pm - 1.0) * 100.0)))})
 	var st = pr.get("stun")
 	if st is Dictionary and float((st as Dictionary).get("chance", 0.0)) > 0.0:
-		text += " Every hit has a %d%% chance to stun for %.1f s." % [int(round(float((st as Dictionary).get("chance", 0.0)) * maxf(pm, 1.0) * 100.0)), float((st as Dictionary).get("seconds", 1.0))]
+		text += " " + Loc.t("gen.weapon.stun_chance", {"pct": str(int(round(float((st as Dictionary).get("chance", 0.0)) * maxf(pm, 1.0) * 100.0))),
+			"seconds": "%.1f" % float((st as Dictionary).get("seconds", 1.0))})
 	if pr.get("loop") is Dictionary:
-		text += " It loops once along the way."
+		text += " " + Loc.t("gen.weapon.frisbee.loop")
 	return text
 
 
@@ -443,246 +489,360 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 	var text := ""
 	var behavior := def.behavior
 	# priority targeting (pass 48, EnemyManager.priority_index): the strong and the close before the merely close
-	var who := PRIORITY_WHO if def.targeting == "priority" else "the nearest enemy"
+	var who := Loc.t("gen.weapon.who.priority") if def.targeting == "priority" else Loc.t("gen.weapon.who.nearest")
 	# the Spear (pass 46) is thrown like any shot, and reads as what it is
 	if behavior == "ProjectileEmitter" and pr.has("plant"):
 		behavior = "Spear"
 	match behavior:
 		"Spear":
 			# through everything in its way, and it stands in the sand where it comes down
-			text = "Throws %s at %s: through everything in the way, out to %.0f m, where %s in the sand." % ["a spear" if amount == 1 else "%d spears" % amount, who, range_m, "it sticks" if amount == 1 else "they stick"]
+			text = Loc.t_first([_own_key(def, "spear", "spear"), "gen.weapon.spear"], {"amount": str(amount), "who": who, "range": "%.0f" % range_m})
 			var pin = pr.get("pin")
 			if pin is Dictionary:
-				text += " The first enemy each spear strikes is pinned in place for %.1f s." % float((pin as Dictionary).get("seconds", 1.2))
+				text += " " + Loc.t("gen.weapon.spear.pin", {"seconds": "%.1f" % float((pin as Dictionary).get("seconds", 1.2))})
 			var tz = pr.get("trail_zone")
 			if tz is Dictionary:
-				text += " Each leaves a trail of dust that slows what walks in it."
+				text += " " + Loc.t("gen.weapon.spear.dust")
 		"ProjectileEmitter":
-			match def.targeting:
-				"forward":
-					text = "Fires %d pellet%s in a %d° cone where you face." % [amount, "" if amount == 1 else "s", int(round(sheet.get_stat("spread_deg", 30.0)))]
-				"random":
-					text = "Fires %d shot%s at random enemies within %.0f m." % [amount, "" if amount == 1 else "s", range_m]
-				"healthy":
-					if sheet.get_stat("fire_damage", 0.0) > 0.0:
-						text = "Fires %d flare%s at the nearest enemy within %.0f m that is not burning yet." % [amount, "" if amount == 1 else "s", range_m]
-					else:
-						text = "Fires %d dart%s at the nearest enemy within %.0f m that is not poisoned yet." % [amount, "" if amount == 1 else "s", range_m]
-				"priority":
-					text = "Fires %d shot%s within %.0f m and aims at %s." % [amount, "" if amount == 1 else "s", range_m, who]
-				_:
-					text = "Fires %d shot%s at the nearest enemy within %.0f m." % [amount, "" if amount == 1 else "s", range_m]
-			# pass 48: Birdshot and the Blunderbuss blast a shape instead of flying pellets
-			var bl = pr.get("blast")
-			if bl is Dictionary:
-				var blast: Dictionary = bl
-				if str(blast.get("shape", "")) == "lane":
-					text = "Blasts a %.1f m wide lane %.0f m long where you face: everything in it is hit at once and shoved along it." % [float(blast.get("width", 2.6)), range_m * float(blast.get("length_mult", 1.25))]
-				elif str(blast.get("shape", "")) == "cone":
-					text = "Blasts a %d° cone %.0f m deep where you face: everything in it is hit at once." % [int(round(float(blast.get("deg", 75.0)))), float(blast.get("range", range_m))]
-			# pass 67 (the basketball, params.return_on_hit): one ball that bounces on and flies back to his hand
+			# pass 137 (lane LOCKIT, the string table's pilot): the sentence is a row of content/strings/en.json, the
+			# weapon's own (weapon.<id>.desc / evolution.<id>.desc) when the shape is the one it comes with, else the
+			# shape's generic one (gen.weapon.shot.* / gen.weapon.blast.*), so a new weapon folder still has words
+			var vars := {"amount": str(amount), "range": "%.0f" % range_m, "who": who}
+			var shape := _pe_shape(def, sheet, pr)
+			match shape:
+				"shot.forward":
+					vars["cone"] = str(int(round(sheet.get_stat("spread_deg", 30.0))))
+				"blast.lane":
+					var bll: Dictionary = pr["blast"]
+					vars["width"] = "%.1f" % float(bll.get("width", 2.6))
+					vars["length"] = "%.0f" % (range_m * float(bll.get("length_mult", 1.25)))
+				"blast.cone":
+					var blc: Dictionary = pr["blast"]
+					vars["deg"] = str(int(round(float(blc.get("deg", 75.0)))))
+					vars["depth"] = "%.0f" % float(blc.get("range", range_m))
+			# pass 67 (the basketball, params.return_on_hit): one ball that bounces on and flies back to his hand (pass
+			# 137: its own words, ball_words, in place of a shot's)
 			var ball := bool(pr.get("return_on_hit", false))
 			if ball:
 				text = ball_words(def, sheet, pr)
+			else:
+				text = Loc.t_first([_own_key(def, shape, _pe_shape(def, sheet, _home_params(def))), "gen.weapon." + shape], vars)
 			var de := int(pr.get("double_every", 0))
 			if de >= 2:
-				text += " Every %s shot fires twice in quick succession." % ({2: "second", 3: "third", 4: "fourth"}.get(de, "%dth" % de))
+				var nth := Loc.t("gen.word.nth.%d" % de) if Loc.has("gen.word.nth.%d" % de) else Loc.t("gen.word.nth.n", {"n": str(de)})
+				text += " " + Loc.t("gen.weapon.double_every", {"nth": nth})
 			var hs = pr.get("hip_shot")
 			if hs is Dictionary:
-				text += " Every %s pull fires %d volleys in a row." % [ordinal(int((hs as Dictionary).get("every", 5))), int((hs as Dictionary).get("volleys", 3))]
+				text += " " + Loc.t("gen.weapon.hip_shot", {"nth": ordinal(int((hs as Dictionary).get("every", 5))), "volleys": str(int((hs as Dictionary).get("volleys", 3)))})
 			var rav = pr.get("ricochet_any")
 			if rav is Dictionary and not ball:
 				var ra := int((rav as Dictionary).get("count", 0))
 				if ra > 0:
-					text += " Every round ricochets %d time%s at %d%%." % [ra, "" if ra == 1 else "s", int(round(float((rav as Dictionary).get("frac", 1.0)) * 100.0))]
+					text += " " + Loc.t("gen.weapon.ricochet", {"count": str(ra), "pct": str(int(round(float((rav as Dictionary).get("frac", 1.0)) * 100.0)))})
 			var mc := float(pr.get("mini_crit", 0.0))
 			if mc > 0.0:
-				text += " %d%% of rounds are mini crits." % int(round(mc * 100.0))
+				text += " " + Loc.t("gen.weapon.mini_crit", {"pct": str(int(round(mc * 100.0)))})
 		"Orbiter":
-			text = "%d blade%s circle you at %.1f m, hitting anything they touch." % [amount, "" if amount == 1 else "s", sheet.get_stat("orbit_radius", 2.0)]
+			text = Loc.t_first([_own_key(def, "orbit", "orbit"), "gen.weapon.orbit"], {"amount": str(amount), "radius": "%.1f" % sheet.get_stat("orbit_radius", 2.0)})
 		"Lobber":
 			# pass 76 (lane LOOKS): the thing lobbed in the look's words (thing_word: "sticks"), else the sentence's own
-			if sheet.get_stat("fire_damage", 0.0) > 0.0:
-				text = "Lobs %d %s of fire at the thickest crowd that is not burning yet. Leaves a %.1f m pool of flames." % [amount, thing_word(def, amount, "bottle", "bottles"), sheet.get_stat("area", 2.5)]
-			elif sheet.get_stat("poison_damage", 0.0) > 0.0:
-				text = "Lobs %d poison %s at the thickest crowd of healthy enemies. Leaves a %.1f m cloud of green smoke." % [amount, thing_word(def, amount, "bomb", "bombs"), sheet.get_stat("area", 2.5)]
-			else:
-				text = "Lobs %d %s at the densest crowd. Explodes in a %.1f m radius." % [amount, thing_word(def, amount, "grenade", "grenades"), sheet.get_stat("area", 2.5)]
+			# (pass 137: gen.noun.*); the sentence by what it carries (_lob_shape: lob.fire, lob.poison, lob.blast)
+			var lob := _lob_shape(sheet)
+			var thing := {"lob.fire": ["bottle", "bottles"], "lob.poison": ["bomb", "bombs"]}.get(lob, ["grenade", "grenades"]) as Array
+			var lvars := {"amount": str(amount), "area": "%.1f" % sheet.get_stat("area", 2.5),
+				"thing": thing_word(def, amount, Loc.t("gen.weapon.noun." + str(thing[0])), Loc.t("gen.weapon.noun." + str(thing[1])))}
+			text = Loc.t_first([_own_key(def, lob, _lob_shape(sheet)), "gen.weapon." + lob], lvars)
 			# pass 62, Sun Cocktail (params.land_blast): a small blast where each one lands
 			text += land_blast_words(pr, sheet)
 			# pass 76 (lane DYN): the dynamite's fuse and the Drifter's mass mini crits
 			text += fuse_words(pr, amount) + mass_mini_words(pr)
 		"Beam":
-			text = "Zaps a random enemy within %.0f m and chains to %d more." % [range_m, sheet.get_int("chains", 2)]
+			text = Loc.t_first([_own_key(def, "zap", "zap"), "gen.weapon.zap"], {"range": "%.0f" % range_m, "chains": str(sheet.get_int("chains", 2))})
 		"Thruster":
 			var th = pr.get("thrust", {})
 			var slice_deg: float = float(th.get("slice_deg", 0.0)) if th is Dictionary else 0.0
 			# pass 53: the Spear's sweep swings every blade in one stroke ("blades"), the Thunder Lance alternates a sweep and
-			# a throwing thrust, Stunning Thrust stuns, the Whirlwind's crits refund the stroke, the stunned take more
-			var blades: bool = th is Dictionary and str(th.get("amount_mode", "")) == "blades"
-			if slice_deg > 0.0:
-				var many := ""
-				if amount > 1:
-					many = (", %d blades sweeping together" % amount) if blades else (", %d swings a stroke" % amount)
-				text = "Slices a %d° arc across %s within %.1f m%s, throwing what it cuts out and aside." % [int(slice_deg), who, range_m, many]
-				if th is Dictionary and bool(th.get("alternate", false)):
-					text += " Every other stroke is a thrust that throws harder."
-			else:
-				text = "Thrusts %d blade%s at %s within %.1f m." % [amount, "" if amount == 1 else "s", who, range_m]
+			# a throwing thrust, Stunning Thrust stuns, the Whirlwind's crits refund the stroke, the stunned take more.
+			# Pass 137: the sentence by _thrust_shape (thrust.sweep: blades sweeping together, thrust.slice: swings a
+			# stroke, thrust.thrust)
+			var tshape := _thrust_shape(pr)
+			text = Loc.t_first([_own_key(def, tshape, _thrust_shape(_home_params(def))), "gen.weapon." + tshape],
+				{"amount": str(amount), "deg": str(int(slice_deg)), "who": who, "range": "%.1f" % range_m})
+			if slice_deg > 0.0 and th is Dictionary and bool(th.get("alternate", false)):
+				text += " " + Loc.t("gen.weapon.thrust.alternate")
 			var st = th.get("stun") if th is Dictionary else null
 			if st is Dictionary:
 				var sc := float((st as Dictionary).get("chance", 0.0))
-				var ss := float((st as Dictionary).get("seconds", 1.0))
-				text += (" Every hit stuns for %.1f s." % ss) if sc >= 1.0 else (" Every hit has a %d%% chance to stun for %.1f s." % [int(round(sc * 100.0)), ss])
+				var ss := "%.1f" % float((st as Dictionary).get("seconds", 1.0))
+				text += " " + (Loc.t("gen.weapon.stun_always", {"seconds": ss}) if sc >= 1.0 else Loc.t("gen.weapon.stun_chance", {"pct": str(int(round(sc * 100.0))), "seconds": ss}))
 			if float(pr.get("crit_refund", 0.0)) > 0.0:
-				text += " A critical hit gives back %d%% of the cooldown." % int(round(float(pr.get("crit_refund", 0.0)) * 100.0))
+				text += " " + Loc.t("gen.weapon.thrust.crit_refund", {"pct": str(int(round(float(pr.get("crit_refund", 0.0)) * 100.0)))})
 			if float(pr.get("stunned_mult", 1.0)) > 1.0:
-				text += " A stunned enemy takes ×%.1f." % float(pr.get("stunned_mult", 1.0))
+				text += " " + Loc.t("gen.weapon.thrust.stunned_mult", {"mult": "%.1f" % float(pr.get("stunned_mult", 1.0))})
 			# pass 62, Heartseeker (params.crit_stroke): every Nth stroke a guaranteed crit with a longer reach
 			text += crit_stroke_words(pr)
 		"Smasher":
 			var sm = pr.get("smash", {})
 			var blast: float = (float(sm.get("radius", 1.6)) if sm is Dictionary else 1.6) * sheet.get_stat("area", 1.0)
-			text = "Brings %d hammer%s down on the thickest crowd within %.1f m: a %.1f m blast that throws them outwards." % [amount, "" if amount == 1 else "s", range_m, blast]
-			# pass 48: the Earthshaker's cracks carry lightning and a second wave, and it always crushes big game
+			text = Loc.t_first([_own_key(def, "smash", "smash"), "gen.weapon.smash"], {"amount": str(amount), "range": "%.1f" % range_m, "blast": "%.1f" % blast})
+			# pass 48: the Earthshaker's cracks carry lightning and a second wave, and it always crushes big game (pass
+			# 137: one sentence a mix, "gen.weapon.smash.quake", "gen.weapon.smash.quake_zap", "gen.weapon.smash.quake_roll",
+			# "gen.weapon.smash.quake_zap_roll")
 			var qk = (sm as Dictionary).get("quake") if sm is Dictionary else null
 			if qk is Dictionary:
-				text += " The ground splits in %d cracks" % int((qk as Dictionary).get("lines", 4))
+				var qkey := "gen.weapon.smash.quake"
 				if (qk as Dictionary).get("zap") is Dictionary:
-					text += " that run with lightning"
+					qkey += "_zap"
 				if (qk as Dictionary).get("roll") is Dictionary:
-					text += " and roll a second wave"
-				text += "."
+					qkey += "_roll"
+				text += " " + Loc.t(qkey, {"lines": str(int((qk as Dictionary).get("lines", 4)))})
 			var gs = pr.get("giant_slayer")
 			if gs is Dictionary and bool((gs as Dictionary).get("always", false)):
-				text += " Bosses and Elites in the blast always take ×%s." % _plain(float((gs as Dictionary).get("mult", 2.5)))
+				text += " " + Loc.t("gen.weapon.smash.giant_slayer", {"mult": _plain(float((gs as Dictionary).get("mult", 2.5)))})
 		"MineLayer":
-			# pass 48: the Land Mine had no sentence ("Land Mine.")
+			# pass 48: the Land Mine had no sentence ("Land Mine."); pass 137: the sentence by _mine_shape
 			var jr = pr.get("jackrabbit")
 			var spring = pr.get("spring")
-			var each := "a creature that steps on it sets it off"
+			var sense := 0.0
 			if jr is Dictionary:
-				each = "each springs at a creature within %.0f m and bursts at chest height, then its casing hops on to another" % float((jr as Dictionary).get("sense", 6.0))
+				sense = float((jr as Dictionary).get("sense", 6.0))
 			elif spring is Dictionary:
-				each = "each springs at a creature within %.1f m and blows where it lands" % float((spring as Dictionary).get("sense", 3.5))
-			text = "Drops %s at your feet every %.1f s: %s, a %.1f m blast." % ["a mine" if amount == 1 else "%d mines" % amount, sheet.get_stat("cooldown", 2.0), each, sheet.get_stat("area", 2.2)]
+				sense = float((spring as Dictionary).get("sense", 3.5))
+			var mshape := _mine_shape(pr)
+			text = Loc.t_first([_own_key(def, mshape, _mine_shape(_home_params(def))), "gen.weapon." + mshape], {"amount": str(amount),
+				"cooldown": "%.1f" % sheet.get_stat("cooldown", 2.0), "area": "%.1f" % sheet.get_stat("area", 2.2),
+				"sense": ("%.0f" % sense) if mshape == "mine.jackrabbit" else ("%.1f" % sense)})
 		"GravityGun":
 			var gv = pr.get("gravity", {})
 			var gd: Dictionary = gv if gv is Dictionary else {}
-			if gd.get("black_hole") is Dictionary:
-				text = "Lobs %d black hole%s at the thickest crowd: %s drag%s everything in and eat%s it, then pop%s." % [amount, "" if amount == 1 else "s", "it" if amount == 1 else "they", "s" if amount == 1 else "", "s" if amount == 1 else "", "s" if amount == 1 else ""]
-			else:
-				# the blast the landing makes, Repulsor's 40% wider one too (area_radius, pass 58: the card's change row
-				# reads the same number)
-				text = "Picks up %d enem%s within %.0f m and throws %s into the thickest crowd: a %.1f m blast. What it throws takes a hit when it lands." % [amount, "y" if amount == 1 else "ies", range_m, "it" if amount == 1 else "them", float(area_radius(def, sheet, pr)[1])]
+			var gshape := "gravity.hole" if gd.get("black_hole") is Dictionary else "gravity.throw"
+			var gv0 = _home_params(def).get("gravity", {})
+			var ghome := "gravity.hole" if gv0 is Dictionary and (gv0 as Dictionary).get("black_hole") is Dictionary else "gravity.throw"
+			# the throw: the blast the landing makes, Repulsor's 40% wider one too (area_radius, pass 58: the card's change
+			# row reads the same number)
+			var gvars := {"amount": str(amount), "range": "%.0f" % range_m}
+			if gshape == "gravity.throw":
+				gvars["blast"] = "%.1f" % float(area_radius(def, sheet, pr)[1])
+			text = Loc.t_first([_own_key(def, gshape, ghome), "gen.weapon." + gshape], gvars)
 		"Spawner":
 			var cap: int = int(round(float(pr.get("max_turrets", 6)) * float(pr.get("max_turrets_mult", 1.0))))
 			var life := sheet.get_stat("lifetime", 12.0)
 			# the Turret Family's never go (a lifetime of 9999)
-			var stays := ("stays and shoots %s" % who) if life >= 999.0 else "shoots %s for %.0f s" % [who, life]
-			if amount > 1:
-				text = "Drops %d turrets every %.1f s, up to %d standing. Each %s." % [amount, sheet.get_stat("cooldown", 6.0), cap, stays]
-			else:
-				text = "Drops a turret every %.1f s. It %s." % [sheet.get_stat("cooldown", 6.0), stays]
+			var stays := Loc.t("gen.weapon.spawn.stays", {"who": who}) if life >= 999.0 else Loc.t("gen.weapon.spawn.shoots_for", {"who": who, "seconds": "%.0f" % life})
+			text = Loc.t_first([_own_key(def, "spawn", "spawn"), "gen.weapon.spawn"], {"amount": str(maxi(amount, 1)),
+				"cooldown": "%.1f" % sheet.get_stat("cooldown", 6.0), "cap": str(cap), "stays": stays})
 		"MissilePod":
 			# a pod that circles the hero: rockets with a blast, or seekers that sting and fizzle (the bees of the Killer
 			# Bees' hive and its evolutions, pass 49: they read as bees, not seekers)
 			var blast_m := sheet.get_stat("area", 0.0)
-			var prey := PRIORITY_WHO if def.targeting == "priority" else "enemies"
+			var prey := Loc.t("gen.weapon.who.priority") if def.targeting == "priority" else Loc.t("gen.weapon.who.enemies")
+			# pass 137: rockets (pod.rockets) or bees (pod.bees), by the blast
+			var pshape := "pod.rockets" if blast_m > 0.3 else "pod.bees"
+			var phome := "pod.rockets" if float(def.base.get("area", 0.0)) > 0.3 else "pod.bees"
+			text = Loc.t_first([_own_key(def, pshape, phome), "gen.weapon." + pshape], {"amount": str(amount), "prey": prey, "range": "%.0f" % range_m,
+				"blast": "%.1f" % blast_m})
 			if blast_m > 0.3:
-				text = "Launches %d homing rocket%s at %s within %.0f m: a %.1f m blast each." % [amount, "" if amount == 1 else "s", prey, range_m, blast_m]
 				# pass 53: Cluster Munitions and Pressure Cooker, and the Hellfire Battery that carries both
 				var cl = pr.get("cluster")
 				if cl is Dictionary:
 					var cc := float((cl as Dictionary).get("chance", 0.3))
-					text += ((" Every blast scatters %d bomblets" % int((cl as Dictionary).get("count", 5))) if cc >= 1.0 else
-						(" %d%% of blasts scatter %d bomblets" % [int(round(cc * 100.0)), int((cl as Dictionary).get("count", 5))]))
-					text += " that pop under a creature's feet for %d%% of the damage%s." % [int(round(float((cl as Dictionary).get("damage_frac", 0.25)) * 100.0)),
-						", setting off their neighbours" if bool((cl as Dictionary).get("chain", false)) else ""]
+					# rows "gen.weapon.pod.cluster_all", "gen.weapon.pod.cluster_all_chain", "gen.weapon.pod.cluster", "gen.weapon.pod.cluster_chain"
+					var ckey := "gen.weapon.pod.cluster_all" if cc >= 1.0 else "gen.weapon.pod.cluster"
+					if bool((cl as Dictionary).get("chain", false)):
+						ckey += "_chain"
+					text += " " + Loc.t(ckey, {"count": str(int((cl as Dictionary).get("count", 5))), "chance": str(int(round(cc * 100.0))),
+						"pct": str(int(round(float((cl as Dictionary).get("damage_frac", 0.25)) * 100.0)))})
 				var ps = pr.get("pressure")
 				if ps is Dictionary:
 					# pass 60 (lane WP): the pressure is built by standing still (MissilePod._tick_pressure), moving lets it
 					# all out and a hit vents `hit_vent` of it (half without the key)
 					var vent := clampf(float((ps as Dictionary).get("hit_vent", 0.5)), 0.0, 1.0)
-					var vent_s := "half" if absf(vent - 0.5) < 0.01 else ("all of it" if vent >= 0.999 else "%d%%" % int(round(vent * 100.0)))
-					text += " Standing still builds pressure: up to %d%% faster after %.0f s; moving lets it out, a hit vents %s." % [int(round(float((ps as Dictionary).get("max", 2.0)) * 100.0)),
-						float((ps as Dictionary).get("seconds", 15.0)), vent_s]
+					var vent_s := Loc.t("gen.weapon.pod.vent_half") if absf(vent - 0.5) < 0.01 else (Loc.t("gen.weapon.pod.vent_all") if vent >= 0.999 else "%d%%" % int(round(vent * 100.0)))
+					text += " " + Loc.t("gen.weapon.pod.pressure", {"pct": str(int(round(float((ps as Dictionary).get("max", 2.0)) * 100.0))),
+						"seconds": "%.0f" % float((ps as Dictionary).get("seconds", 15.0)), "vent": vent_s})
 				var op = pr.get("overpressure")
 				if op is Dictionary:
-					text += " At full pressure every %s volley fires twice." % ordinal(int((op as Dictionary).get("every", 4)))
-			else:
-				text = "Sends %d killer bee%s after %s within %.0f m." % [amount, "" if amount == 1 else "s", prey, range_m]
+					text += " " + Loc.t("gen.weapon.pod.overpressure", {"nth": ordinal(int((op as Dictionary).get("every", 4)))})
 		"LaserBeam":
-			text = "Pours a %.0f m beam through the crowd for %.1f s." % [range_m, sheet.get_stat("duration", 2.0)]
+			text = Loc.t_first([_own_key(def, "laser", "laser"), "gen.weapon.laser"], {"range": "%.0f" % range_m, "seconds": "%.1f" % sheet.get_stat("duration", 2.0)})
 		"ConeWave":
-			# the Guitarra (pass 46): a cone of melody that lifts what stands in it and sets it down where it stood
+			# the Guitarra (pass 46): a cone of melody that lifts what stands in it and sets it down where it stood (pass
+			# 137: cone.ring for a full ring, else cone.cone)
 			var cone = pr.get("cone", {})
 			var cd: Dictionary = cone if cone is Dictionary else {}
 			var deg := cone_width(pr, sheet.get_stat("area", 1.0))
-			var lift := float(cd.get("lift", 0.6))
-			if deg >= 359.0:
-				text = "Strums a ring of melody %.1f m all round: whatever stands in it is lifted %.1f m and dropped where it stood." % [range_m, lift]
-			else:
-				text = "Strums a %d° cone of melody %.1f m at the nearest enemy: whatever stands in it is lifted %.1f m and dropped where it stood." % [int(round(deg)), range_m, lift]
+			var cshape := "cone.ring" if deg >= 359.0 else "cone.cone"
+			var chome := "cone.ring" if cone_width(_home_params(def), sheet.get_stat("area", 1.0)) >= 359.0 else "cone.cone"
+			text = Loc.t_first([_own_key(def, cshape, chome), "gen.weapon." + cshape], {"deg": str(int(round(deg))), "range": "%.1f" % range_m,
+				"lift": "%.1f" % float(cd.get("lift", 0.6))})
 			if bool(cd.get("side_random", false)):
-				text += " Each chord slaps them aside."
+				text += " " + Loc.t("gen.weapon.cone.slap")
 			if amount > 1:
-				text += " %d echo%s follow%s at 60%% damage." % [amount - 1, "es" if amount > 2 else "", "" if amount > 2 else "s"]
+				text += " " + Loc.t("gen.weapon.cone.echoes", {"echoes": str(amount - 1)})
 		"SunScepter":
 			# the Sun Scepter (pass 54): pillars of sunlight on what she can see, the close likelier; Zenith's sweep; Gold Dust
 			var sun = pr.get("sun", {})
 			var sr: float = (float((sun as Dictionary).get("radius", 1.3)) if sun is Dictionary else 1.3) * sheet.get_stat("area", 1.0)
-			text = "Calls a pillar of sunlight down on a random enemy you can see every %.1f s (the closer, the likelier): %d damage in %.1f m." % [sheet.get_stat("cooldown", 1.1), int(round(sheet.get_stat("damage", 14.0))), sr]
+			text = Loc.t_first([_own_key(def, "sun", "sun"), "gen.weapon.sun"], {"cooldown": "%.1f" % sheet.get_stat("cooldown", 1.1),
+				"damage": str(int(round(sheet.get_stat("damage", 14.0)))), "radius": "%.1f" % sr})
 			if amount > 1:
-				text += " %d pillars a strike." % amount
+				text += " " + Loc.t("gen.weapon.sun.pillars", {"amount": str(amount)})
 			var zn = pr.get("zenith")
 			if zn is Dictionary:
-				text += " Every %s strike hits every enemy on the screen at %d%%." % [ordinal(int((zn as Dictionary).get("every", 10))), int(round(float((zn as Dictionary).get("frac", 0.8)) * 100.0))]
+				text += " " + Loc.t("gen.weapon.sun.zenith", {"nth": ordinal(int((zn as Dictionary).get("every", 10))), "pct": str(int(round(float((zn as Dictionary).get("frac", 0.8)) * 100.0)))})
 			var gd = pr.get("gold_dust")
 			if gd is Dictionary:
-				text += " Its kills drop a coin %d%% of the time." % int(round(float((gd as Dictionary).get("chance", 0.3)) * 100.0))
+				text += " " + Loc.t("gen.weapon.sun.gold_dust", {"pct": str(int(round(float((gd as Dictionary).get("chance", 0.3)) * 100.0)))})
 		"Frisbee":
 			# pass 69 (lane FRIS): the Frisbee, frisbee_words
-			text = frisbee_words(sheet, pr)
+			text = frisbee_words(sheet, pr, def)
 		"SaltShaker":
 			# pass 69 (lane SALT): patches of salt in the hero's wake
-			text = salt_words(sheet, pr)
+			text = salt_words(sheet, pr, def)
 		"FireBreath":
 			# pass 95 (lane BREATH): the Dragon's Breath, breath_words
-			text = breath_words(sheet, pr)
+			text = breath_words(sheet, pr, def)
 		_:
-			text = def.display_name + "."
+			text = Loc.t("gen.item.name_only", {"name": def.display_name})
 	var extras: Array = []
 	var pd := sheet.get_stat("poison_damage", 0.0)
 	if pd > 0.0:
 		var st := maxi(sheet.get_int("poison_stacks", 1), 1)
-		extras.append("Poisons: %.0f damage every 2 s for %.0f s%s." % [pd * st, sheet.get_stat("poison_duration", 10.0), (" (%d stacks)" % st) if st > 1 else ""])
+		extras.append(Loc.t("gen.weapon.poisons_stacks" if st > 1 else "gen.weapon.poisons", {"damage": "%.0f" % (pd * st),
+			"seconds": "%.0f" % sheet.get_stat("poison_duration", 10.0), "stacks": str(st)}))
 	var fd := sheet.get_stat("fire_damage", 0.0)
 	if fd > 0.0:
 		# only some of what it hits, when the weapon says so (pass 51: Dragon's Breath's 60%)
 		var ic := clampf(float(pr.get("ignite_chance", 1.0)), 0.0, 1.0)
-		var lit := "Sets on fire" if ic >= 1.0 else "Sets %d%% of the enemies it hits on fire" % int(round(ic * 100.0))
-		extras.append("%s: %.0f damage every 0.6 s for %.1f s. Spreads to touching enemies (%d%%)." % [lit, fd, sheet.get_stat("fire_duration", 1.8), int(round(sheet.get_stat("fire_spread", 0.5) * 100.0))])
+		extras.append(Loc.t("gen.weapon.burns" if ic >= 1.0 else "gen.weapon.burns_some", {"pct": str(int(round(ic * 100.0))), "damage": "%.0f" % fd,
+			"seconds": "%.1f" % sheet.get_stat("fire_duration", 1.8), "spread": str(int(round(sheet.get_stat("fire_spread", 0.5) * 100.0)))}))
 	var pierce := sheet.get_int("pierce", 0)
 	# pass 62: the pierce drop-off, while Settings.pierce_falloff is on, says how the pierce hits ("Pierces 2: the first
 	# enemy takes ...")
 	var pfw := pierce_falloff_words(pr, behavior, pierce)
 	if pierce > 0 and behavior == "ProjectileEmitter" and pfw == "":
-		extras.append("Pierces %d." % pierce)
+		extras.append(Loc.t("gen.weapon.pierces", {"pierce": str(pierce)}))
 	if pfw != "":
 		extras.append(pfw)
 	if sheet.get_stat("knockback", 0.0) > 0.0:
-		extras.append("Knocks enemies back.")
+		extras.append(Loc.t("gen.weapon.knocks_back"))
 	if def.hero != "":
 		# pass 118 (lane ITEMS): anyone may find it now; the card still says whose own it is
 		var reg := _registry()
 		var owner = reg.character(def.hero) if reg else null
-		extras.append("%s's own." % (str(owner.display_name) if owner else def.hero.capitalize()))
+		extras.append(Loc.t("gen.weapon.outlaws_own", {"who": str(owner.display_name) if owner else def.hero.capitalize()}))
 	if def.is_evolution:
-		extras.append("Evolved: cannot level further.")
+		extras.append(Loc.t("gen.weapon.evolved"))
 	if not extras.is_empty():
 		text += " " + " ".join(extras)
 	return text
+
+
+## Pass 137 (lane LOCKIT): which sentence a ProjectileEmitter's description opens with, as the string table's key under
+## gen.weapon.: "shot.forward", "shot.random", "shot.flare", "shot.dart", "shot.priority", "shot.nearest", or a blast
+## ("blast.lane", "blast.cone") that replaces the flying shots. The basketball's words are ball_words.
+static func _pe_shape(def: WeaponDef, sheet: StatSheet, pr: Dictionary) -> String:
+	var bl = pr.get("blast")
+	if bl is Dictionary:
+		var sh := str((bl as Dictionary).get("shape", ""))
+		if sh == "lane":
+			return "blast.lane"
+		if sh == "cone":
+			return "blast.cone"
+	match def.targeting:
+		"forward":
+			return "shot.forward"
+		"random":
+			return "shot.random"
+		"healthy":
+			return "shot.flare" if sheet.get_stat("fire_damage", 0.0) > 0.0 else "shot.dart"
+		"priority":
+			return "shot.priority"
+	return "shot.nearest"
+
+
+## A weapon's params as it comes (no mutation): its own with its `final` block over them (WeaponInstance.fold_params with
+## no mutation), for _pe_shape's "the shape it comes with".
+static func _home_params(def: WeaponDef) -> Dictionary:
+	var fin = def.params.get("final")
+	return WeaponInstance.merge_params(def.params, fin) if fin is Dictionary else def.params
+
+
+## Pass 137 (lane W2-TEXTGEN): a Lobber's sentence under gen.weapon. by what it carries: "lob.fire", "lob.poison", "lob.blast".
+static func _lob_shape(sheet: StatSheet) -> String:
+	if sheet.get_stat("fire_damage", 0.0) > 0.0:
+		return "lob.fire"
+	if sheet.get_stat("poison_damage", 0.0) > 0.0:
+		return "lob.poison"
+	return "lob.blast"
+
+
+## Pass 137: a Thruster's sentence under gen.weapon.: "thrust.sweep" (a slice whose blades sweep together, amount_mode
+## "blades"), "thrust.slice" (a slice swung `amount` times a stroke) or "thrust.thrust".
+static func _thrust_shape(pr: Dictionary) -> String:
+	var th = pr.get("thrust", {})
+	if not th is Dictionary or float((th as Dictionary).get("slice_deg", 0.0)) <= 0.0:
+		return "thrust.thrust"
+	return "thrust.sweep" if str((th as Dictionary).get("amount_mode", "")) == "blades" else "thrust.slice"
+
+
+## Pass 137 (lane W2-TEXTGEN): the key under gen.weapon. of the sentence weapon `def` opens with as it comes (level 1, its
+## own params, no hero's stats): the row its own weapon.<id>.desc / evolution.<id>.desc was copied from ("" for a
+## behaviour without one). The tests and the lane's probe read it; weapon_description decides the same way inline.
+static func home_shape(def: WeaponDef) -> String:
+	if def == null:
+		return ""
+	var inst := WeaponInstance.new(def, 1)
+	inst.rebuild(StatSheet.new(), [inst])
+	var sheet := inst.sheet
+	var pr := _home_params(def)
+	var b := def.behavior
+	if b == "ProjectileEmitter" and pr.has("plant"):
+		return "spear"
+	match b:
+		"ProjectileEmitter":
+			return _ball_shape(sheet, pr) if bool(pr.get("return_on_hit", false)) else _pe_shape(def, sheet, pr)
+		"Orbiter":
+			return "orbit"
+		"Lobber":
+			return _lob_shape(sheet)
+		"Beam":
+			return "zap"
+		"Thruster":
+			return _thrust_shape(pr)
+		"Smasher":
+			return "smash"
+		"MineLayer":
+			return _mine_shape(pr)
+		"GravityGun":
+			var gv = pr.get("gravity", {})
+			return "gravity.hole" if gv is Dictionary and (gv as Dictionary).get("black_hole") is Dictionary else "gravity.throw"
+		"Spawner":
+			return "spawn"
+		"MissilePod":
+			return "pod.rockets" if float(def.base.get("area", 0.0)) > 0.3 else "pod.bees"
+		"LaserBeam":
+			return "laser"
+		"ConeWave":
+			return "cone.ring" if cone_width(pr, sheet.get_stat("area", 1.0)) >= 359.0 else "cone.cone"
+		"SunScepter":
+			return "sun"
+		"Frisbee":
+			return "frisbee"
+		"SaltShaker":
+			return "salt"
+		"FireBreath":
+			return _breath_shape(sheet, pr)
+	return ""
+
+
+## Pass 137: a MineLayer's sentence under gen.weapon.: "mine.jackrabbit", "mine.spring" or "mine.step".
+static func _mine_shape(pr: Dictionary) -> String:
+	if pr.get("jackrabbit") is Dictionary:
+		return "mine.jackrabbit"
+	if pr.get("spring") is Dictionary:
+		return "mine.spring"
+	return "mine.step"
 
 
 ## The pierce drop-off in words (pass 62, params.pierce_falloff {step, floor, first_mult}; ProjectileManager.falloff_factor
@@ -695,31 +855,29 @@ static func pierce_falloff_words(pr: Dictionary, behavior: String, pierce: int) 
 	var less := int(round((1.0 - clampf(float((pf as Dictionary).get("step", 0.8)), 0.0, 1.0)) * 100.0))
 	var more := int(round((float((pf as Dictionary).get("first_mult", 1.0)) - 1.0) * 100.0))
 	# how it opens and where the rest are met, in this weapon's words ("Pierces 2: the first enemy takes 15% more, each
-	# one after it 20% less than the one before.")
+	# one after it 20% less than the one before."). Pass 137: one row a way (gen.pierce.<how>[_more]), the opening
+	# (gen.pierce.lead_*) its own row before it
 	var lead := ""
-	var first := "the first enemy"
-	var rest := "after it"
+	var how := "shot"
 	match behavior:
 		"Thruster":
 			var th = pr.get("thrust", {})
 			var td: Dictionary = th if th is Dictionary else {}
 			if float(td.get("slice_deg", 0.0)) > 0.0 and not bool(td.get("alternate", false)):
 				return ""
-			first = "the first enemy along the thrust"
-			rest = "behind it"
+			how = "thrust"
 		"ProjectileEmitter", "Spear":
 			if pierce <= 0:
 				return ""
-			lead = "Pierces %d: " % pierce
+			lead = Loc.t("gen.weapon.pierce.lead_shot", {"pierce": str(pierce)})
 		"Spawner":
 			if pierce <= 0:
 				return ""
-			lead = "Its rounds pierce %d: " % pierce
+			lead = Loc.t("gen.weapon.pierce.lead_rounds", {"pierce": str(pierce)})
 		_:
 			return ""
-	var s := ("%s takes %d%% more, each one %s %d%% less than the one before." % [first, more, rest, less]) if more > 0 else \
-		("each enemy %s takes %d%% less than the one before." % [rest, less])
-	return lead + s if lead != "" else _sentence(s)
+	var s := Loc.t("gen.weapon.pierce.%s%s" % [how, "_more" if more > 0 else ""], {"more": str(more), "less": str(less)})
+	return lead + " " + s if lead != "" else _sentence(s)
 
 
 ## Whether the pierce drop-off is on (Settings.pierce_falloff, pass 62), read by path like _registry: on when there are no
@@ -742,27 +900,30 @@ static func _passive_lines(def: PassiveDef, level: int) -> String:
 	if per == "":
 		# pass 119 (lane LEGEND_B): an item whose levels say nothing in numbers says its own rule
 		var own := passive_text(def)
-		return own.trim_suffix(".") + "." if own != "" else def.display_name + "."
+		return own.trim_suffix(".") + "." if own != "" else Loc.t("gen.item.name_only", {"name": def.display_name})
 	var total := describe_effects(_sum_effects(def.effects_for_level(lv)))
 	# an evolved line has one level: all it is (pass 47); so has an item of one level (pass 48: Phoenix Feather)
 	if def.max_level <= 1:
 		return total + "."
+	var vars := {"level": str(lv), "total": total, "per": per}
 	# pass 95 (lane PASSIVES): a passive item on the rarity ladder names its rung ("Level 3 (Rare): ... total.",
 	# "Level 4 (Evolved): ..."); its first level is what it gives, plainly
 	if def.on_ladder():
 		if lv <= 1:
 			return total + "."
 		# pass 119 (lane LEGEND_A): a rule said in words has no "total" (the Iron Horse's "every 15 s")
-		return "Level %d (%s): %s%s." % [lv, rung_name(def, lv), total, "" if _all_rules(def.effects_for_level(lv)) else " total"]
+		vars["rung"] = rung_name(def, lv)
+		return Loc.t("gen.passive.rung_rules" if _all_rules(def.effects_for_level(lv)) else "gen.passive.rung", vars)
 	if _same_every_level(def):
-		return "%s per level. Level %d: %s total." % [per, lv, total]
+		return Loc.t("gen.passive.per_level", vars)
 	# a first level of its own, then the same step (pass 47: Barrel Rush, Steady Hand; pass 48: Skedaddle, Powder Keg,
 	# Loose Change)
 	if def.levels.size() == 2 and def.repeat_last_level:
-		var s := "%s at level 1, then %s a level." % [describe_effects(def.effects_at_level(1)), describe_effects(def.effects_at_level(2))]
-		return s + (" Level %d: %s total." % [lv, total] if lv > 1 else "")
+		vars["first"] = describe_effects(def.effects_at_level(1))
+		vars["step"] = describe_effects(def.effects_at_level(2))
+		return Loc.t("gen.passive.first_then_total" if lv > 1 else "gen.passive.first_then", vars)
 	# levels that differ (Evade, Vigour): what this level holds in all
-	return "Level %d: %s total." % [lv, total]
+	return Loc.t("gen.passive.level_total", vars)
 
 
 ## Whether every effect in `list` is a "rule" stat (pass 119, lane LEGEND_A: said in its own words, never summed).
@@ -823,25 +984,26 @@ static func next_level_text(def: ContentDef, level: int) -> String:
 	if def is WeaponDef:
 		max_level = def.max_level
 		if def.is_evolution:
-			return "Evolved. Maxed."
+			return Loc.t("gen.next.evolved")
 		eff = def.effects_at_level(level + 1)
 	elif def is PassiveDef:
 		max_level = def.max_level
 		eff = def.effects_at_level(level + 1)
 	if level >= max_level:
-		return "Maxed."
+		return Loc.t("gen.next.maxed")
 	var s := describe_effects(eff)
+	var what := s if s != "" else Loc.t("gen.next.nothing_new")
 	# pass 95 (lane PASSIVES): a passive item names the rung the next level lands on ("Next level (Rare): ...")
 	if def is PassiveDef and (def as PassiveDef).on_ladder():
-		return "Next level (%s): %s" % [rung_name(def as PassiveDef, level + 1), s if s != "" else "nothing new"]
-	return "Next level: " + (s if s != "" else "nothing new")
+		return Loc.t("gen.next.rung", {"rung": rung_name(def as PassiveDef, level + 1), "effects": what})
+	return Loc.t("gen.next.level", {"effects": what})
 
 
 ## The name of the rung a passive item stands on at `level` (pass 95, lane PASSIVES): "Common" .. "Legendary",
 ## "Evolved" at its top; its rarity's name for a line or an evolved form.
 static func rung_name(def: PassiveDef, level: int) -> String:
 	var r: String = def.rung_at(level) if def != null else "common"
-	return "Evolved" if r == PassiveDef.EVOLVED_RUNG else rarity_name(r)
+	return Loc.t("gen.rarity.evolved") if r == PassiveDef.EVOLVED_RUNG else rarity_name(r)
 
 
 # --- what an upgrade changes (pass 58) -------------------------------------------------------------------------------
@@ -969,54 +1131,54 @@ static func amount_noun(def: WeaponDef, sheet: StatSheet = null, params: Diction
 		"ProjectileEmitter":
 			# the Spear is thrown like any shot and reads as what it is (weapon_description)
 			if pr.has("plant"):
-				return "spears"
+				return Loc.t("gen.weapon.noun.spears")
 			# pass 67 (the basketball): its amount counts bounces (params.amount_mode "bounces")
 			if str(pr.get("amount_mode", "")) == "bounces":
-				return "bounces"
+				return Loc.t("gen.weapon.noun.bounces")
 			match def.targeting:
 				"forward":
-					return "pellets"
+					return Loc.t("gen.weapon.noun.pellets")
 				"healthy":
-					return "flares" if fire else "darts"
-			return "shots"
+					return Loc.t("gen.weapon.noun.flares") if fire else Loc.t("gen.weapon.noun.darts")
+			return Loc.t("gen.weapon.noun.shots")
 		"Orbiter":
-			return "blades"
+			return Loc.t("gen.weapon.noun.blades")
 		"Lobber":
 			# pass 76 (lane LOOKS): the look's word ("sticks") when it has one
-			return thing_word(def, 2, "", "bottles" if fire else ("bombs" if poison else "grenades"))
+			return thing_word(def, 2, "", Loc.t("gen.weapon.noun.bottles") if fire else (Loc.t("gen.weapon.noun.bombs") if poison else Loc.t("gen.weapon.noun.grenades")))
 		"Thruster":
 			# a slice swings `amount` times a stroke; the Spear's sweep (amount_mode "blades") and a thrust are blades
 			var th = pr.get("thrust", {})
 			var td: Dictionary = th if th is Dictionary else {}
 			if float(td.get("slice_deg", 0.0)) > 0.0 and str(td.get("amount_mode", "")) != "blades":
-				return "swings"
-			return "blades"
+				return Loc.t("gen.weapon.noun.swings")
+			return Loc.t("gen.weapon.noun.blades")
 		"Smasher":
-			return "hammers"
+			return Loc.t("gen.weapon.noun.hammers")
 		"MineLayer":
-			return "mines"
+			return Loc.t("gen.weapon.noun.mines")
 		"GravityGun":
 			var gv = pr.get("gravity", {})
-			return "black holes" if gv is Dictionary and (gv as Dictionary).get("black_hole") is Dictionary else "enemies thrown"
+			return Loc.t("gen.weapon.noun.black_holes") if gv is Dictionary and (gv as Dictionary).get("black_hole") is Dictionary else Loc.t("gen.weapon.noun.enemies_thrown")
 		"Spawner":
-			return "turrets"
+			return Loc.t("gen.weapon.noun.turrets")
 		"MissilePod":
 			# rockets with a blast, or the Killer Bees' seekers (no blast)
 			var blast_m := sheet.get_stat("area", 0.0) if sheet else float(def.base.get("area", 0.0))
-			return "rockets" if blast_m > 0.3 else "bees"
+			return Loc.t("gen.weapon.noun.rockets") if blast_m > 0.3 else Loc.t("gen.weapon.noun.bees")
 		"ConeWave":
-			return "waves"
+			return Loc.t("gen.weapon.noun.waves")
 		"SunScepter":
-			return "pillars"
+			return Loc.t("gen.weapon.noun.pillars")
 		"Beam", "LaserBeam":
-			return "beams"
+			return Loc.t("gen.weapon.noun.beams")
 		"Frisbee":
-			return "frisbees"
+			return Loc.t("gen.weapon.noun.frisbees")
 		"SaltShaker":
-			return "patches"
+			return Loc.t("gen.weapon.noun.patches")
 		"FireBreath":
 			# pass 95 (lane BREATH): every point of amount is a second more of breath
-			return "seconds of breath"
+			return Loc.t("gen.weapon.noun.seconds_of_breath")
 	return stat_name("amount")
 
 
@@ -1033,27 +1195,27 @@ static func area_radius(def: WeaponDef, sheet: StatSheet, params: Dictionary = {
 		"Lobber":
 			var r := sheet.get_stat("area", 2.5)
 			if sheet.get_stat("fire_damage", 0.0) > 0.0:
-				return ["pool radius", r]
+				return [Loc.t("gen.weapon.radius.pool"), r]
 			if sheet.get_stat("poison_damage", 0.0) > 0.0:
-				return ["cloud radius", r]
-			return ["blast radius", r]
+				return [Loc.t("gen.weapon.radius.cloud"), r]
+			return [Loc.t("gen.weapon.radius.blast"), r]
 		"MineLayer":
-			return ["blast radius", sheet.get_stat("area", 2.2)]
+			return [Loc.t("gen.weapon.radius.blast"), sheet.get_stat("area", 2.2)]
 		"MissilePod":
 			var rm := sheet.get_stat("area", 0.0)
-			return ["blast radius", rm] if rm > 0.3 else []
+			return [Loc.t("gen.weapon.radius.blast"), rm] if rm > 0.3 else []
 		"Smasher":
 			var sm = pr.get("smash", {})
-			return ["blast radius", (float((sm as Dictionary).get("radius", 1.6)) if sm is Dictionary else 1.6) * sheet.get_stat("area", 1.0)]
+			return [Loc.t("gen.weapon.radius.blast"), (float((sm as Dictionary).get("radius", 1.6)) if sm is Dictionary else 1.6) * sheet.get_stat("area", 1.0)]
 		"GravityGun":
 			var gv = pr.get("gravity", {})
 			var gd: Dictionary = gv if gv is Dictionary else {}
 			if gd.get("black_hole") is Dictionary:
 				return []
-			return ["blast radius", float(gd.get("blast", 1.9)) * sheet.get_stat("area", 1.0) * maxf(float(gd.get("throw_mult", 1.0)), 0.1)]
+			return [Loc.t("gen.weapon.radius.blast"), float(gd.get("blast", 1.9)) * sheet.get_stat("area", 1.0) * maxf(float(gd.get("throw_mult", 1.0)), 0.1)]
 		"SaltShaker":
 			# pass 69: a patch's radius, salt.radius x area x salt.area_mult (Salt Spill's 1.6)
-			return ["patch radius", salt_radius(sheet, pr)]
+			return [Loc.t("gen.weapon.radius.patch"), salt_radius(sheet, pr)]
 	return []
 
 
@@ -1068,31 +1230,28 @@ static func salt_radius(sheet: StatSheet, pr: Dictionary) -> float:
 
 ## The Salt in words (pass 69, SaltShaker): how many patches a pour, how often, how big, how long, what a tick does, and
 ## what the path adds (Hiwa Kai's crystals, Thing About Luck's power-ups, Salt Flats' charge).
-static func salt_words(sheet: StatSheet, pr: Dictionary) -> String:
+static func salt_words(sheet: StatSheet, pr: Dictionary, def: WeaponDef = null) -> String:
 	var s = pr.get("salt", {})
 	var sd: Dictionary = s if s is Dictionary else {}
 	var n := maxi(sheet.get_int("amount", 1), 1)
 	var secs := sheet.get_stat("duration", 4.0) * float(sd.get("duration_mult", 1.0))
 	var dmg := sheet.get_stat("damage", 6.0) * float(sd.get("damage_mult", 1.0))
 	var r := salt_radius(sheet, pr)
-	var lasts := _plain(snappedf(secs, 0.1))
-	var cd := sheet.get_stat("cooldown", 1.6)
-	var head := "Pours a %.1f m patch of salt in your wake every %.1f s. It lasts %s s; enemies in it" % [r, cd, lasts]
-	if n > 1:
-		head = "Pours %d patches of salt (%.1f m) in your wake every %.1f s. They last %s s; enemies in them" % [n, r, cd, lasts]
-	var text := head + " take %d damage every %s s." % [int(round(dmg)), _plain(float(sd.get("tick", 0.5)))]
+	var vars := {"amount": str(n), "radius": "%.1f" % r, "cooldown": "%.1f" % sheet.get_stat("cooldown", 1.6), "lasts": _plain(snappedf(secs, 0.1)),
+		"damage": str(int(round(dmg))), "tick": _plain(float(sd.get("tick", 0.5)))}
+	var text := Loc.t_first([_own_key(def, "salt", "salt") if def != null else "", "gen.weapon.salt"], vars)
 	var cr = sd.get("crunch")
+	var sl := float(sd.get("slow", 0.0))
 	if cr is Dictionary:
-		text += " Hard black crystals: an enemy stepping in takes ×%s at once" % _plain(float((cr as Dictionary).get("mult", 2.0)))
-		var sl := float(sd.get("slow", 0.0))
-		text += (" and walks %d%% slower in the salt." % int(round(sl * 100.0))) if sl > 0.0 else "."
-	elif float(sd.get("slow", 0.0)) > 0.0:
-		text += " Enemies in the salt walk %d%% slower." % int(round(float(sd.get("slow", 0.0)) * 100.0))
+		text += " " + Loc.t("gen.weapon.salt.crunch_slow" if sl > 0.0 else "gen.weapon.salt.crunch", {"mult": _plain(float((cr as Dictionary).get("mult", 2.0))),
+			"pct": str(int(round(sl * 100.0)))})
+	elif sl > 0.0:
+		text += " " + Loc.t("gen.weapon.salt.slow", {"pct": str(int(round(sl * 100.0)))})
 	var luck := float(sd.get("luck_mult", 1.0))
 	if luck > 1.0:
-		text += " Enemies killed in the salt drop power-ups ×%s as often." % _plain(luck)
+		text += " " + Loc.t("gen.weapon.salt.luck", {"mult": _plain(luck)})
 	if bool(sd.get("momentum_on_enter", false)):
-		text += " Walking into the salt puts the speed-up at full."
+		text += " " + Loc.t("gen.weapon.salt.momentum")
 	return text
 
 
@@ -1142,7 +1301,7 @@ static func passive_changes(def: PassiveDef, level_from: int, level_to: int) -> 
 		# enemy up to that, and Desperado's grows as health falls), after the name so it covers both numbers; its words
 		# joined by a no-break space, so a long name wraps before "up to", never between them ("falls, up / to")
 		if e.op != "set" and PREFIX.has(e.stat):
-			label += ", " + str(PREFIX[e.stat]).strip_edges().replace(" ", "\u00a0")
+			label += ", " + Loc.t("gen.word.up_to").replace(" ", "\u00a0")
 		out.append({"stat": e.stat, "name": label, "before": s0, "after": s1, "worse": _worse(e.stat, v0, e.value)})
 	return out.slice(0, CHANGE_ROWS)
 
@@ -1178,14 +1337,15 @@ static func _worse(stat: String, v0: float, v1: float) -> bool:
 ## The weapons an effect aims at, after its stat's name, as describe_effect says them.
 static func _target_words(target: String) -> String:
 	if target == "all_weapons":
-		return ", all weapons"
+		return ", " + Loc.t("gen.word.all_weapons")
 	if target.begins_with("weapon:"):
 		return ", " + weapon_name(target.trim_prefix("weapon:"))
 	return ""
 
 
 static func rarity_name(r: String) -> String:
-	return RARITY_NAMES.get(r, r.capitalize())
+	var key := "gen.rarity.%s" % r
+	return Loc.t(key) if Loc.has(key) else r.capitalize()
 
 
 ## The Registry by path: tools compile this before the autoloads exist, and Effect (every tool's JsonContent) compiles
@@ -1199,40 +1359,42 @@ static func quest_text(q: QuestDef) -> String:
 	if q.quest_text != "":
 		return q.quest_text
 	var c := q.condition
+	# pass 137 (lane W2-TEXTGEN): one row a quest type, gen.quest.<type>
 	match str(c.get("type", "")):
 		"kills_with_weapon":
 			var reg := _registry()
 			var w: WeaponDef = reg.weapon(str(c.get("weapon", ""))) if reg else null
-			return "Kill %d creatures with the %s." % [int(c.get("count", 0)), w.display_name if w else str(c.get("weapon", "")).capitalize()]
+			return Loc.t("gen.quest.kills_with_weapon", {"count": str(int(c.get("count", 0))), "weapon": w.display_name if w else str(c.get("weapon", "")).capitalize()})
 		"kills_of_enemy":
-			return "Kill %s." % creature_count(str(c.get("enemy", "")), int(c.get("count", 0)))
+			return Loc.t("gen.quest.kills_of_enemy", {"creatures": creature_count(str(c.get("enemy", "")), int(c.get("count", 0)))})
 		"reach_level":
-			return "Reach level %d in one run." % int(c.get("level", 0))
+			return Loc.t("gen.quest.reach_level", {"level": str(int(c.get("level", 0)))})
 		"survive_minutes":
-			return "Survive %d minutes in one run." % int(c.get("minutes", 0))
+			return Loc.t("gen.quest.survive_minutes", {"minutes": str(int(c.get("minutes", 0)))})
 		"survive_minutes_no_lift":
-			return "Survive %d minutes without lifting your thumb." % int(c.get("minutes", 0))
+			return Loc.t("gen.quest.survive_minutes_no_lift", {"minutes": str(int(c.get("minutes", 0)))})
 		"open_chests":
-			return "Open %d chests." % int(c.get("count", 0))
+			return Loc.t("gen.quest.open_chests", {"count": str(int(c.get("count", 0)))})
 		"evolve_any":
-			return "Evolve any weapon%s." % ("" if int(c.get("count", 1)) <= 1 else " %d times" % int(c.get("count", 1)))
+			var times := int(c.get("count", 1))
+			return Loc.t("gen.quest.evolve_any", {"count": "1" if times <= 1 else str(times)})
 		"extract_after_stage":
-			return "Extract after stage %d on %s." % [int(c.get("stage", 1)), map_name(str(c.get("map", "")))]
+			return Loc.t("gen.quest.extract_after_stage", {"stage": str(int(c.get("stage", 1))), "map": map_name(str(c.get("map", "")))})
 		"kill_boss":
-			return "Kill the stage %d boss on %s." % [int(c.get("stage", 1)), map_name(str(c.get("map", "")))]
+			return Loc.t("gen.quest.kill_boss", {"stage": str(int(c.get("stage", 1))), "map": map_name(str(c.get("map", "")))})
 		"kills_in_run_of_enemy":
-			return "Kill %s in one run." % creature_count(str(c.get("enemy", "")), int(c.get("count", 0)))
+			return Loc.t("gen.quest.kills_in_run_of_enemy", {"creatures": creature_count(str(c.get("enemy", "")), int(c.get("count", 0)))})
 		# pass 44: totals across runs, and a stage reached in one
 		"kills_total":
-			return "Kill %s creatures, all time." % grouped(int(c.get("count", 0)))
+			return Loc.t("gen.quest.kills_total", {"count": grouped(int(c.get("count", 0)))})
 		"runs_total":
-			return "Play %d runs." % int(c.get("count", 0))
+			return Loc.t("gen.quest.runs_total", {"count": str(int(c.get("count", 0)))})
 		"pickups_total":
-			return "Pick up %d power-ups." % int(c.get("count", 0))
+			return Loc.t("gen.quest.pickups_total", {"count": str(int(c.get("count", 0)))})
 		"gold_total":
-			return "Earn %d gold, all time." % int(c.get("count", 0))
+			return Loc.t("gen.quest.gold_total", {"count": str(int(c.get("count", 0)))})
 		"reach_stage":
-			return "Reach stage %d." % int(c.get("stage", 1))
+			return Loc.t("gen.quest.reach_stage", {"stage": str(int(c.get("stage", 1)))})
 		# pass 111 (lane SKINS): "Beat Nightfall with May." / "Beat Nightfall."
 		"beat_stage":
 			return beat_stage_text(c)
@@ -1242,42 +1404,49 @@ static func quest_text(q: QuestDef) -> String:
 		# pass 113 (lane TASKS): damage, healing, barrels, Totem gifts, fire and poison (quest_task_text)
 		"damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total", "totems_total":
 			return quest_task_text(c)
-	return "Complete a challenge."
+	return Loc.t("gen.quest.any")
 
 
 ## Pass 113 (lane TASKS): the words of the task quests (QuestDef's header): "Deal 50,000 damage with the Revolver.",
 ## "Restore 2,000 HP with Death.", "Restore 500 HP with Hearts.", "Restore 300 HP with Healing Wells.", "Deal 20,000 fire
-## damage.", "Break 40 barrels.", "Take 10 Totem gifts."; "... in one run." with `in_one_run`.
+## damage.", "Break 40 barrels.", "Take 10 Totem gifts."; "... in one run." with `in_one_run` (pass 137: the row
+## gen.quest.task.<what>_run).
 static func quest_task_text(c: Dictionary) -> String:
 	var n := int(c.get("count", 0))
-	var tail := " in one run." if bool(c.get("in_one_run", false)) else "."
+	# rows "gen.quest.task.<what>" and, in one run, "gen.quest.task.<what>_run": "gen.quest.task.damage_run",
+	# "gen.quest.task.heal_run", "gen.quest.task.element_run", "gen.quest.task.barrels_run", "gen.quest.task.totems_run"
+	var run := "_run" if bool(c.get("in_one_run", false)) else ""
+	var vars := {"count": grouped(n)}
 	match str(c.get("type", "")):
 		"damage_with_weapon":
 			var wid := str(c.get("weapon", ""))
-			return "Deal %s damage with %s%s" % [grouped(n), quest_item_name(wid) if wid != "" else "a weapon", tail]
+			vars["what"] = quest_item_name(wid) if wid != "" else quest_kind_words("weapon", true)
+			return Loc.t("gen.quest.task.damage" + run, vars)
 		"heal_with_item":
 			var iid := str(c.get("item", ""))
-			return "Restore %s HP with %s%s" % [grouped(n), quest_item_name(iid) if iid != "" else "an item", tail]
+			vars["what"] = quest_item_name(iid) if iid != "" else quest_kind_words("item", true)
+			return Loc.t("gen.quest.task.heal" + run, vars)
 		"heal_with_source":
 			var src := str(c.get("source", ""))
 			var cut := src.find(":")
 			var kind := src.substr(0, cut) if cut > 0 else "pickup"
 			var sid := src.substr(cut + 1) if cut > 0 else ""
-			var what := "power-ups" if kind == "pickup" else "structures"
+			var what := Loc.t("gen.quest.power_ups") if kind == "pickup" else Loc.t("gen.quest.structures")
 			if sid != "":
 				var reg := _registry()
 				var d: ContentDef = (reg.pickup(sid) if kind == "pickup" else reg.structure(sid)) if reg else null
 				what = plural_name(d.display_name if d else sid.capitalize())
-			return "Restore %s HP with %s%s" % [grouped(n), what, tail]
+			vars["what"] = what
+			return Loc.t("gen.quest.task.heal" + run, vars)
 		"element_damage":
 			var el := str(c.get("element", ""))
-			var word := el if el == "fire" or el == "poison" else "fire or poison"
-			return "Deal %s %s damage%s" % [grouped(n), word, tail]
+			vars["element"] = Loc.t("gen.quest.element." + (el if el == "fire" or el == "poison" else "any"))
+			return Loc.t("gen.quest.task.element" + run, vars)
 		"barrels_total":
-			return ("Break a barrel%s" % tail) if n == 1 else "Break %s barrels%s" % [grouped(n), tail]
+			return Loc.t("gen.quest.task.barrels" + run, vars)
 		"totems_total":
-			return ("Take a Totem gift%s" % tail) if n == 1 else "Take %s Totem gifts%s" % [grouped(n), tail]
-	return "Complete a challenge."
+			return Loc.t("gen.quest.task.totems" + run, vars)
+	return Loc.t("gen.quest.any")
 
 
 ## "Hearts", "Healing Wells", "Boxes": a name made plural the way creature_count does it.
@@ -1296,39 +1465,39 @@ static func quest_build_text(c: Dictionary) -> String:
 			var reg := _registry()
 			var h: CharacterDef = reg.character(str(c.get("hero", ""))) if reg else null
 			var who: String = h.display_name if h else str(c.get("hero", "")).capitalize()
-			return "Reach level %d with %s." % [int(c.get("level", 0)), who]
+			return Loc.t("gen.quest.hero_level", {"level": str(int(c.get("level", 0))), "who": who})
 		"item_level":
 			var rung := str(c.get("rung", ""))
-			var to := rung.capitalize() if rung != "" else "level %d" % int(c.get("level", 0))
+			var to := rarity_name(rung) if rung != "" else Loc.t("gen.quest.level_n", {"level": str(int(c.get("level", 0)))})
 			var what := quest_item_name(id) if id != "" else quest_kind_words(("passive" if rung != "" else kind), true)
-			return "Get %s to %s in one run." % [what, to]
+			return Loc.t("gen.quest.item_level", {"what": what, "to": to})
 		"evolve_item":
 			if id == "":
-				return "Evolve any %s." % quest_kind_words(kind, false)
+				return Loc.t("gen.quest.evolve_kind", {"kind": quest_kind_words(kind, false)})
 			var reg := _registry()
 			var w: WeaponDef = reg.weapon(id) if reg else null
 			if w and w.is_evolution:
-				return "Evolve the %s." % w.display_name
+				return Loc.t("gen.quest.evolve_weapon", {"weapon": w.display_name})
 			if w:
 				var into: WeaponDef = reg.weapon(w.evolves_into)
-				return "Evolve the %s into the %s." % [w.display_name, into.display_name] if into else "Evolve the %s." % w.display_name
+				return Loc.t("gen.quest.evolve_weapon_into", {"weapon": w.display_name, "into": into.display_name}) if into else Loc.t("gen.quest.evolve_weapon", {"weapon": w.display_name})
 			var p: PassiveDef = reg.passive(id) if reg else null
 			if p and p.evolves_into != "":
-				return "Evolve %s into %s." % [p.display_name, PassiveDef.display_name_of(p.evolves_into)]
+				return Loc.t("gen.quest.evolve_card_into", {"card": p.display_name, "into": PassiveDef.display_name_of(p.evolves_into)})
 			if p and p.is_item():
-				return "Get %s to Evolved in one run." % p.display_name
-			return "Evolve %s." % quest_item_name(id)
+				return Loc.t("gen.quest.item_to_evolved", {"item": p.display_name})
+			return Loc.t("gen.quest.evolve_item", {"item": quest_item_name(id)})
 		"weapon_paths":
 			var wid := str(c.get("weapon", ""))
 			if wid == "":
-				return "Take all of one weapon's mutations in one run."
+				return Loc.t("gen.quest.paths_any")
 			var reg := _registry()
 			var n: int = (reg.mutations_of(wid) as Array).size() if reg else 3
-			return "Take all %d mutations of %s in one run." % [n, quest_item_name(wid)]
+			return Loc.t("gen.quest.paths", {"count": str(n), "item": quest_item_name(wid)})
 		"items_maxed":
 			var k := int(c.get("count", 1))
-			return "Hold %d %s%s at max level at once." % [k, quest_kind_words(kind, false), "" if k == 1 else "s"]
-	return "Complete a challenge."
+			return Loc.t("gen.quest.items_maxed", {"count": str(k), "kind": quest_kind_words(kind, false), "kinds": quest_kind_plural(kind)})
+	return Loc.t("gen.quest.any")
 
 
 ## An item by its name as a quest says it: "the Orbit Saws" (a weapon), "Temperance" (a card), "Beer" (a passive item).
@@ -1336,16 +1505,23 @@ static func quest_item_name(id: String) -> String:
 	var reg := _registry()
 	var w: WeaponDef = reg.weapon(id) if reg else null
 	if w:
-		return "the " + w.display_name
+		return Loc.t("gen.quest.the", {"name": w.display_name})
 	return PassiveDef.display_name_of(id)
+
+
+## The quest words' kind of item (gen.quest.kind.<k>: weapon, card, passive, item).
+static func _quest_kind(kind: String) -> String:
+	return kind if kind in ["weapon", "card", "passive"] else "item"
 
 
 ## A kind of item in a quest's words: "a weapon" / "weapon", "a card", "a passive item", "an item" / "item".
 static func quest_kind_words(kind: String, article: bool) -> String:
-	var noun: String = {"weapon": "weapon", "card": "card", "passive": "passive item"}.get(kind, "item")
-	if not article:
-		return noun
-	return ("an " if noun == "item" else "a ") + noun
+	return Loc.t(("gen.quest.kind.%s.a" if article else "gen.quest.kind.%s") % _quest_kind(kind))
+
+
+## A kind of item in a quest's words, more than one: "weapons", "cards", "passive items", "items".
+static func quest_kind_plural(kind: String) -> String:
+	return Loc.t("gen.quest.kind.%s.many" % _quest_kind(kind))
 
 
 ## "the Dune Scorpion", "150 Goblins", "30 Spit Cactuses": the creature by its name, counted.
@@ -1354,7 +1530,7 @@ static func creature_count(id: String, n: int) -> String:
 	var e: EnemyDef = reg.enemy(id) if reg else null
 	var name: String = e.display_name if e else id.capitalize()
 	if n <= 1:
-		return "the " + name
+		return Loc.t("gen.quest.the", {"name": name})
 	return "%d %s" % [n, name + ("es" if name.ends_with("s") or name.ends_with("x") else "s")]
 
 
@@ -1365,14 +1541,14 @@ static func beat_stage_text(c: Dictionary) -> String:
 	var k := int(c.get("stage", 1)) - 1
 	var map_id := str(c.get("map", ""))
 	var m: MapDef = reg.map(map_id if map_id != "" else "red_canyon") if reg else null
-	var stage_word := "stage %d" % (k + 1)
+	var stage_word := Loc.t("gen.quest.stage_n", {"stage": str(k + 1)})
 	if m and m.timeline and k >= 0 and k < m.timeline.stage_count():
 		stage_word = m.timeline.stage_name(k)
 	var hero := str(c.get("hero", ""))
 	if hero == "":
-		return "Beat %s." % stage_word
+		return Loc.t("gen.quest.beat_stage", {"stage": stage_word})
 	var h: CharacterDef = reg.character(hero) if reg else null
-	return "Beat %s with %s." % [stage_word, h.display_name if h else hero.capitalize()]
+	return Loc.t("gen.quest.beat_stage_with", {"stage": stage_word, "who": h.display_name if h else hero.capitalize()})
 
 
 static func map_name(id: String) -> String:
@@ -1398,28 +1574,34 @@ static func time_mmss(t: float) -> String:
 
 # ---------------------------------------------------------------- heroes (pass 61)
 
-## A signature stat's name in a hero's trait (TextGen's stat names otherwise): "HP regen" reads better than "regen per
-## second" after a number.
-const HERO_WORDS := {"regen": "HP regen", "regen_delay": "regen delay", "max_hp": "max HP"}
-## What a signature stat means, in brackets after the rule; {his} is the hero's own word (his, her, their).
-const HERO_NOTES := {"debuff_duration": "{his} burns, poison, slows and pins last longer; buffs do not"}
+## A signature stat's name in a hero's trait is its row stat.<id>.hero_name when it has one (pass 137; "HP regen" reads
+## better than "regen per second" after a number), else its stat name.
+## What a signature stat means, in brackets after the rule: the row stat.<id>.hero_note (hero_note), {his} the hero's own
+## word (his, her, their).
 ## Stats a hero is better off with less of: a step down reads "0.05 s less regen delay".
 const HERO_LOWER := ["cooldown", "regen_delay", "shield_delay"]
 
 
 static func hero_word(stat: String) -> String:
-	return str(HERO_WORDS.get(stat, stat_name(stat)))
+	var key := "stat.%s.hero_name" % stat
+	return Loc.t(key) if Loc.has(key) else stat_name(stat)
 
 
-## The hero's own possessive (his, her, their) from CharacterDef.pronoun.
+## What signature stat `stat` means for hero `c` (stat.<id>.hero_note, {his} his own word); "" for a stat without a note.
+static func hero_note(stat: String, c: CharacterDef) -> String:
+	var key := "stat.%s.hero_note" % stat
+	return Loc.t(key, {"his": possessive(c)}) if Loc.has(key) else ""
+
+
+## The hero's own possessive (his, her, their) from CharacterDef.pronoun (rows gen.word.his, gen.word.her, gen.word.their).
 static func possessive(c: CharacterDef) -> String:
 	var p := c.pronoun if c else "they"
 	match p:
 		"he":
-			return "his"
+			return Loc.t("gen.word.his")
 		"she":
-			return "her"
-	return "their"
+			return Loc.t("gen.word.her")
+	return Loc.t("gen.word.their")
 
 
 ## One signature stat's amount, unsigned ("1%", "2", "0.1", "0.05 s"): `value` is what the levels give (or one step).
@@ -1467,19 +1649,17 @@ static func hero_trait(c: CharacterDef) -> String:
 		var x: Effect = e
 		var word := hero_word(x.stat)
 		if x.value < 0.0 and x.stat in HERO_LOWER:
-			parts.append("%s less %s" % [hero_amount(x.stat, x.op, x.value), word])
+			parts.append(Loc.t("gen.outlaw.less", {"amount": hero_amount(x.stat, x.op, x.value), "stat": word}))
 		else:
 			parts.append("%s %s" % [hero_amount(x.stat, x.op, x.value), word])
 		if StatSheet.STAT_FLOORS.has(x.stat):
-			notes.append("%s never under %s" % [word, hero_amount(x.stat, "add", float(StatSheet.STAT_FLOORS[x.stat]))])
-		if HERO_NOTES.has(x.stat):
-			notes.append(str(HERO_NOTES[x.stat]).replace("{his}", possessive(c)))
-	var s := "Gain " + " and ".join(parts) + " per level"
-	if c.level_heal > 0.0:
-		s += ", and heal %s of max HP on every level-up" % (_plain(c.level_heal * 100.0) + "%")
-	if not notes.is_empty():
-		s += " (" + "; ".join(notes) + ")"
-	s += "."
+			notes.append(Loc.t("gen.outlaw.floor", {"stat": word, "amount": hero_amount(x.stat, "add", float(StatSheet.STAT_FLOORS[x.stat]))}))
+		var note := hero_note(x.stat, c)
+		if note != "":
+			notes.append(note)
+	# pass 137: one sentence a mix, "gen.outlaw.gain", "gen.outlaw.gain_notes", "gen.outlaw.gain_heal", "gen.outlaw.gain_heal_notes"
+	var key := "gen.outlaw.gain" + ("_heal" if c.level_heal > 0.0 else "") + ("_notes" if not notes.is_empty() else "")
+	var s := Loc.t(key, {"parts": and_join(parts), "heal": _plain(c.level_heal * 100.0) + "%", "notes": "; ".join(notes)})
 	# a hero with a mechanism of his own (pass 67: Buck's charge, CharacterDef.specials) says it after the rule, in his
 	# trait_text, so the plaque, the hero sheet and the Collection carry the whole of it
 	if c.trait_text != "" and not c.specials.is_empty():
@@ -1498,16 +1678,21 @@ static func hero_trait_at(c: CharacterDef, level: int) -> String:
 		var v := hero_capped(x)
 		var word := hero_word(x.stat)
 		if v < 0.0 and x.stat in HERO_LOWER:
-			parts.append("%s less %s" % [hero_amount(x.stat, x.op, v), word])
+			parts.append(Loc.t("gen.outlaw.less", {"amount": hero_amount(x.stat, x.op, v), "stat": word}))
 		else:
 			parts.append("%s%s %s" % ["−" if v < 0.0 else "+", hero_amount(x.stat, x.op, v), word])
-	return " and ".join(parts)
+	return and_join(parts)
+
+
+## Pieces joined with " and " (the row gen.word.and): "+12% crit chance and +2 regen".
+static func and_join(parts: Array) -> String:
+	return (" %s " % Loc.t("gen.word.and")).join(parts)
 
 
 ## The rule's "now" line: "+12% crit chance at level 12".
 static func hero_trait_now(c: CharacterDef, level: int) -> String:
 	var at := hero_trait_at(c, level)
-	return "" if at == "" else "%s at level %d" % [at, level]
+	return "" if at == "" else Loc.t("gen.outlaw.at_level", {"trait": at, "level": str(level)})
 
 
 # ---------------------------------------------------------------- pass 76 (lane UI): the hero's own numbers
@@ -1548,7 +1733,7 @@ static func player_change(stat: String, v0: float, v1: float) -> String:
 		"deg":
 			return "" if d < 0.5 else "%d°" % int(round(d))
 		"rule":
-			return "" if d < 0.05 else _change_amount(d) + str(RULE_TEXT.get(stat, ["", ""])[1])
+			return "" if d < 0.05 else rule_amount(stat, _change_amount(d))
 	return _change_amount(d)
 
 
@@ -1621,7 +1806,13 @@ static func chest_text(def: PassiveDef) -> String:
 			fx.append(Effect.make(s, "mul" if mul else "add", x.value, "player"))
 	if fx.is_empty():
 		return ""
-	return "Every chest you open banks %s for the rest of the run; a later level raises only the chests after it." % describe_effects(fx)
+	return _own_rule(def, "chest", {"effects": describe_effects(fx)})
+
+
+## Pass 137 (lane W2-TEXTGEN): a passive item's rule sentence: its own row passive.<id>.desc when it has one (pre-filled
+## with the rule's text), else the rule's gen.passive.rule.<rule>, so a new item folder with the same params has words.
+static func _own_rule(def: PassiveDef, rule: String, vars: Dictionary) -> String:
+	return Loc.t_first(["passive.%s.desc" % def.id if def != null else "", "gen.passive.rule." + rule], vars)
 
 
 ## The Grindstone's rule in words (pass 119, lane LEGEND_B; Garry: "Just Upgrade or Evolve the weakest one"): what one
@@ -1629,16 +1820,17 @@ static func chest_text(def: PassiveDef) -> String:
 static func grind_text(_def: PassiveDef = null) -> String:
 	# pass 121 (lane GRIND; Garry: "a 1 time use item ... no upgrades"): a one-shot Grindstone (`single`) works once
 	if _def != null and _def.single:
-		return "Once: your weakest weapon goes up a level (lowest level first, then least damage dealt); with every weapon maxed, one that is ready evolves. One per run; it never levels up."
-	return "Every level you take raises your weakest weapon a level (lowest level first, then least damage dealt). Once all are maxed, it evolves one that is ready."
+		return _own_rule(_def, "grind_once", {})
+	# (the Grindstone's own row is its one-shot sentence: a levelled one reads the rule's)
+	return Loc.t("gen.passive.rule.grind")
 
 
 ## Lightning in a Bottle's rule (pass 119, lane LEGEND_B) from its first level (crit_arcs, crit_arc_pct) and params.arc
 ## (radius): "Every critical hit throws an arc to up to 3 more enemies within 5 m for 25% of the hit. Arcs never chain."
 static func arc_text(def: PassiveDef) -> String:
 	var arc: Dictionary = def.params.get("arc", {})
-	return "Every critical hit throws an arc to up to %s more enemies within %s m for %s%% of the hit. Arcs never chain." % [
-		_plain(first_level_value(def, "crit_arcs", 3.0)), _plain(float(arc.get("radius", 5.0))), _plain(first_level_value(def, "crit_arc_pct", 25.0))]
+	return _own_rule(def, "arc", {"arcs": _plain(first_level_value(def, "crit_arcs", 3.0)), "radius": _plain(float(arc.get("radius", 5.0))),
+		"pct": _plain(first_level_value(def, "crit_arc_pct", 25.0))})
 
 
 ## The Undertaker's Shovel's rule (pass 119, lane LEGEND_B; pass 120, lane GHOST: a floating ghost circling its grave and
@@ -1647,36 +1839,32 @@ static func arc_text(def: PassiveDef) -> String:
 ## stronger you are, the more bolts (up to 6) and the harder they hit; no knockback. At most 4 at once."
 static func grave_text(def: PassiveDef) -> String:
 	var g: Dictionary = def.params.get("grave", {})
-	return "One kill in %s leaves a grave; %s s later a ghost rises and circles it for %s s, firing ghost bolts at the nearest enemies. The stronger you are, the more bolts (up to %s) and the harder they hit; no knockback. At most %s at once." % [
-		_plain(first_level_value(def, "grave_every", 25.0)), _plain(float(g.get("rise", 2.0))), _plain(first_level_value(def, "grave_seconds", 8.0)),
-		_plain(float(g.get("bolts_max", 6.0))), _plain(first_level_value(def, "grave_max", 4.0))]
+	return _own_rule(def, "grave", {"every": _plain(first_level_value(def, "grave_every", 25.0)), "rise": _plain(float(g.get("rise", 2.0))),
+		"seconds": _plain(first_level_value(def, "grave_seconds", 8.0)), "bolts": _plain(float(g.get("bolts_max", 6.0))),
+		"max": _plain(first_level_value(def, "grave_max", 4.0))})
 
 
 ## Fool's Gold's rule (pass 119, lane LEGEND_B) from its first level: "+1% attack damage for every 50 gold in this run's
-## purse, up to +60%. Spending lowers it." (and the max HP part when its first level has one)
+## purse, up to +60%. Spending lowers it." (and the max HP part when its first level has one; pass 137: one row a mix,
+## gen.passive.rule.purse[_cap][_hp])
 static func purse_text(def: PassiveDef) -> String:
-	var s := "+1%% attack damage for every %s gold in this run's purse" % _plain(first_level_value(def, "purse_might_per", 50.0))
 	var cap := first_level_value(def, "purse_might_cap", 0.0)
-	if cap > 0.0:
-		s += ", up to +%s%%" % _plain(cap)
 	var hp := first_level_value(def, "purse_hp_per", 0.0)
-	if hp > 0.0:
-		s += "; +1%% max HP for every %s gold" % _plain(hp)
-	return s + ". Spending lowers it."
+	var rule := "purse" + ("_cap" if cap > 0.0 else "") + ("_hp" if hp > 0.0 else "")
+	return _own_rule(def, rule, {"per": _plain(first_level_value(def, "purse_might_per", 50.0)), "cap": _plain(cap), "hp": _plain(hp)})
 
 
 ## The Pocket Bible's rule (pass 119, lane LEGEND_B) from its first level: "No single hit takes more than 12% of your max
-## HP (35% from a boss). Once every 20 s a hit is stopped outright, never a boss's."
+## HP (35% from a boss). Once every 20 s a hit is stopped outright, never a boss's." (pass 137: one row a mix,
+## gen.passive.rule.bible[_boss][_block])
 static func bible_text(def: PassiveDef) -> String:
-	var s := "No single hit takes more than %s%% of your max HP" % _plain(first_level_value(def, "hit_cap_pct", 12.0))
+	var cap := first_level_value(def, "hit_cap_pct", 12.0)
 	var boss := first_level_value(def, "boss_hit_cap_pct", 0.0)
 	# pass 120 (one cap for every hit, 35%): the boss's share named only when it differs
-	if boss > 0.0 and not is_equal_approx(boss, first_level_value(def, "hit_cap_pct", 12.0)):
-		s += " (%s%% from a boss)" % _plain(boss)
+	var boss_differs := boss > 0.0 and not is_equal_approx(boss, cap)
 	var every := first_level_value(def, "hit_block_every", 0.0)
-	if every > 0.0:
-		s += ". Once every %s s a hit is stopped outright, never a boss's" % _plain(every)
-	return s + "."
+	var rule := "bible" + ("_boss" if boss_differs else "") + ("_block" if every > 0.0 else "")
+	return _own_rule(def, rule, {"cap": _plain(cap), "boss": _plain(boss), "every": _plain(every)})
 
 
 ## Pass 119 (lane LEGEND_A): the value a passive's first level sets `stat` to (its "set" effect, else the sum of its
@@ -1703,9 +1891,9 @@ static func first_level_value(def: PassiveDef, stat: String, fallback: float) ->
 static func train_text(def: PassiveDef) -> String:
 	var t: Dictionary = def.params.get("train", {})
 	var every := first_level_value(def, "train_every", float(t.get("every", 20.0)))
-	return "Every %s s a whistle blows and a ghost train charges down a track through you, the way you face. Everything on the rails takes %s%% of its max HP (Elites and bosses %s%%) + %s damage and is thrown aside." % [
-		_plain(every), _plain(float(t.get("share", 0.25)) * 100.0), _plain(float(t.get("big_share", 0.05)) * 100.0),
-		_plain(roundf(scaled_damage(float(t.get("damage", 35.0)), float(t.get("stage_scaled", 1.0)) > 0.5)))]
+	return _own_rule(def, "train", {"every": _plain(every), "share": _plain(float(t.get("share", 0.25)) * 100.0),
+		"big": _plain(float(t.get("big_share", 0.05)) * 100.0),
+		"damage": _plain(roundf(scaled_damage(float(t.get("damage", 35.0)), float(t.get("stage_scaled", 1.0)) > 0.5)))})
 
 
 ## Pass 119 (lane LEGEND_A): a legendary item's flat damage as the run would deal it now: x the hero's attack damage, x the
@@ -1731,9 +1919,9 @@ static func storm_text(def: PassiveDef) -> String:
 	var every := first_level_value(def, "storm_every", float(st.get("every", 30.0)))
 	var secs := first_level_value(def, "storm_seconds", float(st.get("seconds", 8.0)))
 	var big := float(st.get("big_mult", 0.5))
-	var big_words := "half" if absf(big - 0.5) < 0.001 else _plain(big * 100.0) + "%"
-	return "Every %s s storm clouds gather over you and for %s s lightning strikes about %s times a second, mostly where enemies crowd: %s damage and a hard shove (%s to Elites and bosses)." % [
-		_plain(every), _plain(secs), _plain(float(st.get("rate", 2.0))), _plain(roundf(scaled_damage(float(st.get("damage", 40.0)), float(st.get("stage_scaled", 1.0)) > 0.5))), big_words]
+	var big_words := Loc.t("gen.passive.rule.storm_half") if absf(big - 0.5) < 0.001 else _plain(big * 100.0) + "%"
+	return _own_rule(def, "storm", {"every": _plain(every), "seconds": _plain(secs), "rate": _plain(float(st.get("rate", 2.0))),
+		"damage": _plain(roundf(scaled_damage(float(st.get("damage", 40.0)), float(st.get("stage_scaled", 1.0)) > 0.5))), "big": big_words})
 
 
 ## A perk's card text (pass 116): written from its params for a mechanism TextGen knows (the Invisible Box, special
@@ -1743,6 +1931,6 @@ static func perk_text(def: PerkDef) -> String:
 		return ""
 	if def.special == "box":
 		var p: Dictionary = def.params
-		return "Every %s s an invisible box rises round her for %s s: it blocks every hit, like the Shield power-up (no damage, no shove)." % [
-			_plain(float(p.get("every", 25.0))), _plain(float(p.get("seconds", 3.0)))]
+		# pass 137: the perk's own row perk.<id>.desc, else the mechanism's gen.perk.box
+		return Loc.t_first(["perk.%s.desc" % def.id, "gen.perk.box"], {"every": _plain(float(p.get("every", 25.0))), "seconds": _plain(float(p.get("seconds", 3.0)))})
 	return def.text

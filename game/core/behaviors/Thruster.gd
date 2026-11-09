@@ -259,6 +259,7 @@ func _fire_aimed() -> bool:
 	var res: Dictionary = Aim.shot(inst, game.enemies, player, player.global_position, reach + 0.6)
 	_dir = res["dir"]
 	target = int(res["target"])
+	Aim.note_soft(inst, res)
 	strokes += 1
 	_count_stroke(crit)
 	_combo = 1 if _thrust_flag("alternate") else 0
@@ -444,8 +445,12 @@ func _tick_thrust(delta: float) -> void:
 		_streak_t.append(_clock)
 	if not _hit_done and _t >= windback + out:
 		_hit_done = true
-		if _strike(reach, width, fan, swing):
+		var bit := _strike(reach, width, fan, swing)
+		if bit:
 			_hold_extra = maxf(_thrust("hitstop", HITSTOP), 0.0)
+		# pass 137 (lane SPEAR): the spearhead lands as the hit does: the impact star and its ring, else a glint
+		if _fx_on and _fx:
+			_fx.land(bit)
 		# Heartseeker's crit thrust (pass 62): its red lance, ring and sparks at full reach, hit or not
 		if _phase_crit():
 			_crit_thrust_fx()
@@ -896,6 +901,15 @@ func _tip_sparks() -> void:
 		if fx.has_method("burst"):
 			fx.burst(at, col, 0.45)
 		if fx.has_method("mote"):
+			if _fx_on:
+				# pass 137 (lane SPEAR): the drawn thrust's sparks fly back against it (the references' rule), a fan of five
+				var off: float = (float(k) - float(_active - 1) * 0.5) * deg_to_rad(_thrust("fan_deg", 35.0))
+				var bd := _dir.rotated(Vector3.UP, off)
+				var sd := Vector3(-bd.z, 0.0, bd.x)
+				for q in range(5):
+					var sp := (randf() - 0.5) * 2.4
+					fx.mote(at + bd * 0.25, -bd * (2.2 + randf() * 1.6) + sd * sp + Vector3(0, 0.9 + randf() * 0.8, 0), 0.22, 0.08, Color(1.0, 0.95, 0.75, 0.95))
+				continue
 			for q in range(3):
 				var a := randf() * TAU
 				fx.mote(at, Vector3(cos(a) * 1.6, 1.2 + randf(), sin(a) * 1.6), 0.25, 0.09, Color(col.r, col.g, col.b, 0.9))
@@ -1564,7 +1578,24 @@ func _fx_thrust_look() -> Dictionary:
 	elif _combo == 2:
 		glow = Color(0.45, 0.7, 1.0)
 		body = Color(0.92, 0.97, 1.0)
-	return {"glow": glow, "body": body, "core": core, "width": width, "flash": glow, "flash_size": flash_size}
+	# pass 137 (lane SPEAR): the spearhead's own touch: Heartseeker's crit red-hot, its warm-up warming, fire orange,
+	# venom green, the Thunder Lance's thrust pale blue with a crackle along the streak; plain steel else
+	var heat := 0.0
+	var heat_col := glow
+	if _phase_crit():
+		heat = 0.85
+	elif stat("fire_damage", 0.0) > 0.0:
+		heat = 0.5
+	elif stat("poison_damage", 0.0) > 0.0:
+		heat = 0.35
+	elif crit_every() > 0:
+		heat = 0.6 * clampf(_tip_glow / CRIT_HINT, 0.0, 1.0)
+		heat_col = FX_WARM
+	elif _combo == 2:
+		heat = 0.3
+		heat_col = Color(0.62, 0.82, 1.0)
+	var crackle := 1.0 if _combo == 2 and _thrust_flag("crackle") else 0.0
+	return {"glow": glow, "body": body, "core": core, "width": width, "flash": glow, "flash_size": flash_size, "heat": heat, "heat_col": heat_col, "crackle": crackle}
 
 
 ## The angle each side a swing's arc shows: the slice's own half angle and the edge's width at 70% of the reach (what

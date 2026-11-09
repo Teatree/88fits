@@ -11,7 +11,7 @@ extends ContentDef
 @export var effects: Array = []
 ## Metres the hero must stand within, and for how long.
 @export var radius: float = 2.2
-@export var interact_time: float = 3.0
+@export var interact_time: float = 2.5  # pass 137: every structure 2.5 s (3.0 since pass 135)
 ## Colour of the ring, the progress marker and the glow.
 @export var color: Color = Color(1, 1, 1)
 ## GLB in res://art/props/ (a primitive stand-in is built when it is missing).

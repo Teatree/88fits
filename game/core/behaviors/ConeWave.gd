@@ -189,6 +189,7 @@ func _fire() -> bool:
 		# to the best in the cone (Aim.shot); with nobody there it strums the sand ahead anyway (R5)
 		var sh := Aim.shot(inst, em, player, from, stat("range", 6.0))
 		dir = sh["dir"]
+		Aim.note_soft(inst, sh)
 		if int(sh["target"]) < 0:
 			Aim.note_dry(inst)
 		AimWedge.pulse_dir(dir)

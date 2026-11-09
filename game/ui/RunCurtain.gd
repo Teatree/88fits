@@ -77,7 +77,7 @@ const BORDER_PX := 6.0
 const OPEN_MARGIN := 120.0
 ## The cylinder's spin from the tap: the first of these the sound map binds.
 const SPIN := ["w_hip_spin", "ui_reel_tick"]
-const FAIL_RUN := "The run did not load. Back to the title."
+const FAIL_RUN_KEY := "ui.run_curtain.failed"
 ## Pass 136 (lane LOAD; Garry: "it takes quite a while for the first level to load ... the loading screen doesn't move
 ## while the game is loading"): the run's sprite strips load on the loader threads from the tap (RunLooks.prefetch_next;
 ## the title and the Stages menu may have asked for them already) while the wipe and the loading screen move; the Game is
@@ -140,7 +140,7 @@ static func launch(tree: SceneTree, path: String = GAME, host_node: Node = null,
 func _ready() -> void:
 	_start_scene = get_tree().current_scene
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	fail_line = FAIL_RUN
+	fail_line = Loc.t(FAIL_RUN_KEY)
 	super._ready()
 	_note("wipe")
 	W.sfx_first(SPIN)

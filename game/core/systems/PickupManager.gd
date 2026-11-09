@@ -2107,7 +2107,7 @@ func _collect(i: int, quiet: bool = false) -> void:
 	if quiet:
 		match kind[i]:
 			KIND_COIN:
-				Run.add_gold(int(value[i]) * max(int(round(Run.reward_mult())), 1), str(coin_from.get(i, "coins")))
+				Run.add_gold(coin_pay(value[i]), str(coin_from.get(i, "coins")))
 			KIND_VACUUM:
 				# taken unseen while a pull runs: no second pull, no sound (only one the hero reaches starts a pull)
 				pass
@@ -2117,7 +2117,7 @@ func _collect(i: int, quiet: bool = false) -> void:
 		return
 	match kind[i]:
 		KIND_COIN:
-			Run.add_gold(int(value[i]) * max(int(round(Run.reward_mult())), 1), str(coin_from.get(i, "coins")))
+			Run.add_gold(coin_pay(value[i]), str(coin_from.get(i, "coins")))
 			Audio.play("pk_coin")
 		KIND_VACUUM:
 			vacuum_all()
@@ -2132,6 +2132,16 @@ func _collect(i: int, quiet: bool = false) -> void:
 			Audio.play("pk_gem_s")
 	_glint(i)
 	_free(i)
+
+
+## Pass 137 (lane POLISH; Garry: "x25 the coin gains temporarily (per coin)"): what a coin pays before greed: its
+## value x the stage's coin factor, x COIN_X25 while the developer switch Settings.coins_x25 is on (TEMPORARY; on by
+## default, held off in prod). A boss chest's pieces pay exactly what the pop-up counted (_pay_exact), never this.
+const COIN_X25 := 25
+
+
+static func coin_pay(v: float) -> int:
+	return int(v) * maxi(int(round(Run.reward_mult())), 1) * (COIN_X25 if bool(Settings.coins_x25) else 1)
 
 
 ## A glint where a pickup went in (pass 46): one mote in its colour, at most one every SPARK_GAP seconds.

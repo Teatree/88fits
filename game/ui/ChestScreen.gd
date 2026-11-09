@@ -127,8 +127,8 @@ var respins := 0
 var boss_look := false
 
 ## The boss's chest's words and colours (pass 54).
-const BOSS_TITLE := "MUTATION CHEST"
-const BOSS_STAR := "A path opens"
+const BOSS_TITLE_KEY := "ui.chest.mutation_title"
+const BOSS_STAR_KEY := "ui.chest.mutation_star"
 const BOSS_TITLE_COLOR := W.TOAST_PURPLE
 ## The violet the boss chest's light and glow take: WChest's violet, lifted towards the toast purple so it shows on the
 ## dark dim.
@@ -155,7 +155,7 @@ func _ready() -> void:
 	_beam.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_beam.draw.connect(_draw_beam)
 	add_child(_beam)
-	build_header("Loot", "CHEST", "", 150, title_colour(false))
+	build_header(Loc.t("ui.chest.star"), Loc.t("ui.chest.title"), "", 150, title_colour(false))
 	_reel = Control.new()
 	_reel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_reel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -209,17 +209,17 @@ func _ready() -> void:
 	build_buttons(114.0)
 	# pass 122: the same three buttons under Royale wear the kit's roles by their variants (SKIP and BANISH slate, TAKE IT
 	# gold); their padding keeps their rects the Wanted ones (button_pad_v)
-	_skip_btn = WButton.make(["SKIP"], 34, WButton.SECONDARY, 5, 8, button_pad_v(34, BUTTON_PAD_V), 0.0)
+	_skip_btn = WButton.make([Loc.t("ui.chest.skip")], 34, WButton.SECONDARY, 5, 8, button_pad_v(34, BUTTON_PAD_V), 0.0)
 	_skip_btn.name = "Skip"
 	_skip_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_skip_btn.pressed.connect(_skip)
 	buttons.add_child(_skip_btn)
-	_banish_btn = WButton.make(["BANISH"], 34, WButton.SECONDARY, 5, 8, button_pad_v(34, BUTTON_PAD_V), 0.0)
+	_banish_btn = WButton.make([Loc.t("ui.chest.banish")], 34, WButton.SECONDARY, 5, 8, button_pad_v(34, BUTTON_PAD_V), 0.0)
 	_banish_btn.name = "Banish"
 	_banish_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_banish_btn.pressed.connect(_banish)
 	buttons.add_child(_banish_btn)
-	_take_btn = WButton.make(["TAKE IT"], 44, WButton.PRIMARY, 5, 8, button_pad_v(44, TAKE_PAD_V), 0.0)
+	_take_btn = WButton.make([Loc.t("ui.chest.take")], 44, WButton.PRIMARY, 5, 8, button_pad_v(44, TAKE_PAD_V), 0.0)
 	_take_btn.name = "Take"
 	_take_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_take_btn.size_flags_stretch_ratio = 1.25
@@ -289,11 +289,11 @@ func style_header(boss: bool) -> void:
 	boss_look = boss
 	var vp := get_viewport_rect().size
 	if boss:
-		header.set_title_fit(BOSS_TITLE, 150, title_colour(true), vp.x - 96.0)
-		header.set_star(BOSS_STAR, star_colour(true))
+		header.set_title_fit(Loc.t(BOSS_TITLE_KEY), 150, title_colour(true), vp.x - 96.0)
+		header.set_star(Loc.t(BOSS_STAR_KEY), star_colour(true))
 	else:
-		header.set_title_fit("CHEST", 150, title_colour(false))
-		header.set_star("Loot", star_colour(false))
+		header.set_title_fit(Loc.t("ui.chest.title"), 150, title_colour(false))
+		header.set_star(Loc.t("ui.chest.star"), star_colour(false))
 	R.edge(header.title, header.title.font_size, false)
 	header.title.bevel = 0
 	_beam.queue_redraw()
@@ -671,11 +671,11 @@ func _show_result(kind: String, def: ContentDef) -> void:
 	# pass 122: the card laid out for the theme (the mock's left-aligned slate card under Royale; centred paper under Wanted)
 	_lay_card()
 	if def == null:
-		_word.text = "GOLD"
+		_word.text = Loc.t("ui.chest.gold_word")
 		_word.color = W.BRASS_DARK
-		_word.runs = [["GOLD", R.GOLD_TEXT]]
-		_name.text = "+%s gold" % W.num(int(_result.get("gold", 50)))
-		_effect.text = "Straight into the purse."
+		_word.runs = [[Loc.t("ui.chest.gold_word"), R.GOLD_TEXT]]
+		_name.text = Loc.t("ui.chest.gold_name", {"gold": W.num(int(_result.get("gold", 50)))})
+		_effect.text = Loc.t("ui.chest.gold_effect")
 		return
 	_word.text = WItem.word(_result)
 	_word.color = WItem.word_color(_result)
@@ -692,6 +692,10 @@ func _show_result(kind: String, def: ContentDef) -> void:
 	var t := WItem.tag(_result)
 	if t != "":
 		_tag = WCard.tag_pill(t, TAG_PX)
+		# pass 137: the tag's id (WItem.tag) picks its colours; the word drawn is its row, ui.tag.<id>
+		var tag_key := "ui.tag." + t.to_lower()
+		if Loc.has(tag_key):
+			(_tag.get_node("Word") as WText).text = Loc.t(tag_key).to_upper()
 		_word_row.add_child(_tag)
 	if kind == "evolution":
 		var tmp := WeaponInstance.new(def, 1)
@@ -764,8 +768,8 @@ func _royale_word_runs(def: ContentDef) -> Array:
 ## locked too on what cannot be banished (can_banish), SKIP on gold. Pass 122, under Royale: the count is the kit's navy
 ## pill with a gold number (grey at none) inside the slate button (the label reads the same, "SKIP ×2").
 func _refresh_buttons() -> void:
-	_skip_btn.set_parts(["SKIP ", {"count": Run.skips_left}])
-	_banish_btn.set_parts(["BANISH ", {"count": Run.banishes_left}])
+	_skip_btn.set_parts([Loc.t("ui.chest.skip") + " ", {"count": Run.skips_left}])
+	_banish_btn.set_parts([Loc.t("ui.chest.banish") + " ", {"count": Run.banishes_left}])
 	_skip_btn.locked = Run.skips_left <= 0 or is_gold(_result)
 	_banish_btn.locked = Run.banishes_left <= 0 or not can_banish(_result)
 
@@ -788,20 +792,20 @@ static func can_banish(r: Dictionary) -> bool:
 ## Why a roll cannot be banished, in plain words for the header line (pass 58); "" when it can be.
 static func banish_refusal(r: Dictionary) -> String:
 	if is_gold(r):
-		return "Gold cannot be banished."
+		return Loc.t("ui.chest.no_banish_gold")
 	var def: ContentDef = r.get("def")
 	match str(Run.banish_refusal(r)):
 		"":
 			return ""
 		"gold":
-			return "Gold cannot be banished."
+			return Loc.t("ui.chest.no_banish_gold")
 		"evolution":
-			return "An evolution cannot be banished."
+			return Loc.t("ui.chest.no_banish_evolution")
 		"mutation":
-			return "A mutation cannot be banished."
+			return Loc.t("ui.chest.no_banish_mutation")
 		"held":
-			return "You have %s. Only new items can be banished." % def.display_name
-	return "Only new items can be banished."
+			return Loc.t("ui.chest.no_banish_held", {"item": def.display_name})
+	return Loc.t("ui.chest.no_banish_other")
 
 
 ## SKIP: the chest closes on nothing (Game takes one of the stage's skips, Run.chest_skip); with none left, or on gold,
@@ -810,11 +814,11 @@ func _skip() -> void:
 	if _spinning:
 		return
 	if is_gold(_result):
-		header.set_line("Gold goes straight into the purse.")
+		header.set_line(Loc.t("ui.chest.gold_line"))
 		Audio.play("ui_locked")
 		return
 	if Run.skips_left <= 0:
-		header.set_line("No skips left this stage.")
+		header.set_line(Loc.t("ui.chest.no_skips"))
 		Audio.play("ui_locked")
 		return
 	_finish(false)
@@ -835,15 +839,15 @@ func _banish() -> void:
 		return
 	var def: ContentDef = _result.get("def")
 	if Run.banishes_left <= 0:
-		header.set_line("No banishes left this stage.")
+		header.set_line(Loc.t("ui.chest.no_banishes"))
 		Audio.play("ui_locked")
 		return
 	var r2 := Run.chest_banish(_result)
 	if r2.is_empty():
-		header.set_line("No banishes left this stage.")
+		header.set_line(Loc.t("ui.chest.no_banishes"))
 		Audio.play("ui_locked")
 		return
-	header.set_line("%s is banished for this run." % def.display_name)
+	header.set_line(Loc.t("ui.chest.banished", {"item": def.display_name}))
 	Audio.play("ui_card_pick")
 	respin(r2)
 

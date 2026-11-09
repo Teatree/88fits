@@ -66,7 +66,7 @@ func _build() -> void:
 	# pass 123 (Garry: "The text is blue-white over yellow-white bg, I can't see anything, fix it to be Black. Change all of
 	# the font colours on those elements to be what they were before"): a paper poster keeps its ink and faces under both
 	# themes (W.wanted_*), as he chose: "Keep the in-run Bounty posters as paper Wanted posters"
-	var head := W.wanted_text("WANTED", int(48 * k), W.INK, HORIZONTAL_ALIGNMENT_CENTER, 54.0 * k, W.em(int(48 * k), 0.03))
+	var head := W.wanted_text(Loc.t("ui.poster.wanted"), int(48 * k), W.INK, HORIZONTAL_ALIGNMENT_CENTER, 54.0 * k, W.em(int(48 * k), 0.03))
 	head.name = "Wanted"
 	v.add_child(head)
 	v.add_child(_rule(k))
@@ -81,7 +81,7 @@ func _build() -> void:
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(gap)
-	var rl := W.wanted_label("Reward", int(16 * k), W.INK_SOFT, 0.3)
+	var rl := W.wanted_label(Loc.t("ui.poster.reward"), int(16 * k), W.INK_SOFT, 0.3)
 	rl.align = HORIZONTAL_ALIGNMENT_CENTER
 	rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(rl)

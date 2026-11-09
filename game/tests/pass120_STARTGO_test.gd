@@ -391,7 +391,7 @@ func test_boot_at_the_apps_start_is_unchanged() -> void:
 	# never set: the shader's own 0 (off)
 	var mode = mat.get_shader_parameter("iris_mode")
 	assert_bool(mode == null or int(mode) == 0).is_true()
-	assert_str(b.fail_line).is_equal(BootScript.FAIL_LINE)
+	assert_str(b.fail_line).is_equal(Loc.t(BootScript.FAIL_LINE_KEY))
 	assert_bool(b.fail_line.contains("title screen")).is_true()
 	# the cutout's band still waits while it shows (the curtain leaves it alone)
 	var band := get_node_or_null("/root/CutoutBand") as CanvasLayer

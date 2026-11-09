@@ -171,7 +171,7 @@ func _foot_fade() -> TextureRect:
 
 ## The name as the title and the plaque write it: "The Drifter".
 static func hero_name(c: CharacterDef) -> String:
-	return ("The " + c.display_name) if c.id == "drifter" else c.display_name
+	return Loc.t("ui.outlaw.the_name", {"name": c.display_name}) if c.id == "drifter" else c.display_name
 
 
 ## The name's size: as big as fits beside the portrait (Alfa Slab runs about 0.78 em a letter).
@@ -205,25 +205,26 @@ func _has_upgrades() -> bool:
 ## ITEMS: the weapon he lands with, his favourite (and what finding it gives), any other weapon only he finds, his hero
 ## mutation and his perks; each its plate, its name and the level-up card's words for it.
 func _items() -> void:
-	var v := _section("Items", "Items")
+	var v := _section(Loc.t("ui.hero_sheet.items"), "Items")
 	var sheet: StatSheet = Run.hero_sheet(hero, 1)
 	var start := Registry.start_weapon_for(hero)
 	var fav: ContentDef = _favourite()
 	if start:
 		var bonus := _bonus_words(start) if start == fav else ""
-		v.add_child(_item(start, "start", "Start weapon" + (" · favourite" if start == fav else ""), _level_of(start), bonus, sheet))
+		v.add_child(_item(start, "start", (Loc.t("ui.hero_sheet.role.start_favourite") if start == fav else Loc.t("ui.hero_sheet.role.start")), _level_of(start), bonus, sheet))
 	if fav and fav != start:
-		var word := "Favourite " + ("weapon" if fav is WeaponDef else ("card" if W.is_line(fav) else "item"))
+		var word := Loc.t("ui.hero_sheet.role.favourite_weapon") if fav is WeaponDef else (Loc.t("ui.hero_sheet.role.favourite_card")
+			if W.is_line(fav) else Loc.t("ui.hero_sheet.role.favourite_item"))
 		v.add_child(_item(fav, "favourite", word, _level_of(fav), _bonus_words(fav), sheet))
 	for w: WeaponDef in own_weapons(hero):
 		if w != start and w != fav:
 			# pass 118 (lane ITEMS): anyone may find a hero's own weapon now
-			v.add_child(_item(w, "own", "Signature weapon", 1, "", sheet))
+			v.add_child(_item(w, "own", Loc.t("ui.hero_sheet.role.signature_weapon"), 1, "", sheet))
 	for m: MutationDef in Registry.hero_mutations(hero.id):
 		var on := Registry.weapon(m.weapon)
-		v.add_child(_item(m, "mutation", "Outlaw mutation · " + (on.display_name if on else m.weapon), 1, "", sheet))
+		v.add_child(_item(m, "mutation", Loc.t("ui.hero_sheet.role.outlaw_mutation", {"weapon": on.display_name if on else m.weapon}), 1, "", sheet))
 	for pk: PerkDef in Registry.perks_of(hero.id):
-		v.add_child(_item(pk, "perk", "Perk", 1, "", sheet))
+		v.add_child(_item(pk, "perk", Loc.t("ui.hero_sheet.role.perk"), 1, "", sheet))
 
 
 ## The weapons only this hero can find (WeaponDef.hero), the title plaque's SPECIAL plates.
@@ -253,11 +254,11 @@ func _bonus_words(def: ContentDef) -> String:
 	var b: Dictionary = hero.favourite_bonus if def is WeaponDef else hero.favourite_passive_bonus
 	match str(b.get("type", "")):
 		"level":
-			return "Found at level %d." % int(b.get("value", 1))
+			return Loc.t("ui.hero_sheet.found_level", {"level": str(int(b.get("value", 1)))})
 		"max":
-			return "Found full."
+			return Loc.t("ui.hero_sheet.found_full")
 		"effects":
-			return "Found with %s." % TextGen.describe_effects(b.get("effects", []))
+			return Loc.t("ui.hero_sheet.found_with", {"effects": TextGen.describe_effects(b.get("effects", []))})
 	return ""
 
 
@@ -285,7 +286,7 @@ func _item(def: ContentDef, role: String, word: String, level: int, bonus: Strin
 	var k := W.kind_of(def)
 	col.add_child(W.label(word + ((" · " + W.lv(level)) if level > 1 else ""), 18, W.KIND_WORD.get(k, W.INK_SOFT), 0.12))
 	col.add_child(W.text("?" if locked else def.display_name, W.slab(), 38, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
-	var d := W.serif_text("Unknown until this outlaw is yours." if locked else describe(def, level, sheet), 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	var d := W.serif_text(Loc.t("ui.hero_sheet.unknown_until") if locked else describe(def, level, sheet), 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	d.name = "Text"
 	d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(d)
@@ -375,8 +376,9 @@ func ask_buy_look(code: String) -> void:
 		Audio.play("ui_locked")
 		return
 	# pass 123: a purchase asks in green under Royale (Garry: "buying green"); Wanted's card as it was
-	WConfirm.open(self, "Buy this skin?", "%s from your purse. %s wears it from then on." % [Currency.price_words(cur, price), hero_name(hero)],
-		"Buy · %s" % W.num(price), "Not now", func(): buy_look(code), Callable(), "buy", WButton.price_parts(price, "BUY", R.MODAL_BUTTON_PX, cur))
+	WConfirm.open(self, Loc.t("ui.buy_skin.title"), Loc.t("ui.buy_skin.body", {"price": Currency.price_words(cur, price), "outlaw": hero_name(hero)}),
+		Loc.t("ui.buy_skin.confirm", {"price": W.num(price)}), Loc.t("ui.buy_skin.not_now"), func(): buy_look(code), Callable(), "buy",
+		WButton.price_parts(price, Loc.t("ui.buy_skin.buy"), R.MODAL_BUTTON_PX, cur))
 
 
 ## The purchase: paid through Currency (Save.buy_skin, the sink "skin"), worn at once, a burst over its tile.
@@ -482,10 +484,10 @@ func _build_royale() -> void:
 	_items_royale()
 	# his looks (pass 111: a hero not owned sells none; a hero with one look has nothing to choose)
 	if not locked and not Registry.skins_of(hero).is_empty():
-		_looks_v = _section_royale("Skins", "Looks")
+		_looks_v = _section_royale(Loc.t("ui.hero_sheet.skins"), "Looks")
 		_fill_looks_royale()
 	body.add_child(_spacer(12.0))
-	close_btn = WConfirm.make_button(["CLOSE"], WButton.SLATE, 96.0, 40)
+	close_btn = WConfirm.make_button([Loc.t("ui.hero_sheet.close")], WButton.SLATE, 96.0, 40)
 	close_btn.name = "Close"
 	close_btn.pressed.connect(close)
 	v.add_child(close_btn)
@@ -516,12 +518,12 @@ func _header_royale() -> Control:
 	top.add_theme_constant_override("separation", 16)
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(top)
-	var shown := "Unknown" if locked else hero_name(hero)
+	var shown := Loc.t("ui.hero_sheet.unknown") if locked else hero_name(hero)
 	var nm := W.text(shown.to_upper(), W.slab(), R_NAME_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, float(R_NAME_PX))
 	nm.name = "Name"
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(nm)
-	var corner := W.label("Details", R_LABEL_PX, W.INK_SOFT)
+	var corner := W.label(Loc.t("ui.hero_sheet.details"), R_LABEL_PX, W.INK_SOFT)
 	corner.name = "Corner"
 	corner.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	top.add_child(corner)
@@ -540,10 +542,10 @@ func _header_royale() -> Control:
 	col.add_child(pills)
 	if locked:
 		var on_sale := Registry.hero_state(hero) == "buyable"
-		pills.add_child(royale_tag("On sale" if on_sale else "Locked", "green" if on_sale else "red", 20))
+		pills.add_child(royale_tag(Loc.t("ui.hero_sheet.tag.on_sale") if on_sale else Loc.t("ui.hero_sheet.tag.locked"), "green" if on_sale else "red", 20))
 		return h
 	if hero.trait_name != "":
-		pills.add_child(W.pill(("Trait · " + hero.trait_name).to_upper(), 20, R_PILL_H))
+		pills.add_child(W.pill(Loc.t("ui.hero_sheet.trait_named", {"name": hero.trait_name}).to_upper(), 20, R_PILL_H))
 	for line: Array in trait_lines(hero):
 		pills.add_child(W.pill([[str(line[0]), R.ROLES["green"]["top"] if bool(line[2]) else R.ROLES["red"]["top"], "bold"], " " + str(line[1])], R_PILL_PX, R_PILL_H))
 	return h
@@ -561,7 +563,7 @@ func _locked_box_royale() -> Control:
 	p.add_child(v)
 	var q := Registry.quest_for("character", hero.id)
 	if Registry.hero_state(hero) == "buyable":
-		v.add_child(W.label("On sale", R_LABEL_PX, W.SAGE))
+		v.add_child(W.label(Loc.t("ui.hero_sheet.on_sale"), R_LABEL_PX, W.SAGE))
 		var row := HBoxContainer.new()
 		row.name = "Price"
 		row.add_theme_constant_override("separation", 12)
@@ -571,18 +573,18 @@ func _locked_box_royale() -> Control:
 		pr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(pr)
 		v.add_child(row)
-		var said := ("Requirement met: %s " % TextGen.quest_text(q)) if q else ""
-		var t := W.serif_text(said + "Buy on the Outlaws screen.", 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+		var said := Loc.t("ui.hero_sheet.requirement_met_buy", {"requirement": TextGen.quest_text(q)}) if q else Loc.t("ui.hero_sheet.buy_on_outlaws")
+		var t := W.serif_text(said, 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 		t.color = R.WHITE
 		v.add_child(t)
 		return p
-	v.add_child(W.label("To unlock", R_LABEL_PX, W.ROCK))
+	v.add_child(W.label(Loc.t("ui.hero_sheet.to_unlock"), R_LABEL_PX, W.ROCK))
 	# pass 129 (lane TRAIL-UI): an outlaw a Trail node gives reads "Reach Trail Level N"; a tap opens the Trail on it
 	var trail_line := TrailScreen.requirement_line("outlaw", hero.id, 28)
 	if trail_line:
 		v.add_child(trail_line)
 		return p
-	var words := TextGen.quest_text(q) if q else "Not in the game yet."
+	var words := TextGen.quest_text(q) if q else Loc.t("ui.hero_sheet.not_in_game")
 	var wt := W.serif_text(words, 28, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	wt.color = R.WHITE
 	v.add_child(WPoster.with_picture(q, wt, 40.0))
@@ -599,7 +601,7 @@ func _locked_box_royale() -> Control:
 
 ## SIGNATURE STAT (Royale): the rule in words only (Garry: "the trait rule in words only"; no level 1 / 10 / 20 / 40 row).
 func _signature_royale() -> void:
-	var title := ("Signature stat · " + hero.trait_name) if hero.trait_name != "" and not locked else "Signature stat"
+	var title := Loc.t("ui.hero_sheet.signature_named", {"name": hero.trait_name}) if hero.trait_name != "" and not locked else Loc.t("ui.hero_sheet.signature")
 	var v := _section_royale(title, "Signature")
 	if locked:
 		var u := W.text("?", W.slab(), 64, W.INK_SOFT)
@@ -621,7 +623,7 @@ static func rule_words(c: CharacterDef) -> String:
 ## STATS · A RUN'S START (Royale): the mock's two columns of 56 px rows, his signature stats green, the note under them.
 func _stats_royale() -> void:
 	var ups := _has_upgrades()
-	var v := _section_royale("Stats · a run's start" + (", your upgrades in" if ups else ""), "Stats")
+	var v := _section_royale(Loc.t("ui.hero_sheet.stats_title_ups") if ups else Loc.t("ui.hero_sheet.stats_title"), "Stats")
 	var sheet: StatSheet = Run.hero_sheet(hero, 1)
 	var mine := signature_stats(hero)
 	var grid := GridContainer.new()
@@ -633,8 +635,8 @@ func _stats_royale() -> void:
 	for st: String in STATS:
 		grid.add_child(_stat_cell_royale(st, "?" if locked else stat_value(st, sheet.get_stat(st)), st in mine and not locked))
 	v.add_child(grid)
-	var words := "Every number is unknown until this outlaw is yours." if locked else ("Signature stat in green. " + (
-		"Your Trail upgrades are counted in." if ups else "Upgrades on the Trail add to these."))
+	var words := Loc.t("ui.hero_sheet.stats_unknown") if locked else (Loc.t("ui.hero_sheet.stats_note_ups") if ups
+		else Loc.t("ui.hero_sheet.stats_note"))
 	var note := W.serif_text(words, R_NOTE_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
 	note.name = "Note"
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -686,7 +688,7 @@ func _stat_cell_royale(st: String, value: String, mine: bool) -> Control:
 
 ## HIS ITEMS (Royale): every item of items_of on its frame with its kind, its name and its words.
 func _items_royale() -> void:
-	var v := _section_royale((TextGen.possessive(hero) + " items") if not locked else "Items", "Items")
+	var v := _section_royale(Loc.t("ui.hero_sheet.items_of", {"owner": TextGen.possessive(hero)}) if not locked else Loc.t("ui.hero_sheet.items"), "Items")
 	v.add_theme_constant_override("separation", 26)
 	var sheet: StatSheet = Run.hero_sheet(hero, 1)
 	for it: Dictionary in items_of(hero):
@@ -711,9 +713,9 @@ func _fill_looks_royale() -> void:
 			owned += 1
 		if Registry.skin_state(hero, code) != "owned":
 			to_earn = true
-	_looks_v.add_child(W.label("Skins · %d of %d owned" % [owned, codes.size()], R_LABEL_PX, W.INK_SOFT))
-	var how := "Reach a skin's goal, then buy it." if to_earn else "Tap a skin to wear it."
-	var line := W.serif_text("Wearing %s. %s" % [hero.skin_name(worn), how], 24, W.INK_SOFT, 400, true,
+	_looks_v.add_child(W.label(Loc.t("ui.hero_sheet.skins_owned", {"owned": str(owned), "total": str(codes.size())}), R_LABEL_PX, W.INK_SOFT))
+	var how := Loc.t("ui.hero_sheet.skins_how_earn") if to_earn else Loc.t("ui.hero_sheet.skins_how_wear")
+	var line := W.serif_text(Loc.t("ui.hero_sheet.wearing", {"skin": hero.skin_name(worn), "how": how}), 24, W.INK_SOFT, 400, true,
 		HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
 	line.name = "Wearing"
 	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -755,9 +757,9 @@ static func trait_lines(c: CharacterDef) -> Array:
 	for e in c.level_trait:
 		if e is Effect:
 			var x: Effect = e
-			out.append([TextGen.hero_step(x), TextGen.hero_word(x.stat) + " per Level", _good(x.stat, x.value)])
+			out.append([TextGen.hero_step(x), Loc.t("ui.hero_sheet.stat_per_level", {"stat": TextGen.hero_word(x.stat)}), _good(x.stat, x.value)])
 	if c.level_heal > 0.0:
-		out.append(["+" + TextGen._plain(c.level_heal * 100.0) + "%", "max HP healed every level-up", true])
+		out.append(["+" + TextGen._plain(c.level_heal * 100.0) + "%", Loc.t("ui.hero_sheet.heal_per_level"), true])
 	return out
 
 
@@ -774,9 +776,11 @@ static func trait_note(c: CharacterDef) -> String:
 			var x: Effect = e
 			var word := TextGen.hero_word(x.stat)
 			if StatSheet.STAT_FLOORS.has(x.stat):
-				notes.append("%s never under %s" % [word, TextGen.hero_amount(x.stat, "add", float(StatSheet.STAT_FLOORS[x.stat]))])
-			if TextGen.HERO_NOTES.has(x.stat):
-				notes.append(str(TextGen.HERO_NOTES[x.stat]).replace("{his}", TextGen.possessive(c)))
+				notes.append(Loc.t("ui.hero_sheet.never_under", {"stat": word, "amount": TextGen.hero_amount(x.stat, "add", float(StatSheet.STAT_FLOORS[x.stat]))}))
+			# pass 137: the stat's own note (row stat.<id>.hero_note, {his} the Outlaw's possessive), "" when it has none
+			var note := TextGen.hero_note(x.stat, c)
+			if note != "":
+				notes.append(note)
 	var s := ""
 	if not notes.is_empty():
 		var j := "; ".join(notes)
@@ -812,11 +816,11 @@ static func bonus_line(c: CharacterDef, def: ContentDef) -> String:
 			var n := int(b.get("value", 1)) - 1
 			if n <= 0:
 				return ""
-			return "Finding it in a run gives it a bonus level." if n == 1 else "Finding it in a run gives it %d bonus levels." % n
+			return Loc.t("ui.hero_sheet.bonus.level", {"count": str(n)})
 		"max":
-			return "Finding it in a run gives it every level at once."
+			return Loc.t("ui.hero_sheet.bonus.full")
 		"effects":
-			return "Finding it in a run gives it %s." % TextGen.describe_effects(b.get("effects", []))
+			return Loc.t("ui.hero_sheet.bonus.effects", {"effects": TextGen.describe_effects(b.get("effects", []))})
 	return ""
 
 
@@ -833,19 +837,20 @@ static func items_of(c: CharacterDef) -> Array:
 	var start := Registry.start_weapon_for(c)
 	var fav: ContentDef = favourite_of(c)
 	if start:
-		out.append({"def": start, "role": "start", "word": "Start weapon" + (" · favourite" if start == fav else ""),
+		out.append({"def": start, "role": "start", "word": (Loc.t("ui.hero_sheet.role.start_favourite") if start == fav else Loc.t("ui.hero_sheet.role.start")),
 			"level": level_of(c, start), "bonus": bonus_line(c, start) if start == fav else ""})
 	if fav and fav != start:
-		var word := "Favourite " + ("weapon" if fav is WeaponDef else ("card" if W.is_line(fav) else "item"))
+		var word := Loc.t("ui.hero_sheet.role.favourite_weapon") if fav is WeaponDef else (Loc.t("ui.hero_sheet.role.favourite_card")
+			if W.is_line(fav) else Loc.t("ui.hero_sheet.role.favourite_item"))
 		out.append({"def": fav, "role": "favourite", "word": word, "level": level_of(c, fav), "bonus": bonus_line(c, fav)})
 	for w: WeaponDef in own_weapons(c):
 		if w != start and w != fav:
-			out.append({"def": w, "role": "own", "word": "Signature weapon", "level": 1})
+			out.append({"def": w, "role": "own", "word": Loc.t("ui.hero_sheet.role.signature_weapon"), "level": 1})
 	for m: MutationDef in Registry.hero_mutations(c.id):
 		var on := Registry.weapon(m.weapon)
-		out.append({"def": m, "role": "mutation", "word": "Outlaw mutation · " + (on.display_name if on else m.weapon), "level": 1})
+		out.append({"def": m, "role": "mutation", "word": Loc.t("ui.hero_sheet.role.outlaw_mutation", {"weapon": on.display_name if on else m.weapon}), "level": 1})
 	for pk: PerkDef in Registry.perks_of(c.id):
-		out.append({"def": pk, "role": "perk", "word": "Perk", "level": 1})
+		out.append({"def": pk, "role": "perk", "word": Loc.t("ui.hero_sheet.role.perk"), "level": 1})
 	return out
 
 
@@ -859,7 +864,7 @@ static func royale_item_row(it: Dictionary, sheet: StatSheet, unknown: bool, fra
 	var word := str(it.get("word", ""))
 	var level := int(it.get("level", 1))
 	var bonus := str(it.get("bonus", ""))
-	var words := "Unknown until this outlaw is yours." if unknown else describe(def, level, sheet)
+	var words := Loc.t("ui.hero_sheet.unknown_until") if unknown else describe(def, level, sheet)
 	if unknown:
 		word = word.get_slice(" · ", 0)
 		level = 1
@@ -1075,9 +1080,9 @@ static func royale_look_tile(c: CharacterDef, code: String, worn: String, tile: 
 	v.add_child(foot)
 	match st:
 		"worn":
-			foot.add_child(royale_tag("Worn", "gold", LOOK_FOOT_PX))
+			foot.add_child(royale_tag(Loc.t("ui.hero_sheet.tag.worn"), "gold", LOOK_FOOT_PX))
 		"owned":
-			foot.add_child(royale_tag("Wear", "slate", LOOK_FOOT_PX))
+			foot.add_child(royale_tag(Loc.t("ui.hero_sheet.tag.wear"), "slate", LOOK_FOOT_PX))
 		"buyable":
 			var cur := Currency.of(c.skin_currency(code))
 			var price := c.skin_price(code)
@@ -1095,7 +1100,7 @@ static func royale_look_tile(c: CharacterDef, code: String, worn: String, tile: 
 			# pass 129 (lane TRAIL-UI): a Trail line carries its chevron (the tile's tap opens the Trail)
 			if words != "" and Trail.gated("skin", Registry.skin_key(c.id, code)) and R.body().has_char(0x203A):
 				words += " ›"
-			var g := W.serif_text(words if words != "" else "Not on sale yet.", LOOK_GOAL_PX, W.INK_SOFT, 400, false,
+			var g := W.serif_text(words if words != "" else Loc.t("ui.hero_sheet.not_on_sale"), LOOK_GOAL_PX, W.INK_SOFT, 400, false,
 				HORIZONTAL_ALIGNMENT_CENTER, roundf(LOOK_GOAL_PX * 1.25), true)
 			g.name = "Goal"
 			g.size_flags_horizontal = Control.SIZE_EXPAND_FILL

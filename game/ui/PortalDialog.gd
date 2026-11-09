@@ -21,7 +21,8 @@ signal declined
 signal expired
 
 ## The footer: what NOT YET means.
-const FOOT := "Not ready? Step out, and walk back in before the clock runs out."
+## The foot line (pass 137: the string table, key ui.portal.foot).
+const FOOT_KEY := "ui.portal.foot"
 ## The countdown turns rock in its last seconds.
 const ENDLESS_WARN := 10.0
 ## Seconds the countdown starts from when no game tells it (a tool or a test opening the dialog on its own).
@@ -85,7 +86,7 @@ func _build() -> void:
 ## names: "Extract" (the button now), "Endless", "Title", "Count", "NotYet".
 func _build_royale() -> void:
 	build_dim(W.DIM)
-	build_header("Boss down", "STAGE 1 CLEAR", "", ROYALE_TITLE_PX, W.PAPER, ROYALE_HEAD_TOP)
+	build_header(Loc.t("ui.portal.star"), Loc.t("ui.portal.stage_clear", {"stage": "1"}), "", ROYALE_TITLE_PX, W.PAPER, ROYALE_HEAD_TOP)
 	header.line.visible = false
 	_pills = HBoxContainer.new()
 	_pills.name = "RunPills"
@@ -118,11 +119,11 @@ func _build_royale() -> void:
 	var head := HBoxContainer.new()
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(head)
-	var tt := W.slab_text("Extract", ROYALE_CARD_TITLE_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, float(ROYALE_CARD_TITLE_PX))
+	var tt := W.slab_text(Loc.t("ui.portal.extract_title"), ROYALE_CARD_TITLE_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, float(ROYALE_CARD_TITLE_PX))
 	tt.name = "ExtractTitle"
 	tt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(tt)
-	_tag = _royale_tag("Safe · run ends", R.TAG_GREEN)
+	_tag = _royale_tag(Loc.t("ui.portal.extract_tag"), R.TAG_GREEN)
 	_tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(_tag)
 	var row := HBoxContainer.new()
@@ -145,7 +146,7 @@ func _build_royale() -> void:
 	body.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(body)
-	body.add_child(W.serif_text("This run's gold, banked", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	body.add_child(W.serif_text(Loc.t("ui.portal.gold_banked"), 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	var g := HBoxContainer.new()
 	g.add_theme_constant_override("separation", 14)
 	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -157,7 +158,7 @@ func _build_royale() -> void:
 	foot.alignment = BoxContainer.ALIGNMENT_END
 	foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(foot)
-	var ex := WButton.make(["EXTRACT"], ROYALE_EXTRACT_PX, WButton.PRIMARY, 4, 8, 22.0, 30.0, float(ROYALE_EXTRACT_PX))
+	var ex := WButton.make([Loc.t("ui.portal.extract")], ROYALE_EXTRACT_PX, WButton.PRIMARY, 4, 8, 22.0, 30.0, float(ROYALE_EXTRACT_PX))
 	ex.name = "Extract"
 	ex.custom_minimum_size.x = ROYALE_EXTRACT_W
 	ex.pressed.connect(extract)
@@ -165,11 +166,11 @@ func _build_royale() -> void:
 	_extract = ex
 	_build_endless_royale()
 	# NOT YET: under the cards, outside the Endless card (Garry), as wide as the cards
-	_not_yet = WButton.make(["NOT YET"], ROYALE_NOT_YET_PX, WButton.SECONDARY, 4, 8, 24.0, 0.0)
+	_not_yet = WButton.make([Loc.t("ui.portal.not_yet")], ROYALE_NOT_YET_PX, WButton.SECONDARY, 4, 8, 24.0, 0.0)
 	_not_yet.name = "NotYet"
 	_not_yet.pressed.connect(decline)
 	_cards.add_child(_not_yet)
-	_foot = W.serif_text(FOOT, 28, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	_foot = W.serif_text(Loc.t(FOOT_KEY), 28, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	_foot.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	_foot.offset_bottom = -80
 	_foot.offset_top = -80 - 34
@@ -197,10 +198,10 @@ func _build_endless_royale() -> void:
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(left)
-	_cont_title = W.slab_text("Endless", ROYALE_CARD_TITLE_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, float(ROYALE_CARD_TITLE_PX))
+	_cont_title = W.slab_text(Loc.t("ui.portal.endless_title"), ROYALE_CARD_TITLE_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, float(ROYALE_CARD_TITLE_PX))
 	_cont_title.name = "Title"
 	left.add_child(_cont_title)
-	_count_label = W.label("Starts in", 20, W.INK_SOFT)
+	_count_label = W.label(Loc.t("ui.portal.starts_in"), 20, W.INK_SOFT)
 	left.add_child(_count_label)
 	var holder := Control.new()
 	holder.name = "CountHolder"
@@ -297,26 +298,26 @@ func _fact(n: String, col: Color, text: String) -> HBoxContainer:
 func open(stage_cleared: int, _can_continue: bool = false, _final_stage: bool = false) -> void:
 	var gold := Run.run_gold
 	W.sfx_first(["ui_stage_clear"])   # pass 64: the stage-clear jingle
-	header.set_title("STAGE %d CLEAR" % stage_cleared)
-	header.set_line("%s · %s kills · %s. Bank it before the horde comes." % [W.mmss(_stage_time()), W.num(Run.kills), W.lv(Run.level)])
+	header.set_title(Loc.t("ui.portal.stage_clear", {"stage": str(stage_cleared)}))
+	header.set_line(Loc.t("ui.portal.line", {"time": W.mmss(_stage_time()), "kills": W.num(Run.kills), "level": W.lv(Run.level)}))
 	if _pills:
 		# pass 123: the same words as black pills, the dry line hidden (built again each open: once a stage, never a frame)
 		header.line.visible = false
 		for c in _pills.get_children():
 			_pills.remove_child(c)
 			c.queue_free()
-		for t in [W.mmss(_stage_time()), "%s kills" % W.num(Run.kills), W.lv(Run.level)]:
+		for t in [W.mmss(_stage_time()), Loc.t("ui.portal.kills", {"kills": W.num(Run.kills)}), W.lv(Run.level)]:
 			_pills.add_child(W.pill([[str(t), null, "bold"]], 24, 44.0))
-		_pills.add_child(W.pill("Bank it before the horde comes.", 24, 44.0))
+		_pills.add_child(W.pill(Loc.t("ui.portal.bank_it"), 24, 44.0))
 	_gold_to.text = W.num(gold)
 	# out of the column at once (a second open in the same frame must not lay the new lines out under the old ones)
 	for c in _endless_lines.get_children():
 		_endless_lines.remove_child(c)
 		c.queue_free()
 	var every := _endless_every()
-	_endless_lines.add_child(_fact("", W.PAPER, "A huge wave, then a tougher one every %s, until you fall." % _secs(every)))
+	_endless_lines.add_child(_fact("", W.PAPER, Loc.t("ui.portal.endless_line", {"every": _secs(every)})))
 	# pass 70: a death banks the purse too, so the gold is not the stake any more
-	_endless_lines.add_child(W.serif_text("The %s gold comes home either way." % W.num(gold), 24, W.INK_SOFT,
+	_endless_lines.add_child(W.serif_text(Loc.t("ui.portal.gold_home", {"gold": W.num(gold)}), 24, W.INK_SOFT,
 		400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false))
 	_own_left = DEFAULT_SECONDS if _own_left < 0.0 else _own_left
 	_shown = -1

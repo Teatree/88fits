@@ -215,7 +215,7 @@ func _draw() -> void:
 			continue
 		var sx: float = inner.position.x + float(s[0]) * inner.size.x
 		_dashed(Vector2(sx, inner.position.y), Vector2(sx, inner.end.y), Color(W.INK, 0.45), 3.0)
-		_stage_name(Vector2(sx, r.end.y), "Stage %d" % (int(s[1]) + 1))
+		_stage_name(Vector2(sx, r.end.y), Loc.t("ui.results.stage", {"stage": "%d" % (int(s[1]) + 1)}))
 	if head > 0.0 and head < 1.0 and slices.size() > 0:
 		var tip := _point(r, inner, head)
 		draw_line(Vector2(tip.x, inner.position.y), Vector2(tip.x, inner.end.y), Color(W.INK, 0.35), 2.0)

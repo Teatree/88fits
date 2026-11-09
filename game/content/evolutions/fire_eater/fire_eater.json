@@ -31,6 +31,7 @@
   ],
   "params": {
     "aim": {
+      "feel": "hard",
       "cone": 50,
       "hold": 2.0
     },

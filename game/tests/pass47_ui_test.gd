@@ -245,7 +245,7 @@ func test_gold_rises_from_the_hero_and_steady_shows_beside_adrenaline() -> void:
 
 func test_the_collection_has_five_tabs_and_marks_the_dangerous_enemies() -> void:
 	# pass 73 (lane CARDS): the lines' tab says Cards
-	assert_array(CollectionScreen.TABS).is_equal(["Weapons", "Cards", "Passives", "Perks", "Enemies"])
+	assert_array(CollectionScreen.TABS.map(func(k: String) -> String: return Loc.t(k))).is_equal(["Weapons", "Cards", "Passives", "Perks", "Enemies"])
 	assert_str(CollectionScreen.danger_role(Registry.enemy("brander"))).is_equal("boss")
 	assert_str(CollectionScreen.danger_role(Registry.enemy("dune_scorpion"))).is_equal("elite")
 	assert_str(CollectionScreen.danger_role(Registry.enemy("rocketeer"))).is_equal("special")

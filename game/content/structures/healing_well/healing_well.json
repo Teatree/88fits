@@ -1,7 +1,7 @@
 {
   "id": "healing_well",
   "radius": 2.2,
-  "interact_time": 3.0,
+  "interact_time": 2.5,
   "name": "Healing Well",
   "flavour": "Cold water. Warm feeling.",
   "effect": "heal",

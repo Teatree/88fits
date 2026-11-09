@@ -21,10 +21,10 @@ const OPT_BOTTOM := 36
 const SLIDER_LEFT := 8
 const SLIDER_RIGHT := 52
 ## The floating text's switches (pass 54): the words, the setting, the node's name (as the Settings screen has them).
-const FLOAT_SWITCHES := [["Damage numbers", "damage_numbers", "DamageNumbers"], ["Heal numbers", "float_heal", "HealNumbers"],
-	["XP numbers", "float_xp", "XpNumbers"], ["Coin numbers", "float_coins", "CoinNumbers"]]
+const FLOAT_SWITCHES := [["ui.pause.float.damage", "damage_numbers", "DamageNumbers"], ["ui.pause.float.heal", "float_heal", "HealNumbers"],
+	["ui.pause.float.xp", "float_xp", "XpNumbers"], ["ui.pause.float.coins", "float_coins", "CoinNumbers"]]
 ## A spent item's word on its Build row (pass 54; SPENT in rock before).
-const USED := "(used)"
+const USED_KEY := "ui.pause.used"
 ## Pass 123 (lane RUN_A), the Royale look (the mocks 7_Pause_Build / _Stats / _Options on today's sizes): the clock's
 ## black plate (its type, its padding, its top), the Build rows' bigger stars (Garry: "the Stars need to be bigger"; 34
 ## today), the thin line between rows and its colour, a row's padding, the room over a group's head, the open row's stat
@@ -71,7 +71,7 @@ func _ready() -> void:
 ## slate sheet that reaches down to RESUME; today's positions and sizes.
 func _build() -> void:
 	build_dim(W.DIM)
-	var paused := W.slab_text("PAUSED", 110, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 110.0)
+	var paused := W.slab_text(Loc.t("ui.pause.title"), 110, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 110.0)
 	var inset := W.safe_top()
 	paused.position = Vector2(48, 60 + inset)
 	paused.size = Vector2(600, 110)
@@ -81,7 +81,7 @@ func _build() -> void:
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	plate.add_theme_stylebox_override("panel", W.plate_box(0, 0, R.RADIUS).pad(ROYALE_CLOCK_PAD.x, ROYALE_CLOCK_PAD.y,
 		ROYALE_CLOCK_PAD.x, ROYALE_CLOCK_PAD.y))
-	_clock = W.text("00:00 · STAGE 1", R.display(), ROYALE_CLOCK_PX, R.WHITE, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_clock = W.text(Loc.t("ui.pause.clock_start"), R.display(), ROYALE_CLOCK_PX, R.WHITE, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	_clock.name = "Clock"
 	plate.add_child(_clock)
 	plate.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -89,7 +89,7 @@ func _build() -> void:
 	plate.offset_right = -48
 	plate.offset_top = (ROYALE_CLOCK_TOP) + inset
 	add_child(plate)
-	_tabs = WTabs.make(["BUILD", "STATS", "OPTIONS"], 30)
+	_tabs = WTabs.make([Loc.t("ui.pause.tab.build"), Loc.t("ui.pause.tab.stats"), Loc.t("ui.pause.tab.options")], 30)
 	_tabs.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_tabs.offset_left = 48
 	_tabs.offset_right = -48
@@ -119,7 +119,7 @@ func _build() -> void:
 	_content.mouse_filter = Control.MOUSE_FILTER_PASS
 	_scroll.add_child(_content)
 	_touch = TouchScroll.new(_scroll)
-	var resume := WButton.make(["RESUME"], 60, WButton.PRIMARY, 6, 10, 26.0, 0.0, 60.0)
+	var resume := WButton.make([Loc.t("ui.pause.resume")], 60, WButton.PRIMARY, 6, 10, 26.0, 0.0, 60.0)
 	resume.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	resume.offset_left = 48
 	resume.offset_right = -48
@@ -177,7 +177,7 @@ func _process(_delta: float) -> void:
 
 func _refresh() -> void:
 	# pass 87 (lane SGAME): the stage's own clock
-	_clock.text = "%s · %s" % [W.mmss(Run.stage_clock()), ("Endless" if Run.endless else "Stage %d" % (Run.stage + 1))]
+	_clock.text = "%s · %s" % [W.mmss(Run.stage_clock()), (Loc.t("ui.pause.endless") if Run.endless else Loc.t("ui.pause.stage", {"stage": "%d" % (Run.stage + 1)}))]
 	# pass 123: the mock's "01:01 · STAGE 1" in capitals on its black plate
 	_clock.text = _clock.text.to_upper()
 	_tabs.select(_tab, false)
@@ -238,12 +238,12 @@ func _build_tab() -> void:
 	# pass 111 (lane WANTED): the run's bounty on top, with how far it has come (WantedRun.pause_row)
 	var bounty := WantedRun.pause_row()
 	if bounty:
-		_group("Bounty", "")
+		_group(Loc.t("ui.pause.group.bounty"), "")
 		_content.add_child(_build_inset(bounty))
 	if Run.weapons.is_empty() and Run.passives.is_empty():
-		_content.add_child(_build_inset(W.serif_text("Nothing yet.", 28, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)))
+		_content.add_child(_build_inset(W.serif_text(Loc.t("ui.pause.bounty_none"), 28, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)))
 	if not Run.weapons.is_empty():
-		_group("Weapons", "%d / %d" % [Run.weapons.size(), Run.weapon_cap()])
+		_group(Loc.t("ui.pause.group.weapons"), "%d / %d" % [Run.weapons.size(), Run.weapon_cap()])
 	for w in Run.weapons:
 		var inst: WeaponInstance = w
 		_content.add_child(_item_row(inst.def, inst.level, inst.def.max_level, inst))
@@ -252,20 +252,20 @@ func _build_tab() -> void:
 		# out of the six slots (the arena's cap is as many as it likes: then the count alone)
 		var cap := Run.line_cap()
 		# pass 73 (lane CARDS): the line items are fortune cards to the player
-		_group("Cards", ("%d / %d" % [lines.size(), cap]) if cap <= Run.MAX_LINES else str(lines.size()))
+		_group(Loc.t("ui.pause.group.cards"), ("%d / %d" % [lines.size(), cap]) if cap <= Run.MAX_LINES else str(lines.size()))
 	for pid in lines:
 		var ld: PassiveDef = Registry.passive(str(pid))
 		if ld:
 			_content.add_child(_item_row(ld, int(Run.passives.get(pid, 1)), ld.max_level, null))
 	var passives := Run.held_passives()
 	if not passives.is_empty():
-		_group("Passives", "%d · not on the HUD" % passives.size())
+		_group(Loc.t("ui.pause.group.passives"), Loc.t("ui.pause.passives_count", {"count": "%d" % passives.size()}))
 	for pid in passives:
 		var def: PassiveDef = Registry.passive(str(pid))
 		if def:
 			_content.add_child(_item_row(def, int(Run.passives.get(pid, 1)), def.max_level, null))
 	if not Run.perks.is_empty():
-		_group("Perks", "")
+		_group(Loc.t("ui.pause.group.perks"), "")
 	for pk in Run.perks:
 		var pdef: PerkDef = Registry.perk(pk)
 		if pdef:
@@ -325,7 +325,7 @@ func _one_line(def: ContentDef, level: int, inst: WeaponInstance) -> String:
 		# what it gives at the level held, in total ("+56% pickup radius")
 		s = TextGen.describe_effects(TextGen._sum_effects((def as PassiveDef).effects_for_level(maxi(level, 1))))
 		if level >= (def as PassiveDef).max_level and (def as PassiveDef).evolves_into != "":
-			s += " · maxed, can evolve"
+			s += " " + Loc.t("ui.pause.maxed_can_evolve")
 	if s == "" or s.begins_with(" · "):
 		s = def.flavour.trim_suffix(".") + s
 	return s
@@ -350,7 +350,7 @@ func _item_row(def: ContentDef, level: int, max_level: int, inst: WeaponInstance
 	# a weapon's plate carries its mutation dots and glows while it waits to evolve (pass 48)
 	var dots := Run.path_progress(inst) if inst else Vector2i.ZERO
 	var evo_ready := Run.evolution_ready(inst) if inst else false
-	var row := WRow.make(def, _one_line(def, level, inst), marks, open, spent, level, dots, evo_ready, USED if spent else "")
+	var row := WRow.make(def, _one_line(def, level, inst), marks, open, spent, level, dots, evo_ready, Loc.t(USED_KEY) if spent else "")
 	if spent and row.suffix:
 		# the name the tests and tools know the mark by
 		row.suffix.name = "Spent"
@@ -392,7 +392,7 @@ func _royale_row(row: WRow, def: ContentDef, level: int, inst: WeaponInstance, o
 			if cells.size() >= 3:
 				break
 			cells.append([str(sr["name"]), _short_number(str(sr["value"]))])
-		cells.append(["this run", W.num(int(Run.damage_by_weapon.get(def.id, 0.0)))])
+		cells.append([Loc.t("ui.pause.cell.this_run"), W.num(int(Run.damage_by_weapon.get(def.id, 0.0)))])
 		row.body.add_child(_royale_cells(cells))
 		var names: Array = []
 		for m in inst.mutations:
@@ -489,7 +489,7 @@ func _short_number(v: String) -> String:
 static func passive_now(def: PassiveDef, level: int) -> String:
 	var desc := TextGen.passive_description(def, level)
 	if def.trade != "":
-		desc += " Trade: %s." % def.trade.trim_suffix(".")
+		desc += " " + Loc.t("ui.pause.trade", {"trade": def.trade.trim_suffix(".")})
 	return desc
 
 
@@ -501,17 +501,17 @@ func _evolve_note(inst: WeaponInstance) -> String:
 ## the evolution needs every one and the top level). Static since pass 51: the arena's ITEMS tab says the same.
 static func evolve_note(inst: WeaponInstance) -> String:
 	if inst.def.is_evolution:
-		return "evolved"
+		return Loc.t("ui.pause.evolve_need.evolved")
 	if inst.def.evolves_into == "":
 		return ""
 	var pp := Run.path_progress(inst)
 	var need := pp.y - pp.x
-	var have := "%d/%d mutations" % [pp.x, pp.y]
+	var have := Loc.t("ui.pause.evolve_need.mutations", {"have": "%d" % pp.x, "total": "%d" % pp.y})
 	if need > 0:
-		return have + (" · one more and it can evolve" if need == 1 else " · %d more and it can evolve" % need)
+		return have + " " + Loc.t("ui.pause.evolve_need.more", {"more": "%d" % need})
 	if inst.level < inst.def.max_level:
-		return have + " · Lv %d and it can evolve" % inst.def.max_level
-	return have + " · evolves at the next chest"
+		return have + " " + Loc.t("ui.pause.evolve_need.level", {"level": "%d" % inst.def.max_level})
+	return have + " " + Loc.t("ui.pause.evolve_need.chest")
 
 
 # ---------------------------------------------------------------- stats
@@ -609,16 +609,16 @@ func _stats_head(moved: int) -> Control:
 	h.name = "StatsHead"
 	h.add_theme_constant_override("separation", 14)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.add_child(W.label("Changed this run", 20, W.INK_SOFT))
-	var n := W.serif_text(str(moved) if moved > 0 else "none yet", 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	h.add_child(W.label(Loc.t("ui.pause.stats.changed"), 20, W.INK_SOFT))
+	var n := W.serif_text(str(moved) if moved > 0 else Loc.t("ui.pause.stats.none_yet"), 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	# pass 123: the mock's "CHANGED THIS RUN · 7", one tracked label
 	h.add_theme_constant_override("separation", 0)
-	n = W.label(" · " + (str(moved) if moved > 0 else "none yet"), 20, W.INK_SOFT)
+	n = W.label(" · " + (str(moved) if moved > 0 else Loc.t("ui.pause.stats.none_yet")), 20, W.INK_SOFT)
 	n.name = "Moved"
 	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(n)
-	var tip := W.serif_text("tap a stat for its sources", 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, false, false)
+	var tip := W.serif_text(Loc.t("ui.pause.stats.tip"), 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, false, false)
 	tip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(tip)
 	return h
@@ -658,7 +658,7 @@ func _stat_cell(sheet: StatSheet, stat: String) -> Control:
 	var lit := moved or kills or is_open
 	ink = R.CREAM if lit else Color(R.SECONDARY, ROYALE_DIM_ALPHA)
 	vink = R.CREAM if lit else Color(R.CREAM, ROYALE_DIM_ALPHA)
-	var l := W.serif_text("Kills" if kills else _cap(TextGen.stat_name(stat)), 28, ink, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	var l := W.serif_text(Loc.t("ui.pause.stats.kills") if kills else _cap(TextGen.stat_name(stat)), 28, ink, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	l.name = "Name"
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -752,7 +752,7 @@ func _sources_card(sheet: StatSheet, stat: String, col: int) -> Control:
 	var rs: Dictionary = SOURCES.rows(sheet, stat)
 	var ch: Dictionary = SOURCES.change(sheet, stat)
 	var start_v := W.slab_text(TextGen.player_value(stat, SOURCES.at_start(stat)), 26, W.INK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
-	v.add_child(_group_head("At the start", start_v, "GroupStart"))
+	v.add_child(_group_head(Loc.t("ui.pause.stats.at_start"), start_v, "GroupStart"))
 	for r: Dictionary in rs[SOURCES.START]:
 		v.add_child(_source_row(r, false))
 	v.add_child(_spacer(6))
@@ -760,8 +760,8 @@ func _sources_card(sheet: StatSheet, stat: String, col: int) -> Control:
 	if bool(ch.get("moved", false)):
 		right = _change_pill(ch, 22)
 	else:
-		right = W.serif_text("unchanged", 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, false, false)
-	v.add_child(_group_head("This run", right, "GroupRun"))
+		right = W.serif_text(Loc.t("ui.pause.stats.unchanged"), 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, false, false)
+	v.add_child(_group_head(Loc.t("ui.pause.stats.this_run"), right, "GroupRun"))
 	for r: Dictionary in rs[SOURCES.RUN]:
 		v.add_child(_source_row(r, true))
 	return holder
@@ -815,7 +815,7 @@ func _source_row(r: Dictionary, this_run: bool) -> Control:
 	h.add_child(n)
 	var clock := float(r.get("clock", -1.0))
 	if clock >= 0.0:
-		var c := W.serif_text("%d s left" % int(ceilf(clock)), 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+		var c := W.serif_text(Loc.t("ui.pause.stats.seconds_left", {"seconds": "%d" % int(ceilf(clock))}), 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
 		c.name = "Clock"
 		c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(c)
@@ -888,7 +888,7 @@ func _reveal_card() -> void:
 ## ("Totem: Le-loo", "Grit: Padding 3") is said whole; the ':' was cut and its first part lost.
 func _source_name(src: String) -> String:
 	if src == "base":
-		return "Base"
+		return Loc.t("ui.pause.source.base")
 	# a timed buff by the name it was given (pass 49: Pollen's "buff:pollen:hornet_nest" read "Buff:pollen:hornet nest")
 	if src.begins_with("buff:"):
 		for tb in Run.timed:
@@ -941,11 +941,11 @@ func _options_tab() -> void:
 	var bottom := _spacer(OPT_BOTTOM)
 	bottom.name = "OptionsBottom"
 	_content.add_child(bottom)
-	opts.add_child(_slider_row("Sound", Settings.sfx_volume, 0.0, 1.0, func(v): Settings.set_value("sfx_volume", v), 5))
-	opts.add_child(_slider_row("Music", Settings.music_volume, 0.0, 1.0, func(v): Settings.set_value("music_volume", v), 5))
+	opts.add_child(_slider_row(Loc.t("ui.pause.sound"), Settings.sfx_volume, 0.0, 1.0, func(v): Settings.set_value("sfx_volume", v), 5))
+	opts.add_child(_slider_row(Loc.t("ui.pause.music"), Settings.music_volume, 0.0, 1.0, func(v): Settings.set_value("music_volume", v), 5))
 	var shake := HBoxContainer.new()
 	shake.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sl := W.serif_text("Screen shake", 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	var sl := W.serif_text(Loc.t("ui.pause.screen_shake"), 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	shake.add_child(sl)
@@ -973,7 +973,7 @@ func _options_tab() -> void:
 	tv.add_theme_constant_override("separation", 0)
 	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tv.add_child(W.serif_text("Abandon the run", 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	tv.add_child(W.serif_text(Loc.t("ui.pause.abandon_title"), 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	# the purse, with its coin (pass 46): since pass 70 abandoning banks it like any end
 	var purse := HBoxContainer.new()
 	purse.add_theme_constant_override("separation", 8)
@@ -984,12 +984,12 @@ func _options_tab() -> void:
 	var amount := W.slab_text(W.num(Run.run_gold), 24, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	amount.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	purse.add_child(amount)
-	var lost := W.serif_text("picked up so far is kept · asks first", 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	var lost := W.serif_text(Loc.t("ui.pause.abandon_note"), 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	lost.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	purse.add_child(lost)
 	tv.add_child(purse)
 	row.add_child(tv)
-	var btn := WButton.make(["ABANDON"], 28, WButton.DANGER, 4, 5, 12.0, 28.0)
+	var btn := WButton.make([Loc.t("ui.pause.abandon")], 28, WButton.DANGER, 4, 5, 12.0, 28.0)
 	btn.name = "Abandon"
 	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	btn.pressed.connect(_ask_abandon)
@@ -1010,11 +1010,11 @@ func _floating_text_block() -> VBoxContainer:
 	v.name = "FloatingText"
 	v.add_theme_constant_override("separation", 18)
 	v.mouse_filter = Control.MOUSE_FILTER_PASS
-	v.add_child(W.label("Floating text", 20, W.INK_SOFT))
+	v.add_child(W.label(Loc.t("ui.pause.floating_text"), 20, W.INK_SOFT))
 	for spec in FLOAT_SWITCHES:
 		var r := HBoxContainer.new()
 		r.mouse_filter = Control.MOUSE_FILTER_PASS
-		var l := W.serif_text(str(spec[0]), 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+		var l := W.serif_text(Loc.t(str(spec[0])), 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		r.add_child(l)
@@ -1024,9 +1024,9 @@ func _floating_text_block() -> VBoxContainer:
 		s.toggled.connect(func(on: bool): Settings.set_value(key, on))
 		r.add_child(s)
 		v.add_child(_ruled(r, 16))
-	var size_label := W.label("Floating text size", 20, W.INK_SOFT)
+	var size_label := W.label(Loc.t("ui.pause.floating_text_size"), 20, W.INK_SOFT)
 	v.add_child(size_label)
-	var sizes: Array = [["SMALL"], ["NORMAL"], ["LARGE"]]
+	var sizes: Array = [[Loc.t("ui.pause.size.small")], [Loc.t("ui.pause.size.normal")], [Loc.t("ui.pause.size.large")]]
 	var size_choice := WChoice.make(sizes, Settings.float_size, 30, 20, 14.0,
 		HORIZONTAL_ALIGNMENT_CENTER, 0)
 	size_choice.name = "FloatSize"
@@ -1055,8 +1055,8 @@ func _ruled(row: Control, gap: int) -> Control:
 ## Abandoning counts as a death, and since pass 70 a death banks the run's gold like an extraction (Game.end_run).
 func _ask_abandon() -> void:
 	var gold := Run.run_gold
-	var body := "The run ends here" + ((", and the %s gold picked up so far comes home with you." % W.num(gold)) if gold > 0 else ".")
-	WConfirm.open(self, "Abandon the run?", body, "Abandon", "Keep playing", func():
+	var body := Loc.t("ui.pause.abandon_body_gold", {"gold": W.num(gold)}) if gold > 0 else Loc.t("ui.pause.abandon_body")
+	WConfirm.open(self, Loc.t("ui.pause.abandon_confirm.title"), body, Loc.t("ui.pause.abandon_confirm.yes"), Loc.t("ui.pause.abandon_confirm.no"), func():
 		if game:
 			close()
 			game.abandon_run())

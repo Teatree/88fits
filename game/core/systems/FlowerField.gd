@@ -375,7 +375,7 @@ static func give_buff(p_game: Node) -> void:
 		var target := "weapon:" + wi.def.id
 		var effects := [Effect.make("amount", "mul", float(pd.get("amount_mult", 4.0)) - 1.0, target),
 			Effect.make("speed", "mul", float(pd.get("speed_mult", 1.5)) - 1.0, target)]
-		Run.add_timed_effects(buff_id(wi.def.id), "Pollen", effects, float(pd.get("seconds", 5.0)), true)
+		Run.add_timed_effects(buff_id(wi.def.id), Loc.t("ui.run.buff.pollen"), effects, float(pd.get("seconds", 5.0)), true)
 		mult = float(pd.get("amount_mult", 4.0))
 	if mult > 0.0 and p_game and p_game.has_method("toast"):
-		p_game.toast("POLLEN! BEES x%d" % int(round(mult)), Color(1.0, 0.45, 0.7))
+		p_game.toast(Loc.t("toast.pollen", {"amount": "%d" % int(round(mult))}), Color(1.0, 0.45, 0.7))

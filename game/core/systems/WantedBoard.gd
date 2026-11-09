@@ -57,13 +57,13 @@ const TYPE_ORDER := ["kill_enemy", "kill_weapon", "kill_specials", "kill_elites"
 ## Pass 113 (lane TASKS): the types whose number is rolled after the target is drawn, so a target's own factor in the
 ## type's `target_mult` {id: factor} scales its range (a Cake heals far less than Death; a Healing Well less than Hearts).
 const TARGET_FIRST := ["damage_weapon", "heal_item", "heal_source", "element_damage"]
-## The elements' names on a poster (its {target}; {element} is the word in lower case).
-const ELEMENT_NAMES := {"fire": "Fire", "poison": "Poison"}
+## The rows of the elements' names on a poster (its {target}; {element} is the word in lower case; pass 137).
+const ELEMENT_NAMES := {"fire": "gen.wanted.element.fire", "poison": "gen.wanted.element.poison"}
 ## The config's top keys when the file lacks one (a missing key never breaks the board).
 const DEFAULTS := {"enabled": true, "choices": 3, "rerolls": 0, "unlock": {"runs": 1}, "creatures_met_only": true,
 	"items_seen_only": true, "progress": {"param_growth": 0.15},
 	"reward": {"base": 40, "per_point": 60, "progress_growth": 0.5, "stage_mult": [1.0, 1.25, 1.5], "round": 5, "currency": "gold"},
-	"tasks": []}
+	"weapon_task_weight": 1.5, "tasks": []}
 ## The board never shows more posters than this (the screen has room for three in a row).
 const MAX_CHOICES := 3
 
@@ -315,7 +315,7 @@ static func _task_context(ctx: Dictionary, tl: WaveTimeline, k: int, weapons: Ar
 	var els: Array = []
 	for el: String in TaskTally.ELEMENTS:
 		if _element_reachable(el, weapons, cards, items):
-			els.append({"id": el, "name": str(ELEMENT_NAMES.get(el, el.capitalize()))})
+			els.append({"id": el, "name": Loc.t(str(ELEMENT_NAMES[el])) if ELEMENT_NAMES.has(el) else el.capitalize()})
 	ctx["elements"] = els
 
 

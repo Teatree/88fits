@@ -87,7 +87,7 @@ var _plate_px := TRAY_PX
 
 func _ready() -> void:
 	build_dim(W.DIM)
-	build_header("One visit only", "THE SHOP", "", 120)
+	build_header(Loc.t("ui.shop.star"), Loc.t("ui.shop.title"), "", 120)
 	header.line.visible = false
 	# pass 123: the wallet at the top right, where the purse always is (the menus' wallet, the HUD's corner)
 	_gold_plate = WMenuHeader.gold_plate(0, ROYALE_WALLET_PX, ROYALE_WALLET_COIN)
@@ -116,7 +116,7 @@ func _ready() -> void:
 	_tray.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_tray.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_body.add_child(_tray)
-	_hold_label = W.label("You hold", 20, W.AGED)
+	_hold_label = W.label(Loc.t("ui.shop.you_hold"), 20, W.AGED)
 	_hold_label.name = "HoldLabel"
 	# centred on the first row of frames
 	_hold_label.valign = VERTICAL_ALIGNMENT_CENTER
@@ -138,7 +138,7 @@ func _ready() -> void:
 	var leave_btn: WButton
 	var half := 215.0
 	# pass 123 (Garry): leaving spends the stall for good, so LEAVE is the kit's red (danger), the mock's width
-	leave_btn = WButton.make(["LEAVE"], ROYALE_LEAVE_PX, WButton.DANGER, R.BUTTON_EDGE, R.BUTTON_BASE, 26.0, 0.0, 0.0, WButton.RED)
+	leave_btn = WButton.make([Loc.t("ui.shop.leave")], ROYALE_LEAVE_PX, WButton.DANGER, R.BUTTON_EDGE, R.BUTTON_BASE, 26.0, 0.0, 0.0, WButton.RED)
 	half = ROYALE_LEAVE_W * 0.5
 	leave_btn.name = "Leave"
 	leave_btn.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -387,7 +387,7 @@ func _make_card_royale(card: Dictionary, def: ContentDef, price: int, short: int
 	gap.name = "PriceGap"
 	gap.custom_minimum_size.y = ROYALE_PRICE_GAP
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var row := W.price_row(price, "BUY", WButton.GREEN, R.PRICE_PX, short)
+	var row := W.price_row(price, Loc.t("ui.shop.buy"), WButton.GREEN, R.PRICE_PX, short)
 	var pb := W.price_button_of(row)
 	pb.custom_minimum_size.x = ROYALE_PRICE_W_SHORT if short > 0 else ROYALE_PRICE_W
 	# (WCard's column: the price row goes under the text, right-aligned, as the card's own price button did)

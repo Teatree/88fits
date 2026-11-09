@@ -156,7 +156,7 @@ func test_the_facts_row_has_the_time_pill_the_boss_and_start_on_open_cards() -> 
 	assert_str(b0.text).is_equal(king.display_name)
 	assert_bool(b0.color.is_equal_approx(R.GOLD_TEXT)).is_true()
 	var b1: WText = (cards[1] as Node).find_child("Boss", true, false)
-	assert_str(b1.text).is_equal(StagesScript.BOSS_UNMET)
+	assert_str(b1.text).is_equal(Loc.t(StagesScript.BOSS_UNMET_KEY))
 	assert_bool(b1.color.is_equal_approx(R.SECONDARY)).is_true()
 	assert_bool(((cards[1] as Node).find_child("BossPlate", true, false) as WPlate).locked).is_true()
 

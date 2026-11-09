@@ -33,7 +33,11 @@ params = {
 "big_cone": 90.0,
 "cone": 40.0,
 "family": "melee",
-"look": "stab"
+"feel": "soft",
+"lone_reach": 6.0,
+"look": "stab",
+"threat_ratio": 0.45,
+"threat_reach": 3.0
 },
 "final": {
 "stunned_mult": 1.5,

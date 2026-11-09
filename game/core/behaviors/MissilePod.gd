@@ -633,6 +633,13 @@ func _aim_rocket(pi: int) -> void:
 	var t := Aim.pick(em, hero, f, range_m, cone, strongest, cone, "", true, taken)
 	if t < 0 and not taken.is_empty():
 		t = Aim.pick(em, hero, f, range_m, cone, strongest, cone, "", true)
+	# pass 137 (lane AIM): the soft rule (Aim.soft_target): a near threat outside the fan, or with the fan empty the lone
+	# creature, takes this rocket (one not already another rocket's)
+	if Aim.soft(inst):
+		var s := Aim.soft_target(em, hero, f, range_m, cone, t, Aim.cfg(inst), true, "", taken)
+		if int(s["i"]) >= 0:
+			t = int(s["i"])
+			Aim.note_soft(inst, s)
 	ex["aim_fan"] = {"dir": f, "cone": cone, "strongest": strongest}
 	if t >= 0:
 		ex["target"] = t

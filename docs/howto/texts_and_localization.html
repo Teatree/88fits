@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Texts and translations</title>
+<style>
+  :root { --bg: #14171d; --panel: #1b2029; --ink: #e9e6df; --soft: #a9adb6; --gold: #e8b85a; --blue: #8fb3ef; --red: #ff8a80; --green: #9ad48a; --line: #2c3340; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 28px 18px 80px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  h2 { font-size: 21px; margin: 34px 0 8px; color: var(--gold); border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  h3 { font-size: 17px; margin: 20px 0 4px; }
+  p, li { color: var(--ink); }
+  .lede { color: var(--soft); margin-top: 0; }
+  code, .k { font-family: Consolas, "Cascadia Mono", monospace; font-size: 14px; background: #0e1116; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--blue); }
+  pre { background: #0e1116; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; overflow-x: auto; font: 14px/1.5 Consolas, monospace; color: #d6dbe4; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 15px; }
+  th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--soft); font-weight: 600; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 12px 0; }
+  .ok { color: var(--green); } .no { color: var(--red); } .say { color: var(--gold); }
+  nav a { color: var(--blue); margin-right: 12px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Texts and translations</h1>
+<p class="lede">Every word a player reads in Outlaw Survivors, where it lives, how to change it in the Level Editor's
+<b>Texts</b> tab or in Excel / Google Sheets, and what keeps a change from breaking the game. Pass 137.</p>
+<nav><a href="#where">Where texts live</a><a href="#tab">The tab</a><a href="#vars">Variables</a><a href="#csv">CSV</a><a href="#safe">What is checked</a><a href="#new">New content</a><a href="#lang">Other languages</a></nav>
+
+<h2 id="where">Where a text lives</h2>
+<p>Each text has a <b>key</b>, a short dotted name such as <code>ui.portal.extract</code> or <code>weapon.revolver.name</code>.
+Every text lives in exactly one place:</p>
+<table>
+<tr><th>What</th><th>Where</th><th>Example key</th></tr>
+<tr><td>An item's, Outlaw's or creature's own words (name, flavour, a mutation's text, a trait)</td><td>its own JSON, as before: <code>content/weapons/revolver/revolver.json</code> → <code>name</code></td><td><code>weapon.revolver.name</code></td></tr>
+<tr><td>A skin's name</td><td>the Outlaw's JSON, <code>variants.DRI-B.skin.name</code></td><td><code>outlaw.drifter.skin.dri_b.name</code></td></tr>
+<tr><td>The Trail's section and upgrade words, the Wanted tasks' words</td><td><code>content/trail/trail.json</code>, <code>content/wanted/wanted.json</code></td><td><code>trail.upgrade.might.name</code></td></tr>
+<tr><td>Everything the code says: screens, buttons, toasts, hints, the generated card sentences</td><td><code>content/strings/en.json</code> (the string table)</td><td><code>ui.stranger.deal</code>, <code>gen.weapon.shot.priority</code></td></tr>
+</table>
+<p>The tab shows all of them together, and saving writes each one back where it lives. You never need to know which file a
+row is in; the grey line under the key says it anyway.</p>
+<div class="box">The key's first word tells you what it belongs to: <code>ui.</code> a screen, <code>toast.</code> / <code>hint.</code> a message,
+<code>gen.</code> a sentence the game builds for many items (a <i>template</i>), <code>stat.</code> a stat's name,
+<code>weapon.</code>, <code>passive.</code>, <code>outlaw.</code>, <code>enemy.</code> ... one item. The middle word of an item key is
+the item's folder name (its id).</div>
+
+<h2 id="tab">The Texts tab</h2>
+<ul>
+<li><b>Sub-tabs</b> along the top group the rows: Outlaws, Enemies &amp; Bosses, Weapons, Mutations &amp; Evolutions, Cards &amp;
+Items, Quests / Wanted / Trail, Stages &amp; Structures, Stats, Screens, Messages, Words. The number is how many rows each has.</li>
+<li><b>Search</b> looks through every key and every text in all sub-tabs at once.</li>
+<li>Each <b>row</b>: the item's icon (none for screens), the key and its file, the text you edit, its <b>variables</b> as chips
+with the value the game last gave them, and <b>reads:</b> the text as the game would show it with those values.</li>
+<li>An edited row turns gold. <b>Undo</b> on the row puts it back; <b>Revert</b> forgets every edit; <b>changed since the last save</b>
+shows only the edited rows.</li>
+<li><b>Save</b> (or Ctrl+S) writes every edit where it lives, keeps a backup of each file it touched, and imports the content
+folders it changed. The game reads the texts when it starts: restart it, or ship a build, to see them.</li>
+</ul>
+
+<h2 id="vars">Variables: <code>{amount}</code> and <code>{amount?shot:shots}</code></h2>
+<p>A text that holds a number or a name has a <b>variable</b> in curly braces. The game fills it in; you decide the words around it.</p>
+<pre>Fires {amount} {amount?shot:shots} within {range} m and aims at {who}.
+  → Fires 1 shot within 14 m and aims at the strongest enemy nearby.
+  → Fires 3 shots within 14 m and aims at the strongest enemy nearby.</pre>
+<table>
+<tr><th>Write</th><th>Means</th></tr>
+<tr><td><code>{amount}</code></td><td>the value, exactly as the game formats it ("3", "1.5", "07:10", "Lv 12")</td></tr>
+<tr><td><code>{amount?shot:shots}</code></td><td>the first word when the value is exactly <b>1</b>, else the second (plural). Either side may hold another variable: <code>{amount?a spear:{amount} spears}</code></td></tr>
+<tr><td><code>{{</code> and <code>}}</code></td><td>a brace that shows on screen</td></tr>
+</table>
+<p>The names are short and say what the value is in that row (<code>{amount}</code>, <code>{range}</code>, <code>{pierce}</code>,
+<code>{who}</code>, <code>{seconds}</code>, <code>{gold}</code>). A row can only use the variables it already has (the chips): the code
+hands in those and no others. You may move them, drop one (the tab warns), or use one twice.</p>
+<p>"Exactly 1" means the value <code>1</code>: "1.0 s" picks the plural. Numbers are formatted by the game, so a text never
+changes how a number looks.</p>
+
+<h2 id="csv">Editing in Excel or Google Sheets</h2>
+<ol>
+<li><b>Export all (CSV)</b> or <b>Export this tab</b>. The file has five columns: <code>key, group, text, variables, where</code>.</li>
+<li>Open it in Excel (double-click works: the file says it is UTF-8) or import it into Google Sheets. Change only the
+<b>text</b> column. Leave the keys alone; delete rows you did not touch if you like (a missing row means "no change").</li>
+<li>Save as <b>CSV UTF-8</b> (Excel: File → Save As → "CSV UTF-8 (Comma delimited)"; Google Sheets: File → Download → CSV).</li>
+<li><b>Import CSV…</b> in the tab. Nothing is written yet: you see "12 texts change: ..." with every old and new text,
+the errors (by line) and the warnings. <b>Apply these changes</b> writes them, exactly as a Save would.</li>
+</ol>
+<p>Line breaks inside a cell are kept. Curly quotes (“ ” ’) are fine.</p>
+
+<h2 id="safe">What breaks, and how the tab stops it</h2>
+<table>
+<tr><th>Mistake</th><th>What happens</th></tr>
+<tr><td>A variable the row does not have (<code>{gold}</code> in a weapon's sentence)</td><td class="no">error: not saved. The chips show what the row has.</td></tr>
+<tr><td>A brace left open or a stray <code>}</code></td><td class="no">error: not saved (write <code>{{</code> for a brace that shows)</td></tr>
+<tr><td><code>{n?one}</code> without the <code>:</code></td><td class="no">error: not saved</td></tr>
+<tr><td>An empty text</td><td class="no">error: not saved</td></tr>
+<tr><td>A key that does not exist, or a key twice in one CSV, or a wrong first line</td><td class="no">error: nothing from that CSV is written</td></tr>
+<tr><td>Characters Excel mangled (<code>â€™</code> instead of ’: the file was saved without UTF-8)</td><td class="no">error: save it again as CSV UTF-8</td></tr>
+<tr><td>A variable dropped (the text no longer shows <code>{range}</code>)</td><td class="say">warning: saved, the number just is not shown</td></tr>
+</table>
+<p>One error anywhere means <b>nothing</b> is written; fix it and try again. Every save keeps a backup of each file in
+<code>tools/level_editor/backups/</code>. If the game ever meets a key it cannot find it shows the key itself
+(<code>ui.portal.extract</code>) instead of crashing, and the tests fail on it before a build ships.</p>
+
+<h2 id="new">What happens with new content</h2>
+<p>A new weapon folder still gets its card sentence with no new row: the game first looks for the weapon's own row
+(<code>weapon.&lt;id&gt;.desc</code>), and when there is none it uses the shared template for that kind of weapon
+(<code>gen.weapon.shot.priority</code> and friends, in the <b>Words</b> and <b>Weapons</b> sub-tabs). Its name and flavour live
+in its JSON as always and show up in the tab by themselves. To give one weapon its own wording, ask Claude for its
+<code>weapon.&lt;id&gt;.desc</code> row (it starts as a copy of the template; then edit it here).</p>
+<p>Since pass 137 every word a player reads is in the tab: every screen, button, toast and hint, every card sentence
+(every weapon and evolution has its own row), the stats' names and the Trail's words. They moved without a word changing.
+The developer screens (the developer menu, the arena, the debug panels, the Watch) stay in code: no player reads them.
+The stage names show in the tab but are edited in the Timeline tab.</p>
+
+<h2 id="lang">Other languages, later</h2>
+<p>Only English exists now. A second language will be one more file beside <code>en.json</code>
+(<code>content/strings/de.json</code>, say) with the same keys; any key it lacks falls back to English, so a half-done
+translation never shows a blank. Items' own words translate under the same keys the tab shows
+(<code>weapon.revolver.name</code>), so the JSON stays the English source. The CSV will grow one text column per language.</p>
+</main>
+</body>
+</html>

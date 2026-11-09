@@ -73,7 +73,7 @@ const TRIES := 40
 ## Metres past its grab radius the hero is thrown from (pass 44's 0.5): the ring on the ground is drawn there.
 const HERO_REACH := 0.5
 ## The toast the first one of a run says.
-const WARN_TEXT := "DUST DEVIL: keep out of its ring"
+const WARN_KEY := "toast.dust_devil"
 const WARN_COLOR := Color(0.96, 0.8, 0.52)
 ## Its sound (a loop): louder the nearer the nearest one is.
 const SOUND := "wd_dust_devil"
@@ -302,7 +302,7 @@ func spawn(at: Vector3, dir: Vector3) -> DustDevil:
 		warned = true
 		var hud = game.get("hud") if game != null else null
 		if hud != null and hud.has_method("toast"):
-			hud.toast(WARN_TEXT, WARN_COLOR)
+			hud.toast(Loc.t(WARN_KEY), WARN_COLOR)
 	return dd
 
 

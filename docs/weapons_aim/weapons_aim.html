@@ -135,12 +135,46 @@ footer{font-size:.8rem;color:var(--muted)}
 <main class="wrap">
 
 <header class="block" style="display:flex;flex-direction:column;gap:12px">
-  <p class="kicker">Outlaw Survivors · weapons revamp · proposal, pass 134</p>
+  <p class="kicker">Outlaw Survivors · weapons revamp · proposal, pass 134 · built in passes 136-137</p>
   <h1>Aim Where You Face</h1>
-  <p class="lede">Every weapon fires all the time, roughly where the Outlaw faces. What is close and in front comes first. Melee becomes a slash you see, not a sword you hold, and bombs, sunlight and lightning land on random spots ahead. This page proposes how, weapon by weapon, with its mutations, its levels and its risks. Nothing in the game has changed yet.</p>
+  <p class="lede">Every weapon fires all the time, roughly where the Outlaw faces. What is close and in front comes first. Melee becomes a slash you see, not a sword you hold, and bombs, sunlight and lightning land on random spots ahead. This page proposed how, weapon by weapon, with its mutations, its levels and its risks (pass 134); what was built, and the Hard / Soft split that followed, is in the first section below.</p>
   <p class="quote">"The core idea of the change is to make it so player has a bit more control over where they are shooting and to make it so the weapons are firing all the time roughly in the direction they are facing ... the enemies that are closer and happen to be in front of the Player have priority. Last time we did this it didn't really work partly because the melee weapons looked weird."<cite>Garry, 2026-11-08</cite></p>
   <nav class="toc" aria-label="Weapons"><a class="f-aimed" href="#revolver">Revolver</a><a class="f-aimed" href="#tommy_gun">Tommy Gun</a><a class="f-aimed" href="#boomstick">Boomstick</a><a class="f-aimed" href="#basketball">Basketball</a><a class="f-aimed" href="#frisbee">Frisbee</a><a class="f-aimed" href="#tumbleweed">Tumbleweed</a><a class="f-aimed" href="#big_mouth">Big Mouth</a><a class="f-aimed" href="#guitarra">Guitarra</a><a class="f-aimed" href="#dragons_breath">Dragon&#x27;s Breath</a><a class="f-aimed" href="#gravity_gun">Gravity Gun</a><a class="f-aimed" href="#rocket_pod">Rocket Pod</a><a class="f-aimed" href="#hornet_nest">Killer Bees</a><a class="f-melee" href="#sabre">Sabre</a><a class="f-melee" href="#pike">Spear</a><a class="f-placed" href="#lob_grenade">Dynamite Stick</a><a class="f-placed" href="#molotov">Molotov</a><a class="f-placed" href="#skull_rain">Skull Rain</a><a class="f-placed" href="#sun_scepter">Sun Scepter</a><a class="f-placed" href="#zap_beam">Zap Beam</a><a class="f-placed" href="#hammer">Hammer</a><a class="f-placed" href="#land_mine">Land Mine</a><a class="f-placed" href="#turret_buddy">Turret Buddy</a><a class="f-around" href="#orbit_saws">Orbit Saws</a><a class="f-around" href="#salt">Salt</a></nav>
 </header>
+
+<section class="block" id="built">
+  <p class="kicker">Built · passes 136-137</p>
+  <h2>What was built</h2>
+  <p><b>Pass 136</b> built this proposal with Garry's answers. "Aim where you face" is on by default (the developer Settings' row turns it off, and every weapon then plays as before it). One helper, <span class="num">core/systems/Aim.gd</span>, aims every weapon from its <span class="num">params.aim</span> block. R1 (turn on the spot under 15% of the stick), R4's score and R5 (fire on every beat) are as written here. Placed weapons, bees, the Zap Beam and the Sun Scepter use spots <b>in a circle</b> round him, not a fan ahead (Garry: "Yes, but not in a cone, in a circle"). Rockets lock inside a ±45° fan and mark their spot on the sand. The Big Mouth has no assist and ramps its small ticks. The Sabre and the Spear are drawn as effects. Knockback is ×1.25 on every weapon, and the bot aims by turning to face the crowd. The numbers are in BALANCING 77.</p>
+  <h3>Pass 137: Aiming-Hard and Aiming-Soft</h3>
+  <p class="quote">"The Aimed family of weapons seems to have too high a prio to what's in front of the Player ... Aiming-Hard - These are the Laser and Dragon's Breath. They are very much shoot where Player is facing with little wiggle room around this. Aiming-Soft - all the other weapons ... will actually shoot behind the Player in cases when the enemy is obviously much closer and therefore a bigger threat ... This effect should be much 'weaker' than the not aiming version ... in the case of absence of any other enemy to shoot ... at certain close enough distance the weapon does still shoot the only enemy on the screen."<cite>Garry, 2026-11-09 (and: the melee weapons are soft too)</cite></p>
+  <div class="tw"><table>
+    <thead><tr><th>Feel</th><th>Weapons</th><th>How it aims</th></tr></thead>
+    <tbody>
+      <tr><td><b>Hard</b></td><td>Big Mouth, Loudmouth, Dragon's Breath, Fire Eater</td><td>Straight down his facing, as pass 136 built them. The mouth turns after the facing at most 180° a second and never turns to a creature. The breath's cone is his facing every frame. Never fires behind him.</td></tr>
+      <tr><td><b>Soft</b></td><td>Revolver, Tommy Gun, Boomstick, Basketball, Frisbee, Tumbleweed, Guitarra, Gravity Gun, Rocket Pod, Sabre, Spear, and their evolutions</td><td>The cone leads (R2-R4), with two exceptions below. It still fires on every beat (R5).</td></tr>
+    </tbody>
+  </table></div>
+  <ol class="rules">
+    <li class="rule"><h4><span class="rn">S1</span>A threat close behind</h4>
+      <p>The nearest creature <b>outside</b> the cone is shot instead of the cone's pick when its body is within <span class="num">threat_reach</span> <b>3 m</b> of him <b>and</b> within <span class="num">threat_ratio</span> <b>0.45 ×</b> the cone pick's distance. With the cone empty, any creature within 3 m counts. A creature 2 m behind wins over one 10 m ahead. One 6 m behind does not win over one 7 m ahead, and neither does one 2.5 m behind over one 4 m ahead.</p></li>
+    <li class="rule"><h4><span class="rn">S2</span>The lone creature</h4>
+      <p>With nothing in the cone and no threat, the nearest creature whose body is within <span class="num">lone_reach</span> <b>6 m</b> is shot, wherever it stands. One 12 m away is not: that shot goes dry down the facing.</p></li>
+  </ol>
+  <p>Both exceptions apply only within the weapon's range and on the screen, and the shot turns all the way to the creature (the assist limit applies only to the cone's own pick). They use distances only and roll no dice, so replays play the same. The Gravity Gun grabs that creature first. In a rocket volley, one rocket takes it and the rest take the fan's pick. Each weapon's JSON carries <span class="num">params.aim.feel</span> and the three numbers, so they can be tuned weapon by weapon (BALANCING 78.AIM).</p>
+  <h3>Measured (the run sim, pass 137)</h3>
+  <p>8 bot runs each, 15 minutes at most, a death ends the run, a quarter of the Trail, the Explorer bot (aim 0.9), the same seeds for all three columns. The table gives time alive (median), HP lost a minute, and the main gun's damage a minute.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Outlaw, stage</th><th>Old auto-aim (off)</th><th>Pass 136 (all hard)</th><th>Pass 137 (soft)</th></tr></thead>
+    <tbody>
+      <tr><td>Drifter, Sundown</td><td class="num">656 s · 27.5 HP · Revolver 8.7k</td><td class="num">452 s · 35.9 HP · Revolver 3.6k</td><td class="num">493 s · 34.7 HP · Revolver 3.4k</td></tr>
+      <tr><td>Drifter, The Dust Bowl</td><td class="num">896 s · 27.8 HP · Revolver 7.0k</td><td class="num">198 s · 50.3 HP · Revolver 1.3k</td><td class="num">366 s · 41.2 HP · Revolver 4.2k</td></tr>
+      <tr><td>Calavera, Sundown</td><td class="num">416 s · 42.7 HP · Guitarra 2.5k</td><td class="num">271 s · 55.7 HP · Guitarra 1.8k</td><td class="num">426 s · 45.1 HP · Guitarra 2.5k</td></tr>
+    </tbody>
+  </table></div>
+  <p>Soft aim gives back part of what pass 136 took. The Drifter lives longer and loses less health a minute on both stages, but still well short of the old auto-aim. Calavera plays about as before pass 136, because the Guitarra reaches only 6 m and the lone creature's 6 m covers all of it. A smaller <span class="num">lone_reach</span> on a short weapon would make it weaker. A soft gun turns 12-34 times a minute; about 60% of the turns are threats, the rest lone creatures. Its dry shots a minute fall by 40-60%.</p>
+</section>
+
 
 <section class="block" id="summary">
   <h2>The 24 weapons at a glance</h2>
@@ -945,5 +979,5 @@ w  1, or for a "strongest close" weapon pass 48's
   </ol>
 </section>
 
-<footer>Pass 134, lane AIMDOC. A proposal: nothing in the game changed. Numbers from the weapons' JSON at the time of writing. The AI sketches were made by Flux.2 Klein on the local server from a gameplay frame; the diagrams are drawn in code. Built by tools/dl/p134/AIMDOC/build_page.py.</footer>
+<footer>Pass 134, lane AIMDOC: the proposal (the "Built" section added in pass 137, lane AIM). Numbers from the weapons' JSON at the time of writing. The AI sketches were made by Flux.2 Klein on the local server from a gameplay frame; the diagrams are drawn in code. Built by tools/dl/p134/AIMDOC/build_page.py.</footer>
 </main>

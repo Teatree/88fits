@@ -295,7 +295,8 @@ func test_the_first_sequence_is_the_gold_the_pop_and_one_chart_part() -> void:
 	var parts: Array = r._parts.map(func(p): return str(p["name"]))
 	assert_array(parts.slice(0, 3)).is_equal(["gold", "pop", "chart"])
 	assert_array(r._parts.filter(func(p): return int(p["seq"]) == 1).map(func(p): return str(p["name"]))).is_equal(["gold", "pop", "chart"])
-	var first := RESULTS.LEAD_IN + RESULTS.GOLD_TIME + RESULTS.POP_TIME + RESULTS.JOINT_TIME
+	# pass 137 (lane RESULTS): the gold's length grows with the purse (gold_time), no longer a fixed 2.5 s
+	var first := RESULTS.LEAD_IN + RESULTS.gold_time(r._banked) + RESULTS.POP_TIME + RESULTS.JOINT_TIME
 	var seq1 := RESULTS.LEAD_IN
 	for p: Dictionary in r._parts:
 		if int(p["seq"]) == 1:

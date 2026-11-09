@@ -120,7 +120,7 @@ const DISSOLVE := 0.25
 ## waiting for it and loads the title at once (s).
 const STALL := 10.0
 ## What the screen says on a paper card under the plate when nothing could bring the title up.
-const FAIL_LINE := "The title screen did not load. Please close the game and start it again."
+const FAIL_LINE_KEY := "ui.boot.fail"   # pass 137: the string table
 
 ## The thud as the plate hits: the first of these the sound map binds (pass 118's), and under it a low boom for weight
 ## (pass 119: the stamp alone is a bright 0.1 s click; the grenade's boom, BOOM_DB quieter, is the map's deepest short hit).
@@ -479,8 +479,8 @@ var title: Node = null
 var title_path := TITLE
 ## STALL for this screen (tests).
 var stall_limit := STALL
-## FAIL_LINE for this screen (a curtain says its own).
-var fail_line := FAIL_LINE
+## FAIL_LINE_KEY's text for this screen (a curtain says its own).
+var fail_line := Loc.t(FAIL_LINE_KEY)
 ## The title could not be loaded at all: the screen says so under the plate, its wallpaper stops (it never waits
 ## silently, and never moves as if it were still loading).
 var failed := false

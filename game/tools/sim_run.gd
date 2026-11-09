@@ -4,7 +4,9 @@
 ## multiplier, the cap, the timeline, specials, Elites, bosses and their HP pegging count because it is the game itself.
 ##   "$GODOT" --headless --fixed-fps 60 --path game --script res://tools/sim_run.gd -- out=<file> hero=drifter seed=1 \
 ##       limit=1500 trail=quarter death=end [trail_optional=1] [fast=1] [map=red_canyon] [progress=10] [wall=2700]
-##       [res=504x1122] [unlocks=all] [aim_mode=0|1]
+##       [res=504x1122] [unlocks=all] [aim_mode=0|1] [aim_soft=0|1]
+## aim_soft=0 (pass 137, lane AIM; or the environment's SIM_AIM_SOFT=0, which tools/sim_batch.py's players inherit) plays
+## pass 136's aim (Aim.soft_rule off: every aimed weapon hard); the output's `weapon_soft` counts the soft rule's turns.
 ## trail= (pass 129, tools/trail_arg.gd; the Upgrade board's board= / talents= until then): none, quarter, half, full
 ## or a Trail Level: the player's save holds every required node up to it (choices in turn; optional nodes only with
 ## trail_optional=1), so his stats, outlaws, items and stages are a player's at that level. board=<ranks> is the old
@@ -72,6 +74,8 @@ var _bot_raw: Dictionary = {}
 ## pass 136 (lane BOT): aim_mode=0|1 sets Settings.aim_mode (every weapon aims where the Outlaw faces; on by default) for
 ## this run; -1 (not given) keeps the game's default
 var _aim_mode := -1
+## pass 137 (lane AIM): aim_soft=0|1 (or SIM_AIM_SOFT) sets Aim.soft_rule for this run; -1 keeps the game's (on)
+var _aim_soft := -1
 const BOT_ARGS := ["preset", "skill", "style", "reaction", "dodge", "daring", "stray", "explore", "totems", "barrels", "powerups",
 	"structures", "shop", "stranger", "boss", "cards", "lure_w", "lure_close", "breakout", "aim", "specials", "portal"]
 
@@ -134,6 +138,7 @@ func _init() -> void:
 			"fast": _fast = v != "0"
 			"trace": _trace = int(v)
 			"aim_mode": _aim_mode = 0 if v in ["0", "false", "off", "no"] else 1
+			"aim_soft": _aim_soft = 0 if v in ["0", "false", "off", "no"] else 1
 			_:
 				if BOT_ARGS.has(k):
 					_bot_raw[k] = v
@@ -209,9 +214,18 @@ func _start() -> void:
 		settings.show_hints = false
 		settings.damage_numbers = false
 		settings.debug_mode = false
+		# pass 137 (lead): the sim measures the real economy, never the temporary Coins x25 test switch
+		if "coins_x25" in settings:
+			settings.coins_x25 = false
 		# pass 136 (lane BOT): the aim rule as asked (aim_mode=0|1), else the game's default
 		if _aim_mode >= 0 and "aim_mode" in settings:
 			settings.aim_mode = _aim_mode == 1
+		# pass 137 (lane AIM): the soft rule as asked (aim_soft=0|1, else SIM_AIM_SOFT), else the game's (on)
+		var env_soft := OS.get_environment("SIM_AIM_SOFT")
+		if _aim_soft < 0 and env_soft != "":
+			_aim_soft = 0 if env_soft in ["0", "false", "off", "no"] else 1
+		if _aim_soft >= 0 and ResourceLoader.exists("res://core/systems/Aim.gd"):
+			(load("res://core/systems/Aim.gd") as Script).set("soft_rule", _aim_soft == 1)
 	# a phone's screen (the ranged weapons pick only what is on it): 9:20 with the canvas expanding as on Android
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	root.size = _res
@@ -479,6 +493,8 @@ func _meta(ra: Node, reason: String) -> Dictionary:
 		# (Run.weapon_dry, lane GUNS: {} when the game keeps none) and the bot's aim tallies
 		"aim_mode": _aim_on(), "dmg_by_weapon": (_run.damage_by_weapon as Dictionary).duplicate(),
 		"weapon_dry": _weapon_dry(), "bot_aim": _bot.aim_tallies() if _bot and _bot.has_method("aim_tallies") else {},
+		# pass 137 (lane AIM): the soft rule played (Aim.soft_rule) and its turns by weapon id {threat, lone}
+		"aim_soft": _aim_static("soft_rule", false), "weapon_soft": _aim_static("soft_counts", {}),
 		"boss_killed": bool(_run.get("stage_beaten")) if _run.get("stage_beaten") != null else false,
 		"endless_s": snappedf(float(_run.get("endless_time")) if _run.get("endless_time") != null and bool(_run.get("endless")) else 0.0, 0.1),
 		"stage_clock": snappedf(float(_run.call("stage_clock")) if _run.has_method("stage_clock") else float(_run.elapsed), 0.1),
@@ -491,6 +507,20 @@ func _meta(ra: Node, reason: String) -> Dictionary:
 func _aim_on() -> bool:
 	var st := root.get_node_or_null("Settings")
 	return st != null and "aim_mode" in st and bool(st.aim_mode)
+
+
+## Pass 137 (lane AIM): a static of Aim.gd (a var, or a method called without arguments), `default` where it has none.
+func _aim_static(key: String, default: Variant) -> Variant:
+	if not ResourceLoader.exists("res://core/systems/Aim.gd"):
+		return default
+	var aim := load("res://core/systems/Aim.gd") as Script
+	if aim == null:
+		return default
+	for m in aim.get_script_method_list():
+		if str(m.get("name", "")) == key:
+			return aim.call(key)
+	var v = aim.get(key)
+	return default if v == null else v
 
 
 ## Pass 136 (lane BOT): the dry shots (an aimed weapon fired with nothing to hit) by weapon id: Aim.dry_counts() (lane

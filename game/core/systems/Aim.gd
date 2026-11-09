@@ -17,6 +17,21 @@
 ##      the time (default 0.6), else one of the others; the spots of one volley keep `apart` x the blast radius apart.
 ##   R7 the aim wedge on the sand (core/systems/AimWedge.gd) and the placed weapons' own marks.
 ## Every roll comes from the aim dice (Dice.rng_for("aim"), one stream a run), so replays play the same.
+##
+## Pass 137 (lane AIM; Garry 2026-11-09: "Aiming-Hard ... very much shoot where Player is facing with little wiggle room.
+## Aiming-Soft ... will actually shoot behind the Player in cases when the enemy is obviously much closer ... This effect
+## should be much 'weaker' than the not aiming version ... in the case of absence of any other enemy to shoot ... at
+## certain close enough distance the weapon does still shoot the only enemy"; the melee weapons soft too). Every aimed and
+## melee weapon has a feel, `params.aim.feel` (BALANCING 78.AIM):
+##   "hard" (the Big Mouth, Loudmouth, the Dragon's Breath, Fire Eater): down the facing as pass 136 built them; never
+##      turns to a creature outside its cone.
+##   "soft" (the default for the aimed and melee families): the cone leads (R2-R4), but (soft_target)
+##      S1 a threat: the nearest creature outside the cone whose body stands within `threat_reach` (3 m) AND within
+##         `threat_ratio` (0.45) x the cone pick's own distance (any, when the cone has nothing) is shot instead;
+##      S2 the lone creature: with nothing in the cone and no threat, the nearest creature whose body stands within
+##         `lone_reach` (6 m) is shot wherever it stands;
+##      both within the weapon's range, the shot turned all the way to it (no assist limit). Distances only, no dice.
+##   Placed and around weapons have no feel. Aim.soft_rule (tools only) off plays pass 136's rule: every aimed weapon hard.
 class_name Aim
 extends RefCounted
 
@@ -29,6 +44,18 @@ const APART := 1.5
 const CROWD_SEEDED := 3
 ## the weight's cap for a "priority" weapon (EnemyManager.PRIORITY_CAP's value)
 const PRIORITY_CAP := 3.0
+## pass 137 (lane AIM): the feels and the soft rule's defaults (`params.aim.threat_reach`, `threat_ratio`, `lone_reach`)
+const FEEL_HARD := "hard"
+const FEEL_SOFT := "soft"
+const THREAT_REACH := 3.0
+const THREAT_RATIO := 0.45
+const LONE_REACH := 6.0
+## how far past a soft reach a creature's centre may stand for its body to be within it (the biggest bodies, bosses)
+const BODY_PAD := 2.5
+
+## Pass 137 (lane AIM): tools only (game/tools/sim_run.gd `aim_soft=0`, the tests): false plays pass 136's rule, every
+## aimed weapon hard. The game never sets it.
+static var soft_rule := true
 
 static var _dice: RandomNumberGenerator = null
 static var _dice_seed := -1
@@ -53,6 +80,12 @@ static func cfg(inst: WeaponInstance) -> Dictionary:
 	out["hold"] = float(out.get("hold", 0.0))
 	out["best_chance"] = float(out.get("best_chance", BEST_CHANCE))
 	out["family"] = str(out.get("family", "aimed"))
+	# pass 137 (lane AIM): the feel and the soft rule's numbers for the aimed and melee families
+	if out["family"] == "aimed" or out["family"] == "melee":
+		out["feel"] = str(out.get("feel", FEEL_SOFT))
+		out["threat_reach"] = float(out.get("threat_reach", THREAT_REACH))
+		out["threat_ratio"] = float(out.get("threat_ratio", THREAT_RATIO))
+		out["lone_reach"] = float(out.get("lone_reach", LONE_REACH))
 	return out
 
 
@@ -63,6 +96,13 @@ static func covers(inst: WeaponInstance) -> bool:
 		return false
 	var c := cfg(inst)
 	return not c.is_empty() and str(c["family"]) != "around"
+
+
+## Pass 137 (lane AIM): whether `inst` aims by the soft rule now (covered, its feel "soft", Aim.soft_rule on).
+static func soft(inst: WeaponInstance) -> bool:
+	if not soft_rule or not covers(inst):
+		return false
+	return str(cfg(inst).get("feel", "")) == FEEL_SOFT
 
 
 ## The Outlaw's facing on the ground plane, unit length (Vector3.FORWARD for none).
@@ -87,6 +127,7 @@ static func reset() -> void:
 	_dice = null
 	_dice_seed = -1
 	_dry.clear()
+	_soft.clear()
 
 
 ## Dry shots this run by weapon id (lane GUNS): a pull an aimed weapon fired with nothing in its cone (R5). The run record's
@@ -101,6 +142,25 @@ static func note_dry(inst: WeaponInstance) -> void:
 
 static func dry_counts() -> Dictionary:
 	return _dry.duplicate()
+
+
+## Pass 137 (lane AIM): soft turns this run by weapon id, {id: {threat, lone}}: a pull whose shot the soft rule took (a
+## threat outside the cone, or the lone creature). Fire paths call note_soft(inst, res) with Aim.shot's result (its
+## `soft`) or a soft_target result (its `kind`); game/tools/sim_run.gd records them as `weapon_soft`.
+static var _soft: Dictionary = {}
+
+
+static func note_soft(inst: WeaponInstance, res: Dictionary) -> void:
+	var k := str(res.get("soft", res.get("kind", "")))
+	if k == "" or inst == null or inst.def == null:
+		return
+	var row: Dictionary = _soft.get(inst.def.id, {"threat": 0, "lone": 0})
+	row[k] = int(row.get(k, 0)) + 1
+	_soft[inst.def.id] = row
+
+
+static func soft_counts() -> Dictionary:
+	return _soft.duplicate(true)
 
 
 ## The angle (radians, 0..PI) between `dir` and the flat way from `from` to `to`.
@@ -186,6 +246,67 @@ static func cone_score(em: EnemyManager, i: int, from: Vector3, dir: Vector3, co
 	return d * (1.0 + 2.0 * p * p)
 
 
+## How far creature `i`'s body stands from `from` on the ground (its centre's distance less its radius, at least 0).
+static func body_dist(em: EnemyManager, i: int, from: Vector3) -> float:
+	var d := Vector2(em.pos[i].x - from.x, em.pos[i].z - from.z).length()
+	return maxf(d - float(em.radius[i]), 0.0)
+
+
+## Pass 137 (lane AIM): the soft rule's target (S1, S2 in the header) for a shot from `from` along `dir` whose cone (full
+## angle `cone_deg`) picked `cone_pick` (-1 for none), with the weapon's aim block `c` (cfg): {i, kind}, kind "threat" or
+## "lone"; {i: -1, kind: ""} when the cone's pick stands. S1: the nearest creature OUTSIDE the cone whose body is within
+## `threat_reach` and within `threat_ratio` x the cone pick's body distance; S2 (the cone empty, no threat): the nearest
+## creature whose body is within `lone_reach`, anywhere round him. Both with their centre within `range_m` (as pick).
+## `any_screen`, `avoid`, `exclude` as pick; `ok` (optional Callable(int) -> bool) rejects a creature (the Gravity Gun's
+## grabbable). Distances only, ties to the lower index: no dice.
+static func soft_target(em: EnemyManager, from: Vector3, dir: Vector3, range_m: float, cone_deg: float, cone_pick: int,
+		c: Dictionary, any_screen: bool = false, avoid: String = "", exclude: Array = [], ok: Callable = Callable()) -> Dictionary:
+	var none := {"i": -1, "kind": ""}
+	if em == null or range_m <= 0.0:
+		return none
+	var lim := maxf(float(c.get("threat_reach", THREAT_REACH)), 0.0)
+	if cone_pick >= 0:
+		lim = minf(lim, maxf(float(c.get("threat_ratio", THREAT_RATIO)), 0.0) * body_dist(em, cone_pick, from))
+	var lone := maxf(float(c.get("lone_reach", LONE_REACH)), 0.0) if cone_pick < 0 else 0.0
+	var reach := maxf(lim, lone)
+	if reach <= 0.0:
+		return none
+	var half := deg_to_rad(maxf(cone_deg, 1.0) * 0.5)
+	var best_t := -1
+	var best_td := INF
+	var best_l := -1
+	var best_ld := INF
+	for i in em.indices_in_radius(from, minf(reach + BODY_PAD, range_m)):
+		if i == cone_pick or not standing(em, i, any_screen) or exclude.has(i):
+			continue
+		if avoid != "" and em.has_element(i, avoid):
+			continue
+		var dx: float = em.pos[i].x - from.x
+		var dz: float = em.pos[i].z - from.z
+		var d := sqrt(dx * dx + dz * dz)
+		if d > range_m:
+			continue
+		var bd := maxf(d - float(em.radius[i]), 0.0)
+		if bd > reach:
+			continue
+		if ok.is_valid() and not bool(ok.call(i)):
+			continue
+		# outside the cone (its body not touching it): a threat when obviously much closer than the cone's pick
+		var slack := atan2(float(em.radius[i]), maxf(d, 0.1))
+		var outside := angle_off(from, dir, em.pos[i]) > half + slack
+		if outside and lim > 0.0 and bd <= lim and (bd < best_td or (bd == best_td and i < best_t)):
+			best_td = bd
+			best_t = i
+		if bd <= lone and (bd < best_ld or (bd == best_ld and i < best_l)):
+			best_ld = bd
+			best_l = i
+	if best_t >= 0:
+		return {"i": best_t, "kind": "threat"}
+	if best_l >= 0:
+		return {"i": best_l, "kind": "lone"}
+	return none
+
+
 ## `dir` turned towards `to` by at most `max_deg` (flat, unit length): the soft assist (R3).
 static func assist(from: Vector3, dir: Vector3, to: Vector3, max_deg: float) -> Vector3:
 	var want := Vector3(to.x - from.x, 0.0, to.z - from.z)
@@ -198,21 +319,29 @@ static func assist(from: Vector3, dir: Vector3, to: Vector3, max_deg: float) -> 
 	return Vector3(v.x, 0.0, v.y).normalized()
 
 
-## The aimed shot for `inst` from `from`: {dir (flat unit), target (-1 for none)}: the facing turned to the best target in
-## the weapon's cone, or the facing itself.
+## The aimed shot for `inst` from `from`: {dir (flat unit), target (-1 for none), soft ("" / "threat" / "lone")}: the
+## facing turned to the best target in the weapon's cone, or the facing itself; a soft weapon (pass 137) turned all the
+## way to a threat outside the cone or to the lone creature (soft_target).
 static func shot(inst: WeaponInstance, em: EnemyManager, player: Node, from: Vector3, range_m: float, avoid: String = "") -> Dictionary:
 	var c := cfg(inst)
 	var f := facing(player)
 	var cone := float(c.get("cone", DEFAULT_CONE))
 	var strongest := inst != null and inst.def != null and inst.def.targeting == "priority"
 	var t := pick(em, from, f, range_m, cone, strongest, float(c.get("big_cone", cone * BIG_CONE_MULT)), avoid)
+	# pass 137 (lane AIM): the soft rule, a near threat outside the cone or the lone creature
+	if soft_rule and em != null and str(c.get("feel", "")) == FEEL_SOFT:
+		var s := soft_target(em, from, f, range_m, cone, t, c, false, avoid)
+		var si := int(s["i"])
+		if si >= 0:
+			var to := Vector3(em.pos[si].x - from.x, 0.0, em.pos[si].z - from.z)
+			return {"dir": to.normalized() if to.length_squared() > 0.0001 else f, "target": si, "soft": str(s["kind"])}
 	if t < 0:
-		return {"dir": f, "target": -1}
+		return {"dir": f, "target": -1, "soft": ""}
 	var lim := float(c.get("assist", cone * 0.5))
 	# a priority creature in the wider cone may pull the shot up to its own half angle
 	if em.is_priority(t):
 		lim = maxf(lim, float(c.get("big_cone", cone * BIG_CONE_MULT)) * 0.5)
-	return {"dir": assist(from, f, em.pos[t], lim), "target": t}
+	return {"dir": assist(from, f, em.pos[t], lim), "target": t, "soft": ""}
 
 
 ## What a blast of radius `r` at `spot` would catch (R6): creatures within r (their bodies), specials, Elites and the

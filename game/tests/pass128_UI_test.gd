@@ -55,7 +55,7 @@ func test_a_boards_scroll_starts_inside_its_sheet_and_the_page_rests_where_it_di
 
 func test_heroes_read_outlaws() -> void:
 	var bar_script = load("res://ui/wanted/WTabBar.gd")
-	assert_str(str(bar_script.WORDS["heroes"])).is_equal("OUTLAWS")
+	assert_str(str(bar_script.word_of("heroes"))).is_equal("OUTLAWS")
 	assert_array(bar_script.TABS).contains(["heroes"])
 	var tab: Array = ArenaPanel.TABS.filter(func(t: Array) -> bool: return t[0] == "hero")
 	assert_str(str(tab[0][1])).is_equal("OUTLAW")

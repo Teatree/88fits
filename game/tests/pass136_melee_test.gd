@@ -56,10 +56,13 @@ func before_test() -> void:
 	_aim_was = Settings.aim_mode
 	_ff_was = Settings.fire_forward
 	Settings.aim_mode = true
+	# pass 137 (lane AIM): these pin pass 136's rule (every aimed weapon hard); pass137_aim_test pins the soft one
+	Aim.soft_rule = false
 
 
 func after_test() -> void:
 	Settings.aim_mode = _aim_was
+	Aim.soft_rule = true
 	Settings.fire_forward = _ff_was
 
 
@@ -263,14 +266,33 @@ func test_the_streak_turns_at_most_15_degrees() -> void:
 	assert_float(_deg(b._dir, f)).is_equal_approx(15.0, 0.05)
 	var d: Vector3 = b.effects().last_thrust["dir"]
 	assert_float(_deg(d, b._dir)).is_less(0.01)
-	# a creature behind him is not thrust at
+	# pass 137 (lane AIM, re-pinned to the soft rule, Aim.soft_target): a creature 3 m behind him, inside the Spear's reach
+	# (4.6 + 0.6 m) and within threat_reach, is thrust at (S1, the cone empty)
+	Aim.soft_rule = true
 	em.kill_all(false)
-	_creature(em, -f * 3.0)
+	var back := _creature(em, -f * 3.0)
 	em._rebuild_grid()
 	var b2 := _thruster(w, "pike")
 	b2._fire()
-	assert_int(b2.target).is_equal(-1)
-	assert_float(_deg(b2._dir, f)).is_less(0.01)
+	assert_int(b2.target).is_equal(back)
+	assert_float(_deg(b2._dir, -f)).is_less(0.5)
+	# one behind beyond the reach is not: the stroke goes down the facing
+	em.kill_all(false)
+	_creature(em, -f * 7.0)
+	em._rebuild_grid()
+	var b3 := _thruster(w, "pike")
+	b3._fire()
+	assert_int(b3.target).is_equal(-1)
+	assert_float(_deg(b3._dir, f)).is_less(0.01)
+	# pass 136's rule (every aimed weapon hard; this file's default): not even the one 3 m behind
+	Aim.soft_rule = false
+	em.kill_all(false)
+	_creature(em, -f * 3.0)
+	em._rebuild_grid()
+	var b4 := _thruster(w, "pike")
+	b4._fire()
+	assert_int(b4.target).is_equal(-1)
+	assert_float(_deg(b4._dir, f)).is_less(0.01)
 
 
 # ---------------------------------------------------------------- the hit area is the old one

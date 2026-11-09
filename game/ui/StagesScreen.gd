@@ -56,9 +56,9 @@ const R_LABEL_PX := 18
 const R_RUN_PX := 24
 const R_RUN_H := 44.0
 const R_BADGE_PX := 96.0
-## The locked band's words: "LOCKED", then what opens it ("Beat Stage 2" + this).
-const R_LOCKED_WORD := "LOCKED"
-const R_OPENS := " to open it"
+## The locked band's words: "LOCKED", then what opens it ("Beat Stage 2" + " to open it"; pass 137: the string table).
+const R_LOCKED_KEY := "ui.stages.locked"
+const R_OPENS_KEY := "ui.stages.opens"
 
 ## The picture's box inside a card (the card is the board's width, 984 px, less its 6 px borders): 972 x PIC_H (2.6 : 1,
 ## lane SLOOK's 1248 x 480 captures), the picture covering it (another shape is cropped about its middle).
@@ -81,8 +81,10 @@ const SHAKE_TIME := 0.32
 ## The art the stage pictures are looked for in when a stage names none (`shot`).
 const SHOT_PATH := "res://art/ui/stages/%s_s%d.jpg"
 ## The difficulty words by level (1 = the first stage's), and what an unmet boss's name says (pass 88).
-const DIFFICULTY_WORDS := ["Easy", "Medium", "Hard", "Extremely Hard"]
-const BOSS_UNMET := "Boss not encountered yet"
+## (pass 137: keys of the string table, Loc.t(...) where they show)
+const DIFFICULTY_KEYS := ["ui.stages.difficulty.easy", "ui.stages.difficulty.medium", "ui.stages.difficulty.hard",
+	"ui.stages.difficulty.extremely_hard"]
+const BOSS_UNMET_KEY := "ui.stages.boss_unmet"
 
 var map_id := ""
 var hero: CharacterDef
@@ -169,7 +171,7 @@ func _card(m: MapDef, list: Array, i: int) -> WTap:
 		req.name = "Requirement"
 		req.add_theme_constant_override("separation", 12)
 		req.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var lab := W.label("To unlock", 20, W.ROCK, 0.15)
+		var lab := W.label(Loc.t("ui.stages.to_unlock"), 20, W.ROCK, 0.15)
 		lab.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		req.add_child(lab)
 		var rt := W.serif_text(requirement(m, list, i), 28, W.INK, 600, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
@@ -250,11 +252,11 @@ func _picture(e: Dictionary, i: int, open: bool) -> Control:
 	tag.name = "Tag"
 	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tag.add_theme_stylebox_override("panel", W.box(W.INK, 0, 0).pad(22, 6, 22, 8))
-	tag.add_child(W.text("STAGE %d" % (i + 1), W.slab(W.em(26, 0.08)), 26, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 30.0))
+	tag.add_child(W.text(Loc.t("ui.stages.tag", {"stage": str(i + 1)}), W.slab(W.em(26, 0.08)), 26, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 30.0))
 	tag.position = Vector2(0, 0)
 	host.add_child(tag)
 	# the name over the picture's foot
-	var nm := W.slab_text(str(e.get("name", "Stage %d" % (i + 1))), NAME_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, NAME_PX * 1.1)
+	var nm := W.slab_text(str(e.get("name", Loc.t("ui.stages.name_default", {"stage": str(i + 1)}))), NAME_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, NAME_PX * 1.1)
 	nm.name = "Name"
 	nm.stroke = 6
 	nm.shadow = 5
@@ -265,7 +267,7 @@ func _picture(e: Dictionary, i: int, open: bool) -> Control:
 	nm.offset_bottom = -18
 	host.add_child(nm)
 	if open and beaten(map_id, i):
-		var st := WStamp.make("BEATEN", W.SAGE, 30)
+		var st := WStamp.make(Loc.t("ui.stages.beaten"), W.SAGE, 30)
 		st.name = "Beaten"
 		host.add_child(st)
 		var keep := func():
@@ -293,7 +295,7 @@ func _facts(e: Dictionary, open: bool) -> HBoxContainer:
 		clock.name = "Length"
 		clock.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(clock)
-		var to := W.serif_text("to the boss", FACT_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+		var to := W.serif_text(Loc.t("ui.stages.to_the_boss"), FACT_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 		to.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(to)
 	var gap := Control.new()
@@ -311,7 +313,7 @@ func _facts(e: Dictionary, open: bool) -> HBoxContainer:
 		p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		p.set_meta("met", met)
 		h.add_child(p)
-		var bn := W.slab_text(bd.display_name if met else BOSS_UNMET, FACT_PX + 4, (W.ROCK if open else W.INK_SOFT) if met else W.COMMON, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+		var bn := W.slab_text(bd.display_name if met else Loc.t(BOSS_UNMET_KEY), FACT_PX + 4, (W.ROCK if open else W.INK_SOFT) if met else W.COMMON, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 		bn.name = "Boss"
 		bn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(bn)
@@ -385,7 +387,7 @@ func _shake(c: Control) -> void:
 
 ## The Royale screen (the mock 7_Stages): the header's badge, the label and the run line, a slate card a stage.
 func _build_royale() -> void:
-	set_title("Stages")
+	set_title(Loc.t("ui.stages.title"))
 	map_id = str(Save.data.get("last_map", "red_canyon"))
 	if Registry.map(map_id) == null:
 		map_id = "red_canyon"
@@ -492,11 +494,11 @@ func _card_royale(m: MapDef, list: Array, i: int) -> WTap:
 	nr.name = "NameRow"
 	nr.add_theme_constant_override("separation", 14)
 	nr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var nm := W.slab_text(str(e.get("name", "Stage %d" % (i + 1))).to_upper(), R_NAME_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, float(R_NAME_PX))
+	var nm := W.slab_text(str(e.get("name", Loc.t("ui.stages.name_default", {"stage": str(i + 1)}))).to_upper(), R_NAME_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, float(R_NAME_PX))
 	nm.name = "Name"
 	nm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	nr.add_child(nm)
-	var st := tag("STAGE %d" % (i + 1), "gold")
+	var st := tag(Loc.t("ui.stages.tag", {"stage": str(i + 1)}), "gold")
 	st.name = "Tag"
 	nr.add_child(st)
 	body.add_child(nr)
@@ -558,7 +560,7 @@ func _band_royale(m: MapDef, list: Array, i: int, open: bool) -> Control:
 			wash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			host.add_child(wash)
 	if not open:
-		var lw := W.slab_text(R_LOCKED_WORD, R_LOCKED_PX, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, float(R_LOCKED_PX))
+		var lw := W.slab_text(Loc.t(R_LOCKED_KEY), R_LOCKED_PX, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, float(R_LOCKED_PX))
 		lw.name = "Locked"
 		# the mock's 2 px stroke and drop on this word (lighter than R.edge's 40 px default)
 		lw.stroke = 1
@@ -568,7 +570,7 @@ func _band_royale(m: MapDef, list: Array, i: int, open: bool) -> Control:
 		lw.offset_bottom = R_LOCKED_Y + R_LOCKED_PX
 		host.add_child(lw)
 		# pass 129 (lane TRAIL-UI): the Trail's line carries a chevron (the card's tap opens the Trail)
-		var req_words := requirement(m, list, i) + R_OPENS
+		var req_words := Loc.t(R_OPENS_KEY, {"requirement": requirement(m, list, i)})
 		if req_words.begins_with("Reach Trail Level") and R.body().has_char(0x203A):
 			req_words += " ›"
 		var req := W.serif_text(req_words, R_LOCK_LINE_PX, R.WHITE, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
@@ -578,7 +580,7 @@ func _band_royale(m: MapDef, list: Array, i: int, open: bool) -> Control:
 		req.offset_bottom = R_LOCK_LINE_Y + R_LOCK_LINE_PX * 1.3
 		host.add_child(req)
 	elif beaten(map_id, i):
-		var bt := tag("BEATEN", "green")
+		var bt := tag(Loc.t("ui.stages.beaten"), "green")
 		bt.name = "Beaten"
 		host.add_child(bt)
 		var keep := func():
@@ -600,7 +602,7 @@ func _facts_royale(e: Dictionary, i: int, open: bool) -> HBoxContainer:
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var length := float(e.get("length", 0.0))
 	if length > 0.0:
-		var pill := W.pill([{"glyph": "clock", "px": 22}, [clock_text(length), null, "bold"], " to the boss"], R_FACT_PX, R_FACT_H)
+		var pill := W.pill([{"glyph": "clock", "px": 22}, [clock_text(length), null, "bold"], " " + Loc.t("ui.stages.to_the_boss")], R_FACT_PX, R_FACT_H)
 		pill.name = "Length"
 		pill.set_meta("text", clock_text(length))
 		pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -618,7 +620,7 @@ func _facts_royale(e: Dictionary, i: int, open: bool) -> HBoxContainer:
 		if met:
 			bn = W.serif_text(bd.display_name, R_BOSS_NAME_PX, R.GOLD_TEXT if open else R.SECONDARY, 600, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
 		else:
-			bn = W.serif_text(BOSS_UNMET, R_UNMET_PX, R.SECONDARY, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
+			bn = W.serif_text(Loc.t(BOSS_UNMET_KEY), R_UNMET_PX, R.SECONDARY, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
 		bn.name = "Boss"
 		bn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(bn)
@@ -627,7 +629,7 @@ func _facts_royale(e: Dictionary, i: int, open: bool) -> HBoxContainer:
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(gap)
 	if open:
-		var sb := WButton.make(["START"], R_START_PX, WButton.PRIMARY, R.BUTTON_EDGE, R.BUTTON_BASE, 0.0, 0.0, float(R_START_PX), WButton.GOLD)
+		var sb := WButton.make([Loc.t("ui.stages.start")], R_START_PX, WButton.PRIMARY, R.BUTTON_EDGE, R.BUTTON_BASE, 0.0, 0.0, float(R_START_PX), WButton.GOLD)
 		sb.name = "Start"
 		sb.custom_minimum_size = R_START
 		sb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -704,11 +706,11 @@ static func run_bits(p_map_id: String) -> Array:
 	var best := Save.best_run(p_map_id)
 	if best.is_empty() or float(best.get("time", 0.0)) <= 0.0:
 		return bits
-	bits.append("best " + W.mmss(float(best.get("time", 0.0))))
+	bits.append(Loc.t("ui.stages.best", {"time": W.mmss(float(best.get("time", 0.0)))}))
 	bits.append(W.lv(int(best.get("level", 0))))
-	bits.append("stage %d" % int(best.get("stage", 1)))
+	bits.append(Loc.t("ui.stages.stage", {"stage": str(int(best.get("stage", 1)))}))
 	if int(best.get("kills", 0)) > 0:
-		bits.append("%s kills" % W.num(int(best.get("kills", 0))))
+		bits.append(Loc.t("ui.stages.kills", {"kills": W.num(int(best.get("kills", 0)))}))
 	return bits
 
 
@@ -783,8 +785,8 @@ static func requirement(_m: MapDef, list: Array, i: int) -> String:
 	var prev: Dictionary = list[i - 1]
 	var bd: EnemyDef = Registry.enemy(str(prev.get("boss", ""))) if str(prev.get("boss", "")) != "" else null
 	if bd and boss_met(bd.id):
-		return "Beat %s" % _the(bd.display_name)
-	return "Beat Stage %d" % i
+		return Loc.t("ui.stages.beat_boss", {"boss": _the(bd.display_name)})
+	return Loc.t("ui.stages.beat_stage", {"stage": str(i)})
 
 
 ## Pass 88 (lane STAGEMENU): a boss is shown once the player has met him (Save.enemy_met: on the sand in a run once, or
@@ -797,7 +799,7 @@ static func boss_met(id: String) -> bool:
 ## and the entry's `difficulty` (a word, or a level 1..4), else the word for the stage's place (the first Easy, then
 ## Medium, Hard, Extremely Hard and on).
 static func difficulty_text(e: Dictionary, i: int) -> String:
-	return "Difficulty: " + difficulty_word(e, i)
+	return Loc.t("ui.stages.difficulty_line", {"difficulty": difficulty_word(e, i)})
 
 
 static func difficulty_word(e: Dictionary, i: int) -> String:
@@ -813,12 +815,12 @@ static func difficulty_word(e: Dictionary, i: int) -> String:
 
 ## The difficulty word of level `k` (0 = Easy; past the last, Extremely Hard).
 static func level_word(k: int) -> String:
-	return DIFFICULTY_WORDS[clampi(k, 0, DIFFICULTY_WORDS.size() - 1)]
+	return Loc.t(str(DIFFICULTY_KEYS[clampi(k, 0, DIFFICULTY_KEYS.size() - 1)]))
 
 
 ## "the Tumbleweed King", "the Brander": a boss's name after "Beat", its own "The" in lower case.
 static func _the(n: String) -> String:
-	return ("the " + n.substr(4)) if n.to_lower().begins_with("the ") else "the " + n
+	return Loc.t("ui.stages.the_boss", {"name": n.substr(4) if n.to_lower().begins_with("the ") else n})
 
 
 ## The stage's picture: its own `shot`, else art/ui/stages/<map>_s<k>.jpg.

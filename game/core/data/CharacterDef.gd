@@ -204,8 +204,8 @@ func variant_note(code: String) -> String:
 
 # ---------------------------------------------------------------- pass 111 (lane SKINS): looks sold as skins
 
-## The name the look every player owns reads as (its own `skin.name` when the JSON gives one).
-const HOME_SKIN_NAME := "Classic"
+## The row of the name the look every player owns reads as (its own `skin.name` when the JSON gives one; pass 137).
+const HOME_SKIN_NAME_KEY := "gen.outlaw.skin.classic"
 
 
 ## The look every player owns (pass 111): the one the game plays (`variant`), else the base; "" for a hero with one art.
@@ -231,12 +231,12 @@ func sells_skin(code: String) -> bool:
 	return bool(skin_of(code).get("purchasable", false))
 
 
-## The name players read for look `code`: its skin's `name`, else HOME_SKIN_NAME for the owned look, else "Look <CODE>".
+## The name players read for look `code`: its skin's `name`, else HOME_SKIN_NAME_KEY's row for the owned look, else "Look <CODE>".
 func skin_name(code: String) -> String:
 	var n := str(skin_of(code).get("name", "")).strip_edges()
 	if n != "":
 		return n
-	return HOME_SKIN_NAME if code == home_look() or code == "" else "Look %s" % code
+	return Loc.t(HOME_SKIN_NAME_KEY) if code == home_look() or code == "" else Loc.t("gen.outlaw.skin.look", {"code": code})
 
 
 ## Its price (0 = free once its goal is done).

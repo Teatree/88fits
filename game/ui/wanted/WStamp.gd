@@ -8,7 +8,7 @@ extends Control
 
 const STAMP_FROM := 2.4
 
-var word := "UNLOCKED"
+var word := Loc.t("ui.kit.stamp_default")
 var color := W.SAGE
 var text_px := 30
 

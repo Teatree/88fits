@@ -127,7 +127,7 @@ func _build_royale() -> void:
 	var head := HBoxContainer.new()
 	head.name = "Head"
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var star := WConfirm.make_star("A quick word")
+	var star := WConfirm.make_star(Loc.t("ui.survey.star"))
 	star.alignment = BoxContainer.ALIGNMENT_BEGIN
 	star.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(star)
@@ -153,12 +153,12 @@ func _build_royale() -> void:
 	row.add_theme_constant_override("separation", R.MODAL_BUTTON_GAP)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(row)
-	not_now_btn = WConfirm.make_button(["NOT NOW"], WButton.SLATE, BUTTON_H, BUTTON_PX)
+	not_now_btn = WConfirm.make_button([Loc.t("ui.survey.not_now")], WButton.SLATE, BUTTON_H, BUTTON_PX)
 	not_now_btn.name = "NotNow"
 	not_now_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	not_now_btn.pressed.connect(dismiss)
 	row.add_child(not_now_btn)
-	next_btn = WConfirm.make_button(["NEXT"], WButton.BLUE, BUTTON_H, BUTTON_PX)
+	next_btn = WConfirm.make_button([Loc.t("ui.survey.next")], WButton.BLUE, BUTTON_H, BUTTON_PX)
 	next_btn.name = "Next"
 	next_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	next_btn.pressed.connect(next)
@@ -169,7 +169,7 @@ func _build_royale() -> void:
 	var nb := W.box(Color(0, 0, 0, 0), 0, 0).pad(20, 22, 20, 22)
 	never_btn.box = nb
 	never_btn.box_down = nb
-	var lt := W.serif_text("Don't ask me again", R.MODAL_LINK_PX, R.SECONDARY, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
+	var lt := W.serif_text(Loc.t("ui.survey.dont_ask"), R.MODAL_LINK_PX, R.SECONDARY, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
 	lt.underline = true
 	never_btn.add_child(lt)
 	never_btn.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
@@ -240,7 +240,7 @@ func show_page(i: int) -> void:
 			_choice_list(q, str(q.get("type")) == "multiple_choice")
 		"open":
 			_open_text(q)
-	next_btn.set_parts(["SEND" if i == qs.size() - 1 else "NEXT"])
+	next_btn.set_parts([Loc.t("ui.survey.send") if i == qs.size() - 1 else Loc.t("ui.survey.next")])
 	_refresh_next()
 	if is_inside_tree():
 		_place_never.call_deferred()
@@ -305,7 +305,7 @@ func _choice_list(q: Dictionary, many: bool) -> void:
 		_choices.append(b)
 	if many:
 		_value = []
-		var hint := W.serif_text("Pick any that fit.", 24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
+		var hint := W.serif_text(Loc.t("ui.survey.pick_any"), 24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
 		_q_box.add_child(hint)
 	_q_box.add_child(col)
 
@@ -315,7 +315,7 @@ func _open_text(q: Dictionary) -> void:
 	_text.name = "Answer"
 	_text.custom_minimum_size = Vector2(0, 190)
 	_text.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-	_text.placeholder_text = "Type here" + (" (or leave it empty)" if bool(q.get("optional", false)) else "")
+	_text.placeholder_text = Loc.t("ui.survey.type_here_optional") if bool(q.get("optional", false)) else Loc.t("ui.survey.type_here")
 	_text.add_theme_font_override("font", W.serif(400, false))
 	_text.add_theme_font_size_override("font_size", 30)
 	_text.add_theme_color_override("font_color", W.INK)
@@ -543,7 +543,7 @@ func _thanks() -> void:
 	for c in _q_box.get_children():
 		_q_box.remove_child(c)
 		c.free()
-	var t := W.text("THANK YOU, PARTNER", W.slab(), 52, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 56.0, true)
+	var t := W.text(Loc.t("ui.survey.thanks"), W.slab(), 52, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 56.0, true)
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_q_box.add_child(t)
 	next_btn.visible = false

@@ -20,10 +20,26 @@ func after() -> void:
 	Settings.from_dict(_settings_before)
 
 
+## Pass 137 (lane TUTOR): the bars here are a save's past the Trail's first steps (its tab open, no unlock to play);
+## pass137_tutor_test.gd covers the steps. The block is put back as it was.
+var _tutorial_before = null
+
+
+func before_test() -> void:
+	_tutorial_before = Save.data.get("tutorial")
+	Save.skip_trail_tutorial()
+	Save._dirty = false
+
+
 func after_test() -> void:
 	W.bottom_inset_override = -1.0
 	if Save.sandboxed():
 		Save.end_sandbox()
+	if _tutorial_before == null:
+		Save.data.erase("tutorial")
+	else:
+		Save.data["tutorial"] = _tutorial_before
+	Save._dirty = false
 
 
 func _bar(active: String) -> Control:

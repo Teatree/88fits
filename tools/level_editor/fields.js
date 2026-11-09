@@ -453,7 +453,7 @@ const FIELDS = (() => {
     ...['exp', 'coins', 'powerup'].flatMap((ty) => {
       const name = { exp: 'EXP barrel', coins: 'EXP + Coins barrel', powerup: 'Power-up barrel' }[ty];
       const who = { exp: 'the EXP barrel (brown wood, iron hoops)', coins: 'the EXP + Coins barrel (gold hoops and studs)', powerup: 'the Power-up barrel (iron hoops, a white stripe)' }[ty];
-      const gd = { exp: { w: 0.648, small: 8, medium: 0, coins: 0 }, coins: { w: 0.22, small: 10, medium: 4, coins: 1 }, powerup: { w: 0.132, small: 0, medium: 0, coins: 0 } }[ty];
+      const gd = { exp: { w: 0.648, small: 8, medium: 0, coins: 0, shots: 2 }, coins: { w: 0.22, small: 10, medium: 4, coins: 1, shots: 3 }, powerup: { w: 0.132, small: 0, medium: 0, coins: 0, shots: 5 } }[ty];
       const rows = [
         { key: `barrels.${ty}.weight`, group: 'Barrels', label: `${name}: weight`, type: 'number', min: 0, step: 0.01, def: gd.w, block: 'barrel_contents', help: `how common ${who} is: its weight against the other two kinds' (its share is its weight over the three weights' sum), for the map's start barrels (two more are always EXP + Coins) and for the ones that come back. The game's: EXP 0.648, EXP + Coins 0.22, Power-up 0.132 (60% of EXP + Coins) (empty = the game's ${gd.w})` },
       ];
@@ -464,7 +464,9 @@ const FIELDS = (() => {
       rows.push(
         { key: `barrels.${ty}.gems_small`, group: 'Barrels', label: `${name}: small gems`, type: 'int', min: 0, step: 1, def: gd.small, block: 'barrel_contents', help: `the small XP gems it bursts into (each worth 1 + 15% an outlaw level) (empty = the game's ${gd.small})` },
         { key: `barrels.${ty}.gems_medium`, group: 'Barrels', label: `${name}: medium gems`, type: 'int', min: 0, step: 1, def: gd.medium, block: 'barrel_contents', help: `the medium XP gems it bursts into (each worth 4 small) (empty = the game's ${gd.medium})` },
-        { key: `barrels.${ty}.coins`, group: 'Barrels', label: `${name}: coins`, type: 'interval', unit: 'coins', def: gd.coins, block: 'barrel_contents', help: ty === 'coins' ? 'the coins it bursts into: one number, or a range rolled per barrel (empty = the game\'s 1 to 5). The start\'s barrels\' coins are held back from the creatures\' first coins of the run (pass 87: smashing them all pays what the kills paid before); one that came back pays its coins on top' : 'the coins it bursts into: one number, or a range rolled per barrel (empty = the game\'s none)' });
+        { key: `barrels.${ty}.coins`, group: 'Barrels', label: `${name}: coins`, type: 'interval', unit: 'coins', def: gd.coins, block: 'barrel_contents', help: ty === 'coins' ? 'the coins it bursts into: one number, or a range rolled per barrel (empty = the game\'s 1 to 5). The start\'s barrels\' coins are held back from the creatures\' first coins of the run (pass 87: smashing them all pays what the kills paid before); one that came back pays its coins on top' : 'the coins it bursts into: one number, or a range rolled per barrel (empty = the game\'s none)' },
+        // pass 137 (lane BARRELS; Garry: "Wooden 2 shots, Golden 3, Power-up 5"): BarrelSpawns.CONTENT_DEFAULTS `shots`
+        { key: `barrels.${ty}.shots`, group: 'Barrels', label: `${name}: shots to break`, type: 'int', min: 1, step: 1, def: gd.shots, block: 'barrel_contents', help: `how many of the outlaw's flying rounds (bullets, pellets, balls, discs, rockets and bees; not blasts, beams, flames, saws or melee) it takes to break: every one before the last knocks it back about 0.6 m along the round's flight, the last breaks it as walking into it does (the same gems, coins and power-up). A round flies on through it and strikes each barrel once. Walking into it still breaks it at once. The player's Settings switch "Shoot barrels" turns this off (empty = the game's ${gd.shots})` });
       return rows;
     }),
     // pass 113 (lane TWISTER; Garry: "Tornadoes still don't look like tornadoes and are quite confusing. Make them rarer

@@ -705,7 +705,7 @@ static func pill(parts, px: int = R.PILL_PX, h: float = R.PILL_H, color: Color =
 
 ## "n short" (pass 123; the mock 8_Shop_24_gold): what a price is short of the purse, Rubik 700 in red (ROCK under Wanted).
 static func short_text(n: int, px: int = R.SHORT_PX) -> WText:
-	var t := text("%s short" % num(n), R.body(R.LABEL_WEIGHT), px,
+	var t := text(Loc.t("ui.kit.short", {"short": num(n)}), R.body(R.LABEL_WEIGHT), px,
 		R.ROLES["red"]["top"], HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
 	t.name = "Short"
 	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER

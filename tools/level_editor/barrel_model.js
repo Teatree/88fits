@@ -14,9 +14,9 @@ const BarrelModel = (() => {
   // pass 116 (lane MAP): three kinds (Garry's board): exp, coins, powerup; only powerup throws power-ups; `weight` is each
   // kind's share of the start's barrels and of the respawns. pass 112's brown / black are read as exp / coins.
   const CONTENT_DEFAULTS = {
-    exp: { weight: 0.648, gems_small: 8, gems_medium: 0, coins: 0 },
-    coins: { weight: 0.22, gems_small: 10, gems_medium: 4, coins: [1, 5] },
-    powerup: { weight: 0.132, powerup_chance: 1, powerups: [], throw_distance: [5, 7], gems_small: 0, gems_medium: 0, coins: 0 },
+    exp: { weight: 0.648, gems_small: 8, gems_medium: 0, coins: 0, shots: 2 },
+    coins: { weight: 0.22, gems_small: 10, gems_medium: 4, coins: [1, 5], shots: 3 },
+    powerup: { weight: 0.132, powerup_chance: 1, powerups: [], throw_distance: [5, 7], gems_small: 0, gems_medium: 0, coins: 0, shots: 5 },
   };
   const TYPES = ['exp', 'coins', 'powerup'];
   const LEGACY = { exp: 'brown', coins: 'black', powerup: '' };
@@ -92,6 +92,8 @@ const BarrelModel = (() => {
     const co = rangeOf(o.coins, [0, 0]);
     o.coins = [Math.max(Math.trunc(co[0]), 0), Math.max(Math.trunc(co[1]), Math.max(Math.trunc(co[0]), 0))];
     o.powerups = weightList(o.powerups);
+    // pass 137 (lane BARRELS): the Outlaw's rounds it takes to break, a whole number at least 1
+    o.shots = Math.max(Math.trunc(num(o.shots, CONTENT_DEFAULTS[type].shots)), 1);
     return o;
   }
 
@@ -177,6 +179,7 @@ const BarrelModel = (() => {
         else if (rangeOf(k.throw_distance, [5, 7])[0] < 2) warn(`${name}: a power-up thrown under 2 m lands at the hero's feet (he stands at the barrel) and is taken at once`);
       }
       for (const f of ['gems_small', 'gems_medium']) if (k[f] != null && !(Number.isInteger(k[f]) && k[f] >= 0)) err(`${name}: ${f} must be a whole number 0 or more`);
+      if (k.shots != null && !(Number.isInteger(k.shots) && k.shots >= 1)) err(`${name}: shots to break must be a whole number 1 or more`);
       if (k.coins != null && !okRange(k.coins)) err(`${name}: coins are one number or [min, max] with max at least min`);
       const con = contentsOf(b, ty);
       if (con.powerup_chance > 0 && !con.powerups.length && !weightList(((tl && tl.pickups) || {}).roster || []).length) warn(`${name}: a power-up chance but no power-up listed and no drops roster: nothing comes out`);

@@ -795,7 +795,15 @@ def check_against_source(game_dir):
     if body is None:
         problems.append("TextGen.STATS not found")
     else:
-        got = {k: [n, kind] for k, n, kind in re.findall(r'"([a-z_]+)":\s*\["([^"]*)",\s*"([a-z]+)"\]', body)}
+        # pass 137 (lane W2-TEXTGEN): STATS holds the kinds, the names are the rows stat.<id>.name of content/strings/en.json
+        # (a "hidden" stat has none: "")
+        kinds = dict(re.findall(r'"([a-z_]+)":\s*"([a-z]+)"', body))
+        try:
+            with open(os.path.join(game_dir, "content", "strings", "en.json"), encoding="utf-8") as f:
+                en = json.load(f)
+        except (OSError, ValueError):
+            en = {}
+        got = {k: [str(en.get("stat.%s.name" % k, "")), kind] for k, kind in kinds.items()}
         if got != STAT_NAMES:
             problems.append("TextGen.STATS differs: %s" % sorted(set(got) ^ set(STAT_NAMES)))
     for k in PLAYER_STATS_EXTRA:

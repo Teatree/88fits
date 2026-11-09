@@ -149,7 +149,7 @@ func header_right() -> Control:
 
 
 func build() -> void:
-	set_title("Trail")
+	set_title(Loc.t("ui.trail.title"))
 	_from_nav = Nav.arrived()
 	# the Trail has its own backdrop: the menu's painting and its dim are not shown
 	if backdrop:
@@ -586,17 +586,17 @@ static func gift_words(n: Dictionary) -> String:
 	var what := thing_of(n)
 	match str(g.get("type", "")):
 		"outlaw":
-			return "%s rides with you" % what
+			return Loc.t("ui.trail.gift.outlaw", {"what": what})
 		"skin":
-			return "%s is yours" % what
+			return Loc.t("ui.trail.gift.skin", {"what": what})
 		"weapon", "passive":
-			return "%s joins the offers" % what
+			return Loc.t("ui.trail.gift.item", {"what": what})
 		"stage", "map", "feature":
-			return "%s is open" % what
+			return Loc.t("ui.trail.gift.open", {"what": what})
 		"structure":
-			return "%s now stands on the map" % what
+			return Loc.t("ui.trail.gift.structure", {"what": what})
 		"powerup":
-			return "%s can drop now" % what
+			return Loc.t("ui.trail.gift.powerup", {"what": what})
 	return Trail.give_text(n)
 
 
@@ -605,20 +605,20 @@ static func state_words(n: Dictionary) -> String:
 	var id := str(n["id"])
 	match Trail.state(id):
 		"bought":
-			return "Yours"
+			return Loc.t("ui.trail.state.yours")
 		"closed":
-			return "Closed by your choice"
+			return Loc.t("ui.trail.state.closed")
 		"locked":
 			if int(n["level"]) > Trail.level() + 1:
-				return "Finish level %d first" % (int(n["level"]) - 1)
+				return Loc.t("ui.trail.state.finish_level", {"level": str(int(n["level"]) - 1)})
 			var need: Array = []
 			for p: Variant in Trail.from_of(id):
 				if Trail.state(str(p)) != "bought":
 					need.append(name_of(Trail.node(str(p))))
-			return "Take %s first" % join(need) if not need.is_empty() else "Locked"
+			return Loc.t("ui.trail.state.take_first", {"nodes": join(need)}) if not need.is_empty() else Loc.t("ui.trail.state.locked")
 	var sib := siblings_of(n)
 	if not sib.is_empty():
-		return "Taking this closes %s for good." % join(sib)
+		return Loc.t("ui.trail.closes", {"nodes": join(sib)})
 	return ""
 
 
@@ -627,7 +627,7 @@ static func join(names: Array) -> String:
 	if names.size() <= 1:
 		return str(names[0]) if names.size() == 1 else ""
 	var head: Array = names.slice(0, names.size() - 1)
-	return "%s and %s" % [", ".join(head), str(names[names.size() - 1])]
+	return Loc.t("ui.trail.join_and", {"head": ", ".join(head), "last": str(names[names.size() - 1])})
 
 
 ## The other members of an open choice's group, by name ([] for anything else).
@@ -683,6 +683,8 @@ func press_buy() -> void:
 	if n.is_empty() or not Trail.can_buy(selected):
 		W.sfx("ui_locked")
 		return
+	# pass 137 (lane TUTOR): the first BUY the purse can pay ends its highlight for good
+	_buy_tapped()
 	var g: Dictionary = n["gives"]
 	var warn := str(Trail.upgrade(str(g.get("upgrade", ""))).get("warn", "")) if str(g.get("type", "")) == "upgrade" else ""
 	var sib := siblings_of(n)
@@ -691,12 +693,12 @@ func press_buy() -> void:
 		return
 	var lines: Array = []
 	if not sib.is_empty():
-		lines.append("Taking this closes %s for good." % join(sib))
+		lines.append(Loc.t("ui.trail.closes", {"nodes": join(sib)}))
 	if warn != "":
 		lines.append(warn)
 	var cur := Trail.currency()
-	WConfirm.open(self, "Take %s?" % name_of(n), " ".join(lines), "Buy", "Not now", func() -> void: buy_selected(),
-		Callable(), "buy", WButton.price_parts(Trail.price(selected), "BUY", R.MODAL_BUTTON_PX, cur))
+	WConfirm.open(self, Loc.t("ui.trail.confirm_title", {"node": name_of(n)}), " ".join(lines), Loc.t("ui.trail.confirm_buy"), Loc.t("ui.trail.not_now"), func() -> void: buy_selected(),
+		Callable(), "buy", WButton.price_parts(Trail.price(selected), Loc.t("ui.trail.buy"), R.MODAL_BUTTON_PX, cur))
 
 
 ## Buys the node chosen (Trail.buy) and shows it: the tile pops, its rails light, the gift in a toast; a level done
@@ -727,7 +729,7 @@ func buy_selected() -> bool:
 		_line_tw.tween_method(func(v: float) -> void:
 			_line_shift = v
 			_canvas.queue_redraw(), _line_shift, 0.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		_banner.play("Trail Level %d" % Trail.level(), false, null, HEAD_H + W.safe_top() + 150.0)
+		_banner.play(Loc.t("ui.trail.level_banner", {"level": str(Trail.level())}), false, null, HEAD_H + W.safe_top() + 150.0)
 		W.sfx("ui_levelup")
 	_sync(true)
 	var t: Tile = _tiles.get(id)
@@ -757,7 +759,7 @@ func _fill_head() -> void:
 	if _level_pill:
 		header.remove_child(_level_pill)
 		_level_pill.queue_free()
-	_level_pill = W.pill([["LEVEL ", R.SECONDARY, "bold"], [str(Trail.level()), R.GOLD_TEXT, "bold"]], 30, 56.0)
+	_level_pill = W.pill([[Loc.t("ui.trail.level") + " ", R.SECONDARY, "bold"], [str(Trail.level()), R.GOLD_TEXT, "bold"]], 30, 56.0)
 	_level_pill.name = "TrailLevel"
 	header.add_child(_level_pill)
 	_level_pill.position = Vector2(header.title.position.x + header.title.text_width() + 26.0, header.title.position.y + 6.0)
@@ -783,9 +785,11 @@ func _fill_dock() -> void:
 	for c in _dock.get_children():
 		_dock.remove_child(c)
 		c.queue_free()
+	# pass 137 (lane TUTOR): the highlight waits for the new BUY (none on a node that is not open)
+	_tutor_buy(null)
 	var n := Trail.node(selected)
 	if n.is_empty():
-		var hint := W.serif_text("Tap a node to see what it gives." if Trail.has_nodes() else "The Trail is not laid yet.", 28, R.SECONDARY, 400, false,
+		var hint := W.serif_text(Loc.t("ui.trail.hint") if Trail.has_nodes() else Loc.t("ui.trail.not_laid"), 28, R.SECONDARY, 400, false,
 			HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
 		hint.name = "DockState"
 		hint.position = Vector2(0.0, 90.0)
@@ -836,12 +840,13 @@ func _fill_dock() -> void:
 		var cost := Trail.price(selected)
 		var cur := Trail.currency()
 		var short := maxi(cost - Currency.balance(cur), 0)
-		var b := WButton.price(cost, "BUY", WButton.GREEN, 36, short, cur, false, 100.0)
+		var b := WButton.price(cost, Loc.t("ui.trail.buy"), WButton.GREEN, 36, short, cur, false, 100.0)
 		b.name = "Buy"
 		b.position = Vector2(x1, 44.0)
 		b.size = Vector2(right_w, b.get_combined_minimum_size().y)
 		b.pressed.connect(press_buy)
 		_dock.add_child(b)
+		_tutor_buy(b)
 		if short > 0:
 			var sh := W.short_text(short, 24)
 			sh.align = HORIZONTAL_ALIGNMENT_CENTER
@@ -849,11 +854,11 @@ func _fill_dock() -> void:
 			sh.size = Vector2(right_w, 30.0)
 			_dock.add_child(sh)
 		return
-	var tag: Array = [{"glyph": "lock", "px": 26, "color": R.MUTED}, ["LOCKED", R.MUTED, "bold"]]
+	var tag: Array = [{"glyph": "lock", "px": 26, "color": R.MUTED}, [Loc.t("ui.trail.tag.locked"), R.MUTED, "bold"]]
 	if st == "bought":
-		tag = [["YOURS", TICK.lightened(0.25), "bold"]]
+		tag = [[Loc.t("ui.trail.tag.yours"), TICK.lightened(0.25), "bold"]]
 	elif st == "closed":
-		tag = [["CLOSED", R.SHORT_INK, "bold"]]
+		tag = [[Loc.t("ui.trail.tag.closed"), R.SHORT_INK, "bold"]]
 	var pill := W.pill(tag, 30, 64.0)
 	pill.name = "DockTag"
 	_dock.add_child(pill)
@@ -910,7 +915,7 @@ func _draw_canvas() -> void:
 	var n := Trail.levels()
 	if n <= 0:
 		c.draw_rect(Rect2(0, 0, w, vh), R.SLATE_BOTTOM)
-		_plate(Vector2(w * 0.5, vh * 0.4), Trail.end_text() if Trail.end_text() != "" else "To be continued", 34, true)
+		_plate(Vector2(w * 0.5, vh * 0.4), Trail.end_text() if Trail.end_text() != "" else Loc.t("ui.trail.to_be_continued"), 34, true)
 		return
 	var lo := _level_at(sv + vh)
 	var hi := _level_at(sv)
@@ -1044,7 +1049,7 @@ func _draw_canvas() -> void:
 		c.draw_circle(lc, 22.0, R.DOCK_BADGE_FILL, true, -1.0, true)
 		W.draw_glyph(c, "lock", Rect2(lc - Vector2(10.0, 13.0), Vector2(20.0, 25.0)), R.GOLD_TEXT, R.DOCK_BADGE_FILL)
 	if top_y > -80.0:
-		_plate(Vector2(w * 0.5, top_y - 130.0), Trail.end_text() if Trail.end_text() != "" else "To be continued", 34, true)
+		_plate(Vector2(w * 0.5, top_y - 130.0), Trail.end_text() if Trail.end_text() != "" else Loc.t("ui.trail.to_be_continued"), 34, true)
 	bench_usec += Time.get_ticks_usec() - t0
 
 
@@ -1066,7 +1071,7 @@ func _or_mark(at: Vector2, taken: bool, w: float) -> void:
 		return
 	var f := R.body(R.BOLD_WEIGHT)
 	var px := 22
-	c.draw_string(f, Vector2(r.position.x, at.y - px * 0.62 + f.get_ascent(px)), "OR", HORIZONTAL_ALIGNMENT_CENTER, w, px, R.NAVY)
+	c.draw_string(f, Vector2(r.position.x, at.y - px * 0.62 + f.get_ascent(px)), Loc.t("ui.trail.or"), HORIZONTAL_ALIGNMENT_CENTER, w, px, R.NAVY)
 
 
 func _diamond(at: Vector2, l: int, tl: int, d: float) -> void:
@@ -1176,8 +1181,50 @@ static func requirement_line(type: String, id: String, px: int, soft: bool = fal
 	mark.name = "Chevron"
 	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(mark)
-	t.pressed.connect(func() -> void: Nav.to_trail(type, id))
+	# pass 137 (lane TUTOR): refused while the Trail is closed (no run counted yet)
+	t.pressed.connect(func() -> void:
+		if not Nav.to_trail(type, id):
+			W.sfx("ui_locked"))
 	return t
+
+
+# ---------------------------------------------------------------- BUY's highlight (pass 137, lane TUTOR)
+
+const WHighlightScript := preload("res://ui/wanted/WHighlight.gd")
+## The highlight on BUY while Save's tutorial step buy_tapped is open (WHighlight; null when off).
+var buy_highlight: Control
+
+
+## Garry: "On the Trail screen the Buy button is highlighted the same way until the first tap." BUY wears the Results'
+## highlight whenever the dock shows one (the node chosen is open), also when the purse is short (its price in red and the
+## "N short" line under it say what it needs); the first tap the purse can pay (press_buy) ends it for good, a short tap
+## (ui_locked) leaves it on. `b` null hides it until the next BUY.
+func _tutor_buy(b: Control) -> void:
+	var on := buy_highlight != null and is_instance_valid(buy_highlight)
+	if Save.tutorial_done("buy_tapped"):
+		if on:
+			buy_highlight.call("stop")
+		buy_highlight = null
+		return
+	if b == null:
+		if on:
+			buy_highlight.call("retarget", null)
+		return
+	if on:
+		buy_highlight.call("retarget", b)
+	else:
+		buy_highlight = WHighlightScript.attach(b, self)
+
+
+func _buy_tapped() -> void:
+	if not Save.tutorial_done("buy_tapped"):
+		Save.mark_tutorial("buy_tapped")
+	_tutor_buy(null)
+
+
+## Whether BUY is highlighted now (tests, tools).
+func buy_highlighted() -> bool:
+	return buy_highlight != null and is_instance_valid(buy_highlight) and bool(buy_highlight.call("is_on"))
 
 
 # ---------------------------------------------------------------- a node's tile

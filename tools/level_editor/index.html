@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="skins.css">
 <link rel="stylesheet" href="wanted.css">
 <link rel="stylesheet" href="trail.css">
+<link rel="stylesheet" href="strings.css">
 </head>
 <body>
 <!-- the glyphs every lane and chip uses: <use href="#g-name"> (pass 53); they take their fill from the <use> -->
@@ -63,6 +64,7 @@
   <button type="button" data-tab="bossattacks" title="pass 72: custom boss attacks: make, name, tune with a preview, give to a boss">Boss attacks</button>
   <button type="button" data-tab="wanted" title="pass 111: the Bounty Board: the Wanted posters a player picks before a stage run (task types, weights, difficulty, the reward), and a board you can roll">Wanted</button>
   <button type="button" data-tab="trail" title="pass 129: the Trail (the permanent progression): the whole track as the game shows it on the left, every level and node to edit on the right, the checks, CSV out and in">Trail</button>
+  <button type="button" data-tab="strings" title="pass 137: every text a player reads (name -> text): the code's words in content/strings/en.json and each item's own words in its JSON, with their {variables}, a preview, the checks, CSV out and in; the Guide button explains it">Texts</button>
   <button type="button" data-tab="instructions">Instructions</button>
   <span id="issues" class="issues good" title="what the checks say (the inspector lists them when nothing is selected)">no issues</span>
   <span class="spacer"></span>
@@ -96,6 +98,7 @@
   <section id="tab-bossattacks" class="tab-panel page" hidden></section>
   <section id="tab-wanted" class="tab-panel page" hidden></section>
   <section id="tab-trail" class="tab-panel page" hidden></section>
+  <section id="tab-strings" class="tab-panel page" hidden></section>
   <section id="tab-drivers" class="tab-panel page" hidden></section>
   <section id="tab-sim" class="tab-panel page" hidden></section>
   <section id="tab-instructions" class="tab-panel page" hidden></section>
@@ -179,6 +182,9 @@
 <!-- pass 130 (lane LE): the Trail tab's hint box, its page-free part (the words: trail_hints.json) -->
 <script src="trail_hint.js"></script>
 <script src="trail.js"></script>
+<!-- pass 137 (lane LOCKIT): the Texts tab (strings_io.py), its renderer and checks (strings_model.js, Loc.gd's twin) -->
+<script src="strings_model.js"></script>
+<script src="strings.js"></script>
 <!-- pass 113 (lane TASKS): the task types' quest rows: a condition's picture, the healing items' and heal sources' pickers -->
 <script src="tasks.js"></script>
 <!-- pass 77 (lane SIMUI): the Sim tab, on its page-free maths (sim_model.js, also run under Node by selftest_SIM77.py) -->

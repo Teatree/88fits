@@ -325,14 +325,14 @@ func _ready() -> void:
 	_label.name = "Label"
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_label)
-	_label_text = W.text("TOTEM", label_font(), LABEL_PX, W.PAPER)
+	_label_text = W.text(Loc.t("ui.totem.label"), label_font(), LABEL_PX, W.PAPER)
 	_label_text.name = "Words"
 	_label.add_child(_label_text)
 	_label.draw.connect(_draw_label_stars)
 	# pass 123 (Garry: "Make the Totem 1 of 10 more like a Header and make it white"): the label as a header, cream
 	# Ultra with the navy edge between the kit's gold stars; a child of the label, so it fades with it
 	_label_text.visible = false
-	_header_royale = WStarLine.make("TOTEM", ROYALE_HEADER_PX, R.CREAM, 0.05)
+	_header_royale = WStarLine.make(Loc.t("ui.totem.label"), ROYALE_HEADER_PX, R.CREAM, 0.05)
 	_header_royale.name = "Header"
 	_header_royale.color = R.GOLD_TEXT
 	_label.add_child(_header_royale)

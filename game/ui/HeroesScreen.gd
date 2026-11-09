@@ -190,7 +190,7 @@ func header_right() -> Control:
 
 
 func build() -> void:
-	set_title("Outlaws")
+	set_title(Loc.t("ui.heroes.title"))
 	content.add_theme_constant_override("separation", 0)
 	heroes = _roster()
 	var last := Registry.playable_character(str(Save.data.get("last_character", Save.DEFAULT_HERO)))
@@ -292,7 +292,7 @@ func _top() -> Control:
 	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(right)
 	var is_owned := owned(shown)
-	var nm := W.text(("Unknown" if not is_owned else SHEET_SCRIPT.hero_name(shown)).to_upper(), W.slab(), NAME_PX, W.INK,
+	var nm := W.text((Loc.t("ui.heroes.unknown") if not is_owned else SHEET_SCRIPT.hero_name(shown)).to_upper(), W.slab(), NAME_PX, W.INK,
 		HORIZONTAL_ALIGNMENT_LEFT, float(NAME_PX))
 	nm.name = "HeroName"
 	SHEET_SCRIPT.fit_text(nm, 1080.0 - SIDE * 2.0 - PAGE_GUTTER - COL_L - COL_GAP, 36)
@@ -311,7 +311,7 @@ func _top() -> Control:
 	buttons.add_theme_constant_override("separation", 16)
 	buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	right.add_child(buttons)
-	var details := WButton.make(["DETAILS"], DETAILS_PX, WButton.UPGRADE, R.BUTTON_EDGE, R.BUTTON_BASE,
+	var details := WButton.make([Loc.t("ui.heroes.details")], DETAILS_PX, WButton.UPGRADE, R.BUTTON_EDGE, R.BUTTON_BASE,
 		maxf((DETAILS_H - 2.0 * R.BUTTON_EDGE - DETAILS_PX) * 0.5, 0.0), 12.0, float(DETAILS_PX), WButton.BLUE)
 	details.name = "Details"
 	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -329,7 +329,7 @@ func _looks_button() -> Control:
 	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	holder.custom_minimum_size = Vector2(0.0, DETAILS_H)
 	holder.mouse_filter = Control.MOUSE_FILTER_PASS
-	var b := WButton.make(["SKINS"], DETAILS_PX, WButton.UPGRADE, R.BUTTON_EDGE, R.BUTTON_BASE,
+	var b := WButton.make([Loc.t("ui.heroes.skins")], DETAILS_PX, WButton.UPGRADE, R.BUTTON_EDGE, R.BUTTON_BASE,
 		maxf((DETAILS_H - 2.0 * R.BUTTON_EDGE - DETAILS_PX) * 0.5, 0.0), 12.0, float(DETAILS_PX), WButton.BLUE)
 	b.name = "LooksBtn"
 	b.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -449,7 +449,7 @@ func _trait_panel() -> Control:
 	var inner := 1080.0 - SIDE * 2.0 - PAGE_GUTTER - COL_L - COL_GAP
 	match state_of(shown):
 		"owned":
-			v.add_child(W.label(("Trait · " + shown.trait_name) if shown.trait_name != "" else "Trait", LABEL_PX, W.INK_SOFT))
+			v.add_child(W.label(Loc.t("ui.heroes.trait_named", {"name": shown.trait_name}) if shown.trait_name != "" else Loc.t("ui.heroes.trait"), LABEL_PX, W.INK_SOFT))
 			for line: Array in SHEET_SCRIPT.trait_lines(shown):
 				var good := bool(line[2])
 				var t := W.text("", R.body(R.BODY_WEIGHT), TRAIT_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, roundf(TRAIT_PX * 1.25))
@@ -465,10 +465,10 @@ func _trait_panel() -> Control:
 				n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				v.add_child(n)
 		"buyable":
-			v.add_child(W.label("On sale", LABEL_PX, W.SAGE))
+			v.add_child(W.label(Loc.t("ui.heroes.on_sale"), LABEL_PX, W.SAGE))
 			var q := Registry.quest_for("character", shown.id)
 			var cur := Currency.of(shown.currency_type)
-			var words := ("Requirement met: " + TextGen.quest_text(q)) if q else ("Yours for %s." % Currency.price_words(cur, maxi(shown.price, 0)))
+			var words := Loc.t("ui.heroes.requirement_met", {"requirement": TextGen.quest_text(q)}) if q else Loc.t("ui.heroes.yours_for", {"price": Currency.price_words(cur, maxi(shown.price, 0))})
 			var t2 := W.serif_text(words, 22, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 			t2.name = "Requirement"
 			t2.color = R.WHITE
@@ -481,7 +481,7 @@ func _trait_panel() -> Control:
 				sh.align = HORIZONTAL_ALIGNMENT_LEFT
 				v.add_child(sh)
 		_:
-			v.add_child(W.label("To unlock", LABEL_PX, W.ROCK))
+			v.add_child(W.label(Loc.t("ui.heroes.to_unlock"), LABEL_PX, W.ROCK))
 			# pass 129 (lane TRAIL-UI): an outlaw a Trail node gives reads "Reach Trail Level N"; a tap opens the Trail on it
 			var trail_line := TrailScreen.requirement_line("outlaw", shown.id, 22)
 			if trail_line:
@@ -490,7 +490,7 @@ func _trait_panel() -> Control:
 				v.add_child(trail_line)
 				return p
 			var q2 := Registry.quest_for("character", shown.id)
-			var t3 := W.serif_text(Registry.hero_requirement_text(shown) if q2 else "Not in the game yet.", 22, W.INK, 400, false,
+			var t3 := W.serif_text(Registry.hero_requirement_text(shown) if q2 else Loc.t("ui.heroes.not_in_game"), 22, W.INK, 400, false,
 				HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 			t3.name = "Requirement"
 			t3.color = R.WHITE
@@ -517,7 +517,7 @@ func _items_panel() -> Control:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(v)
 	var is_owned := owned(shown)
-	v.add_child(W.label((TextGen.possessive(shown) + " items") if is_owned else "Items", LABEL_PX, W.INK_SOFT))
+	v.add_child(W.label(Loc.t("ui.heroes.items_of", {"owner": TextGen.possessive(shown)}) if is_owned else Loc.t("ui.heroes.items"), LABEL_PX, W.INK_SOFT))
 	var sheet: StatSheet = Run.hero_sheet(shown, 1)
 	var first := true
 	for it: Dictionary in SHEET_SCRIPT.items_of(shown):
@@ -545,7 +545,7 @@ func _select_row() -> Control:
 	match st:
 		"owned":
 			var picked := is_selected(shown)
-			select_btn = WButton.make(["SELECTED" if picked else "SELECT"], SELECT_PX, WButton.SECONDARY if picked else WButton.PRIMARY,
+			select_btn = WButton.make([Loc.t("ui.heroes.selected") if picked else Loc.t("ui.heroes.select")], SELECT_PX, WButton.SECONDARY if picked else WButton.PRIMARY,
 				R.BUTTON_EDGE, R.BUTTON_BASE, pad, 0.0, float(SELECT_PX), WButton.SLATE if picked else WButton.GOLD)
 			select_btn.set_meta("action", "selected" if picked else "select")
 			select_btn.pressed.connect(select_shown)
@@ -555,12 +555,12 @@ func _select_row() -> Control:
 			var price := maxi(shown.price, 0)
 			var short := maxi(price - Currency.balance(cur), 0)
 			# short of it: the locked grey with the price and the word kept; the shortfall is said on the ON SALE panel
-			select_btn = WButton.price(price, "BUY", WButton.GREEN, SELECT_PX, short, cur, true, SELECT_H)
+			select_btn = WButton.price(price, Loc.t("ui.heroes.buy"), WButton.GREEN, SELECT_PX, short, cur, true, SELECT_H)
 			select_btn.set_meta("action", "buy")
 			select_btn.pressed.connect(ask_buy)
 			m.add_child(select_btn)
 		_:
-			select_btn = WButton.make([{"glyph": "lock", "px": 40}, "LOCKED"], SELECT_PX, WButton.SECONDARY, R.BUTTON_EDGE,
+			select_btn = WButton.make([{"glyph": "lock", "px": 40}, Loc.t("ui.heroes.locked")], SELECT_PX, WButton.SECONDARY, R.BUTTON_EDGE,
 				R.BUTTON_BASE, pad, 0.0, float(SELECT_PX), WButton.LOCKED)
 			select_btn.locked = true
 			select_btn.set_meta("action", "locked")
@@ -581,7 +581,7 @@ func open_looks() -> void:
 	if shown == null or not owned(shown):
 		return
 	Crumbs.looks_mark_seen(shown)
-	looks_pop = WConfirm.shell(self, {"buttons": [{"id": "cancel", "text": "Close", "role": WButton.SLATE}],
+	looks_pop = WConfirm.shell(self, {"buttons": [{"id": "cancel", "text": Loc.t("ui.heroes.close"), "role": WButton.SLATE}],
 		"button_h": 96.0, "button_px": 38, "on_answer": _on_looks_answer})
 	looks_pop.name = "LooksPop"
 	_fill_looks_pop()
@@ -620,9 +620,9 @@ func _fill_looks_pop() -> void:
 	v.add_theme_constant_override("separation", 18)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(v)
-	v.add_child(WConfirm.make_star("Skins"))
+	v.add_child(WConfirm.make_star(Loc.t("ui.heroes.skins_star")))
 	v.add_child(WConfirm.make_title(SHEET_SCRIPT.hero_name(shown).to_upper(), 56))
-	var lab := W.label("%d of %d owned" % [n_owned, codes.size()], LABEL_PX, W.INK_SOFT)
+	var lab := W.label(Loc.t("ui.heroes.skins_owned", {"owned": str(n_owned), "total": str(codes.size())}), LABEL_PX, W.INK_SOFT)
 	lab.name = "Label"
 	lab.align = HORIZONTAL_ALIGNMENT_CENTER
 	lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -768,7 +768,7 @@ func _fill_picker() -> void:
 	for h: CharacterDef in heroes:
 		if owned(h):
 			n_owned += 1
-	var lab := W.label("Outlaws · %d of %d owned" % [n_owned, heroes.size()], LABEL_PX, W.INK_SOFT)
+	var lab := W.label(Loc.t("ui.heroes.outlaws_owned", {"owned": str(n_owned), "total": str(heroes.size())}), LABEL_PX, W.INK_SOFT)
 	lab.name = "Label"
 	lab.position = Vector2(SIDE, PICK_PAD)
 	lab.size = Vector2(1080.0 - SIDE * 2.0, PICK_LABEL_H)
@@ -826,7 +826,7 @@ func _hero_tile(h: CharacterDef) -> WTap:
 			tag.name = "Foot"
 			v.add_child(tag)
 		_:
-			var lk: PanelContainer = SHEET_SCRIPT.royale_tag("Locked", "red", R.TAG_PX)
+			var lk: PanelContainer = SHEET_SCRIPT.royale_tag(Loc.t("ui.heroes.locked_tag"), "red", R.TAG_PX)
 			lk.name = "Foot"
 			v.add_child(lk)
 	t.pressed.connect(func(): show_hero(h))
@@ -914,8 +914,8 @@ func ask_buy() -> void:
 	if not Currency.can_afford(cur, price):
 		_refuse(select_btn)
 		return
-	WConfirm.open(self, "Buy this outlaw?", "%s from your purse. Yours to play from then on." % Currency.price_words(cur, price),
-		"Buy · %s" % W.num(price), "Not now", func(): buy_now(c), Callable(), "buy", WButton.price_parts(price, "BUY", R.MODAL_BUTTON_PX, cur))
+	WConfirm.open(self, Loc.t("ui.buy_outlaw.title"), Loc.t("ui.buy_outlaw.body", {"price": Currency.price_words(cur, price)}),
+		Loc.t("ui.buy_outlaw.confirm", {"price": W.num(price)}), Loc.t("ui.buy_outlaw.not_now"), func(): buy_now(c), Callable(), "buy", WButton.price_parts(price, Loc.t("ui.buy_outlaw.buy"), R.MODAL_BUTTON_PX, cur))
 
 
 ## The purchase (the title's): the gold spent (Save.buy_hero, the sink "hero"), the page his, a burst over him.
@@ -971,9 +971,9 @@ func ask_buy_look(code: String) -> void:
 		_refuse(t)
 		return
 	_on_looks_answer("replaced")
-	WConfirm.open(self, "Buy this skin?", "%s from your purse. %s wears it from then on." % [Currency.price_words(cur, price),
-		SHEET_SCRIPT.hero_name(c)], "Buy · %s" % W.num(price), "Not now", func(): buy_look(c, code), open_looks, "buy",
-		WButton.price_parts(price, "BUY", R.MODAL_BUTTON_PX, cur))
+	WConfirm.open(self, Loc.t("ui.buy_skin.title"), Loc.t("ui.buy_skin.body", {"price": Currency.price_words(cur, price),
+		"outlaw": SHEET_SCRIPT.hero_name(c)}), Loc.t("ui.buy_skin.confirm", {"price": W.num(price)}), Loc.t("ui.buy_skin.not_now"), func(): buy_look(c, code), open_looks, "buy",
+		WButton.price_parts(price, Loc.t("ui.buy_skin.buy"), R.MODAL_BUTTON_PX, cur))
 
 
 ## The look bought (the sheet's purchase: Save.buy_skin, the sink "skin"), worn at once, the looks back with a burst.

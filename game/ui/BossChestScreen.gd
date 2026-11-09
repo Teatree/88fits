@@ -71,8 +71,8 @@ const COUNTER_H := 178.0
 const BUTTON_H := 132.0
 const BANNER_PX := 118
 ## The banner's words by the share of the pieces landed (the last one: JACKPOT at the finale).
-const WORDS := [[0.0, "BOSS LOOT!"], [0.3, "BIG WIN!"], [0.6, "HUGE WIN!"], [0.88, "MEGA WIN!"]]
-const JACKPOT := "JACKPOT!"
+const WORDS := [[0.0, "ui.boss_chest.word.loot"], [0.3, "ui.boss_chest.word.big"], [0.6, "ui.boss_chest.word.huge"], [0.88, "ui.boss_chest.word.mega"]]
+const JACKPOT_KEY := "ui.boss_chest.word.jackpot"
 const WORD_COLOURS := [Color("f3e6c8"), Color("f6d75e"), Color("ffb347"), Color("ff7a4a"), Color("ffe066")]
 ## The gems' colours (PickupManager's small, medium and large) and the coin's painting.
 const GEM_COLOURS := [Color(0.4836, 0.3744, 0.78), Color(0.351, 0.663, 0.78), Color(0.78, 0.429, 0.663)]
@@ -204,12 +204,12 @@ func _ready() -> void:
 	# pass 119: the party over the chest and under everything that reads (the title, the meter, the banner, the counters)
 	_party = _layer(self, _draw_party)
 	# pass 123, Royale: the header's words cream (Garry: "Header text white"), set again with the boss's name on open
-	build_header("Boss chest", "CHEST", "", 128, W.PAPER)
+	build_header(Loc.t("ui.boss_chest.star"), Loc.t("ui.boss_chest.title"), "", 128, W.PAPER)
 	_meter = _layer(self, _draw_meter)
 	_banner = _layer(self, _draw_banner)
 	_counters = _layer(self, _draw_counters)
 	build_buttons(BUTTON_H)
-	_claim_btn = WButton.make(["CLAIM"], 62, WButton.PRIMARY, 6, 10, 30.0, 0.0)
+	_claim_btn = WButton.make([Loc.t("ui.boss_chest.claim")], 62, WButton.PRIMARY, 6, 10, 30.0, 0.0)
 	_claim_btn.name = "Claim"
 	_claim_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_claim_btn.pressed.connect(_on_claim)
@@ -249,7 +249,7 @@ func open(id: String, p: Dictionary) -> void:
 	_layout()
 	header.set_title_fit(str(look["name"]).to_upper(), 128, W.PAPER, _vp.x - 96.0)
 	# (Royale: the star line the kit's gold, as every star line over a modal)
-	header.set_star("Boss chest", W.BRASS)
+	header.set_star(Loc.t("ui.boss_chest.star"), W.BRASS)
 	header.set_line("")
 	(_shine as WShineScript).tint(shine)
 	(_shine as WShineScript).color2 = W.LINE_YELLOW
@@ -468,7 +468,7 @@ func advance(dt: float) -> void:
 		for k in range(WORDS.size() - 1, -1, -1):
 			if f >= float(WORDS[k][0]):
 				if k > _word_k:
-					_say(k, str(WORDS[k][1]))
+					_say(k, Loc.t(str(WORDS[k][1])))
 				break
 	if not _done and _t >= _end_t + FINALE:
 		_finale()
@@ -607,7 +607,7 @@ func _finale() -> void:
 	_done = true
 	_gold_target = float(gold_total)
 	_xp_target = xp_total
-	_word = JACKPOT
+	_word = Loc.t(JACKPOT_KEY)
 	_word_k = WORDS.size()
 	_word_t = _t
 	_shake = maxf(_shake, 0.7)
@@ -915,15 +915,15 @@ func _draw_meter_royale(a: float) -> void:
 	var mult := float(pack.get("mult", 1.0))
 	var fight := float(pack.get("fight", -1.0))
 	var label_f := _rfont("label")
-	_meter.draw_string(label_f, r.position + Vector2(ROYALE_PAD, 46.0), "SPEED BONUS", HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_LABEL_PX, R.SECONDARY)
+	_meter.draw_string(label_f, r.position + Vector2(ROYALE_PAD, 46.0), Loc.t("ui.boss_chest.speed_bonus"), HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_LABEL_PX, R.SECONDARY)
 	# "Killed in" and the time in bold white, right-aligned on the label's line
 	var time_f := _rfont("bold")
 	var lead_f := _rfont("body")
 	var right := r.end.x - ROYALE_PAD
 	# "Killed in" (secondary), the time (bold white), and at x1 " · faster pays more" (secondary), right-aligned
 	var time := W.mmss(fight) if fight >= 0.0 else ""
-	var lead := "Killed in " if fight >= 0.0 else "Boss down"
-	var extra := " · faster pays more" if mult <= 1.001 else ""
+	var lead := Loc.t("ui.boss_chest.killed_in") + " " if fight >= 0.0 else Loc.t("ui.boss_chest.boss_down")
+	var extra := " " + Loc.t("ui.boss_chest.faster_pays") if mult <= 1.001 else ""
 	var y := r.position.y + 46.0
 	var ew := lead_f.get_string_size(extra, HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_TIME_PX).x if extra != "" else 0.0
 	var tw := time_f.get_string_size(time, HORIZONTAL_ALIGNMENT_LEFT, -1, ROYALE_TIME_PX).x if time != "" else 0.0
@@ -1031,7 +1031,7 @@ func _draw_banner() -> void:
 		return
 	var since := _t - _word_t
 	var k := clampf(since / 0.28, 0.0, 1.0)
-	var pop := 1.0 + 0.9 * pow(1.0 - k, 3.0) + (0.05 * sin(_t * 8.0) if _word == JACKPOT else 0.02 * sin(_t * 5.0))
+	var pop := 1.0 + 0.9 * pow(1.0 - k, 3.0) + (0.05 * sin(_t * 8.0) if _word == Loc.t(JACKPOT_KEY) else 0.02 * sin(_t * 5.0))
 	var rot := -0.06 + 0.12 * pow(1.0 - k, 2.0) * (1.0 if _word_k % 2 == 0 else -1.0)
 	var col: Color = WORD_COLOURS[clampi(_word_k, 0, WORD_COLOURS.size() - 1)]
 	var slab := W.slab()
@@ -1051,8 +1051,8 @@ func _draw_counters() -> void:
 	var a := clampf((_t - 0.2) / 0.3, 0.0, 1.0)
 	if a <= 0.0:
 		return
-	_counter(_gold_rect, "GOLD", W.num(int(round(_gold_shown))), true, _gold_bump, a)
-	_counter(_xp_rect, "EXP", W.num(int(round(_xp_shown))), false, _xp_bump, a)
+	_counter(_gold_rect, Loc.t("ui.boss_chest.gold"), W.num(int(round(_gold_shown))), true, _gold_bump, a)
+	_counter(_xp_rect, Loc.t("ui.boss_chest.exp"), W.num(int(round(_xp_shown))), false, _xp_bump, a)
 
 
 func _counter(r: Rect2, label: String, value: String, coin: bool, bump: float, a: float) -> void:

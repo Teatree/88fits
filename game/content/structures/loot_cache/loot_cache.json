@@ -1,7 +1,7 @@
 {
   "id": "loot_cache",
   "radius": 2.2,
-  "interact_time": 3.0,
+  "interact_time": 2.5,
   "name": "Loot Cache",
   "flavour": "Somebody buried this. Somebody was wrong.",
   "effect": "loot",

@@ -599,7 +599,7 @@ static func _structure(d: Dictionary, dir: String) -> StructureDef:
 	st.params = pr if pr is Dictionary else {}
 	st.effects = effects_list(st.params.get("effects", []), "player")
 	st.radius = float(d.get("radius", 2.2))
-	st.interact_time = float(d.get("interact_time", 3.0))
+	st.interact_time = float(d.get("interact_time", 2.5))
 	st.color = Color(str(d.get("color", "#FFFFFF")))
 	st.prop = str(d.get("prop", ""))
 	st.height = float(d.get("height", 2.0))

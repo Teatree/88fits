@@ -635,7 +635,7 @@ func _draw() -> void:
 	var ty := maxf(W.safe_top(), 0.0) + vp.y * 0.168
 	_outlined(self, font, title, Vector2(vp.x * 0.5, ty), TITLE_PX, W.PAPER, a, 16, 7.0)
 	if t < _reveal_at + 0.3 and from_def != null:
-		var sub := "SHARPENING THE %s" % from_def.display_name.to_upper()
+		var sub := Loc.t("ui.grind.sharpening", {"item": from_def.display_name.to_upper()})
 		var sa := a * (1.0 - clampf((t - _reveal_at) / 0.3, 0.0, 1.0))
 		# pass 123: under Royale the line under a title is the kit's secondary blue (gold is for what acts, coins, stars)
 		_outlined(self, font, sub, Vector2(vp.x * 0.5, ty + TITLE_PX * 0.72), _fit(font, sub, SUB_PX, vp.x - 80.0), R.SECONDARY, sa, 10, 4.0)
@@ -793,11 +793,11 @@ func _draw_top() -> void:
 		if stamped:
 			var s2 := t - _stamp_at
 			var sc := 1.0 + 0.5 * exp(-s2 / 0.09)
-			_outlined(_top, font, "EVOLVED", Vector2(c.x, name_y), EVOLVED_PX, W.EMBER, a * clampf(s2 / 0.08, 0.0, 1.0), 18, 7.0, sc)
+			_outlined(_top, font, Loc.t("ui.grind.evolved"), Vector2(c.x, name_y), EVOLVED_PX, W.EMBER, a * clampf(s2 / 0.08, 0.0, 1.0), 18, 7.0, sc)
 			var nm := to_def.display_name.to_upper() if to_def else ""
 			_outlined(_top, font, nm, Vector2(c.x, under_y + 10.0), _fit(font, nm, NAME_PX, vp.x - 80.0), W.PAPER, a, 14, 6.0)
 			if from_def:
-				var was := "from the %s" % from_def.display_name
+				var was := Loc.t("ui.grind.from", {"item": from_def.display_name})
 				var sf := W.serif(600, true)
 				var ww := sf.get_string_size(was, HORIZONTAL_ALIGNMENT_LEFT, -1, 40).x
 				# pass 123: Rubik italic in the kit's secondary blue on its navy edge under Royale
@@ -838,7 +838,7 @@ func _draw_top() -> void:
 		WMarks.star(_top, Vector2(x0 + step * i, sy), STAR_PX * 0.5 * sc2, Color(fill, in_a), sw, Color(ink, in_a))
 	# "LEVEL 2", and from the stamp "LEVEL 2 > 3" with the new number in brass, slammed in
 	var ly := sy + STAR_PX * 1.45
-	var word := "LEVEL %d" % level_from
+	var word := Loc.t("ui.grind.level", {"level": str(level_from)})
 	var px := LEVEL_PX
 	var ww2 := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x
 	if not stamped:

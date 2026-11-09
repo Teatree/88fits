@@ -30,24 +30,24 @@ static func word(card: Dictionary) -> String:
 	var def: ContentDef = card["def"]
 	match kind(def):
 		"weapon":
-			return "WEAPON"
+			return Loc.t("gen.card.word.weapon")
 		"evolution":
 			var reg := W.node("Registry")
 			var from := str(card.get("src_id", (def as WeaponDef).evolved_from))
 			var src = reg.weapon(from) if reg and from != "" else null
-			return "EVOLVES " + src.display_name.to_upper() if src else "EVOLUTION"
+			return Loc.t("gen.card.word.evolves", {"name": src.display_name.to_upper()}) if src else Loc.t("gen.card.word.evolution")
 		"line", "passive":
 			# pass 73 (lane CARDS): a line item is a fortune card to the player
-			var what := "CARD" if kind(def) == "line" else "PASSIVE"
+			var what := Loc.t("gen.card.word.card") if kind(def) == "line" else Loc.t("gen.card.word.passive")
 			if bool(card.get("evolve", false)):
 				var src = W.node("Registry").passive((def as PassiveDef).evolves_from)
-				return "EVOLVES " + (src.display_name.to_upper() if src else "A " + what)
+				return Loc.t("gen.card.word.evolves", {"name": src.display_name.to_upper()}) if src else Loc.t("gen.card.word.evolves_a", {"what": what})
 			return what + rung_word(card)
 		"perk":
 			var hero = W.node("Registry").character((def as PerkDef).hero)
-			return "%s'S PERK · ONCE" % (hero.display_name.to_upper() if hero else "OUTLAW")
+			return Loc.t("gen.card.word.perk", {"who": hero.display_name.to_upper() if hero else Loc.t("gen.card.word.outlaw")})
 		"mutation":
-			return "OUTLAW MUTATION" if (def as MutationDef).is_hero() else "MUTATION"
+			return Loc.t("gen.card.word.outlaw_mutation") if (def as MutationDef).is_hero() else Loc.t("gen.card.word.mutation")
 	return ""
 
 
@@ -201,13 +201,16 @@ static func _passive_effect(card: Dictionary, pd: PassiveDef) -> String:
 		# a stat that reads as a ceiling ("up to +12% attack damage as health falls") takes no "a level"
 		if e is Effect and TextGen.PREFIX.has((e as Effect).stat):
 			ceiling = true
-	var s := TextGen.describe_effects(good) + (" a level" if ranked and pd.levels.size() <= 1 and not ceiling else "")
+	var s := TextGen.describe_effects(good)
+	if ranked and pd.levels.size() <= 1 and not ceiling:
+		s = Loc.t("gen.card.a_level", {"effects": s})
 	if pd.trade != "":
-		s += ". Trade: " + pd.trade.trim_suffix(" a level") + "."
+		# the trade's own words (content) without their " a level" (the English JSON's wording)
+		s = Loc.t("gen.card.trade", {"effects": s, "trade": pd.trade.trim_suffix(" a level")})
 	else:
 		s += "."
 	if lf > 0 and ranked:
-		return "Next: " + s
+		return Loc.t("gen.card.next", {"effects": s})
 	return s.substr(0, 1).to_upper() + s.substr(1)
 
 
@@ -243,16 +246,17 @@ static func favourite_line(card: Dictionary) -> String:
 		return ""
 	var def: ContentDef = card["def"]
 	var b: Dictionary = hero.favourite_bonus if def is WeaponDef else hero.favourite_passive_bonus
-	var whose: String = {"he": "His", "she": "Her"}.get(str(hero.get("pronoun")), "Their")
+	# pass 137: his own word from TextGen.possessive (rows "gen.word.his", "gen.word.her", "gen.word.their"), capitalised
+	var whose := TextGen._sentence(TextGen.possessive(hero as CharacterDef))
 	match str(b.get("type", "")):
 		"level":
 			var lt := maxi(int(card.get("level_to", 1)), 1)
-			return " %s favourite: found at level %d." % [whose, lt] if lt > 1 else ""
+			return " " + Loc.t("gen.card.favourite_level", {"whose": whose, "level": str(lt)}) if lt > 1 else ""
 		"max":
-			return " %s favourite: found full." % whose
+			return " " + Loc.t("gen.card.favourite_full", {"whose": whose})
 		"effects":
 			if b.get("effects") is Array and not (b["effects"] as Array).is_empty():
-				return " %s favourite: %s." % [whose, TextGen.describe_effects(b["effects"])]
+				return " " + Loc.t("gen.card.favourite_effects", {"whose": whose, "effects": TextGen.describe_effects(b["effects"])})
 	return ""
 
 
@@ -281,10 +285,10 @@ static func options(card: Dictionary, extra: Dictionary = {}) -> Dictionary:
 	# (pass 58 review: the shop's Hammer 2 → 3 showed no level anywhere)
 	var lf := int(card.get("level_from", 0))
 	if lf > 0 and (o.get("stars", []) as Array).is_empty() and stars(card).size() >= 2:
-		o["word"] = "%s · LV %d → %d" % [str(o["word"]), lf, maxi(int(card.get("level_to", lf + 1)), lf + 1)]
+		o["word"] = Loc.t("gen.card.word.step", {"word": str(o["word"]), "from": str(lf), "to": str(maxi(int(card.get("level_to", lf + 1)), lf + 1))})
 	# a new one landing past level 1 (a favourite, pass 62) shown without stars says where it lands
 	elif lf <= 0 and int(card.get("level_to", 1)) > 1 and (o.get("stars", []) as Array).is_empty() and stars(card).size() >= 2:
-		o["word"] = "%s · LV %d" % [str(o["word"]), int(card.get("level_to", 1))]
+		o["word"] = Loc.t("gen.card.word.lands", {"word": str(o["word"]), "level": str(int(card.get("level_to", 1)))})
 	return o
 
 

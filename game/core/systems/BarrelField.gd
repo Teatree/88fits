@@ -106,6 +106,45 @@ const SPARE := 24
 var _dice := RandomNumberGenerator.new()
 var respawned := 0
 var powerups_thrown := 0
+## Pass 137 (lane BARRELS; Garry: "If a shot (projectile) flies through it the Barrel gets knocked back the first time and
+## the second time it gets destroyed. Wooden 2 shots, Golden 3, Power-up 5 ... A togglable option in the settings, on by
+## default"; answers: flying rounds only, walking into one still breaks it): see shot_through. A round within SHOT_R (plus
+## its own radius, at most SHOT_ROUND_MAX) of a barrel's axis, between SHOT_LOW and SHOT_HIGH over its foot, hits it once
+## and flies on (no pierce spent). Every hit before its kind's `shots` (BarrelSpawns.contents_of) slides it KNOCK_M along
+## the round's flight (half that when the spot is taken, none when that is too: never into a rock, the water, a structure's
+## ring, a painting's cover band, another barrel or past the arena) with a squash and a wobble over WOBBLE_S, chips and a
+## knock (st_barrel_hit); the last breaks it as walking into it does (_break: the same loot, debris, sound and Barrel
+## Rush). The rule position moves at once; only the drawing slides. GRID_CELL m cells over the standing barrels (each
+## barrel in every cell within GRID_PAD of it: i + 1, or -1 where two meet) let a round ask one cell a tick.
+const SHOT_R := 0.36
+const SHOT_ROUND_MAX := 0.6
+const SHOT_LOW := -0.4
+const SHOT_HIGH := 1.7
+const KNOCK_M := 0.6
+const KNOCK_S := 0.22
+const WOBBLE_S := 0.5
+const KNOCK_HOP := 0.1
+const GRID_CELL := 1.0
+const GRID_PAD := 1.6
+## each barrel's hits so far (index -> count; gone when it breaks or stands again), and every one's life (index -> how many
+## times its slot stood again: a round's memory of a barrel it struck is that barrel's, not its slot's)
+var shot_hits: Dictionary = {}
+var _life: Dictionary = {}
+## rounds that knocked a barrel back, barrels broken by rounds (tests, the capture)
+var shot_knocks := 0
+var shot_breaks := 0
+## the grid (ProjectileManager reads it inline, and checks a one-barrel cell's barrel against the step's midpoint before
+## asking): cells, its width and height in cells, its corner (x, z)
+var grid := PackedInt32Array()
+var grid_w := 0
+var grid_h := 0
+var grid_o := Vector2.ZERO
+var _grid_dirty := true
+var _grid_n := -1
+## a knocked barrel's drawing (index -> {from, to, t}): looks only
+var _anims: Dictionary = {}
+var _knock_ctx_cache: Dictionary = {}
+var _shots := PackedInt32Array()
 
 
 func setup(p_game: Node, p_map: MapBase) -> void:
@@ -415,9 +454,13 @@ func _physics_process(delta: float) -> void:
 
 
 ## The barrel bursts: splinters in its own wood, dust, gems (three times as many from a light one), a crack and a kick.
-func _break(i: int) -> void:
+## Pass 137 (lane BARRELS): `from` is where the blow came from (a round's side; INF = the hero: walking into it).
+func _break(i: int, from: Vector3 = Vector3.INF) -> void:
 	alive[i] = 0
 	broken += 1
+	shot_hits.erase(i)
+	_anims.erase(i)
+	_grid_dirty = true
 	# pass 113 (lane TASKS): one barrel broken by the hero (brown and black alike), for the barrel tasks
 	Run.barrels_broken += 1
 	var at := pos[i]
@@ -430,7 +473,8 @@ func _break(i: int) -> void:
 		(map.get("props") as PropField).hide_shadow(shadows[i])
 	var wood := DARK
 	if debris != null:
-		var from: Vector3 = game.player.global_position if game.player != null else at
+		if from == Vector3.INF:
+			from = game.player.global_position if game.player != null else at
 		debris.burst(t, at, float(QUAD_M[clampi(t, 0, 2)]), from)
 	if game.fx:
 		# staves, hoop pieces and a cloud of dust, big enough to read from the camera's height (pass 116: the wood of the
@@ -463,7 +507,7 @@ func _break(i: int) -> void:
 	if game.camera:
 		game.camera.shake(0.45 if t == 1 else 0.3)
 	if game.hud and t == 1:
-		game.hud.toast("A GOOD BARREL", Color(1.0, 0.85, 0.4))
+		game.hud.toast(Loc.t("toast.good_barrel"), Color(1.0, 0.85, 0.4))
 	_rush()
 
 
@@ -518,6 +562,227 @@ func alive_count() -> int:
 	for i in alive.size():
 		n += alive[i]
 	return n
+
+
+# ---------------------------------------------------------------- the Outlaw's rounds hit barrels (pass 137, lane BARRELS)
+
+## Whether a round may hit a barrel now: the player's switch (Settings.shoot_barrels) on and a barrel standing. Brings the
+## grid up to date first, so a caller may read `grid` straight after.
+func shootable() -> bool:
+	if not bool(Settings.shoot_barrels) or pos.is_empty():
+		return false
+	if _grid_dirty or _grid_n != pos.size():
+		_build_grid()
+	return grid_w > 0
+
+
+## The grid over the standing barrels: GRID_CELL m cells, each barrel in every cell that comes within GRID_PAD of it (i + 1;
+## -1 where two meet). A round whose tick's midpoint falls in an empty cell passes no barrel: its reach (at most 0.96 m)
+## plus half its step stays inside GRID_PAD up to a step of 1.28 m a tick (77 m/s at 60 ticks; a 0.3 m round's 113 m/s).
+func _build_grid() -> void:
+	_grid_dirty = false
+	_grid_n = pos.size()
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for i in pos.size():
+		if i < alive.size() and alive[i] == 1:
+			lo = Vector2(minf(lo.x, pos[i].x), minf(lo.y, pos[i].z))
+			hi = Vector2(maxf(hi.x, pos[i].x), maxf(hi.y, pos[i].z))
+	if lo.x == INF:
+		grid_w = 0
+		grid_h = 0
+		grid.clear()
+		return
+	grid_o = lo - Vector2(GRID_PAD + GRID_CELL, GRID_PAD + GRID_CELL)
+	grid_w = int(ceilf((hi.x - grid_o.x + GRID_PAD + GRID_CELL) / GRID_CELL)) + 1
+	grid_h = int(ceilf((hi.y - grid_o.y + GRID_PAD + GRID_CELL) / GRID_CELL)) + 1
+	grid.resize(grid_w * grid_h)
+	grid.fill(0)
+	for i in pos.size():
+		if i >= alive.size() or alive[i] == 0:
+			continue
+		var x0 := int((pos[i].x - GRID_PAD - grid_o.x) / GRID_CELL)
+		var x1 := int((pos[i].x + GRID_PAD - grid_o.x) / GRID_CELL)
+		var z0 := int((pos[i].z - GRID_PAD - grid_o.y) / GRID_CELL)
+		var z1 := int((pos[i].z + GRID_PAD - grid_o.y) / GRID_CELL)
+		for cz in range(maxi(z0, 0), mini(z1, grid_h - 1) + 1):
+			for cx in range(maxi(x0, 0), mini(x1, grid_w - 1) + 1):
+				# the cell's nearest point to the barrel within GRID_PAD of it
+				var nx := clampf(pos[i].x, grid_o.x + cx * GRID_CELL, grid_o.x + (cx + 1) * GRID_CELL) - pos[i].x
+				var nz := clampf(pos[i].z, grid_o.y + cz * GRID_CELL, grid_o.y + (cz + 1) * GRID_CELL) - pos[i].z
+				if nx * nx + nz * nz > GRID_PAD * GRID_PAD:
+					continue
+				var k := cz * grid_w + cx
+				grid[k] = i + 1 if grid[k] == 0 else -1
+
+
+## The grid's cell at (x, z): 0 no barrel near, i + 1 barrel i, -1 several (call shootable() first).
+func grid_at(x: float, z: float) -> int:
+	if grid_w <= 0:
+		return 0
+	var cx := int(floorf((x - grid_o.x) / GRID_CELL))
+	var cz := int(floorf((z - grid_o.y) / GRID_CELL))
+	if cx < 0 or cz < 0 or cx >= grid_w or cz >= grid_h:
+		return 0
+	return grid[cz * grid_w + cx]
+
+
+## A round of the Outlaw's (`r` its radius) that flew from `p0` to `p1` this tick: every standing barrel it passed through
+## and has not struck yet (`seen` is the round's own memory: barrel index -> that barrel's life) takes a hit, knocked back
+## along the flight or broken on its last; the round flies on. `cell` is the grid's cell at the step's midpoint (-1 = look
+## at every barrel). How many barrels it struck.
+func shot_through(p0: Vector3, p1: Vector3, r: float, seen: Dictionary, cell: int = -1) -> int:
+	if cell == 0 or not bool(Settings.shoot_barrels):
+		return 0
+	var reach := SHOT_R + clampf(r, 0.0, SHOT_ROUND_MAX)
+	var n := 0
+	if cell > 0:
+		n += _shot_one(cell - 1, p0, p1, reach, seen)
+	else:
+		for i in pos.size():
+			n += _shot_one(i, p0, p1, reach, seen)
+	return n
+
+
+func _shot_one(i: int, p0: Vector3, p1: Vector3, reach: float, seen: Dictionary) -> int:
+	if i < 0 or i >= pos.size() or i >= alive.size() or alive[i] == 0:
+		return 0
+	var c := pos[i]
+	var up := p1.y - c.y
+	if up < SHOT_LOW or up > SHOT_HIGH:
+		return 0
+	# the flat distance from the barrel's axis to the round's step
+	var a := Vector2(p0.x - c.x, p0.z - c.z)
+	var d := Vector2(p1.x - p0.x, p1.z - p0.z)
+	var dd := d.length_squared()
+	var t := clampf(-a.dot(d) / dd, 0.0, 1.0) if dd > 0.000001 else 1.0
+	if (a + d * t).length_squared() > reach * reach:
+		return 0
+	var life := int(_life.get(i, 0))
+	if seen.has(i) and int(seen[i]) == life:
+		return 0
+	seen[i] = life
+	shot_hit(i, Vector3(d.x, 0.0, d.y), p0)
+	return 1
+
+
+## Barrel `i` takes one of the Outlaw's rounds flying along `dir` (flat) from `from`: knocked back, or broken by the last
+## of its kind's `shots`.
+func shot_hit(i: int, dir: Vector3, from: Vector3) -> void:
+	if i < 0 or i >= alive.size() or alive[i] == 0:
+		return
+	var need := shots_to_break(light[i] if i < light.size() else 0)
+	var n := int(shot_hits.get(i, 0)) + 1
+	if n >= need:
+		shot_breaks += 1
+		_break(i, from)
+		return
+	shot_hits[i] = n
+	shot_knocks += 1
+	_knock(i, dir)
+
+
+## The rounds a barrel of kind `t` takes to break (its kind's `shots`, at least 1; read from the map's block once a field).
+func shots_to_break(t: int) -> int:
+	var k := clampi(t, 0, 2)
+	if _shots.is_empty():
+		for j in range(3):
+			_shots.append(maxi(int(contents(j).get("shots", 1)), 1))
+	return _shots[k]
+
+
+## The knock: the barrel's rule place moves KNOCK_M along `dir` at once (half that, or not at all, when the spot is not
+## free), its drawing slides there with a squash and a wobble (_process); chips, a puff and a knock.
+func _knock(i: int, dir: Vector3) -> void:
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if d.length_squared() < 0.000001 and game != null and game.get("player") != null:
+		var hp: Vector3 = (game.player as Node3D).global_position
+		d = Vector3(pos[i].x - hp.x, 0.0, pos[i].z - hp.z)
+	d = d.normalized() if d.length_squared() > 0.000001 else Vector3.FORWARD
+	var at := pos[i]
+	var to := at
+	for f: float in [1.0, 0.5]:
+		var q := at + d * KNOCK_M * f
+		if knock_ok(i, q):
+			to = Vector3(q.x, map.height_at(q.x, q.z) if map != null else at.y, q.z)
+			break
+	pos[i] = to
+	_grid_dirty = true
+	if Run.sim_mode:
+		_draw_barrel(i, to, 0.0)
+		return
+	_anims[i] = {"from": at, "to": to, "t": 0.0}
+	var wood: Color = GOLD if light[i] == 1 else (STRIPE if light[i] == 2 else DARK)
+	if game != null and game.get("fx") != null:
+		game.fx.splinters(at + Vector3(0, 0.45, 0), DARK, 6, 0.14)
+		game.fx.splinters(at + Vector3(0, 0.45, 0), wood, 3, 0.11)
+		game.fx.sand(at, 0.7)
+	Audio.play("st_barrel_hit", at)
+
+
+## Whether barrel `i` may stand at `q` after a knock: clear of the other barrels, and on a map inside 0.92 of the arena,
+## out of the water, off the rocks, out of the structures' rings and of the paintings' cover bands (a barrel already in a
+## band may stay in it).
+func knock_ok(i: int, q: Vector3) -> bool:
+	var p := Vector2(q.x, q.z)
+	for k in pos.size():
+		if k != i and k < alive.size() and alive[k] == 1 and p.distance_to(Vector2(pos[k].x, pos[k].z)) < RADIUS * 2.0 + 0.2:
+			return false
+	if map == null:
+		return true
+	if p.length() > map.arena_radius * 0.92:
+		return false
+	if map.has_method("in_water") and map.in_water(Vector3(p.x, 0, p.y)):
+		return false
+	for o: Vector3 in map.obstacles:
+		if p.distance_to(Vector2(o.x, o.y)) < o.z + RADIUS + 0.1:
+			return false
+	if _knock_ctx_cache.is_empty():
+		_knock_ctx_cache = spawn_ctx()
+	for g: Vector3 in _knock_ctx_cache.get("rings", []):
+		if p.distance_to(Vector2(g.x, g.y)) < g.z + RADIUS:
+			return false
+	var covers: Array = _knock_ctx_cache.get("covers", [])
+	if in_cover(covers, p, RADIUS) and not in_cover(covers, Vector2(pos[i].x, pos[i].z), RADIUS):
+		return false
+	return true
+
+
+## Barrel `i` drawn at `at`, `w` its squash (0 = at rest), its shadow under it.
+func _draw_barrel(i: int, at: Vector3, w: float) -> void:
+	var t: int = light[i] if i < light.size() else 0
+	var m := float(QUAD_M[clampi(t, 0, 2)])
+	var mm := _mm_of(t)
+	if mm != null and i < _index_in.size():
+		mm.set_instance_transform(_index_in[i], Transform3D(Basis().scaled(Vector3(m * (1.0 + 0.16 * w), m * (1.0 - 0.14 * w), m)), at))
+	if i < shadows.size() and shadows[i] >= 0 and map != null and map.get("props") is PropField:
+		(map.get("props") as PropField).move_shadow(shadows[i], at)
+
+
+## The knocked barrels' drawing (looks only): the slide eases out over KNOCK_S with a small hop, the squash rings down over
+## WOBBLE_S.
+func _process(delta: float) -> void:
+	if _anims.is_empty():
+		return
+	delta = Lockstep.dt(delta)
+	if game != null and bool(game.get("paused")):
+		return
+	for i in _anims.keys():
+		var a: Dictionary = _anims[i]
+		var t: float = float(a["t"]) + delta
+		a["t"] = t
+		if i >= alive.size() or alive[i] == 0:
+			_anims.erase(i)
+			continue
+		if t >= WOBBLE_S:
+			_anims.erase(i)
+			_draw_barrel(i, pos[i], 0.0)
+			continue
+		var f := clampf(t / KNOCK_S, 0.0, 1.0)
+		var e := 1.0 - pow(1.0 - f, 3.0)
+		var at: Vector3 = (a["from"] as Vector3).lerp(a["to"], e)
+		at.y += KNOCK_HOP * sin(PI * f)
+		_draw_barrel(i, at, exp(-t * 9.0) * cos(t * 30.0))
 
 
 # ---------------------------------------------------------------- respawns, contents, power-ups (pass 112, lane BARREL)
@@ -651,6 +916,11 @@ func respawn_at(at: Vector3, kind) -> bool:
 		return false
 	pos[i] = at
 	alive[i] = 1
+	# pass 137 (lane BARRELS): a new barrel in the slot: no hits, its own life, the grid stale
+	shot_hits.erase(i)
+	_anims.erase(i)
+	_life[i] = int(_life.get(i, 0)) + 1
+	_grid_dirty = true
 	var r: Vector2i = contents(t)["coins"]
 	coins[i] = _dice.randi_range(r.x, r.y) if r.y > 0 else 0
 	var body := _mm_of(t)

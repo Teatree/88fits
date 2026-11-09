@@ -1,7 +1,7 @@
 {
   "id": "shop",
   "radius": 2.2,
-  "interact_time": 3.0,
+  "interact_time": 2.5,
   "name": "Travelling Shop",
   "flavour": "Three things for sale. Buy one, then it packs up.",
   "effect": "shop",

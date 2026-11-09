@@ -72,9 +72,12 @@ const DT := 1.0 / 60.0
 func before_test() -> void:
 	# nothing unlocked, no Mirror ranks: the base numbers
 	Save.data = Save._default()
+	# (pass 137, lane POLISH: the temporary Coins x25 switch off, so a coin pays its own value)
+	Settings.coins_x25 = false
 
 
 func after_test() -> void:
+	Settings.coins_x25 = true
 	Run.player_sheet.remove_source("test")
 	Run.banished.clear()
 	Run.arena = false

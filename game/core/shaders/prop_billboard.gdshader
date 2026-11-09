@@ -1,8 +1,9 @@
 // One painted prop per instance (cacti, rocks, bones): a camera-facing quad pivoting on its base, like the creatures,
 // but muted a touch and with a slow sway for greenery. Opaque with an alpha cut, so props and characters sort
 // against each other per pixel by depth (no blend-order artefacts, no z-fighting between parallel quads).
-// INSTANCE_CUSTOM: x = flip (0/1), y = sway amount (0 for rocks), z = sway phase, w = the tint's three rolls (pass 85,
-// PropField.tint_code: r1 + 12 r2 + 144 r3, each 0..11)
+// INSTANCE_CUSTOM: x = flip (0/1), y = sway amount (0 for rocks), z = sway phase, w = the tint's three rolls and its
+// strength (pass 85; pass 137, PropField.tint_code: r1 + 8 r2 + 64 r3 + 512 level, rolls 0..7, level 0..3 = none, a
+// third, two thirds or all of the rule's reach)
 shader_type spatial;
 render_mode cull_disabled, unshaded, skip_vertex_transform, depth_draw_opaque;
 // Every painting (the props here too) writes stencil 1 where it draws a pixel (pass 54, Garry: gems and coins drawn under every 2.5D sprite):
@@ -46,7 +47,7 @@ uniform float glint_width = 0.14;
 uniform vec4 glint_color : source_color = vec4(1.0, 0.97, 0.86, 1.0);
 
 varying vec2 v_uv;
-varying vec3 v_roll;
+varying vec4 v_roll;
 varying float v_glint;
 
 // Pass 85 (lane WORLD): the natural tints, up to two parts per painting (PropField._set_tint_uniforms): hue window
@@ -81,7 +82,7 @@ float in_window(float h, float lo, float hi) {
 	return max(smoothstep(lo - soft, lo, h), 1.0 - smoothstep(hi, hi + soft, h));
 }
 
-vec3 tint_part(vec3 rgb, vec3 hsv, vec4 hue, vec4 hs, vec4 v, vec3 roll) {
+vec3 tint_part(vec3 rgb, vec3 hsv, vec4 hue, vec4 hs, vec4 v, vec4 roll) {
 	if (v.w < 0.5) {
 		return rgb;
 	}
@@ -94,8 +95,10 @@ vec3 tint_part(vec3 rgb, vec3 hsv, vec4 hue, vec4 hs, vec4 v, vec3 roll) {
 	float r1 = roll.x;
 	float r2 = mix(roll.y, r1, v.z);
 	float r3 = mix(roll.z, r1, v.z);
-	vec3 t = vec3(fract(hsv.x + mix(hs.x, hs.y, r1)), clamp(hsv.y * mix(hs.z, hs.w, r2), 0.0, 1.0),
-		clamp(hsv.z * mix(v.x, v.y, r3), 0.0, 1.0));
+	// pass 137: roll.w is the strength, 0 (as painted) .. 1 (the rule's whole reach)
+	float k = roll.w;
+	vec3 t = vec3(fract(hsv.x + mix(hs.x, hs.y, r1) * k), clamp(hsv.y * mix(1.0, mix(hs.z, hs.w, r2), k), 0.0, 1.0),
+		clamp(hsv.z * mix(1.0, mix(v.x, v.y, r3), k), 0.0, 1.0));
 	return mix(rgb, hsv2rgb(t), w);
 }
 
@@ -117,7 +120,7 @@ void vertex() {
 		v_glint = t < glint_length ? t / glint_length : -1.0;
 	}
 	float code = floor(INSTANCE_CUSTOM.w + 0.5);
-	v_roll = vec3(mod(code, 12.0), mod(floor(code / 12.0), 12.0), floor(code / 144.0)) / 11.0;
+	v_roll = vec4(mod(code, 8.0) / 7.0, mod(floor(code / 8.0), 8.0) / 7.0, mod(floor(code / 64.0), 8.0) / 7.0, floor(code / 512.0) / 3.0);
 	vec3 origin = MODEL_MATRIX[3].xyz;
 	float sx = length(MODEL_MATRIX[0].xyz);
 	float sy = length(MODEL_MATRIX[1].xyz);
@@ -157,7 +160,7 @@ void fragment() {
 	if (rim_out > 0.5) {
 		ALBEDO = rim_color.rgb;
 	} else {
-		if (tint_v_0.w > 0.5) {
+		if (tint_v_0.w > 0.5 && v_roll.w > 0.0) {
 			vec3 hsv = rgb2hsv(c.rgb);
 			vec3 rgb = tint_part(c.rgb, hsv, tint_hue_0, tint_hs_0, tint_v_0, v_roll);
 			c.rgb = tint_v_1.w > 0.5 ? tint_part(rgb, rgb2hsv(rgb), tint_hue_1, tint_hs_1, tint_v_1, v_roll) : rgb;

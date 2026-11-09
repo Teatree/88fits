@@ -17,6 +17,7 @@
   },
   "params": {
     "aim": {
+      "feel": "hard",
       "family": "aimed",
       "cone": 50,
       "hold": 0.5,

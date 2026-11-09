@@ -114,16 +114,16 @@ static func summary(effects: Array, seconds: float) -> String:
 		var ef := e as Effect
 		match ef.stat:
 			"might":
-				parts.append("×%s DAMAGE" % _num(1.0 + ef.value))
+				parts.append(Loc.t("gen.structure.drum.damage", {"mult": _num(1.0 + ef.value)}))
 			"haste":
-				parts.append("×%s ATTACK SPEED" % _num(1.0 + ef.value))
+				parts.append(Loc.t("gen.structure.drum.attack_speed", {"mult": _num(1.0 + ef.value)}))
 			"move_speed":
-				parts.append("+%d%% SPEED" % int(round(ef.value * 100.0)))
+				parts.append(Loc.t("gen.structure.drum.speed", {"pct": str(int(round(ef.value * 100.0)))}))
 			"knockback":
 				kb = true
 	if kb:
-		parts.insert(mini(2, parts.size()), "KNOCKBACK")
-	parts.append("%d SECONDS" % int(round(seconds)))
+		parts.insert(mini(2, parts.size()), Loc.t("gen.structure.drum.knockback"))
+	parts.append(Loc.t("gen.structure.drum.seconds", {"seconds": str(int(round(seconds)))}))
 	return " · ".join(parts)
 
 

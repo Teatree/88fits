@@ -44,15 +44,15 @@ var _offer: Dictionary = {}
 
 func _ready() -> void:
 	build_dim(W.DIM_STRANGER)
-	build_header("No name", "THE STRANGER", "", 120, W.PAPER, 60.0, W.AGED)
+	build_header(Loc.t("ui.stranger.star"), Loc.t("ui.stranger.title"), "", 120, W.PAPER, 60.0, W.AGED)
 	# pass 123: Ultra is wider than Alfa Slab: the title fitted to the screen, in cream (Garry: "Header text should be
 	# white"), the star line the kit's gold
-	header.set_title_fit("THE STRANGER", 120, W.PAPER, get_viewport_rect().size.x - 2.0 * ROYALE_TITLE_SIDE)
-	header.set_star("No name", W.PAPER)
+	header.set_title_fit(Loc.t("ui.stranger.title"), 120, W.PAPER, get_viewport_rect().size.x - 2.0 * ROYALE_TITLE_SIDE)
+	header.set_star(Loc.t("ui.stranger.star"), W.PAPER)
 	_portrait = WPlaceholder.make("stranger", "the Stranger, hooded, camera-facing cut-out\n840 × 660 · holding the item out", Vector2(840, 660), true)
 	_portrait.position = Vector2(120, 320 + W.safe_top())
 	add_child(_portrait)
-	_quote = W.serif_text("“A piece of you, for a piece of the world.”", 34, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	_quote = W.serif_text(Loc.t("ui.stranger.quote"), 34, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	_quote.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	# under a camera cutout the quote and the panel move down with the portrait (pass 60; the header already does)
 	_quote.offset_top = 1012 + W.safe_top()
@@ -85,7 +85,7 @@ func _ready() -> void:
 	col.add_child(price)
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_price_label = W.label("The price · max HP for the rest of the run", ROYALE_LABEL_PX, W.ROCK)
+	_price_label = W.label(Loc.t("ui.stranger.price"), ROYALE_LABEL_PX, W.ROCK)
 	_price_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_price_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_price_label)
@@ -97,15 +97,15 @@ func _ready() -> void:
 	price.add_child(row)
 	_bar = WBar.make(0.85, W.SAGE, ROYALE_BAR_H, 4, 0)
 	price.add_child(_bar)
-	price.add_child(W.serif_text("No reroll. No second offer. He does not haggle.", ROYALE_NOTE_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	price.add_child(W.serif_text(Loc.t("ui.stranger.note"), ROYALE_NOTE_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	var bh := ROYALE_BUTTON_H
 	build_buttons(bh)
 	var refuse: WButton
 	var deal: WButton
 	# pass 123 (Garry): WALK AWAY red (he is gone for good), DEAL gold, both bigger than the mock's, equal halves
 	var pad := maxf((bh - 2.0 * R.BUTTON_EDGE - float(ROYALE_BUTTON_PX)) * 0.5, 0.0)
-	refuse = WButton.make(["WALK AWAY"], ROYALE_BUTTON_PX, WButton.DANGER, R.BUTTON_EDGE, R.BUTTON_BASE, pad, 0.0, float(ROYALE_BUTTON_PX), WButton.RED)
-	deal = WButton.make(["DEAL"], ROYALE_BUTTON_PX, WButton.PRIMARY, R.BUTTON_EDGE, R.BUTTON_BASE, pad, 0.0, float(ROYALE_BUTTON_PX), WButton.GOLD)
+	refuse = WButton.make([Loc.t("ui.stranger.walk_away")], ROYALE_BUTTON_PX, WButton.DANGER, R.BUTTON_EDGE, R.BUTTON_BASE, pad, 0.0, float(ROYALE_BUTTON_PX), WButton.RED)
+	deal = WButton.make([Loc.t("ui.stranger.deal")], ROYALE_BUTTON_PX, WButton.PRIMARY, R.BUTTON_EDGE, R.BUTTON_BASE, pad, 0.0, float(ROYALE_BUTTON_PX), WButton.GOLD)
 	refuse.name = "WalkAway"
 	refuse.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	refuse.pressed.connect(func(): _finish(false))
@@ -132,7 +132,7 @@ func open(offer: Dictionary, hp_cost: float) -> void:
 		o["text_right"] = 0
 		var lt := int(offer.get("level_to", 1))
 		if lt - int(offer.get("level_from", 0)) > 1:
-			o["word"] = "%s · STRAIGHT TO LV %d" % [W.kind_of(def).to_upper(), lt]
+			o["word"] = Loc.t("ui.stranger.straight_to_level", {"kind": W.kind_of(def).to_upper(), "level": str(lt)})
 		var card := WCard.make(def, o)
 		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		StructureShop.tag_after_word(card)

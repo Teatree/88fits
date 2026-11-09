@@ -13,6 +13,8 @@ var is_open := false
 ## The name and the words after it (null without a suffix).
 var name_text: WText
 var suffix: WText
+## The chevron's box, its glyph as tall as the box: 24 x 40 until pass 137, twice that since (Garry).
+const CHEVRON := Vector2(48, 80)
 
 
 static func make(def: ContentDef, effect: String, marks: Control, p_open: bool = false, locked_look: bool = false,
@@ -67,15 +69,17 @@ static func make(def: ContentDef, effect: String, marks: Control, p_open: bool =
 	if marks:
 		marks.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		r.head.add_child(marks)
-	# the chevron sits in a plain holder: a container resets its children's rotation, and open it points down
+	# the chevron sits in a plain holder: a container resets its children's rotation, and open it points down. Pass 137
+	# (lane POLISH; Garry: "Pause Screen during gameplay, x2 the size of the arrow on the Weapon buttons"): CHEVRON, twice
+	# the old 24 x 40 box and 40 px glyph, centred in the row's head as before
 	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(24, 40)
+	holder.custom_minimum_size = CHEVRON
 	holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	r.chevron = W.slab_text("›", 40, W.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER, 40.0)
-	r.chevron.size = Vector2(24, 40)
+	r.chevron = W.slab_text("›", int(CHEVRON.y), W.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER, CHEVRON.y)
+	r.chevron.size = CHEVRON
 	if p_open:
-		r.chevron.pivot_offset = Vector2(12, 20)
+		r.chevron.pivot_offset = CHEVRON * 0.5
 		r.chevron.rotation = PI * 0.5
 	holder.add_child(r.chevron)
 	r.head.add_child(holder)

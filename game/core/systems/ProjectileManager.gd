@@ -634,6 +634,25 @@ func _physics_process(delta: float) -> void:
 	var enemies: EnemyManager = game.enemies
 	var player: Node3D = game.player
 	var map = game.map
+	# pass 137 (lane BARRELS): the Outlaw's flying rounds hit barrels while the player's switch is on (BarrelField.shot_through;
+	# the grid read inline below, a round near no barrel costs one cell)
+	var bf: BarrelField = null
+	var bfo = game.get("barrels")
+	if bfo is BarrelField and (bfo as BarrelField).shootable():
+		bf = bfo
+	var bgrid := PackedInt32Array()
+	var bgw := 0
+	var bgh := 0
+	var bgox := 0.0
+	var bgoz := 0.0
+	var binv := 1.0 / BarrelField.GRID_CELL
+	var bmax_r := BarrelField.SHOT_ROUND_MAX
+	if bf != null:
+		bgrid = bf.grid
+		bgw = bf.grid_w
+		bgh = bf.grid_h
+		bgox = bf.grid_o.x
+		bgoz = bf.grid_o.y
 	# a creature's shot keeps the creatures' shot clock (High Noon slows them in the air too; pass 48: the pace knob too,
 	# EnemyManager.hostile_clock, so a shot covers its ground in 1/pace the time and the slower hero still gets clear)
 	var hostile_dt: float = delta * (enemies.hostile_clock() if enemies else 1.0)
@@ -686,7 +705,13 @@ func _physics_process(delta: float) -> void:
 				_explode(i)
 				_free(i)
 			else:
+				var mp0 := pos[i]
 				_fly_missile(i, dt, enemies, map)
+				# pass 137 (lane BARRELS): the Outlaw's rockets and bees too, through a barrel in their height band
+				if bf != null and hostile[i] == 0 and alive[i] == 1 and homing[i] == 1:
+					var mc := bf.grid_at((mp0.x + pos[i].x) * 0.5, (mp0.z + pos[i].z) * 0.5)
+					if mc != 0:
+						_barrel_pass(bf, i, mp0, mc)
 			continue
 		if arc[i] == 1:
 			# pass 111 (lane ENEMY): a shot thrown on a higher arc in the same time falls under its own gravity ("grav")
@@ -943,6 +968,25 @@ func _physics_process(delta: float) -> void:
 				extra[i]["fade_s"] = psize[i]
 			var fw: float = maxf(float(extra[i]["fade0"]) * float(w.params.get("tail_fade", 0.25)), 0.01) if w else 0.01
 			psize[i] = float(extra[i]["fade_s"]) * clampf(life[i] / fw, 0.25, 1.0)
+		# pass 137 (lane BARRELS): a round flying through a barrel knocks it back or breaks it, once a round; it flies on (no
+		# pierce spent). The step's midpoint asks the grid; a ball whose way home is spent hits nothing more
+		if bf != null:
+			var bhv: Vector3 = vel[i] * (dt * 0.5)
+			var bmx: float = pos[i].x - bhv.x
+			var bmz: float = pos[i].z - bhv.z
+			var bcx := int((bmx - bgox) * binv)
+			var bcz := int((bmz - bgoz) * binv)
+			if bcx >= 0 and bcz >= 0 and bcx < bgw and bcz < bgh:
+				var bc: int = bgrid[bcz * bgw + bcx]
+				if bc != 0:
+					# one barrel in the cell: only when the step's midpoint is within its reach plus half the step
+					var bnear := bc < 0
+					if not bnear:
+						var bp: Vector3 = bf.pos[bc - 1]
+						var br: float = BarrelField.SHOT_R + minf(radius[i], bmax_r) + bhv.length()
+						bnear = (bmx - bp.x) * (bmx - bp.x) + (bmz - bp.z) * (bmz - bp.z) <= br * br
+					if bnear and not extra[i].has("spent"):
+						_barrel_pass(bf, i, pos[i] - vel[i] * dt, bc)
 		# a pellet streaking down a Birdshot lane or a Blunderbuss cone (pass 48) is only seen: the blast has hit already
 		if extra[i].has("ghost"):
 			continue
@@ -1051,6 +1095,15 @@ func _physics_process(delta: float) -> void:
 	_ticks += 1
 	_draw_dt += delta
 	Perf.add("projectiles", t0)
+
+
+## Pass 137 (lane BARRELS): round `i`, which flew from `p0` to where it is this tick, through the barrels near grid cell
+## value `cell` (BarrelField.grid_at): each it has not struck yet takes a hit (its memory in extra["barrels"]).
+func _barrel_pass(bf: BarrelField, i: int, p0: Vector3, cell: int) -> void:
+	var ex: Dictionary = extra[i]
+	var seen: Dictionary = ex.get("barrels", {})
+	if bf.shot_through(p0, pos[i], radius[i], seen, cell) > 0:
+		ex["barrels"] = seen
 
 
 ## The shots, their trails and the rockets' lines are drawn once per shown frame, and only after a tick has moved
@@ -1742,7 +1795,7 @@ func kill_rockets_of(shooter: int) -> void:
 				_lock_dive(i)
 				game.fx_burst(pos[i], Color(1.0, 0.7, 0.3), 1.2)
 				if game.has_method("toast"):
-					game.toast("ROCKET LOOSE!", Color(1.0, 0.55, 0.2))
+					game.toast(Loc.t("toast.rocket_loose"), Color(1.0, 0.55, 0.2))
 				Audio.play("en_rocket_loose", pos[i])
 				# nobody to find any more: the line home fades
 				if p.has("path"):

@@ -153,7 +153,7 @@ func test_the_sources_are_grouped_by_start_and_run_and_merged_by_their_ids() -> 
 	assert_int(hp_ids.size()).is_equal(2)
 	Save.data["trail"] = {"bought": hp_ids, "spent": 0, "had": []}
 	Trail.refresh()
-	var hp_name := Trail.SOURCE % str(Trail.upgrade("health")["name"])
+	var hp_name := Trail.source_name(str(Trail.upgrade("health")["name"]))
 	_start()
 	Run.add_or_level_passive("vigour")
 	Run.add_or_level_passive("vigour")

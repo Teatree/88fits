@@ -15,6 +15,8 @@
 ##          x EVOLVE_WEIGHT (3)                     on a maxed line's evolution card (its source's weight and level)
 ##          x guest_weight (0.45)                   pass 118: a new card of another hero's own weapon (WeaponDef.hero;
 ##                                                  the weapon's JSON, Registry.is_guest_weapon)
+##          x weapon_task_weight (1.5)              pass 137: the weapon an open Wanted task names (its family; the
+##                                                  content/wanted/wanted.json key, WantedRun.task_weapon_mult)
 ##   A perk's card is weighed x4 on top (at most one in five offers, Run.perk_gap). An offer draws its cards one at a
 ##   time in proportion to these weights, without putting a drawn card back (_pick).
 ## Pass 121 (lane LEGEND): no NEW legendary card before the stage clock reaches the map's `legendary.from` (4:30), in any
@@ -115,6 +117,9 @@ static func weight_of(def: ContentDef, level_from: int = 0, evolve: bool = false
 	# pass 118 (lane ITEMS): another hero's own weapon as a new card, at its guest_weight
 	if level_from <= 0 and def is WeaponDef and Registry.is_guest_weapon(def as WeaponDef):
 		w *= maxf((def as WeaponDef).guest_weight, 0.0)
+	# pass 137 (lane POLISH): the weapon an open Wanted task names, x weapon_task_weight (1.5; WantedRun.task_weapon_mult)
+	if def is WeaponDef:
+		w *= WantedRun.task_weapon_mult(def as WeaponDef)
 	if level_from > 0:
 		w *= HELD_WEIGHT * pow(LEVEL_DECAY, float(level_from - 1))
 	if evolve:
@@ -292,7 +297,7 @@ static func apply(card: Dictionary) -> String:
 			if inst and Run.character and Run.character.favourite_weapon == def.id:
 				apply_favourite(inst)
 		var inst2 := Run.weapon_instance(def.id)
-		return "%s Lv %d" % [def.display_name, inst2.level if inst2 else 1]
+		return Loc.t("gen.item.level", {"name": def.display_name, "level": str(inst2.level if inst2 else 1)})
 	elif card["type"] == "mutation":
 		var mdef: MutationDef = card["def"]
 		Run.add_mutation(mdef.id)
@@ -306,9 +311,9 @@ static func apply(card: Dictionary) -> String:
 		if bool(card.get("evolve", false)):
 			# the evolution takes its source's slot (Run.evolve_passive)
 			Run.evolve_passive(str(card.get("src_id", "")))
-			return "%s evolved" % def.display_name
+			return Loc.t("gen.item.evolved", {"name": def.display_name})
 		Run.add_or_level_passive(def.id)
-		return "%s Lv %d" % [def.display_name, Run.passive_level(def.id)]
+		return Loc.t("gen.item.level", {"name": def.display_name, "level": str(Run.passive_level(def.id))})
 
 
 ## The favourite's bonus (CharacterDef.favourite_bonus): a level, or effects folded into the instance; also when the run

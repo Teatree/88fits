@@ -83,7 +83,7 @@
   "evolves_with": "",
   "evolves_into": "fire_eater",
   "params": {
-    "aim": {"cone": 50, "hold": 2.0},
+    "aim": {"feel": "hard", "cone": 50, "hold": 2.0},
     "breath": {
       "cone_deg": 50,
       "tick": 1.0,

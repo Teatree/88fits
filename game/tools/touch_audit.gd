@@ -3684,9 +3684,11 @@ func _trail_audit() -> void:
 	var trail = load("res://core/systems/Trail.gd")
 	var nav = load("res://core/systems/Nav.gd")
 	var kept := {}
-	for k in ["gold", "trail", "heroes_owned", "skins_owned", "last_character"]:
+	# pass 137 (lane TUTOR): and the Trail's first steps (done here: the Trail open, no highlight on BUY)
+	for k in ["gold", "trail", "heroes_owned", "skins_owned", "last_character", "tutorial"]:
 		var v = save.data.get(k)
 		kept[k] = v.duplicate(true) if (v is Dictionary or v is Array) else v
+	save.skip_trail_tutorial()
 	trail.load_from("res://tests/fixtures/trail_screen.json")
 	save.data["trail"] = {"bought": ["n01", "n02"], "spent": 0, "had": []}
 	save.data["gold"] = 5000

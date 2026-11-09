@@ -1132,10 +1132,10 @@
         ],
         "pack": 15,
         "stats": {
-          "hp_mult": 1.5,
+          "hp_mult": 1.0,
           "size": [
             1.25,
-            2.3
+            1.75
           ],
           "damage_mult": 1.25
         },

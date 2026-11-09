@@ -22,8 +22,10 @@
 class_name CollectionScreen
 extends ScreenBase
 
-## pass 73 (lane CARDS): the line items are fortune cards to the player (the tab "Lines" before)
-const TABS := ["Weapons", "Cards", "Passives", "Perks", "Enemies"]
+## pass 73 (lane CARDS): the line items are fortune cards to the player (the tab "Lines" before). Pass 137: the tabs'
+## words are rows of the string table (Loc.t(TABS[k])).
+const TABS := ["ui.collection.tab.weapons", "ui.collection.tab.cards", "ui.collection.tab.passives", "ui.collection.tab.perks",
+	"ui.collection.tab.enemies"]
 ## The danger marks (pass 47): a role's badge (art/ui/badges/<badge>.png) and its frame colour.
 const DANGER := {"boss": ["skull", W.ROCK], "elite": ["crown", W.EMBER], "special": ["gear", W.BRASS]}
 const BADGE_ART := "res://art/ui/badges/%s.png"
@@ -153,7 +155,7 @@ func tab_bar() -> String:
 
 
 func build() -> void:
-	set_title("Hidden" if hidden_only else "Collection")
+	set_title(Loc.t("ui.collection.title_hidden") if hidden_only else Loc.t("ui.collection.title"))
 	content.add_theme_constant_override("separation", 0)
 	_build_royale()
 	# pass 129 (lane TRAIL-UI): back from the Trail (Nav.back): the tab that was open, and the item's page
@@ -200,7 +202,7 @@ func _build_royale() -> void:
 	scroll.item_rect_changed.connect(_follow_scroll)
 	margin.add_theme_constant_override("margin_top", int(RY_GRID_PAD.y))
 	margin.add_theme_constant_override("margin_bottom", int(RY_GRID_PAD.y))
-	_tabs = WTabs.make(TABS.map(func(t: String) -> String: return t.to_upper()), RY_TAB_PX, RY_TAB_PAD)
+	_tabs = WTabs.make(TABS.map(func(t: String) -> String: return Loc.t(t).to_upper()), RY_TAB_PX, RY_TAB_PAD)
 	_tabs.name = "Tabs"
 	_tabs.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_tabs.offset_left = RY_SIDE
@@ -213,7 +215,7 @@ func _build_royale() -> void:
 	_tabs.visible = not hidden_only
 	add_child(_tabs)
 	var kills := W.num(Save.total("kills"))
-	var pill := W.pill([[kills, R.WHITE, "bold"], " kills all time"], RY_PILL_PX, RY_PILL_H)
+	var pill := W.pill([[kills, R.WHITE, "bold"], " " + Loc.t("ui.collection.kills_all_time")], RY_PILL_PX, RY_PILL_H)
 	pill.name = "Kills"
 	_foot = pill.get_node("Row").get_child(0) as WText
 	var pw := pill.get_combined_minimum_size().x
@@ -308,11 +310,11 @@ func _show_grid_royale() -> void:
 		var n := _tally(t)
 		found += n.x
 		all += n.y
-		_tabs.set_label(t, ("%s %d/%d" % [str(TABS[t]).to_upper(), n.x, n.y]) if t == _tab else str(TABS[t]).to_upper())
+		_tabs.set_label(t, ("%s %d/%d" % [Loc.t(str(TABS[t])).to_upper(), n.x, n.y]) if t == _tab else Loc.t(str(TABS[t])).to_upper())
 	_tabs.select(_tab, false)
 	_royale_tab_type()
-	_set_found(("%d HIDDEN" % hidden_items().size()) if hidden_only else ("%d / %d FOUND" % [found, all]))
-	set_title("Hidden" if hidden_only else "Collection")
+	_set_found(Loc.t("ui.collection.count_hidden_caps", {"count": str(hidden_items().size())}) if hidden_only else Loc.t("ui.collection.count_found_caps", {"found": str(found), "all": str(all)}))
+	set_title(Loc.t("ui.collection.title_hidden") if hidden_only else Loc.t("ui.collection.title"))
 	_tabs.visible = not hidden_only
 	_foot_box.visible = not hidden_only
 	_royale_frame(false)
@@ -369,7 +371,7 @@ func _tile_royale(def: ContentDef) -> WTap:
 	if found:
 		n = W.text(def.display_name, R.body(R.LABEL_WEIGHT), RY_NAME_PX, R.WHITE, HORIZONTAL_ALIGNMENT_CENTER, RY_NAME_PX * 1.2, true)
 	else:
-		var line := _still_to_find(def) if locked else ("Not met yet" if def is EnemyDef else "Not found yet")
+		var line := _still_to_find(def) if locked else (Loc.t("ui.collection.not_met") if def is EnemyDef else Loc.t("ui.collection.not_found"))
 		n = W.serif_text(line, RY_QUEST_PX, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_CENTER, RY_QUEST_PX * 1.25, true)
 	n.name = "Name"
 	v.add_child(n)
@@ -663,11 +665,11 @@ func _evolution_royale(evo: ContentDef) -> PanelContainer:
 	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(v)
-	v.add_child(W.label("Evolution", RY_KIND_PX, W.BRASS))
+	v.add_child(W.label(Loc.t("ui.collection.evolution"), RY_KIND_PX, W.BRASS))
 	var n := W.slab_text(evo.display_name, RY_EVO_NAME_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, float(RY_EVO_NAME_PX))
 	n.wrap = true
 	v.add_child(n)
-	var line := "Not yet found. Open a chest with every mutation taken and the weapon at its top level."
+	var line := Loc.t("ui.collection.evolution_unfound")
 	if found or evo is PassiveDef:
 		line = _full_text(evo)
 	var t := W.serif_text(line, RY_EVO_PX, W.INK if found or evo is PassiveDef else W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EVO_PX * 1.3, true)
@@ -683,26 +685,26 @@ func _open_locked_royale(def: ContentDef) -> void:
 	var q := Registry.quest_for(W.content_kind(def), def.id)
 	var p := _hero_card_royale(def, true)
 	var v: VBoxContainer = p.find_child("Words", true, false)
-	v.add_child(W.label("Locked · " + _kind_line(def), RY_KIND_PX, W.ROCK))
+	v.add_child(W.label(Loc.t("ui.collection.locked_kind", {"kind": _kind_line(def)}), RY_KIND_PX, W.ROCK))
 	# pass 128: an outlaw's start weapon is his until he is owned: no quest, "Comes with <name>", a tap to his page
 	var giver := comes_with(def)
 	if giver:
 		v.add_child(comes_with_line(giver, RY_EFFECT_PX, self))
 		# the outlaw's own pronoun (CharacterDef.pronoun, as WItem's "His favourite")
-		var who: String = {"he": "he is", "she": "she is"}.get(str(giver.get("pronoun")), "they are")
-		v.add_child(W.serif_text("Once %s yours, it joins every run's offers." % who, RY_FLAVOUR_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+		var who: String = {"he": "he", "she": "she"}.get(str(giver.get("pronoun")), "they")
+		v.add_child(W.serif_text(Loc.t("ui.collection.once_yours." + who), RY_FLAVOUR_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 		content.add_child(p)
-		_section_royale("What it does", _cell_royale("", _full_text(def)))
+		_section_royale(Loc.t("ui.collection.what_it_does"), _cell_royale("", _full_text(def)))
 		return
 	# pass 129 (lane TRAIL-UI): an item a Trail node gives reads "Reach Trail Level N"; a tap opens the Trail on it
 	var trail_line := TrailScreen.requirement_line(W.content_kind(def), def.id, RY_EFFECT_PX)
 	if trail_line:
 		v.add_child(trail_line)
-		v.add_child(W.serif_text("Once it is yours on the Trail, it joins every run's offers.", RY_FLAVOUR_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+		v.add_child(W.serif_text(Loc.t("ui.collection.once_trail"), RY_FLAVOUR_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 		content.add_child(p)
-		_section_royale("What it does", _cell_royale("", _full_text(def)))
+		_section_royale(Loc.t("ui.collection.what_it_does"), _cell_royale("", _full_text(def)))
 		return
-	var words := W.serif_text(TextGen.quest_text(q) if q else "Not found yet.", RY_EFFECT_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EFFECT_PX * 1.3, true)
+	var words := W.serif_text(TextGen.quest_text(q) if q else Loc.t("ui.collection.not_found_line"), RY_EFFECT_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EFFECT_PX * 1.3, true)
 	words.name = "Quest"
 	words.color = R.WHITE
 	v.add_child(WPoster.with_picture(q, words, 44.0))
@@ -725,14 +727,14 @@ func _open_locked_royale(def: ContentDef) -> void:
 			row.add_child(count)
 			v.add_child(row)
 		var st := QuestTracker.stage_hint(q)
-		var where := "Any stage will do"
+		var where := Loc.t("ui.collection.where.any")
 		if st == 1:
-			where = "Stage 1 can do it"
+			where = Loc.t("ui.collection.where.one")
 		elif st > 1:
-			where = "Takes stage %d: keep going at the portal%s" % [st, "s" if st > 2 else ""]
-		v.add_child(W.serif_text(where + ". Once done, it joins every run's offers.", RY_FLAVOUR_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+			where = Loc.t("ui.collection.where.n", {"stage": str(st), "portals": str(st - 1)})
+		v.add_child(W.serif_text(Loc.t("ui.collection.once_done", {"where": where}), RY_FLAVOUR_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	content.add_child(p)
-	_section_royale("What it does", _cell_royale("", _full_text(def)))
+	_section_royale(Loc.t("ui.collection.what_it_does"), _cell_royale("", _full_text(def)))
 
 
 # --- what is in each tab ---------------------------------------------------------------------------------------------
@@ -843,7 +845,7 @@ static func comes_with(def: ContentDef) -> CharacterDef:
 
 ## Pass 128: what such a weapon reads in place of a quest.
 static func comes_with_words(c: CharacterDef) -> String:
-	return "Comes with %s" % (c.display_name if c else "an outlaw")
+	return Loc.t("ui.collection.comes_with", {"outlaw": c.display_name if c else Loc.t("ui.collection.an_outlaw")})
 
 
 ## Pass 128: the line itself, "Comes with <name>" and a gold chevron: a tap opens the Outlaws screen on him (open_outlaw).
@@ -892,7 +894,7 @@ func _show_grid() -> void:
 		_show_grid_royale()
 		return
 	_page = null
-	set_title("Hidden" if hidden_only else "Collection")
+	set_title(Loc.t("ui.collection.title_hidden") if hidden_only else Loc.t("ui.collection.title"))
 	header.set_right(_count_box)
 	_tabs.visible = not hidden_only
 	_foot_box.visible = not hidden_only
@@ -904,9 +906,9 @@ func _show_grid() -> void:
 		var n := _tally(t)
 		found += n.x
 		all += n.y
-		_tabs.set_label(t, [[TABS[t] + " ", null], ["%d/%d" % [n.x, n.y], W.BRASS_DARK]] if t == _tab else TABS[t])
+		_tabs.set_label(t, [[Loc.t(str(TABS[t])) + " ", null], ["%d/%d" % [n.x, n.y], W.BRASS_DARK]] if t == _tab else Loc.t(str(TABS[t])))
 	_tabs.select(_tab, false)
-	_count.text = "%d hidden" % hidden_items().size() if hidden_only else "%d / %d found" % [found, all]
+	_count.text = Loc.t("ui.collection.count_hidden", {"count": str(hidden_items().size())}) if hidden_only else Loc.t("ui.collection.count_found", {"found": str(found), "all": str(all)})
 	var board := PanelContainer.new()
 	board.mouse_filter = Control.MOUSE_FILTER_PASS
 	var bb: HardBox
@@ -952,7 +954,7 @@ func _tile(def: ContentDef) -> WTap:
 	if locked:
 		label = _still_to_find(def)
 	elif not found:
-		label = "Not met yet" if def is EnemyDef else "Not found yet"
+		label = Loc.t("ui.collection.not_met") if def is EnemyDef else Loc.t("ui.collection.not_found")
 	var n := W.slab_text(label, 24, W.INK if found else W.COMMON, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	n.wrap = true
 	v.add_child(n)
@@ -1013,9 +1015,9 @@ func _open_locked(def: ContentDef) -> void:
 	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(v)
-	v.add_child(W.label("Locked · " + _kind_line(def), 22, W.ROCK, 0.15))
+	v.add_child(W.label(Loc.t("ui.collection.locked_kind", {"kind": _kind_line(def)}), 22, W.ROCK, 0.15))
 	# pass 113 (lane TASKS): the goal's picture beside its words (the posters' still: the weapon, the barrel, the Heart...)
-	v.add_child(WPoster.with_picture(q, W.serif_text(TextGen.quest_text(q) if q else "Not found yet.", 32, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 32.0 * 1.3, true), 40.0))
+	v.add_child(WPoster.with_picture(q, W.serif_text(TextGen.quest_text(q) if q else Loc.t("ui.collection.not_found_line"), 32, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 32.0 * 1.3, true), 40.0))
 	if q:
 		var pr := QuestTracker.progress(q)
 		if pr.y > 0:
@@ -1024,23 +1026,23 @@ func _open_locked(def: ContentDef) -> void:
 			bar.text_px = 24
 			v.add_child(bar)
 		var st := QuestTracker.stage_hint(q)
-		var where := "Any stage will do"
+		var where := Loc.t("ui.collection.where.any")
 		if st == 1:
-			where = "Stage 1 can do it"
+			where = Loc.t("ui.collection.where.one")
 		elif st > 1:
-			where = "Takes stage %d: keep going at the portal%s" % [st, "s" if st > 2 else ""]
-		v.add_child(W.serif_text(where + ". Once done, it joins every run's offers.", 26, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+			where = Loc.t("ui.collection.where.n", {"stage": str(st), "portals": str(st - 1)})
+		v.add_child(W.serif_text(Loc.t("ui.collection.once_done", {"where": where}), 26, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	content.add_child(p)
-	_section("What it does", _cell("", _full_text(def)), 60.0)
+	_section(Loc.t("ui.collection.what_it_does"), _cell("", _full_text(def)), 60.0)
 
 
 ## What a still-hidden item takes, short: the unlock's own words without the full stop.
 func _still_to_find(def: ContentDef) -> String:
 	if def is EnemyDef:
-		return "Not met yet"
+		return Loc.t("ui.collection.not_met")
 	if def is PerkDef:
 		var hero := Registry.character((def as PerkDef).hero)
-		return "Play %s" % (hero.display_name if hero else (def as PerkDef).hero.capitalize())
+		return Loc.t("ui.collection.play_outlaw", {"outlaw": hero.display_name if hero else (def as PerkDef).hero.capitalize()})
 	# pass 128: an outlaw's start weapon while he is not owned
 	var giver := comes_with(def)
 	if giver:
@@ -1051,8 +1053,8 @@ func _still_to_find(def: ContentDef) -> String:
 		return on_trail
 	var q := Registry.quest_for(W.content_kind(def), def.id)
 	if q == null and def.from_stage > 0:
-		return "Stage %d only" % def.from_stage
-	return TextGen.quest_text(q).strip_edges().trim_suffix(".") if q else "Not found yet"
+		return Loc.t("ui.collection.stage_only", {"stage": str(def.from_stage)})
+	return TextGen.quest_text(q).strip_edges().trim_suffix(".") if q else Loc.t("ui.collection.not_found")
 
 
 # --- the item page ---------------------------------------------------------------------------------------------------
@@ -1071,20 +1073,20 @@ func _open_page(def: ContentDef) -> void:
 	content.add_child(_hero_card(def))
 	if def is WeaponDef:
 		var w := def as WeaponDef
-		_section("Levels", _level_grid(def), 78.0)
+		_section(Loc.t("ui.collection.section.levels"), _level_grid(def), 78.0)
 		var muts := page_mutations(w)
 		if not muts.is_empty():
-			_section("Mutations · take one a stage", _paths(muts), 157.0)
+			_section(Loc.t("ui.collection.section.mutations"), _paths(muts), 157.0)
 		var evo := Registry.weapon(w.evolves_into) if w.evolves_into != "" else null
 		if evo:
-			_section("Evolution · %s, then a chest" % evolve_needs(w), _evolution(evo), 135.0)
+			_section(Loc.t("ui.collection.section.evolution_weapon", {"needs": evolve_needs(w)}), _evolution(evo), 135.0)
 	elif def is PassiveDef:
-		_section("Levels", _level_grid(def), 78.0)
+		_section(Loc.t("ui.collection.section.levels"), _level_grid(def), 78.0)
 		var into: PassiveDef = Registry.passive((def as PassiveDef).evolves_into) if (def as PassiveDef).evolves_into != "" else null
 		if into:
-			_section("Evolution · once it is full", _evolution(into), 80.0)
+			_section(Loc.t("ui.collection.section.evolution_full"), _evolution(into), 80.0)
 	elif def is EnemyDef:
-		_section("Numbers", _creature_grid(def as EnemyDef), 78.0)
+		_section(Loc.t("ui.collection.section.numbers"), _creature_grid(def as EnemyDef), 78.0)
 
 
 ## The page's top card: the 272 px plate, the kind and its levels, what it does in full, the flavour, one tally.
@@ -1129,27 +1131,27 @@ func _hero_card(def: ContentDef) -> PanelContainer:
 
 func _kind_line(def: ContentDef) -> String:
 	if def is WeaponDef:
-		return ("Evolution" if (def as WeaponDef).is_evolution else "Weapon") + " · %d levels" % (def as WeaponDef).max_level
+		return Loc.t("ui.collection.kind.evolution" if (def as WeaponDef).is_evolution else "ui.collection.kind.weapon", {"levels": str((def as WeaponDef).max_level)})
 	if def is PassiveDef:
 		# pass 95 (lane PASSIVES): a passive item climbs from its rarity to Evolved ("Passive · Rare → Evolved · 4 levels")
 		if (def as PassiveDef).on_ladder():
-			return "Passive · %s → Evolved · %d levels" % [TextGen.rarity_name(W.rarity_of(def)), W.max_level_of(def)]
+			return Loc.t("ui.collection.kind.passive_ladder", {"rarity": TextGen.rarity_name(W.rarity_of(def)), "levels": str(W.max_level_of(def))})
 		# pass 100 (lane SMALL): a one-shot item (`single`: Phoenix Feather) has no upgrades
 		if (def as PassiveDef).single:
-			return "Passive · %s · no upgrades" % TextGen.rarity_name(W.rarity_of(def))
-		return "%s · %d levels" % ["Card" if W.is_line(def) else "Passive", W.max_level_of(def)]
+			return Loc.t("ui.collection.kind.passive_single", {"rarity": TextGen.rarity_name(W.rarity_of(def))})
+		return Loc.t("ui.collection.kind.card" if W.is_line(def) else "ui.collection.kind.passive", {"levels": str(W.max_level_of(def))})
 	if def is PerkDef:
 		var hero := Registry.character((def as PerkDef).hero)
-		return "%s's perk" % (hero.display_name if hero else (def as PerkDef).hero.capitalize())
+		return Loc.t("ui.collection.kind.perk", {"outlaw": hero.display_name if hero else (def as PerkDef).hero.capitalize()})
 	if def is MutationDef:
 		var w := Registry.weapon((def as MutationDef).weapon)
-		return "Mutation · %s" % (w.display_name if w else (def as MutationDef).weapon)
+		return Loc.t("ui.collection.kind.mutation", {"weapon": w.display_name if w else (def as MutationDef).weapon})
 	if def is CharacterDef:
-		return "Outlaw"
+		return Loc.t("ui.collection.kind.outlaw")
 	if def is EnemyDef:
 		var e := def as EnemyDef
 		var role := danger_role(e)
-		return "Enemy · %s" % ({"boss": "boss", "elite": "Elite", "special": "special"}.get(role, e.archetype))
+		return Loc.t("ui.collection.kind.enemy", {"role": Loc.t("ui.collection.role." + role) if role in ["boss", "elite", "special"] else e.archetype})
 	return W.kind_of(def)
 
 
@@ -1200,7 +1202,7 @@ func _full_text(def: ContentDef) -> String:
 		var own := TextGen.passive_text(pd)
 		var s := own + " " if own != "" else ""
 		s += TextGen.passive_description(pd, 1)
-		return s + (" The trade: %s." % pd.trade.trim_suffix(".") if pd.trade != "" else "")
+		return s + (" " + Loc.t("ui.collection.trade", {"trade": pd.trade.trim_suffix(".")}) if pd.trade != "" else "")
 	if def is PerkDef:
 		return TextGen.perk_text(def as PerkDef)
 	if def is MutationDef:
@@ -1216,9 +1218,9 @@ func _full_text(def: ContentDef) -> String:
 func _tally_line(def: ContentDef) -> String:
 	if def is WeaponDef:
 		var n := Save.keyed_total("kills_with_weapon", def.id)
-		return ("%s kills with it, all time" % W.num(n)) if n > 0 else "No kills with it yet"
+		return Loc.t("ui.collection.kills_with", {"kills": W.num(n)}) if n > 0 else Loc.t("ui.collection.no_kills")
 	if def is EnemyDef:
-		return "Killed %s times" % W.num(Save.keyed_total("kills_of_enemy", def.id))
+		return Loc.t("ui.collection.killed_times", {"kills": W.num(Save.keyed_total("kills_of_enemy", def.id))})
 	return ""
 
 
@@ -1304,8 +1306,8 @@ func _cell(n: String, text: String, fill: Color = W.PAPER) -> PanelContainer:
 ## mutations at Lv 5".
 static func evolve_needs(w: WeaponDef) -> String:
 	var n := Registry.mutations_of(w.id).size()
-	var m := "all %d mutations" % n if n > 1 else ("its mutation" if n == 1 else "")
-	return ("%s at Lv %d" % [m, w.max_level]) if m != "" else "Lv %d" % w.max_level
+	var m := Loc.t("ui.collection.evolve.all_mutations", {"count": str(n)}) if n > 1 else (Loc.t("ui.collection.evolve.its_mutation") if n == 1 else "")
+	return Loc.t("ui.collection.evolve.at_level", {"mutations": m, "level": str(w.max_level)}) if m != "" else Loc.t("ui.collection.evolve.level", {"level": str(w.max_level)})
 
 
 ## What a weapon's page lists under Mutations (pass 46): its path, then every hero's own mutation for it, the heroes in
@@ -1320,7 +1322,7 @@ static func hero_only_text(m: MutationDef) -> String:
 	if m == null or not m.is_hero():
 		return ""
 	var c: CharacterDef = Registry.character(m.hero)
-	return "%s ONLY" % (c.display_name if c else m.hero).to_upper()
+	return Loc.t("ui.collection.outlaw_only", {"outlaw": (c.display_name if c else m.hero).to_upper()})
 
 
 ## A weapon's mutations: plum plates, the name, the first thing each does, three cells of one width to a row, a short
@@ -1407,9 +1409,9 @@ func _evolution(evo: ContentDef) -> PanelContainer:
 	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(v)
-	v.add_child(W.label("Evolution", 20, W.EMBER, 0.15))
+	v.add_child(W.label(Loc.t("ui.collection.evolution"), 20, W.EMBER, 0.15))
 	v.add_child(W.slab_text(evo.display_name, 44, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 44.0))
-	var line := "Not yet found. Open a chest with every mutation taken and the weapon at its top level."
+	var line := Loc.t("ui.collection.evolution_unfound")
 	if found or evo is PassiveDef:
 		line = _full_text(evo)
 	v.add_child(W.serif_text(line, 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
@@ -1423,11 +1425,11 @@ func _creature_grid(e: EnemyDef) -> GridContainer:
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
 	grid.mouse_filter = Control.MOUSE_FILTER_PASS
-	grid.add_child(_cell("", "%s HP" % W.num(e.hp)))
-	grid.add_child(_cell("", "speed %s" % ("%.1f" % e.speed).trim_suffix(".0")))
-	grid.add_child(_cell("", "%s damage" % W.num(e.damage)))
+	grid.add_child(_cell("", Loc.t("ui.collection.stat.hp", {"hp": W.num(e.hp)})))
+	grid.add_child(_cell("", Loc.t("ui.collection.stat.speed", {"speed": ("%.1f" % e.speed).trim_suffix(".0")})))
+	grid.add_child(_cell("", Loc.t("ui.collection.stat.damage", {"damage": W.num(e.damage)})))
 	if e.damage_reduction > 0.0:
-		grid.add_child(_cell("", "takes %d%% less" % int(round(e.damage_reduction * 100.0))))
+		grid.add_child(_cell("", Loc.t("ui.collection.stat.armour", {"percent": "%d" % int(round(e.damage_reduction * 100.0))})))
 	return grid
 
 

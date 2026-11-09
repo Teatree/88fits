@@ -99,11 +99,14 @@ func before_test() -> void:
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
 	_aim_was = Settings.aim_mode
 	Settings.aim_mode = true
+	# pass 137 (lane AIM): these pin pass 136's rule (every aimed weapon hard); pass137_aim_test pins the soft one
+	Aim.soft_rule = false
 	Aim.reset()
 
 
 func after_test() -> void:
 	Settings.aim_mode = _aim_was
+	Aim.soft_rule = true
 	Run.debug_clear_items()
 	Run.end()
 

@@ -1245,6 +1245,7 @@ const App = (() => {
     // pass 111 (lane WANTED): Ctrl+S on the Wanted tab saves the Bounty Board's config
     if (S.tab === 'wanted' && typeof Wanted !== 'undefined') { await Wanted.save(); return; }
     if (S.tab === 'trail' && typeof Trail !== 'undefined') { await Trail.save(); return; }   // pass 129 (lane TRAIL-EDITOR)
+    if (S.tab === 'strings' && typeof Strings !== 'undefined') { await Strings.save(); return; }   // pass 137 (lane LOCKIT)
     if (!S.map || S.saving) return;
     const issues = validate();
     if (issues.errors.length) {
@@ -1494,6 +1495,8 @@ const App = (() => {
       else if (S.tab === 'wanted' && typeof Wanted !== 'undefined') Wanted.render(panel);
       // pass 129 (lane TRAIL-EDITOR): the Trail (trail.js, trail_io.py: its own document, trail.json)
       else if (S.tab === 'trail' && typeof Trail !== 'undefined') Trail.render(panel);
+      // pass 137 (lane LOCKIT): the texts a player reads (strings.js, strings_io.py)
+      else if (S.tab === 'strings' && typeof Strings !== 'undefined') Strings.render(panel);
       else if (assetsTab()) Assets.render(S.tab, panel);
     }
     updateTopBar();
@@ -1599,7 +1602,7 @@ const App = (() => {
       });
       lv.addEventListener('keydown', (e) => { if (e.key === 'Enter') lv.blur(); });
     }
-    window.addEventListener('beforeunload', (e) => { if (dirty() || (typeof Assets !== 'undefined' && Assets.anyDirty()) || (typeof Wanted !== 'undefined' && Wanted.dirty()) || (typeof Trail !== 'undefined' && Trail.dirty())) { e.preventDefault(); e.returnValue = ''; } });
+    window.addEventListener('beforeunload', (e) => { if (dirty() || (typeof Assets !== 'undefined' && Assets.anyDirty()) || (typeof Wanted !== 'undefined' && Wanted.dirty()) || (typeof Trail !== 'undefined' && Trail.dirty()) || (typeof Strings !== 'undefined' && Strings.dirty())) { e.preventDefault(); e.returnValue = ''; } });
   }
 
   // only the buttons that carry data-tab: the zoom buttons share the nav (a click on "+" once switched to no tab at all)

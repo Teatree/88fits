@@ -40,9 +40,7 @@ static func open(host: Control) -> Control:
 ## The words on the card (tests read them). Pass 60 (Garry: "make the text simpler please. Don't mention me"): plain
 ## words, no maker; the player's name stays, so they can find themselves.
 static func body_text(player_name: String) -> String:
-	return ("The game sends what happens in your runs (the items you pick, where you fall, how smoothly it runs) so it "
-		+ "can get better. You appear there only as \"%s\": no account, no location, nothing else about you. "
-		+ "Now and then it asks a few quick questions after a run. Both can be turned off in Settings.") % player_name
+	return Loc.t("ui.consent.body", {"name": player_name})
 
 
 func _init() -> void:
@@ -82,8 +80,8 @@ func _build_royale() -> void:
 	v.add_theme_constant_override("separation", R.MODAL_GAP)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(v)
-	v.add_child(WConfirm.make_star("A quick word"))
-	v.add_child(WConfirm.make_title("PLAY DATA"))
+	v.add_child(WConfirm.make_star(Loc.t("ui.consent.star")))
+	v.add_child(WConfirm.make_title(Loc.t("ui.consent.title")))
 	var m := MarginContainer.new()
 	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	m.add_theme_constant_override("margin_left", ROYALE_BODY_MARGIN)
@@ -101,12 +99,12 @@ func _build_royale() -> void:
 	row.add_theme_constant_override("separation", R.MODAL_BUTTON_GAP)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(row)
-	decline_btn = WConfirm.make_button(["NO THANKS"], WButton.SLATE)
+	decline_btn = WConfirm.make_button([Loc.t("ui.consent.no_thanks")], WButton.SLATE)
 	decline_btn.name = "Decline"
 	decline_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	decline_btn.pressed.connect(func(): answer(false))
 	row.add_child(decline_btn)
-	accept_btn = WConfirm.make_button(["OK"], WButton.GOLD)
+	accept_btn = WConfirm.make_button([Loc.t("ui.consent.ok")], WButton.GOLD)
 	accept_btn.name = "Accept"
 	accept_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	accept_btn.pressed.connect(func(): answer(true))

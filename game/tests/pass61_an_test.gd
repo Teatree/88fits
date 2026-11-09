@@ -44,9 +44,12 @@ func before_test() -> void:
 	Run.arena = false
 	Settings.analytics = true
 	RunAnalytics.I = null
+	# (pass 137, lane POLISH: the temporary Coins x25 switch off, so a coin pays its own value)
+	Settings.coins_x25 = false
 
 
 func after_test() -> void:
+	Settings.coins_x25 = true
 	_shut()
 	get_tree().paused = false
 	Settings.analytics = true
@@ -590,5 +593,6 @@ func test_a_wipe_sends_the_balance_to_zero() -> void:
 	var metas := _events("gold_meta")
 	assert_int(metas.size()).is_equal(1)
 	assert_str(str(metas[0]["reason"])).is_equal("wipe")
-	assert_int(int(metas[0]["delta"])).is_equal(-321)
-	assert_int(int(metas[0]["balance_after"])).is_equal(0)
+	# (pass 137, lane POLISH, re-pinned: a wiped save starts with Save.START_GOLD)
+	assert_int(int(metas[0]["delta"])).is_equal(Save.START_GOLD - 321)
+	assert_int(int(metas[0]["balance_after"])).is_equal(Save.START_GOLD)

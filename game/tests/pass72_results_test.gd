@@ -305,10 +305,10 @@ func test_the_first_sequence_holds_the_board_and_tells_the_gold_the_chart_and_th
 	for k in range(0, rows.size()):
 		assert_float((rows[k] as Control).modulate.a).is_equal(0.0)
 	assert_float((rows[0].find_child("Bar", true, false) as WBar).value).is_equal(0.0)
-	# the gold follows the run's own purse: a quarter of the way through it shows what he held a quarter into the run
-	var tl: RunTimeline = Run.timeline
+	# re-pinned in pass 137 (lane RESULTS, Garry: "jerky ... make it so the number ramps up linearly"): a straight line
+	# from 0 to what was banked, a quarter of it a quarter of the way through (the run's purse curve is the charts' only)
 	r._part_gold(0.25, false)
-	var want := int(round(tl.value_at(tl.purse, float(Run.run_gold), 0.25)))
+	var want: int = RESULTS.gold_at(Run.run_gold, 0.25)
 	assert_str(r._count.text).is_equal("+" + W.num(want))
 	r._part_gold(1.0, false)
 	assert_str(r._count.text).is_equal("+" + W.num(Run.run_gold))

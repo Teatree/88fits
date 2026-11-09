@@ -280,7 +280,7 @@ func test_the_landed_frame_flags_legendary_evolved_level_five_and_gold() -> void
 		# the mutation chest's header: MUTATION CHEST cream (white) with the edge under Royale, purple under Wanted; the
 		# star line purple either way, the light violet either way
 		cs.style_header(true)
-		assert_str(cs.header.title.text).is_equal(ChestScreen.BOSS_TITLE)
+		assert_str(cs.header.title.text).is_equal(Loc.t(ChestScreen.BOSS_TITLE_KEY))
 		assert_bool(cs.light_colour().is_equal_approx(ChestScreen.BOSS_LIGHT)).is_true()
 		if royale:
 			assert_bool(cs.header.title.color.is_equal_approx(R.CREAM)).is_true()

@@ -33,7 +33,11 @@ visual_file = "blunderbuss_visual.tscn"
 params = {
 "aim": {
 "assist": 15.0,
-"cone": 75.0
+"cone": 75.0,
+"feel": "soft",
+"lone_reach": 6.0,
+"threat_ratio": 0.45,
+"threat_reach": 3.0
 },
 "final": {
 "blast": {

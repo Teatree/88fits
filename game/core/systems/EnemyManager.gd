@@ -5108,7 +5108,7 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 							timer[i] = float(def.ranged.get("telegraph", 0.45)) / pace
 							if game:
 								game.fx_burst(pos[i] + Vector3(0, 0.3, 0), Color(0.9, 0.75, 0.5), 1.8)
-								game.hint_once("spider", "TRAPDOOR SPIDER: its silk pulls you in. Step off the red line.")
+								game.hint_once("spider", Loc.t("hint.spider"))
 							_telegraph_shot(i, def, ppos, dir, dist)
 							Audio.play(str(def.sfx.get("attack", "")), pos[i])
 					else:
@@ -5493,7 +5493,7 @@ func _support_pulse(i: int, r: float, frac: float, frenzy_seconds: float) -> voi
 		game.telegraph_ring(pos[i], r, 0.6, Color(0.45, 0.9, 0.55), true)
 		game.fx_burst(pos[i] + Vector3(0, size[i] * 0.9, 0), Color(0.5, 1.0, 0.6), 1.6)
 		if n > 0:
-			game.hint_once("shaman", "DUST SHAMAN: it mends and drives its pack (green ring). Kill it first.")
+			game.hint_once("shaman", Loc.t("hint.shaman"))
 
 
 ## The wind-up mark for a ranged creature: a red line along a straight shot, a red ring where a lob will land.
@@ -7182,7 +7182,7 @@ func _sniper_aim_start(i: int, def: EnemyDef, dir: Vector3) -> void:
 	sniper_aims += 1
 	Audio.play(str(def.sfx.get("aim", "")), pos[i])
 	if game != null and game.has_method("hint_once"):
-		game.hint_once("sniper", "SAIGA SNIPER: step off his red line before he fires. Hit him to spoil his aim.")
+		game.hint_once("sniper", Loc.t("hint.sniper"))
 
 
 ## The aim is dropped (pass 73: a hit with flee on hit's `interrupts`, a stun, a freeze, a launch, the hero down): no shot,
@@ -9376,7 +9376,7 @@ func _tail_start(i: int, atk: Dictionary, ppos: Vector3) -> void:
 	tail_runs += 1
 	Audio.play(_tail_sfx(atk, def, "aim", "en_sniper_aim"), pos[i])
 	if game != null and game.has_method("hint_once"):
-		game.hint_once("tail_sniper", "%s: its tail aims a beam, three times. Step off the red line." % def.display_name.to_upper())
+		game.hint_once("tail_sniper", Loc.t("hint.tail_sniper", {"name": def.display_name.to_upper()}))
 
 
 ## The row's `sfx` {aim, lock, shot} over the def's, over the Saiga's ids.

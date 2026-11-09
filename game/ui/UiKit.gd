@@ -352,9 +352,12 @@ static func card_description(card: Dictionary) -> String:
 	return ""
 
 
-## "Next level: +15% might" -> "Next: +15% might"; "Maxed." stays.
+## "Next level: +15% might" -> "Next: +15% might"; "Maxed." stays. Pass 137 (lead): the two wordings are the rows
+## gen.next.level and gen.card.next, so the prefix is read from the table (a row whose {effects} is not at its end leaves
+## the whole sentence as it is).
 static func _next_only(text: String) -> String:
-	if text.begins_with("Next level: "):
-		return "Next: " + text.trim_prefix("Next level: ")
+	var prefix := Loc.t("gen.next.level", {"effects": ""})
+	if prefix != "" and text.begins_with(prefix):
+		return Loc.t("gen.card.next", {"effects": text.trim_prefix(prefix)})
 	return text
 

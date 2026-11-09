@@ -37,6 +37,7 @@ visual_file = "fire_eater_visual.tscn"
 params = {
 "aim": {
 "cone": 50.0,
+"feel": "hard",
 "hold": 2.0
 },
 "breath": {

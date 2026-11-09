@@ -1,0 +1,22 @@
+{
+  "_doc": "Pass 137 (lane LOCKIT): one table of templates, values and the text each must render, read by game/tests/pass137_loc_test.gd (Loc.gd), tools/level_editor/selftest_LOC137.py (strings_io.py) and strings_model.js under Node, so the three renderers can never drift apart.",
+  "cases": [
+    {"t": "Fires {amount} {amount?shot:shots}.", "v": {"amount": "1"}, "out": "Fires 1 shot."},
+    {"t": "Fires {amount} {amount?shot:shots}.", "v": {"amount": "3"}, "out": "Fires 3 shots."},
+    {"t": "Fires {amount} {amount?shot:shots}.", "v": {"amount": "1.0"}, "out": "Fires 1.0 shots."},
+    {"t": "Throws {amount?a spear:{amount} spears} at {who}.", "v": {"amount": "1", "who": "the nearest enemy"}, "out": "Throws a spear at the nearest enemy."},
+    {"t": "Throws {amount?a spear:{amount} spears} at {who}.", "v": {"amount": "2", "who": "the nearest enemy"}, "out": "Throws 2 spears at the nearest enemy."},
+    {"t": "A {{literal}} brace and }} one.", "v": {}, "out": "A {literal} brace and } one."},
+    {"t": "Within {range} m.", "v": {}, "out": "Within {range} m."},
+    {"t": "{a}{b} and {a}", "v": {"a": "x", "b": "y"}, "out": "xy and x"},
+    {"t": "No variables at all: 100% · ×2 → ★", "v": {}, "out": "No variables at all: 100% · ×2 → ★"},
+    {"t": "{n?one: many}", "v": {"n": "5"}, "out": " many"},
+    {"t": "Every {nth} shot", "v": {"nth": "second", "unused": "z"}, "out": "Every second shot"}
+  ],
+  "variables": [
+    {"t": "Fires {amount} {amount?shot:shots} at {who} within {range} m.", "names": ["amount", "who", "range"]},
+    {"t": "{amount?a spear:{count} spears}", "names": ["amount", "count"]},
+    {"t": "{{not}} a variable", "names": []}
+  ],
+  "broken": ["Fires {amount shots.", "Fires amount} shots.", "{n?one}"]
+}

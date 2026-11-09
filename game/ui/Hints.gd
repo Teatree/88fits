@@ -26,19 +26,19 @@ func begin() -> void:
 	if not Settings.show_hints or game == null:
 		return
 	if not Save.hint_seen("hold"):
-		_show("hold", "Drag anywhere to walk")
+		_show("hold", Loc.t("hint.hold"))
 		game.player.moved_first.connect(func(): _done("hold"), CONNECT_ONE_SHOT)
 	elif not Save.hint_seen("slide"):
 		_show("slide", _shoots())
 	elif not Save.hint_seen("gems"):
-		_show("gems", "The purple is XP")
+		_show("gems", Loc.t("hint.gems"))
 
 
 ## Pass 82 (lane TOTEM; the Spirit Pole handoff: "Subline: a rule, taught by the first-play hint system, not here"): the
 ## first Totem gift taken, once its toast has been read (TOTEM_HINT_AFTER on the run's clock), the rule the old screen
 ## said under its title, once per save.
 const TOTEM_HINT_AFTER := 1.6
-const TOTEM_HINT := "Totem gifts last the whole run"
+const TOTEM_HINT_KEY := "hint.totem"
 
 
 func totem_taken() -> void:
@@ -47,7 +47,7 @@ func totem_taken() -> void:
 	Save.mark_hint("totem")
 	get_tree().create_timer(TOTEM_HINT_AFTER, false).timeout.connect(func() -> void:
 		if game and is_instance_valid(game):
-			game.toast(TOTEM_HINT, W.PAPER))
+			game.toast(Loc.t(TOTEM_HINT_KEY), W.PAPER))
 
 
 ## "He shoots by himself", in the hero's words.
@@ -55,10 +55,10 @@ func _shoots() -> String:
 	var p := Run.character.pronoun if Run.character else "they"
 	match p:
 		"he":
-			return "He shoots by himself"
+			return Loc.t("hint.slide.he")
 		"she":
-			return "She shoots by herself"
-	return "They shoot by themselves"
+			return Loc.t("hint.slide.she")
+	return Loc.t("hint.slide.they")
 
 
 func _show(step: String, text: String) -> void:
@@ -81,7 +81,7 @@ func _done(step: String) -> void:
 				_show("slide", _shoots())
 		"slide":
 			if not Save.hint_seen("gems"):
-				_show("gems", "The purple is XP")
+				_show("gems", Loc.t("hint.gems"))
 
 
 func tick(delta: float) -> void:
@@ -99,4 +99,4 @@ func tick(delta: float) -> void:
 			if not _pause_toast_done and Run.stage_clock() >= 90.0 and not Save.hint_seen("pause"):
 				_pause_toast_done = true
 				Save.mark_hint("pause")
-				game.toast("Tap the pause disc for your build", W.PAPER)
+				game.toast(Loc.t("hint.pause"), W.PAPER)

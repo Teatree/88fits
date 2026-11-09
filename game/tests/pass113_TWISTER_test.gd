@@ -274,7 +274,7 @@ func test_the_first_one_of_a_run_says_so_once() -> void:
 			dd.step(DT)
 		t += DT
 	assert_int(dds.formed).is_greater_equal(3)
-	assert_array(w["hud"].toasts).is_equal([DustDevils.WARN_TEXT])
+	assert_array(w["hud"].toasts).is_equal([Loc.t(DustDevils.WARN_KEY)])
 	var quiet := _game({"first": 1, "every": 10, "life": 8, "warn": false})
 	(quiet["dds"] as DustDevils).tick(2.0, 0)
 	assert_int((quiet["dds"] as DustDevils).formed).is_equal(1)

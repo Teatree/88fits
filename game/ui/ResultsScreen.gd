@@ -33,21 +33,49 @@ const SOURCE_ART := "res://art/ui/sources/%s.png"
 ## passive's icon (poison is Venom's, thorns Bristle's, pass 48 the Powder Keg's blast the Powder Keg's; the explosions'
 ## picture while a passive has no icon or is not in the game). Several ids can be one source ("burn" and "fire").
 const SOURCES := {
-	"": ["unknown", "Unknown"],
-	"revive": ["revive", "Revive blast"],
-	"fire": ["fire", "Fire"], "burn": ["fire", "Fire"], "burning": ["fire", "Fire"], "flames": ["fire", "Fire"],
-	"poison": ["passive:venom", "Poison"], "toxic": ["passive:venom", "Poison"],
-	"blast": ["blast", "Explosions"], "explosion": ["blast", "Explosions"], "loose_rocket": ["blast", "Explosions"],
-	"thorns": ["passive:bristle", "Thorns"],
-	"powder_keg": ["passive:powder_keg", "Powder Keg"],
+	"": ["unknown", "ui.results.source.unknown"],
+	"revive": ["revive", "ui.results.source.revive"],
+	"fire": ["fire", "ui.results.source.fire"], "burn": ["fire", "ui.results.source.fire"], "burning": ["fire", "ui.results.source.fire"], "flames": ["fire", "ui.results.source.fire"],
+	"poison": ["passive:venom", "ui.results.source.poison"], "toxic": ["passive:venom", "ui.results.source.poison"],
+	"blast": ["blast", "ui.results.source.explosions"], "explosion": ["blast", "ui.results.source.explosions"], "loose_rocket": ["blast", "ui.results.source.explosions"],
+	"thorns": ["passive:bristle", "ui.results.source.thorns"],
+	"powder_keg": ["passive:powder_keg", "ui.results.source.powder_keg"],
 	# pass 69: Hot Springs' heal pulses
-	"hot_springs": ["passive:hot_springs", "Hot Springs"],
+	"hot_springs": ["passive:hot_springs", "ui.results.source.hot_springs"],
 }
 
 ## The Stages menu's helpers (pass 87): a stage's entry, its colour.
 const StagesScreenScript := preload("res://ui/StagesScreen.gd")
-## The show's pace (pass 72; pass 74 the pop and the one chart part), in seconds at normal speed.
-const GOLD_TIME := 2.5
+## Pass 137 (lane RESULTS, Garry: "the number going up looks jerky ... Make it ramp up linearly with higher intensity the
+## higher the amount of Coins is; very animated, the number font increasing in size as it gets bigger and then snapping
+## to the original size"): the banked gold counts up in a straight line from 0 to what was banked (equal time, equal
+## coins: gold_at; the run's purse curve is the charts' only now). How hard it plays grows with the amount on one scale,
+## gold_intensity: 0 up to GOLD_FEW coins, 1 from GOLD_MANY, by the logarithm between (100 coins 0.37, 1,000 0.74). Its
+## length gold_time runs GOLD_MIN_TIME .. GOLD_MAX_TIME on it (10 coins 0.8 s, 100 1.4 s, 1,000 2.0 s, 5,000 and more
+## 2.4 s); the number swells as it climbs (gold_swell: to GOLD_SWELL_LOW .. GOLD_SWELL_HIGH of its size at the top, the
+## climb easing in by GOLD_SWELL_EASE), warms from its gold to GOLD_HOT, trembles by up to GOLD_RUMBLE px near the top of
+## a big count (x Settings.screen_shake), and each coin's tick nudges it by GOLD_TICK_BUMP for GOLD_TICK_BUMP_TIME; the
+## ticks come every GOLD_TICK_SLOW at the start down to GOLD_TICK_FAST at the top (a big purse starts faster). At the top
+## it snaps back to its size (SNAP_DOWN to SNAP_UNDER of it, then SNAP_BACK with a small overshoot), a flash, a spray of
+## coins (GOLD_SPRAY_MIN .. GOLD_SPRAY_MAX on the scale) and the last clink. Nothing of it for an empty purse.
+const GOLD_FEW := 10.0
+const GOLD_MANY := 5000.0
+const GOLD_MIN_TIME := 0.8
+const GOLD_MAX_TIME := 2.4
+const GOLD_SWELL_LOW := 1.3
+const GOLD_SWELL_HIGH := 1.45
+const GOLD_SWELL_EASE := 1.4
+const GOLD_HOT := Color("ffa22e")
+const GOLD_RUMBLE := 3.0
+const GOLD_TICK_BUMP := 0.05
+const GOLD_TICK_BUMP_TIME := 0.07
+const GOLD_TICK_SLOW := 0.11
+const GOLD_TICK_FAST := 0.04
+const SNAP_DOWN := 0.07
+const SNAP_UNDER := 0.9
+const SNAP_BACK := 0.26
+const GOLD_SPRAY_MIN := 8
+const GOLD_SPRAY_MAX := 22
 ## The chart block's pop once the gold is counted: from POP_FROM of its size, an ease-out-back of POP_BACK (a small
 ## overshoot, about 3 % past its size halfway through) and a fade over the first POP_FADE of it (as one picture:
 ## _pop_holder's CanvasGroup).
@@ -67,10 +95,21 @@ const ROW_FADE := 0.2
 ## then the stamp lands (PAID in sage, FAILED in rock, NOT DONE in soft ink) and the reward's row shows; a paid one then
 ## sends BOUNTY_FLY coins up to the Banked count in BOUNTY_PAY_TIME, the count ticking up with the coin's chink, the
 ## purse line after it. The reward was paid once already, at the run's end (WantedRun.settle): this only shows it.
+## Pass 137 (lane RESULTS, Garry: "The addition of the coins from the Wanted poster should be very visual as well"): the
+## pay is a show of its own in BOUNTY_PAY_TIME: BOUNTY_FLY coins pour from the reward's coin (it flashes as each leaves)
+## one after another over BOUNTY_POUR of the part, each flying BOUNTY_FLIGHT of it on an arc with a streak behind it;
+## each arrival adds its share to the Banked count (the shares sum to the reward exactly) with a chink, a nudge and a
+## splash of three coins, the count swelling again to BOUNTY_SWELL of its size by the last; the last one snaps it back as
+## the gold count's end does (a flash, a spray of coins, the clink) and the purse line takes the new total with a
+## flourish (BOUNTY_LINE_POP, a gold flash).
 const BOUNTY_TIME := 1.6
 const BOUNTY_STAMP_AT := 0.7
-const BOUNTY_PAY_TIME := 1.1
-const BOUNTY_FLY := 6
+const BOUNTY_PAY_TIME := 1.7
+const BOUNTY_FLY := 10
+const BOUNTY_POUR := 0.5
+const BOUNTY_FLIGHT := 0.32
+const BOUNTY_SWELL := 1.35
+const BOUNTY_LINE_POP := 1.18
 ## Before the first part (the board's own slide-in).
 const LEAD_IN := 0.35
 const PAUSE := 2.0
@@ -141,6 +180,19 @@ var _touch_id := -1
 var _touch_on_button := false
 var _gold_shown := -1
 var _coin_ms := 0
+## Pass 137 (lane RESULTS): the Banked count's own holder (a plain Control, so the row's sorting never resets the count's
+## swell), its colour at rest, its last tick, its snap (one tween at a time) and whether this part has snapped yet.
+var _count_hold: Control
+var _count_base := Color.WHITE
+var _tick_ms := -100000
+var _snap_tw: Tween
+var _snapped := false
+## The bounty's pour (CoinPour: the coins in flight, drawn in one Control) and how many have come in.
+var _pour: Control
+var _pour_landed := 0
+var _line_tw: Tween
+## The purse line's own colour (its flourish flashes gold and comes back to it).
+var _line_base := Color(0, 0, 0, 0)
 ## Pass 116 (lane RESULTS): the bounty's panel in the show: {"panel", "bar", "count", "stamp", "coins" (the reward's row),
 ## "coin", "coin_num", "have", "need", "paid", "landed", "fly": the flying coins}; {} without a bounty.
 var _bounty: Dictionary = {}
@@ -204,7 +256,7 @@ class RoyaleChart extends WKillChart:
 				continue
 			var sx: float = inner.position.x + float(s[0]) * inner.size.x
 			_dashed(Vector2(sx, inner.position.y), Vector2(sx, inner.end.y), DASH, 3.0)
-			_stage_name(Vector2(sx, r.end.y), "Stage %d" % (int(s[1]) + 1))
+			_stage_name(Vector2(sx, r.end.y), Loc.t("ui.results.stage", {"stage": "%d" % (int(s[1]) + 1)}))
 		if head > 0.0 and head < 1.0 and slices.size() > 0:
 			var tip := _point(r, inner, head)
 			draw_line(Vector2(tip.x, inner.position.y), Vector2(tip.x, inner.end.y), GUIDE, 2.0)
@@ -279,6 +331,60 @@ class RoyaleStamp extends WStamp:
 		draw_string(f, Vector2((size.x - w) * 0.5, base), word, HORIZONTAL_ALIGNMENT_LEFT, -1, text_px, R.NAVY)
 
 
+## Pass 137 (lane RESULTS): coins drawn over the board in one Control (top level, in the screen's own coordinates): a
+## `spray` (the snap at the top of a count: `bits` [pos, velocity, spin phase, spin speed, side] flung up and out, falling
+## and fading over LIFE, then it frees itself) or a bounty's pour (`flying` [pos, streak points newest first, spin phase,
+## side], set by the part each frame). The painted coin (WCoin.art(), else a drawn disc), spinning on its edge. Looks only.
+class CoinFx extends Control:
+	const LIFE := 0.8
+	const FALL := 2400.0
+	const STREAK := Color(1.0, 0.8, 0.28)
+	var spray := false
+	var bits: Array = []
+	var flying: Array = []
+	var _t := 0.0
+	var _tex: Texture2D
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top_level = true
+		_tex = WCoin.art()
+
+	func _process(delta: float) -> void:
+		if not spray:
+			return
+		_t += delta
+		if _t >= LIFE:
+			queue_free()
+			return
+		for b: Array in bits:
+			b[1] = (b[1] as Vector2) + Vector2(0.0, FALL * delta)
+			b[0] = (b[0] as Vector2) + (b[1] as Vector2) * delta
+			b[2] = float(b[2]) + float(b[3]) * delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var fade := clampf((LIFE - _t) / (LIFE * 0.45), 0.0, 1.0) if spray else 1.0
+		for b: Array in bits:
+			_coin(b[0], float(b[4]), absf(cos(float(b[2]))), fade)
+		for c: Array in flying:
+			var streak: PackedVector2Array = c[1]
+			var side := float(c[3])
+			for k in streak.size():
+				var q := 1.0 - float(k + 1) / float(streak.size() + 1)
+				draw_circle(streak[k], side * 0.34 * (0.4 + 0.6 * q), Color(STREAK, 0.9 * q), true, -1.0, true)
+			_coin(c[0], side, absf(cos(float(c[2]))), 1.0)
+
+	func _coin(at: Vector2, side: float, squash: float, a: float) -> void:
+		draw_set_transform(at, 0.0, Vector2(maxf(squash, 0.18), 1.0))
+		if _tex:
+			draw_texture_rect(_tex, Rect2(Vector2.ONE * -side * 0.5, Vector2(side, side)), false, Color(1, 1, 1, a))
+		else:
+			draw_circle(Vector2.ZERO, side * 0.5, Color(R.NAVY, a), true, -1.0, true)
+			draw_circle(Vector2.ZERO, side * 0.5 - 3.0, Color(R.GOLD_TEXT, a), true, -1.0, true)
+		draw_set_transform(Vector2.ZERO)
+
+
 ## A stamp in the theme (pass 123): WStamp, or under Royale the kit's tag (RoyaleStamp) built the way WStamp.make builds.
 static func make_stamp(t: String, col: Color, px: int) -> WStamp:
 	var s := RoyaleStamp.new()
@@ -344,8 +450,8 @@ func build() -> void:
 		el.name = "EndlessLine"
 		el.custom_minimum_size.y = 42
 		head.add_child(el)
-	var bits: Array = [W.lv(int(s["level"])), "%s kills" % W.num(int(s["kills"])),
-		"%d chest%s" % [int(s["chests"]), "" if int(s["chests"]) == 1 else "s"], "%d evolution%s" % [int(s["evolutions"]), "" if int(s["evolutions"]) == 1 else "s"]]
+	var bits: Array = [W.lv(int(s["level"])), Loc.t("ui.results.kills", {"kills": W.num(int(s["kills"]))}),
+		Loc.t("ui.results.chests", {"count": "%d" % int(s["chests"])}), Loc.t("ui.results.evolutions", {"count": "%d" % int(s["evolutions"])})]
 	# pass 123: the run's numbers as black pills (the mock's LV 47 · 934 kills · 3 chests · 0 evolutions)
 	var pills := HBoxContainer.new()
 	pills.name = "RunPills"
@@ -396,7 +502,7 @@ func build() -> void:
 	gv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	gv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	gv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gv.add_child(W.label("Banked", 20, W.INK_SOFT))
+	gv.add_child(W.label(Loc.t("ui.results.banked"), 20, W.INK_SOFT))
 	var gr := HBoxContainer.new()
 	gr.add_theme_constant_override("separation", 14)
 	gr.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -404,7 +510,17 @@ func build() -> void:
 	var banked_px := ROYALE_BANKED_PX
 	_count = W.slab_text("+0", banked_px, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, float(banked_px))
 	_count.name = "Banked"
-	gr.add_child(_count)
+	# pass 137 (lane RESULTS): in a plain holder that takes its size (the swell scales the count about its left middle;
+	# its glyphs stay inside the line box up to about 1.5x)
+	_count_base = _count.color
+	_count_hold = Control.new()
+	_count_hold.name = "BankedHold"
+	_count_hold.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_count_hold.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_count_hold.add_child(_count)
+	_count.minimum_size_changed.connect(_fit_count)
+	_fit_count()
+	gr.add_child(_count_hold)
 	gv.add_child(gr)
 	# pass 111 (lane WANTED): a bounty done came home beside the purse (WantedRun.settle)
 	var bounty: Dictionary = res.get("bounty", {}) if res.get("bounty") is Dictionary else {}
@@ -417,7 +533,7 @@ func build() -> void:
 	gv.add_child(_after_line)
 	if not Save.hint_seen("results"):
 		Save.mark_hint("results")
-		gv.add_child(W.serif_text("Your gold comes home, whatever the end. Spend it on the Trail.",
+		gv.add_child(W.serif_text(Loc.t("ui.results.gold_note"),
 			24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	hr.add_child(gv)
 	var prev: Dictionary = res.get("prev_best", {})
@@ -429,7 +545,7 @@ func build() -> void:
 		seal.fill = W.ROCK
 		seal.border = 6
 		seal.ring = 8
-		seal.word = "NEW\nBEST"
+		seal.word = Loc.t("ui.results.new_best")
 		seal.text_size = 19
 		seal.rotation = deg_to_rad(12.0)
 		seal.pivot_offset = Vector2(75, 75)
@@ -453,7 +569,7 @@ func build() -> void:
 		_dmg_total += float(dmg[id])
 	content.add_child(_gap(ROYALE_BLOCK_GAP))
 	# pass 74: the block waits unseen in its place (nothing under it moves) until the gold is counted, then pops in
-	_perf_label = W.label("Run performance", 22, W.INK_SOFT)
+	_perf_label = W.label(Loc.t("ui.results.performance"), 22, W.INK_SOFT)
 	_perf_label.modulate.a = 0.0
 	content.add_child(_perf_label)
 	content.add_child(_gap(ROYALE_LABEL_GAP))
@@ -464,13 +580,13 @@ func build() -> void:
 	# the damage dealt, by source, in the order each joined the run (pass 47: every row its plate, its name and its number)
 	if not dmg.is_empty():
 		content.add_child(_gap(ROYALE_BLOCK_GAP))
-		_dmg_label = W.label("Damage dealt", 22, W.INK_SOFT)
+		_dmg_label = W.label(Loc.t("ui.results.damage_dealt"), 22, W.INK_SOFT)
 		_dmg_label.modulate.a = 0.0
 		content.add_child(_dmg_label)
 		content.add_child(_gap(ROYALE_LABEL_GAP))
 		var src_rows := _source_rows(dmg)
 		# pass 123: the mock's "DAMAGE DEALT · 12 SOURCES" and every row on one slate panel
-		_dmg_label.text = ("Damage dealt · %d source%s" % [_rows.size(), "" if _rows.size() == 1 else "s"]).to_upper()
+		_dmg_label.text = Loc.t("ui.results.damage_dealt_count", {"count": "%d" % _rows.size()}).to_upper()
 		var dp := PanelContainer.new()
 		dp.name = "DamagePanel"
 		dp.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -493,7 +609,7 @@ func build() -> void:
 	col.offset_top = -80 - 132 - 22 - 91
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(col)
-	var again := WButton.make(["PLAY AGAIN"], 72, WButton.PRIMARY, 6, 10, 24.0, 0.0, 72.0)
+	var again := WButton.make([Loc.t("ui.results.play_again")], 72, WButton.PRIMARY, 6, 10, 24.0, 0.0, 72.0)
 	# pass 87 (lane SUI): the same stage again (Game plays stage 1 unless a stage was chosen)
 	var again_stage := Run.stage
 	# pass 120 (lane STARTGO): through the revolver wipe and the loading screen (UiFx.go_run, ui/RunCurtain.gd)
@@ -502,13 +618,17 @@ func build() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 22)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# pass 129: the Trail's button (the Upgrade board's until the board went)
-	for spec in [["Trail", Nav.TRAIL, WButton.UPGRADE], ["Main Menu", TITLE, WButton.SECONDARY]]:
+	# pass 129: the Trail's button (the Upgrade board's until the board went); pass 137 (lane TUTOR; Garry: "The Results
+	# screen's Trail button reads 'Upgrade'"): UPGRADE here only, still the Trail's way in (_on_upgrade)
+	for spec in [[Loc.t("ui.results.upgrade"), Nav.TRAIL, WButton.UPGRADE], [Loc.t("ui.results.main_menu"), TITLE, WButton.SECONDARY]]:
 		# pass 123: the words in capitals under Royale (UPGRADE blue, MAIN MENU slate: the variants' roles)
 		var b := WButton.make([str(spec[0]).to_upper()], 30, spec[2], 5, 6, 20.0, 0.0)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var path: String = spec[1]
-		b.pressed.connect(func(): go(path))
+		if path == Nav.TRAIL:
+			_upgrade_button(b)
+		else:
+			b.pressed.connect(func(): go(path))
 		row.add_child(b)
 	col.add_child(row)
 	_plan()
@@ -585,13 +705,13 @@ func _kills_panel() -> PanelContainer:
 	v.custom_minimum_size.x = side
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(W.label("Kills", 20, W.INK_SOFT))
+	v.add_child(W.label(Loc.t("ui.results.kills_label"), 20, W.INK_SOFT))
 	# pass 123: both counters in gold under Royale (the mock's KILLS 934, DAMAGE 19k)
 	_kills_num = W.slab_text("0", 66, W.BRASS, HORIZONTAL_ALIGNMENT_LEFT, 70.0)
 	_kills_num.name = "Kills"
 	v.add_child(_kills_num)
 	v.add_child(_gap(26))
-	v.add_child(W.label("Damage", 20, W.INK_SOFT))
+	v.add_child(W.label(Loc.t("ui.results.damage_label"), 20, W.INK_SOFT))
 	_dmg_num = W.slab_text("0", 66, W.BRASS, HORIZONTAL_ALIGNMENT_LEFT, 70.0)
 	_dmg_num.name = "Damage"
 	v.add_child(_dmg_num)
@@ -651,7 +771,7 @@ func _build_unlocks() -> void:
 	content.add_child(_gap(ROYALE_BLOCK_GAP + 8.0))
 	content.add_child(_unlock_box)
 	if not done.is_empty():
-		_unlock_label = W.label("Unlocked this run", 22, W.INK_SOFT)
+		_unlock_label = W.label(Loc.t("ui.results.unlocked_label"), 22, W.INK_SOFT)
 		_unlock_label.modulate.a = 0.0
 		_unlock_box.add_child(_unlock_label)
 		_unlock_box.add_child(_gap(ROYALE_LABEL_GAP))
@@ -665,7 +785,7 @@ func _build_unlocks() -> void:
 			if plate:
 				plate.locked = true
 				plate.queue_redraw()
-			var stamp: WStamp = make_stamp("FOR SALE" if bool(panel.get_meta("on_sale", false)) else "UNLOCKED", W.SAGE,
+			var stamp: WStamp = make_stamp(Loc.t("ui.results.stamp.for_sale") if bool(panel.get_meta("on_sale", false)) else Loc.t("ui.results.stamp.unlocked"), W.SAGE,
 				ROYALE_STAMP_PX)
 			stamp.visible = false
 			panel.add_child(stamp)
@@ -684,7 +804,7 @@ func _build_unlocks() -> void:
 	if not closer.is_empty():
 		if not done.is_empty():
 			_unlock_box.add_child(_gap(30))
-		_progress_label = W.label("Unlock progress", 22, W.INK_SOFT)
+		_progress_label = W.label(Loc.t("ui.results.progress_label"), 22, W.INK_SOFT)
 		_progress_label.modulate.a = 0.0
 		_unlock_box.add_child(_progress_label)
 		_unlock_box.add_child(_gap(18))
@@ -773,7 +893,7 @@ func _progress_row(c: Dictionary) -> Dictionary:
 ## brought anything closer.
 func _plan() -> void:
 	_parts.clear()
-	_add(1, "gold", GOLD_TIME, _part_gold)
+	_add(1, "gold", gold_time(_banked), _part_gold)
 	if not _bounty.is_empty():
 		_add(1, "bounty", BOUNTY_TIME, _part_bounty)
 		if int(_bounty["paid"]) > 0:
@@ -836,16 +956,145 @@ func _progress_time() -> float:
 	return row_step(_progress.size(), PROGRESS_STEP, PROGRESS_FILL, PROGRESS_MAX) * float(maxi(_progress.size() - 1, 0)) + PROGRESS_FILL
 
 
-## The banked gold along the run's purse: what he held at that share of the run (gold in and out), the end exactly
-## what was banked; a coin's chink as it climbs.
+## Pass 137 (lane RESULTS): how hard the gold count plays for `n` coins: 0 up to GOLD_FEW, 1 from GOLD_MANY, by the
+## logarithm between.
+static func gold_intensity(n: int) -> float:
+	if float(n) <= GOLD_FEW:
+		return 0.0
+	return clampf(log(float(n) / GOLD_FEW) / log(GOLD_MANY / GOLD_FEW), 0.0, 1.0)
+
+
+## The gold count's length for `n` coins: GOLD_MIN_TIME .. GOLD_MAX_TIME on gold_intensity.
+static func gold_time(n: int) -> float:
+	return lerpf(GOLD_MIN_TIME, GOLD_MAX_TIME, gold_intensity(n))
+
+
+## The count at share `f` of its time: a straight line from 0 to `n`, rounded down (never ahead of the line), `n` at the
+## end.
+static func gold_at(n: int, f: float) -> int:
+	if f >= 1.0:
+		return n
+	return clampi(int(floor(float(n) * clampf(f, 0.0, 1.0) + 0.000001)), 0, n)
+
+
+## The count's size at share `f` of its climb: 1 at the start, GOLD_SWELL_LOW .. GOLD_SWELL_HIGH (on gold_intensity) at
+## the top, easing in; 1 for an empty purse.
+static func gold_swell(n: int, f: float) -> float:
+	if n <= 0:
+		return 1.0
+	var top := lerpf(GOLD_SWELL_LOW, GOLD_SWELL_HIGH, gold_intensity(n))
+	return 1.0 + (top - 1.0) * pow(clampf(f, 0.0, 1.0), GOLD_SWELL_EASE)
+
+
+## The gap between two coin ticks at share `f` of the climb (real seconds): GOLD_TICK_SLOW at the start of a small count
+## down to GOLD_TICK_FAST at the top (a big purse starts faster).
+static func gold_tick_gap(n: int, f: float) -> float:
+	return lerpf(GOLD_TICK_SLOW, GOLD_TICK_FAST, clampf(0.35 * gold_intensity(n) + 0.65 * clampf(f, 0.0, 1.0), 0.0, 1.0))
+
+
+## The banked gold (pass 137: in a straight line, gold_at; the run's purse curve before): the number swells, warms and
+## ticks faster as it climbs, a big count trembles near the top, and at the top it snaps back (_snap_count). Skipped
+## (`live` false) it lands at once, at its size and colour.
 func _part_gold(f: float, live: bool) -> void:
-	var v: float = _tl.value_at(_tl.purse, float(_banked), f) if not _tl.is_empty() else float(_banked) * _ease_out(f)
-	var iv := int(round(v))
+	var iv := gold_at(_banked, f)
 	_count.text = "+" + W.num(iv)
-	if live and iv > _gold_shown and Time.get_ticks_msec() - _coin_ms > 75:
-		_coin_ms = Time.get_ticks_msec()
+	var now := Time.get_ticks_msec()
+	if live and f < 1.0 and _banked > 0 and iv > _gold_shown and float(now - _tick_ms) >= gold_tick_gap(_banked, f) * 1000.0:
+		_tick_ms = now
 		W.sfx("pk_coin")
 	_gold_shown = iv
+	if f >= 1.0:
+		if not live or _banked <= 0:
+			_rest_count()
+		elif not _snapped:
+			_snapped = true
+			_snap_count(gold_intensity(_banked))
+		return
+	var k := gold_intensity(_banked)
+	var warm := clampf(f * 1.15, 0.0, 1.0) if _banked > 0 else 0.0
+	_swell_count(gold_swell(_banked, f) + _tick_bump(now), _count_base.lerp(GOLD_HOT, warm), f * f * k)
+
+
+## The count at `s` of its size (about its left middle), in `col`, trembling by up to `rumble` x GOLD_RUMBLE px
+## (x Settings.screen_shake; a look, randf).
+func _swell_count(s: float, col: Color, rumble: float) -> void:
+	if _snap_tw and _snap_tw.is_valid():
+		_snap_tw.kill()
+	_count.scale = Vector2.ONE * s
+	_count.color = col
+	_count.modulate = Color.WHITE
+	var r := GOLD_RUMBLE * rumble * clampf(Settings.screen_shake, 0.0, 1.0)
+	_count.position = Vector2(randf_range(-r, r), randf_range(-r, r)) if r > 0.05 else Vector2.ZERO
+
+
+## A tick's nudge, fading over GOLD_TICK_BUMP_TIME after it.
+func _tick_bump(now: int) -> float:
+	return GOLD_TICK_BUMP * clampf(1.0 - float(now - _tick_ms) / (GOLD_TICK_BUMP_TIME * 1000.0), 0.0, 1.0)
+
+
+## The top of a count: the number snaps from its swell down past its size (SNAP_DOWN to SNAP_UNDER) and back with a small
+## overshoot (SNAP_BACK), flashing from cream to its gold, a spray of coins from it (more and further for a bigger
+## purse, `k` its intensity) and the last clink.
+func _snap_count(k: float) -> void:
+	if _snap_tw and _snap_tw.is_valid():
+		_snap_tw.kill()
+	var sp := maxf(_speed, 1.0)
+	_count.position = Vector2.ZERO
+	_count.color = R.CREAM
+	_count.modulate = Color(1.6, 1.6, 1.4, 1.0)
+	_snap_tw = create_tween()
+	_snap_tw.tween_property(_count, "scale", Vector2.ONE * SNAP_UNDER, SNAP_DOWN / sp).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_snap_tw.tween_property(_count, "scale", Vector2.ONE, SNAP_BACK / sp).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_snap_tw.parallel().tween_property(_count, "modulate", Color.WHITE, SNAP_BACK / sp)
+	_snap_tw.parallel().tween_property(_count, "color", _count_base, SNAP_BACK / sp)
+	W.sfx("it_coin_drop")
+	if _count.is_inside_tree():
+		_spray_coins(_count_centre(), int(round(lerpf(GOLD_SPRAY_MIN, GOLD_SPRAY_MAX, k))), lerpf(0.8, 1.2, k))
+
+
+## The count at rest: its size, its place, its gold (a skip; the snap's tween stopped).
+func _rest_count() -> void:
+	if _snap_tw and _snap_tw.is_valid():
+		_snap_tw.kill()
+	_snap_tw = null
+	_count.scale = Vector2.ONE
+	_count.position = Vector2.ZERO
+	_count.color = _count_base
+	_count.modulate = Color.WHITE
+
+
+## The holder takes the count's size; the count scales about its left middle.
+func _fit_count() -> void:
+	if _count == null or _count_hold == null:
+		return
+	var m := _count.get_combined_minimum_size()
+	_count_hold.custom_minimum_size = m
+	_count.size = m
+	_count.pivot_offset = Vector2(0.0, m.y * 0.5)
+
+
+## Where the Banked number stands on screen (the middle of its digits as drawn): the bounty's coins fly there, the
+## spray starts there.
+func _count_centre() -> Vector2:
+	if _count == null or _count_hold == null or not _count_hold.is_inside_tree():
+		return Vector2.ZERO
+	var w := _count.text_width()
+	return _count_hold.get_global_rect().position + Vector2(w * 0.5 * _count.scale.x, _count.size.y * 0.5)
+
+
+## A spray of `n` coins from `at` (CoinFx), flung up and out at `power` of their speed. Looks only (randf).
+func _spray_coins(at: Vector2, n: int, power: float) -> void:
+	if n <= 0:
+		return
+	var fx := CoinFx.new()
+	fx.name = "CoinSpray"
+	fx.spray = true
+	for i in n:
+		var ang := randf_range(-PI * 0.92, -PI * 0.08)
+		var v := Vector2(cos(ang), sin(ang)) * randf_range(420.0, 950.0) * power
+		var spin := randf_range(9.0, 20.0) * (1.0 if randf() < 0.5 else -1.0)
+		fx.bits.append([at, v, randf() * TAU, spin, randf_range(26.0, 42.0)])
+	add_child(fx)
 
 
 ## Pass 116 (lane RESULTS): the bounty's panel in the show (one poster a run: the one taken, WantedRun). Built hidden;
@@ -864,7 +1113,7 @@ func _bounty_panel(rec: Dictionary) -> Control:
 	v.add_theme_constant_override("separation", 14)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(v)
-	v.add_child(W.label("Bounty", 22, W.INK_SOFT))
+	v.add_child(W.label(Loc.t("ui.results.bounty_label"), 22, W.INK_SOFT))
 	# the poster's row without its right-hand word (the stamp and the coins say it)
 	v.add_child(WantedRun.row_for(rec, ""))
 	var bh := HBoxContainer.new()
@@ -887,7 +1136,7 @@ func _bounty_panel(rec: Dictionary) -> Control:
 	coins.add_theme_constant_override("separation", 12)
 	coins.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var reward_n := paid_n if paid_n > 0 else int(rec.get("reward", 0))
-	var say := W.serif_text("Reward paid" if paid_n > 0 else "Would have paid", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	var say := W.serif_text(Loc.t("ui.results.bounty_paid") if paid_n > 0 else Loc.t("ui.results.bounty_would_pay"), 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	say.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	coins.add_child(say)
 	var sp := Control.new()
@@ -907,8 +1156,8 @@ func _bounty_panel(rec: Dictionary) -> Control:
 	coins.add_child(cn)
 	coins.modulate.a = 0.0
 	v.add_child(coins)
-	var word := "PAID" if paid_n > 0 else ("FAILED" if bool(rec.get("failed", false)) else "NOT DONE")
-	var stamp := make_stamp(word, W.SAGE if paid_n > 0 else (W.ROCK if word == "FAILED" else W.INK_SOFT), 34)
+	var word := Loc.t("ui.results.stamp.paid") if paid_n > 0 else (Loc.t("ui.results.stamp.failed") if bool(rec.get("failed", false)) else Loc.t("ui.results.stamp.not_done"))
+	var stamp := make_stamp(word, W.SAGE if paid_n > 0 else (W.ROCK if bool(rec.get("failed", false)) else W.INK_SOFT), 34)
 	stamp.name = "BountyStamp"
 	stamp.visible = false
 	p.add_child(stamp)
@@ -919,7 +1168,7 @@ func _bounty_panel(rec: Dictionary) -> Control:
 		stamp.position = Vector2(p.size.x - stamp.size.x - 10.0, -stamp.size.y * 0.35))
 	p.modulate.a = 0.0
 	_bounty = {"panel": p, "bar": bar, "count": count, "stamp": stamp, "coins": coins, "coin": coin, "coin_num": cn,
-		"have": mini(have, need), "need": need, "paid": paid_n, "landed": false, "fly": []}
+		"have": mini(have, need), "need": need, "paid": paid_n, "landed": false}
 	_fill_bounty(0.0)
 	return p
 
@@ -965,61 +1214,152 @@ func _part_bounty(f: float, live: bool) -> void:
 		p.modulate = Color.WHITE
 
 
-## A paid bounty's coins fly from its reward up to the Banked count, which ticks up by the reward (the coin's chink), and
-## the purse line takes them in; the reward's number stays as what it paid.
+## When coin `i` of a bounty's `n` leaves the reward (a share of the pay part: one after another over BOUNTY_POUR) and how
+## far it has come at `f`: below 0 not yet gone, 1 and more in.
+static func bounty_coin_t(n: int, i: int, f: float) -> float:
+	var s := BOUNTY_POUR * float(i) / float(maxi(n - 1, 1))
+	return (f - s) / BOUNTY_FLIGHT
+
+
+## How many of a bounty's `n` coins have come in at `f` (all of them at the part's end).
+static func bounty_landed(n: int, f: float) -> int:
+	if f >= 1.0:
+		return n
+	var k := 0
+	for i in n:
+		if bounty_coin_t(n, i, f) >= 1.0:
+			k += 1
+	return k
+
+
+## What `landed` of `n` coins have brought of the reward `paid`: each its share rounded down, the last the rest (the
+## shares sum to the reward exactly).
+static func bounty_got(paid: int, n: int, landed: int) -> int:
+	if landed >= n:
+		return paid
+	return clampi(int(floor(float(paid) * float(landed) / float(maxi(n, 1)))), 0, paid)
+
+
+## Pass 137 (lane RESULTS): a paid bounty's coins pour from its reward into the Banked count: BOUNTY_FLY coins leave the
+## reward's coin one after another (it flashes as each goes), each on its own arc with a streak behind it; each arrival
+## adds its share (bounty_got) with a chink and a nudge, the count swelling and warming to BOUNTY_SWELL by the last, which
+## snaps it back (_snap_count) and gives the purse line its new total with a flourish. The reward's number stays as what
+## it paid. Skipped (`live` false) it lands at once.
 func _part_bounty_pay(f: float, live: bool) -> void:
 	var paid_n := int(_bounty["paid"])
-	var fly: Array = _bounty["fly"]
+	var n := BOUNTY_FLY
 	var from_c: Control = _bounty["coin"]
-	if live and fly.is_empty() and f < 1.0 and from_c.is_inside_tree() and _count.is_inside_tree():
-		for i in BOUNTY_FLY:
-			var c := WCoin.make(44.0, W.BRASS, 3.0)
-			c.top_level = true
-			c.z_index = 10
-			c.visible = false
-			add_child(c)
-			fly.append(c)
-	var a: Vector2 = from_c.get_global_rect().get_center() if from_c.is_inside_tree() else Vector2.ZERO
-	var b: Vector2 = (_count.get_global_rect().position + Vector2(50.0, _count.size.y * 0.5)) if _count.is_inside_tree() else a
-	var landed := 0
-	for i in fly.size():
-		var c: WCoin = fly[i]
-		if not is_instance_valid(c):
-			continue
-		var t0 := float(i) / float(BOUNTY_FLY) * 0.45
-		var t := clampf((f - t0) / 0.5, 0.0, 1.0)
-		if t >= 1.0 or f >= 1.0:
-			landed += 1
-			c.visible = false
-			continue
-		c.visible = t > 0.0
-		var mid := (a + b) * 0.5 + Vector2(-150.0 + 60.0 * float(i), -120.0)
-		var q := a.lerp(mid, t).lerp(mid.lerp(b, t), t)
-		c.position = q - Vector2(22, 22)
-		c.scale = Vector2.ONE * lerpf(1.0, 0.75, t)
-	var got := 0
-	if fly.is_empty():
-		got = int(round(float(paid_n) * _ease_out(f)))
-	else:
-		got = int(round(float(paid_n) * float(landed) / float(fly.size())))
-	if f >= 1.0:
-		got = paid_n
-		for c in fly:
-			if is_instance_valid(c):
-				c.queue_free()
-		fly.clear()
+	var landed := bounty_landed(n, f)
+	var now := Time.get_ticks_msec()
+	if live and f < 1.0 and _pour == null and landed < n and from_c.is_inside_tree() and _count.is_inside_tree():
+		var fx := CoinFx.new()
+		fx.name = "BountyPour"
+		add_child(fx)
+		_pour = fx
+	if _pour and is_instance_valid(_pour):
+		var a: Vector2 = from_c.get_global_rect().get_center()
+		var b: Vector2 = _count_centre()
+		var flying: Array = []
+		var gone := 0
+		for i in n:
+			var t := bounty_coin_t(n, i, f)
+			if t >= 0.0:
+				gone += 1
+			if t <= 0.0 or t >= 1.0 or f >= 1.0:
+				continue
+			var lean := lerpf(-170.0, 170.0, float(i) / float(maxi(n - 1, 1)))
+			var mid := (a + b) * 0.5 + Vector2(lean, -190.0 - 50.0 * sin(float(i) * 1.7))
+			var streak := PackedVector2Array()
+			for k in 5:
+				var tk := t - 0.05 * float(k + 1)
+				if tk <= 0.0:
+					break
+				streak.append(_arc(a, mid, b, tk))
+			flying.append([_arc(a, mid, b, t), streak, t * TAU * 1.6 + float(i), lerpf(58.0, 42.0, t)])
+		(_pour as CoinFx).flying = flying
+		_pour.queue_redraw()
+		if gone > int(_bounty.get("gone", 0)):
+			_bounty["gone"] = gone
+			_bounty["gone_ms"] = now
+		var flash := clampf(1.0 - float(now - int(_bounty.get("gone_ms", -100000))) / 110.0, 0.0, 1.0)
+		from_c.modulate = Color.WHITE.lerp(Color(1.7, 1.6, 1.2, 1.0), flash)
+	var got := bounty_got(paid_n, n, landed)
 	var iv := _banked + got
 	_count.text = "+" + W.num(iv)
-	if live and iv > _gold_shown:
-		W.sfx("pk_coin")
-		_count.pivot_offset = _count.size * 0.5
-		_count.scale = Vector2.ONE * 1.12
-		create_tween().tween_property(_count, "scale", Vector2.ONE, 0.12 / _speed)
-	if f >= 1.0 and not live:
-		_count.scale = Vector2.ONE
-	_gold_shown = iv
 	if _after_line:
 		_after_line.text = "%s → %s" % [W.num(_gold_before), W.num(_gold_before + iv)]
+	if not live:
+		if f >= 1.0:
+			_end_pour()
+			_rest_count()
+			_rest_line()
+		_gold_shown = iv
+		return
+	if landed > _pour_landed:
+		_pour_landed = landed
+		_tick_ms = now
+		if landed < n:
+			W.sfx("pk_coin")
+			# a little splash where it lands
+			_spray_coins(_count_centre(), 3, 0.45)
+	_gold_shown = iv
+	if landed >= n:
+		if not bool(_bounty.get("snapped", false)):
+			_bounty["snapped"] = true
+			_end_pour()
+			_snap_count(gold_intensity(paid_n))
+			_flourish_line()
+		return
+	var share := float(landed) / float(n)
+	_swell_count(1.0 + (BOUNTY_SWELL - 1.0) * share + _tick_bump(now), _count_base.lerp(GOLD_HOT, share), 0.0)
+
+
+## A point of a coin's arc (a quadratic curve from `a` over `mid` to `b`) at `t`, eased in and out.
+static func _arc(a: Vector2, mid: Vector2, b: Vector2, t: float) -> Vector2:
+	var e := clampf(t, 0.0, 1.0)
+	e = e * e * (3.0 - 2.0 * e)
+	return a.lerp(mid, e).lerp(mid.lerp(b, e), e)
+
+
+## The pour's coins gone, the reward's coin at rest.
+func _end_pour() -> void:
+	if _pour and is_instance_valid(_pour):
+		_pour.queue_free()
+	_pour = null
+	if not _bounty.is_empty() and is_instance_valid(_bounty["coin"]):
+		(_bounty["coin"] as Control).modulate = Color.WHITE
+
+
+## The purse line's flourish as the bounty lands: it swells to BOUNTY_LINE_POP about its left middle and back, flashing
+## gold and coming back to its own colour.
+func _flourish_line() -> void:
+	if _after_line == null:
+		return
+	if _line_tw and _line_tw.is_valid():
+		_line_tw.kill()
+	var sp := maxf(_speed, 1.0)
+	_after_line.pivot_offset = Vector2(0.0, _after_line.size.y * 0.5)
+	if _line_base.a <= 0.0:
+		_line_base = _after_line.color
+	_after_line.color = R.GOLD_TEXT
+	_after_line.modulate = Color(1.4, 1.3, 1.1, 1.0)
+	_line_tw = create_tween()
+	_line_tw.tween_property(_after_line, "scale", Vector2.ONE * BOUNTY_LINE_POP, 0.1 / sp).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_line_tw.tween_property(_after_line, "scale", Vector2.ONE, 0.32 / sp).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_line_tw.parallel().tween_property(_after_line, "modulate", Color.WHITE, 0.5 / sp)
+	_line_tw.parallel().tween_property(_after_line, "color", _line_base, 0.4 / sp).set_delay(0.15 / sp)
+
+
+## The purse line at rest (a skip).
+func _rest_line() -> void:
+	if _line_tw and _line_tw.is_valid():
+		_line_tw.kill()
+	_line_tw = null
+	if _after_line:
+		_after_line.scale = Vector2.ONE
+		_after_line.modulate = Color.WHITE
+		if _line_base.a > 0.0:
+			_after_line.color = _line_base
 
 
 ## The chart block pops in once the gold is counted (pass 74): the panel from POP_FROM of its size past its size and
@@ -1296,6 +1636,8 @@ func _finish() -> void:
 	_seq = DONE
 	_speed = 1.0
 	_follow = -1.0
+	# pass 137 (lane TUTOR): the show is over: UPGRADE wakes and, while the tutorial asks, is highlighted
+	_upgrade_after_show()
 	_offer_survey(_run_time)
 
 
@@ -1406,7 +1748,7 @@ static func damage_source(id: String) -> Dictionary:
 		else:
 			var path := SOURCE_ART % pic
 			icon = load(path) as Texture2D if ResourceLoader.exists(path) else null
-		return {"key": "source:" + str(spec[1]), "name": str(spec[1]), "def": null, "icon": icon}
+		return {"key": "source:" + str(spec[1]), "name": Loc.t(str(spec[1])), "def": null, "icon": icon}
 	var def: ContentDef = Registry.weapon(id)
 	if def == null:
 		def = Registry.perk(id)
@@ -1599,7 +1941,7 @@ func _unlocked(q: QuestDef) -> PanelContainer:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# pass 72: the word is the stamp's (UNLOCKED, or FOR SALE on a hero to buy: _build_unlocks)
 	p.set_meta("on_sale", on_sale)
-	var title := "A new outlaw" if on_sale else (def.display_name if def else q.display_name)
+	var title := Loc.t("ui.results.new_outlaw") if on_sale else (def.display_name if def else q.display_name)
 	if skin:
 		title = "%s · %s" % [def.display_name, (def as CharacterDef).skin_name((def as CharacterDef).look_code())]
 	var tpx := ROYALE_UNLOCK_PX
@@ -1665,22 +2007,70 @@ static func stage_story() -> Dictionary:
 	var e: Dictionary = list[i] if i < list.size() else {}
 	var out := Run.outcome()
 	var beaten := Run.stage_beaten or Run.extracted or Run.endless
-	var star := "Run over"
+	var star := Loc.t("ui.results.star.run_over")
 	if out == "extracted":
-		star = "Extracted"
+		star = Loc.t("ui.results.star.extracted")
 	elif out == "died_endless" and Run.died:
-		star = "Fell in Endless"
-	var parts: Array = ["Stage %d" % (i + 1)]
+		star = Loc.t("ui.results.star.fell_in_endless")
+	var parts: Array = [Loc.t("ui.results.stage", {"stage": "%d" % (i + 1)})]
 	var nm := str(e.get("name", ""))
-	if nm != "" and nm != "Stage %d" % (i + 1):
+	if nm != "" and nm != Loc.t("ui.results.stage", {"stage": "%d" % (i + 1)}):
 		parts.append(nm)
 	if beaten:
-		parts.append("Beaten")
+		parts.append(Loc.t("ui.results.beaten"))
 	var endless := ""
 	if Run.endless:
-		endless = "Endless %s" % W.mmss(Run.endless_time)
+		endless = Loc.t("ui.results.endless_time", {"time": W.mmss(Run.endless_time)})
 		var wave := Run.endless_wave()
 		if wave > 0:
-			endless += " · wave %d" % wave
+			endless += " " + Loc.t("ui.results.endless_wave", {"wave": "%d" % wave})
 	return {"star": star, "stage": " · ".join(parts), "tone": StagesScreenScript.tone(list, i) if not list.is_empty() else W.INK_SOFT,
 		"time": Run.run_time(), "endless": endless, "beaten": beaten}
+
+
+# ---------------------------------------------------------------- UPGRADE and the Trail's first steps (pass 137, lane TUTOR)
+
+const WHighlightScript := preload("res://ui/wanted/WHighlight.gd")
+## The UPGRADE button (named "Upgrade") and its highlight while the tutorial asks for it.
+var upgrade_btn: WButton
+var upgrade_highlight: Control
+
+
+## Garry: "After the first run the Results screen, only once its whole sequence (data, unlock progress) is done, shows a
+## big fat highlight of the Upgrade button; during the sequence the button is greyed out or not there; this plays every
+## Results until the Player first taps Upgrade." While Save's step upgrade_tapped is open, UPGRADE is grey and does
+## nothing through the show (_finish wakes it, a skip too); with the Trail closed (no run counted: a tool's Results) it
+## stays grey and says ui_locked. Otherwise it is the Trail's way in from the start, as before.
+func _upgrade_button(b: WButton) -> void:
+	b.name = "Upgrade"
+	upgrade_btn = b
+	b.locked = not Save.trail_open() or not Save.tutorial_done("upgrade_tapped")
+	b.pressed.connect(_on_upgrade)
+
+
+func _on_upgrade() -> void:
+	if upgrade_btn == null or upgrade_btn.locked:
+		if not Save.trail_open():
+			W.sfx("ui_locked")
+		return
+	if not Save.tutorial_done("upgrade_tapped"):
+		Save.mark_tutorial("upgrade_tapped")
+	if upgrade_highlight and is_instance_valid(upgrade_highlight):
+		upgrade_highlight.call("stop")
+	upgrade_highlight = null
+	go(Nav.TRAIL)
+
+
+## The show's end (_finish): UPGRADE wakes, highlighted while the tutorial still waits for its first tap.
+func _upgrade_after_show() -> void:
+	if upgrade_btn == null or not Save.trail_open():
+		return
+	upgrade_btn.locked = false
+	if Save.tutorial_done("upgrade_tapped") or (upgrade_highlight and is_instance_valid(upgrade_highlight)):
+		return
+	upgrade_highlight = WHighlightScript.attach(upgrade_btn, self)
+
+
+## Whether UPGRADE is highlighted now (tests, tools).
+func upgrade_highlighted() -> bool:
+	return upgrade_highlight != null and is_instance_valid(upgrade_highlight) and bool(upgrade_highlight.call("is_on"))

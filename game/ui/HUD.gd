@@ -173,7 +173,7 @@ func _ready() -> void:
 	add_child(_toasts)
 	_banner = WBanner.new()
 	add_child(_banner)
-	Run.xp_changed.connect(func(xp, need): _set_xp(xp, need); _lv.text = "LV %d" % Run.level; _fit_top())
+	Run.xp_changed.connect(func(xp, need): _set_xp(xp, need); _lv.text = Loc.t("ui.hud.level", {"level": "%d" % Run.level}); _fit_top())
 	Run.xp_gained.connect(_on_xp_gained)
 	Run.gold_changed.connect(func(g): _gold.text = W.num(g); _fit_top())
 	# the gold the hero picks up rises from him like the XP (pass 47); Run says how much each pickup really paid
@@ -194,7 +194,7 @@ func _ready() -> void:
 	_refresh_rows()
 	_set_xp(Run.xp, Run.xp_to_next())
 	_gold.text = W.num(Run.run_gold)
-	_lv.text = "LV %d" % Run.level
+	_lv.text = Loc.t("ui.hud.level", {"level": "%d" % Run.level})
 	# the top row in place at once (pass 56: a tool that tapped the pause disc in the frame the run loaded found it still
 	# at the row's corner, under the LV plate), and again once the plates have their sizes
 	_fit_top()
@@ -271,7 +271,7 @@ func _build_band() -> void:
 	add_child(_top)
 	# (pass 122: each plate's words sit in a holder that keeps the Wanted face's box whatever the theme, _hold)
 	_lv_plate = _plate()
-	_lv = W.text("LV 1", W.slab(), PLATE_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_lv = W.text(Loc.t("ui.hud.level", {"level": "1"}), W.slab(), PLATE_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	_lv_hold = _hold(_lv)
 	_lv_plate.add_child(_lv_hold)
 	_lv_plate.position = Vector2(36, TOP_Y)
@@ -357,7 +357,7 @@ func _fit_top() -> void:
 ## The mark (M4): while an offer is due and a weapon has a pick open (Run.mutlvl_pending), the LV plate turns the kit's
 ## mutation plum with paper letters and the XP rail's end says MUTATION NEXT, so the level-up that shows a mutation offer
 ## in place of the three cards never comes as a surprise.
-const MUT_WORD := "MUTATION NEXT"
+const MUT_WORD_KEY := "ui.hud.mutation_next"
 const MUT_WORD_PX := 30
 const MUT_WORD_RIGHT := 24.0
 
@@ -366,7 +366,7 @@ func _build_mut_mark() -> void:
 	_lv_box_paper = _lv_plate.get_theme_stylebox("panel")
 	var pad := Vector2(18 + 4, 4 + 4)
 	_lv_box_plum = W.box(W.PLUM, 4, 5).pad(pad.x, pad.y, pad.x, pad.y)
-	_mut_word = W.text(MUT_WORD, W.slab(), MUT_WORD_PX, W.PAPER, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	_mut_word = W.text(Loc.t(MUT_WORD_KEY), W.slab(), MUT_WORD_PX, W.PAPER, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
 	_mut_word.name = "MutationNext"
 	_mut_word.stroke = 4
 	_mut_word.shadow = 0
@@ -475,10 +475,10 @@ func set_boss_guard(mode: int) -> void:
 	match mode:
 		1:
 			_boss_bar.fill = BOSS_GUARD_FILL
-			_boss_bar.text = "GUARDED"
+			_boss_bar.text = Loc.t("ui.hud.boss_guarded")
 		2:
 			_boss_bar.fill = BOSS_DAZED_FILL
-			_boss_bar.text = "DAZED"
+			_boss_bar.text = Loc.t("ui.hud.boss_dazed")
 		_:
 			_boss_bar.fill = W.ROCK
 			_boss_bar.text = ""
@@ -1060,7 +1060,7 @@ func _tick_xp_popup(delta: float) -> void:
 		return
 	var sp := cam.unproject_position(wp)
 	var px := int(round((32 if n < 50 else 40) * Settings.float_scale()))
-	var l := W.text("+%d XP" % n, W.slab(), px, W.TOAST_PURPLE, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	var l := W.text(Loc.t("ui.hud.xp_gain", {"amount": "%d" % n}), W.slab(), px, W.TOAST_PURPLE, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	l.stroke = 2
 	l.shadow = 2
 	l.size = Vector2(300, 60)
@@ -1077,7 +1077,7 @@ func _tick_xp_popup(delta: float) -> void:
 
 
 func flash_level(level: int) -> void:
-	_lv.text = "LV %d" % level
+	_lv.text = Loc.t("ui.hud.level", {"level": "%d" % level})
 	_fit_top()
 	_lv_plate.pivot_offset = _lv_plate.size * 0.5
 	var tw := create_tween()
@@ -1238,27 +1238,27 @@ static func plate_def(k: String) -> ContentDef:
 static func buff_parts() -> Array:
 	var parts: Array = []
 	if Run.adrenaline > 0:
-		parts.append("ADRENALINE ×%d" % Run.adrenaline)
+		parts.append(Loc.t("ui.hud.buff.adrenaline", {"amount": "%d" % Run.adrenaline}))
 	if Run.crescendo > 0:
-		parts.append("CRESCENDO +%d%%" % int(round(Run.crescendo_might() * 100.0)))
+		parts.append(Loc.t("ui.hud.buff.crescendo", {"amount": "%d" % int(round(Run.crescendo_might() * 100.0))}))
 	# Steady Hand (pass 47): attack damage that grows while the hero stands still
 	var steady := Run.steady_might()
 	if steady > 0.0:
-		parts.append("STEADY +%d%%" % int(round(steady * 100.0)))
+		parts.append(Loc.t("ui.hud.buff.steady", {"amount": "%d" % int(round(steady * 100.0))}))
 	# Hot Streak (pass 49): the attack damage its kills have built so far, kept for the rest of the run
 	var hs := Run.hot_streak_bonus()
 	if hs > 0.0:
-		parts.append("HOT STREAK +%d%%" % int(round(hs * 100.0)))
+		parts.append(Loc.t("ui.hud.buff.hot_streak", {"amount": "%d" % int(round(hs * 100.0))}))
 	# Gas Mask: the damage reduction the poisoned crowd gives him now
 	var gm := Run.gas_mask_dr()
 	if gm > 0.0:
-		parts.append("GAS MASK %d%%" % int(round(gm * 100.0)))
+		parts.append(Loc.t("ui.hud.buff.gas_mask", {"amount": "%d" % int(round(gm * 100.0))}))
 	# Skedaddle: while the burst of speed after a hit runs
 	if Run.skedaddle_left() > 0.0:
-		parts.append("SKEDADDLE")
+		parts.append(Loc.t("ui.hud.buff.skedaddle"))
 	# pass 126 (lane ITEMS): the Canteen, while its heal after leaving water runs (a quiet timer: words, no plate)
 	if Run.canteen_left > 0.0:
-		parts.append("CANTEEN")
+		parts.append(Loc.t("ui.hud.buff.canteen"))
 	return parts
 
 
@@ -1276,11 +1276,11 @@ func tick(delta: float) -> void:
 	if boss_t > 0.0 and boss_t <= 30.0:
 		if not _boss_warned:
 			_boss_warned = true
-			banner("BOSS INCOMING")
+			banner(Loc.t("banner.boss_incoming"))
 			Audio.play("en_boss_roar")
 		if boss_t <= 10.0 and not _boss_ten:
 			_boss_ten = true
-			toast("BOSS IN 10 s")
+			toast(Loc.t("toast.boss_in_10"))
 	elif boss_t > 45.0 or boss_t < 0.0:
 		_boss_warned = false
 		_boss_ten = false
@@ -1311,14 +1311,14 @@ func _tick_arrow() -> void:
 		return
 	var em: EnemyManager = game.enemies
 	if em.boss_index >= 0 and em.is_alive(em.boss_index):
-		_edge_arrow(em.pos[em.boss_index], BOSS_RED, "BOSS")
+		_edge_arrow(em.pos[em.boss_index], BOSS_RED, Loc.t("ui.hud.arrow.boss"))
 	var portal = game.get("portal")
 	if portal != null and is_instance_valid(portal):
-		_edge_arrow((portal as Node3D).global_position, PORTAL_GREEN, "PORTAL")
+		_edge_arrow((portal as Node3D).global_position, PORTAL_GREEN, Loc.t("ui.hud.arrow.portal"))
 	if game.director and game.director.has_method("elite_position"):
 		var ep: Vector3 = game.director.elite_position()
 		if ep != Vector3.INF:
-			_edge_arrow(ep, ELITE_ORANGE, "ELITE")
+			_edge_arrow(ep, ELITE_ORANGE, Loc.t("ui.hud.arrow.elite"))
 	# (pass 49, Garry: "don't show the HUD guide to where the Flowers are": Pollen's flowers have no pointers; its buff
 	# has a plate among the power-ups, _refresh_buffs)
 	_sync_pointers()
@@ -1356,7 +1356,7 @@ func _edge_arrow(target: Vector3, color: Color, name: String) -> void:
 	var at := origin + dir * maxf(t, 0.0)
 	at.y = clampf(at.y, rect.position.y, rect.end.y)
 	# no name: the chevron alone
-	var said := "%s %d m" % [name, int(round(d.length()))] if name != "" else ""
+	var said := Loc.t("ui.hud.arrow.distance", {"name": name, "distance": "%d" % int(round(d.length()))}) if name != "" else ""
 	_arrows.append({"pos": at, "dir": dir, "color": color, "side": side, "text": said})
 
 
@@ -1440,7 +1440,7 @@ func _tick_stage_clock() -> void:
 		"endless":
 			_timer.text = W.mmss(endless_seconds())
 			var wave := endless_wave()
-			_stage_tag_text.text = "WAVE %d" % maxi(wave, 1)
+			_stage_tag_text.text = Loc.t("ui.hud.wave", {"wave": "%d" % maxi(wave, 1)})
 			if wave != _endless_wave_seen:
 				if _endless_wave_seen > 0:
 					_pulse_stage_tag()
@@ -1456,7 +1456,7 @@ func _tick_stage_clock() -> void:
 
 ## The ENDLESS banner, in rock (pass 87).
 func endless_banner() -> void:
-	banner("ENDLESS")
+	banner(Loc.t("banner.endless"))
 	var hb := W.box(W.ROCK, 4, 5).pad(52, 14, 52, 14)
 	hb.themed = false   # pass 122: the banner stays as it is under both themes (Garry)
 	_banner.add_theme_stylebox_override("panel", hb)
@@ -1484,14 +1484,14 @@ func _set_clock_mode(mode: String) -> void:
 		"portal":
 			_timer_plate.add_theme_stylebox_override("panel", _clock_box_paper)
 			_timer.color = ROYALE_WARN_TEXT
-			_stage_tag_text.text = "ENDLESS IN"
+			_stage_tag_text.text = Loc.t("ui.hud.endless_in")
 			_stage_tag_text.color = ROYALE_WARN_TEXT
 			_stage_tag.add_theme_stylebox_override("panel", W.plate_box(3, 3).pad(14, 3, 14, 4))
 			_stage_tag.visible = true
 		"endless":
 			_timer_plate.add_theme_stylebox_override("panel", _clock_box_paper)
 			_timer.color = R.WHITE
-			_stage_tag_text.text = "WAVE %d" % maxi(endless_wave(), 1)
+			_stage_tag_text.text = Loc.t("ui.hud.wave", {"wave": "%d" % maxi(endless_wave(), 1)})
 			_stage_tag_text.color = R.CREAM
 			_stage_tag.add_theme_stylebox_override("panel", W.box(R.TAG_RED, R.TAG_EDGE, 0, R.RADIUS_TAG).pad(14, 3, 14, 4))
 			_stage_tag.visible = true
@@ -1595,7 +1595,7 @@ func on_endless_started() -> void:
 func on_endless_wave(w: int) -> void:
 	if _stage_tag == null or _clock_mode != "endless":
 		return
-	_stage_tag_text.text = "WAVE %d" % maxi(w, 1)
+	_stage_tag_text.text = Loc.t("ui.hud.wave", {"wave": "%d" % maxi(w, 1)})
 	_place_stage_tag()
 	if w > _endless_wave_seen and _endless_wave_seen > 0:
 		_pulse_stage_tag()

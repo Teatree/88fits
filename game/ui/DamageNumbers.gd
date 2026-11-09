@@ -477,9 +477,9 @@ static func label_of(n: Num) -> String:
 		KIND_HEAL:
 			return "+" + text_of(n.amount)
 		KIND_DODGE:
-			return "EVADE"
+			return Loc.t("ui.damage_numbers.evade")
 		KIND_BLOCK:
-			return "BLOCK"
+			return Loc.t("ui.damage_numbers.block")
 	return text_of(n.amount)
 
 

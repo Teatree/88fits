@@ -1,5 +1,6 @@
-## Down! (Wanted screen 14): a rock dim; "★ 1 CHANCE LEFT ★ / DOWN!"; a paper disc with the count running out and "get
-## up"; who put the hero down; then GET UP · WATCH AN AD (a stand-in: no ads yet) and STAY DOWN (a pop-up asks first,
+## Down! (Wanted screen 14): a rock dim; "★ 1 CHANCE LEFT ★ / DOWN!"; a paper disc with the count running out (pass 137:
+## the number alone, centred; "get up" under it until then); who put the hero down; then GET UP · WATCH AN AD (a
+## stand-in: no ads yet) and STAY DOWN (a pop-up asks first,
 ## the count held meanwhile); pass 77 took "GET UP for 150 gold" off (Garry: "Remove the 'Get up with gold' option"). One chance per run plus the Trail's Extra Life nodes; the hero comes back with
 ## the revive_hp share of his health (half, more with Second Wind). Under the developer menu's hit log or the player's
 ## debug mode (pass 46: the Results screen no longer shows it) the last 30 seconds are listed under the count, newest
@@ -58,7 +59,7 @@ var _pills: HBoxContainer
 ## put you down, run pills, GET UP in gold, STAY DOWN in red", "Header white", "Keep the GET UP · WATCH AN AD label ...
 ## instead of text let's use an icon. An icon that's usually used for ads buttons", the hit log debug-only as today):
 ## the header's top and title size, the disc (its radius with the ring, the ring, the drop under it, the face's light
-## and edge colours, the warm glow round it), the count and "get up", where the disc's centre stands with the hit log
+## and edge colours, the warm glow round it), the count (and "get up" until pass 137), where the disc's centre stands with the hit log
 ## shown (the mock's) and without it, the gap from the disc to the line under it, the log's top.
 const ROYALE_HEAD_TOP := 56.0
 const ROYALE_TITLE_PX := 132
@@ -70,7 +71,10 @@ const ROYALE_FACE_EDGE := Color("f2dfb4")
 const ROYALE_GLOW := Color(1.0, 0.55, 0.25, 0.42)
 const ROYALE_GLOW_R := 360.0
 const ROYALE_COUNT_PX := 220
-const ROYALE_GETUP := Color("4a5670")
+## Pass 137 (lane POLISH): how far the count's line sits above the disc's centre so its digits' ink is centred on it
+## ("get up" under it is gone). Measured on a 1080 x 1920 capture: the 8's ink spans 720-883 px on a disc centred at 800,
+## 1.5 px off, so none.
+const ROYALE_COUNT_LIFT := 0.0
 const ROYALE_DISC_Y_LOG := 548.0
 const ROYALE_DISC_Y := 800.0
 const ROYALE_WHO_GAP := 44.0
@@ -99,12 +103,12 @@ func _build() -> void:
 
 ## Pass 123 (lane RUN_A): Down! under Royale (the mock 10_Down): the red dim; "★ 1 CHANCE LEFT ★" in gold over DOWN! in
 ## cream with the navy edge (Garry: "Header white"); the cream disc in a navy ring on a navy drop, a warm glow round it,
-## the count in navy and "get up" under it; who put the hero down; the run's time, kills and level as black pills; the
+## the count in navy (pass 137: alone, centred); who put the hero down; the run's time, kills and level as black pills; the
 ## gold line; the hit log (debug only, as today) as a slate panel with its rows on thin lines; GET UP with the drawn ad
 ## icon in gold ("GET UP · [ad]"), STAY DOWN in red; the developer's buttons as today. The same nodes and names.
 func _build_royale() -> void:
 	build_dim(W.DIM_DOWN)
-	build_header("1 chance left", "DOWN!", "", ROYALE_TITLE_PX, W.PAPER, ROYALE_HEAD_TOP)
+	build_header(Loc.t("ui.revive.star"), Loc.t("ui.revive.title"), "", ROYALE_TITLE_PX, W.PAPER, ROYALE_HEAD_TOP)
 	header.line.visible = false
 	_disc = Control.new()
 	_disc.name = "Disc"
@@ -112,18 +116,15 @@ func _build_royale() -> void:
 	_disc.size = Vector2(540, 540)
 	_disc.draw.connect(_draw_royale_disc)
 	add_child(_disc)
-	var top := 270.0 - ROYALE_DISC_R + ROYALE_RING
+	# pass 137 (lane POLISH; Garry: "The count down number isn't centered because of the 'Get Up' text. Remove the text and
+	# center the number"): no "get up" under it; the count's line centred on the disc's centre (270, 270), less
+	# ROYALE_COUNT_LIFT for the font's own ink centre
 	_count = W.text("8", R.display(), ROYALE_COUNT_PX, R.NAVY, HORIZONTAL_ALIGNMENT_CENTER, float(ROYALE_COUNT_PX))
 	R.no_edge(_count)
 	_count.name = "Count"
-	_count.position = Vector2(0, top + 64.0)
+	_count.position = Vector2(0, 270.0 - float(ROYALE_COUNT_PX) * 0.5 - ROYALE_COUNT_LIFT)
 	_count.size = Vector2(540, float(ROYALE_COUNT_PX))
 	_disc.add_child(_count)
-	var gu := W.text("get up", R.body(R.BODY_WEIGHT, true), 30, ROYALE_GETUP, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
-	gu.name = "GetUpWord"
-	gu.position = Vector2(0, top + 64.0 + float(ROYALE_COUNT_PX) + 4.0)
-	gu.size = Vector2(540, 40)
-	_disc.add_child(gu)
 	# who did it, the run's pills, the gold line: under the disc, moved with it (open)
 	_who = VBoxContainer.new()
 	_who.name = "Who"
@@ -158,7 +159,7 @@ func _build_royale() -> void:
 	_gold_row.add_theme_constant_override("separation", 8)
 	_gold_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_who.add_child(_gold_row)
-	var pre := W.serif_text("Stay down and the", 26, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	var pre := W.serif_text(Loc.t("ui.revive.gold_pre"), 26, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	pre.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_gold_row.add_child(pre)
 	_gold_coin = WCoin.make(28)
@@ -213,7 +214,7 @@ func _build_royale() -> void:
 	col.offset_top = -90 - 110 - 24 - 106
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(col)
-	_ad_btn = WButton.make(["GET UP · ", {"ad": ROYALE_AD_PX}], 48, WButton.PRIMARY, 4, 8, 29.0, 30.0, 48.0)
+	_ad_btn = WButton.make([Loc.t("ui.revive.get_up") + " ", {"ad": ROYALE_AD_PX}], 48, WButton.PRIMARY, 4, 8, 29.0, 30.0, 48.0)
 	_ad_btn.name = "GetUp"
 	_ad_btn.pressed.connect(func(): _try("ad"))
 	col.add_child(_ad_btn)
@@ -221,7 +222,7 @@ func _build_royale() -> void:
 	row.add_theme_constant_override("separation", 24)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(row)
-	_quit_btn = WButton.make(["STAY DOWN"], 34, WButton.DANGER, 5, 8, 26.0, 0.0)
+	_quit_btn = WButton.make([Loc.t("ui.revive.stay_down")], 34, WButton.DANGER, 5, 8, 26.0, 0.0)
 	_quit_btn.name = "StayDown"
 	_quit_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_quit_btn.pressed.connect(_ask_give_up)
@@ -311,17 +312,17 @@ func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {
 	_held = false
 	_asking = false
 	var can := chances > 0
-	header.star_line.get_child(1).text = ("%d CHANCE%s LEFT" % [chances, "" if chances == 1 else "S"]) if can else "NO CHANCES LEFT"
+	header.star_line.get_child(1).text = Loc.t("ui.revive.chances_left", {"count": "%d" % chances}) if can else Loc.t("ui.revive.no_chances")
 	_ad_btn.locked = not can
 	_count.text = str(int(ceil(SECONDS)))
 	if killer.is_empty():
 		killer = fatal_row(rows)
 	var by := str(killer.get("by", ""))
 	if by != "":
-		_killer.runs = [[by, name_colour(killer, W.PAPER)], [" put you down.", null]]
+		_killer.runs = [[by, name_colour(killer, W.PAPER)], [" " + Loc.t("ui.revive.put_you_down"), null]]
 	else:
 		_killer.runs = []
-		_killer.text = "Something put you down."
+		_killer.text = Loc.t("ui.revive.something")
 	_killer_icon.texture = badge_for(killer) if by != "" else null
 	_killer_icon.visible = _killer_icon.texture != null
 	if _pills:
@@ -329,11 +330,11 @@ func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {
 		for c in _pills.get_children():
 			_pills.remove_child(c)
 			c.queue_free()
-		for t in [W.mmss(Run.stage_clock()), "%s kills" % W.num(Run.kills), W.lv(Run.level)]:
+		for t in [W.mmss(Run.stage_clock()), Loc.t("ui.revive.kills", {"kills": W.num(Run.kills)}), W.lv(Run.level)]:
 			_pills.add_child(W.pill([[str(t), null, "bold"]]))
 	else:
-		_stats.text = "%s · %s kills · %s" % [W.mmss(Run.stage_clock()), W.num(Run.kills), W.lv(Run.level)]
-	_gold_line.text = "%s gold still comes home." % W.num(gold)
+		_stats.text = Loc.t("ui.revive.stats", {"time": W.mmss(Run.stage_clock()), "kills": W.num(Run.kills), "level": W.lv(Run.level)})
+	_gold_line.text = Loc.t("ui.revive.gold_line", {"gold": W.num(gold)})
 	_gold_row.visible = gold > 0
 	var s := W.node("Settings")
 	_log_panel.visible = s != null and (bool(s.get("hit_log")) or bool(s.get("debug_mode")))
@@ -601,9 +602,9 @@ func _ask_give_up() -> void:
 		return
 	_asking = true
 	var gold := Run.run_gold
-	WConfirm.open(self, "Stay down?",
-		("The run ends here, and the %s gold comes home with you." % W.num(gold)) if gold > 0 else "The run ends here.",
-		"Stay down", "Not yet",
+	WConfirm.open(self, Loc.t("ui.revive.confirm.title"),
+		Loc.t("ui.revive.confirm.body_gold", {"gold": W.num(gold)}) if gold > 0 else Loc.t("ui.revive.confirm.body"),
+		Loc.t("ui.revive.confirm.yes"), Loc.t("ui.revive.confirm.no"),
 		func():
 			_asking = false
 			_decide("give_up"),

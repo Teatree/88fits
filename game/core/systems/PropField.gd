@@ -66,6 +66,7 @@ var wind_now := Vector3(1.0, WIND_SPEED, 0.0)
 func setup(manifest_path: String = "res://art/sprites/props/props.json", p_stage: String = "", p_hell: bool = false) -> void:
 	stage_id = p_stage
 	stage_hell = p_hell
+	_tint_cache.clear()
 	if not FileAccess.file_exists(manifest_path):
 		return
 	var f := FileAccess.open(manifest_path, FileAccess.READ)
@@ -162,6 +163,7 @@ func in_stage(id: String) -> bool:
 ## `per_run` that may come in this stage, a roll of its `stage_chance`, then that many of its kind's placed props (chosen
 ## on dice of the map seed and the variant's name, so a seed's map is the same every time) are drawn as it instead. The
 ## collider is the kind's, so nothing in play moves. Returns the paintings laid, {variant id: count}.
+## Pass 137: then every prop's tint is settled by the cluster rule (settle_tints), the map being laid.
 func settle_rare(map_seed: int) -> Dictionary:
 	var out := {}
 	for kind: String in _rare.keys():
@@ -193,6 +195,7 @@ func settle_rare(map_seed: int) -> Dictionary:
 				_redraw_as(pr, look)
 			if n > 0:
 				out[look] = n
+	settle_tints()
 	return out
 
 
@@ -316,7 +319,11 @@ func add(id: String, at: Vector3, scale: float = 1.0, flip: bool = false, sway: 
 	var h: float = float(t["height"]) * scale
 	# a hair above the ground so the base never sinks into a slope
 	mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(h, h, h)), at + Vector3(0, 0.06, 0)))
-	mm.set_instance_custom_data(n, Color(1.0 if flip else 0.0, sway, randf() * TAU, tint_code(at)))
+	# pass 137: the lone rule's tint now (settle_tints gives a clustered one its own once the map stands); the sway's
+	# phase kept so a settled tint can be written again
+	var phase := randf() * TAU
+	var code := _lone_code(look, at)
+	mm.set_instance_custom_data(n, Color(1.0 if flip else 0.0, sway, phase, code))
 	t["n"] = n + 1
 	mm.visible_instance_count = n + 1
 	var s := -1
@@ -324,7 +331,7 @@ func add(id: String, at: Vector3, scale: float = 1.0, flip: bool = false, sway: 
 	if float(sh["a"]) > 0.0:
 		var x := float(sh["x"]) * h * (-1.0 if flip else 1.0)
 		s = add_shadow(at + Vector3(x, 0.0, float(sh["z"]) * h), float(sh["w"]) * h, float(sh["d"]) * h, float(sh["a"]), h)
-	placed.append({"id": kind, "look": look, "pos": at, "scale": scale, "flip": flip, "i": n, "s": s, "sway": sway})
+	placed.append({"id": kind, "look": look, "pos": at, "scale": scale, "flip": flip, "i": n, "s": s, "sway": sway, "phase": phase, "tint": code})
 	return true
 
 
@@ -472,14 +479,39 @@ func truncate(m: Dictionary) -> void:
 ## bleached bone), h [min, max] (added to the hue, turns), s [min, max] and v [min, max] (times the saturation and the
 ## value), link (0..1: how much the s and v rolls follow the h roll, so a plant is drier or lusher as a whole)}. A variant
 ## without its own takes its kind's. Each placed prop rolls three numbers from a hash of its spot (stable for a map
-## seed), packed into INSTANCE_CUSTOM.w (tint_code: TINT_STEPS levels each, an integer under 2048 so a half float keeps
-## it); core/shaders/prop_billboard.gdshader applies the painting's rules (its material's uniforms): no extra draw.
+## seed), packed into INSTANCE_CUSTOM.w (tint_code); core/shaders/prop_billboard.gdshader applies the painting's rules (its
+## material's uniforms): no extra draw.
+## Pass 137 (lane ENV; Garry: "Slight colour differences on the environment art ... Subtle but noticeable when two stand
+## next to each other ... Random at map generation, with a higher chance in clusters of obviously same-looking assets"):
+## each painting's rule is its own (props.json) and a prop's tint has a strength, chosen by the field. The code is
+## r1 + S r2 + S^2 r3 + S^3 level (S = TINT_STEPS levels a roll; level 0..3 = none, a third, two thirds or all of the
+## rule's reach), an integer under 2048, so a half float keeps it. A painting's knobs (its own, else its kind's):
+##   tint_chance    the chance a lone one shows its tint (TINT_CHANCE), at TINT_LONE; else it stays as painted
+##   tint_cluster   added to that chance for each prop of the same painting standing within TINT_NEAR metres (plus a
+##                  quarter of the two props' heights; TINT_CLUSTER); a clustered one is tinted at full strength, is
+##                  never plain beside a plain one, and takes the most different of TINT_TRIES rolls from the
+##                  neighbours already settled (tint_distance)
+##   tint_strength  times the whole reach of its rule (1 = the rule as written)
+## add() gives a prop the lone rule; settle_tints() (settle_rare calls it once the map is laid) the cluster rule, in the
+## order the map laid the props, so a map seed's tints are the same every time.
 const TINT_PARTS := 2
-const TINT_STEPS := 12
+const TINT_STEPS := 8
+const TINT_LEVELS := 4
+const TINT_LONE := 2
+const TINT_FULL := 3
+const TINT_CHANCE := 0.45
+const TINT_CLUSTER := 0.3
+const TINT_NEAR := 5.0
+const TINT_TRIES := 6
+## the cluster search's cells (metres): wider than the farthest two props count as neighbours
+const TINT_CELL := 12.0
 ## the bounds every rule keeps inside (tests): the hue moves at most this far, s and v within these factors
 const TINT_MAX_H := 0.08
 const TINT_S_RANGE := Vector2(0.6, 1.4)
 const TINT_V_RANGE := Vector2(0.75, 1.2)
+
+## painting -> its rules with tint_strength laid in (tint_rules_scaled)
+var _tint_cache: Dictionary = {}
 
 
 ## A painting's tint rules ([] for none): its own `tint`, else its kind's.
@@ -496,20 +528,172 @@ func tint_rules(id: String) -> Array:
 	return []
 
 
-## The three rolls (0..1 each, TINT_STEPS levels) for a prop at `at`, packed: r1 + STEPS r2 + STEPS^2 r3.
-static func tint_code(at: Vector3) -> float:
-	var h := hash([roundi(at.x * 64.0), roundi(at.z * 64.0), "tint"])
-	var q1 := h % TINT_STEPS
-	var q2 := (h / TINT_STEPS) % TINT_STEPS
-	var q3 := (h / (TINT_STEPS * TINT_STEPS)) % TINT_STEPS
-	return float(q1 + TINT_STEPS * q2 + TINT_STEPS * TINT_STEPS * q3)
+## Pass 137: a painting's tint knob `key` (tint_chance, tint_cluster, tint_strength): its own, else its kind's, else `dflt`.
+func tint_knob(id: String, key: String, dflt: float) -> float:
+	for k: String in [id, kind_of(id)]:
+		var row = manifest.get(k)
+		if row is Dictionary and (row as Dictionary).has(key):
+			return float(row[key])
+	return dflt
+
+
+## Pass 137: the rules as the material gets them: every range drawn towards no change (h 0, s and v 1) or away from it by
+## the painting's tint_strength (0..2).
+func tint_rules_scaled(id: String) -> Array:
+	if _tint_cache.has(id):
+		return _tint_cache[id]
+	var st := clampf(tint_knob(id, "tint_strength", 1.0), 0.0, 2.0)
+	var out: Array = []
+	for r: Dictionary in tint_rules(id):
+		var c := r.duplicate(true)
+		var h := _pair(r, "h", Vector2.ZERO)
+		var s := _pair(r, "s", Vector2.ONE)
+		var v := _pair(r, "v", Vector2.ONE)
+		c["h"] = [h.x * st, h.y * st]
+		c["s"] = [1.0 + (s.x - 1.0) * st, 1.0 + (s.y - 1.0) * st]
+		c["v"] = [1.0 + (v.x - 1.0) * st, 1.0 + (v.y - 1.0) * st]
+		out.append(c)
+	_tint_cache[id] = out
+	return out
+
+
+## The code for a prop at `at`: three rolls (TINT_STEPS levels each) from a hash of the spot and `attempt` (another try at
+## the same spot), at strength `level` (0..TINT_LEVELS-1).
+static func tint_code(at: Vector3, attempt: int = 0, level: int = TINT_FULL) -> float:
+	var h := hash([roundi(at.x * 64.0), roundi(at.z * 64.0), "tint", attempt])
+	var s := TINT_STEPS
+	var q1 := h % s
+	var q2 := (h / s) % s
+	var q3 := (h / (s * s)) % s
+	return float(q1 + s * q2 + s * s * q3 + s * s * s * clampi(level, 0, TINT_LEVELS - 1))
 
 
 ## The rolls a code holds (tests, sheets): Vector3(r1, r2, r3), each 0..1.
 static func tint_rolls(code: float) -> Vector3:
 	var w := roundi(code)
-	var s := float(TINT_STEPS - 1)
-	return Vector3(float(w % TINT_STEPS) / s, float((w / TINT_STEPS) % TINT_STEPS) / s, float(w / (TINT_STEPS * TINT_STEPS)) / s)
+	var s := TINT_STEPS
+	var d := float(s - 1)
+	return Vector3(float(w % s) / d, float((w / s) % s) / d, float((w / (s * s)) % s) / d)
+
+
+## The strength level a code holds, 0 (as painted) .. TINT_LEVELS - 1 (the whole reach).
+static func tint_level(code: float) -> int:
+	return clampi(roundi(code) / (TINT_STEPS * TINT_STEPS * TINT_STEPS), 0, TINT_LEVELS - 1)
+
+
+## A number 0..1 from a hash of the spot and `salt` (the field's rolls are the spot's, never randf: a map seed's tints are
+## the same every time).
+static func _spot01(at: Vector3, salt: String) -> float:
+	return float(hash([roundi(at.x * 64.0), roundi(at.z * 64.0), "tint", salt]) % 100003) / 100003.0
+
+
+## The lone rule: painting `look` at `at` shows its tint at TINT_LONE with its tint_chance, else stays as painted.
+func _lone_code(look: String, at: Vector3) -> float:
+	if _spot01(at, "on") < tint_knob(look, "tint_chance", TINT_CHANCE):
+		return tint_code(at, 0, TINT_LONE)
+	return tint_code(at, 0, 0)
+
+
+## What code `code` does to painting `id`, part by part as the shader works it out (the link, the level's strength, the
+## painting's tint_strength): Vector3(hue shift, saturation factor, value factor) for each part (tests, settle_tints).
+func tint_effect(id: String, code: float) -> Array:
+	var r := tint_rolls(code)
+	var k := float(tint_level(code)) / float(TINT_LEVELS - 1)
+	var out: Array = []
+	for rule: Dictionary in tint_rules_scaled(id):
+		var link := float(rule.get("link", 0.5))
+		var h := _pair(rule, "h", Vector2.ZERO)
+		var s := _pair(rule, "s", Vector2.ONE)
+		var v := _pair(rule, "v", Vector2.ONE)
+		var r2 := lerpf(r.y, r.x, link)
+		var r3 := lerpf(r.z, r.x, link)
+		out.append(Vector3(lerpf(h.x, h.y, r.x) * k, 1.0 + (lerpf(s.x, s.y, r2) - 1.0) * k, 1.0 + (lerpf(v.x, v.y, r3) - 1.0) * k))
+	return out
+
+
+## How differently two codes tint painting `id`: per part, each change measured against the rule's own reach (a hue, a
+## saturation and a value difference as wide as the rule allows count 1, 0.75 and 1.5: darkness reads first), summed over
+## the parts as one distance.
+func tint_distance(id: String, a: float, b: float) -> float:
+	var ea := tint_effect(id, a)
+	var eb := tint_effect(id, b)
+	var rules := tint_rules_scaled(id)
+	var d := 0.0
+	for p in ea.size():
+		var rule: Dictionary = rules[p]
+		var h := _pair(rule, "h", Vector2.ZERO)
+		var s := _pair(rule, "s", Vector2.ONE)
+		var v := _pair(rule, "v", Vector2.ONE)
+		var e: Vector3 = (ea[p] as Vector3) - (eb[p] as Vector3)
+		d += pow(e.x / maxf(absf(h.y - h.x), 0.004), 2.0) + pow(0.75 * e.y / maxf(absf(s.y - s.x), 0.02), 2.0) \
+				+ pow(1.5 * e.z / maxf(absf(v.y - v.x), 0.02), 2.0)
+	return sqrt(d)
+
+
+## Pass 137: every placed prop's tint by the cluster rule (the header above), in the order the map laid them. Writes only
+## the instances whose code changes; settling twice changes nothing. Returns {props, clustered, varied, changed}.
+func settle_tints() -> Dictionary:
+	var grid := {}
+	for k in placed.size():
+		var at: Vector3 = placed[k]["pos"]
+		var key := Vector2i(floori(at.x / TINT_CELL), floori(at.z / TINT_CELL))
+		if not grid.has(key):
+			grid[key] = []
+		(grid[key] as Array).append(k)
+	var stats := {"props": placed.size(), "clustered": 0, "varied": 0, "changed": 0}
+	for k in placed.size():
+		var row: Dictionary = placed[k]
+		var look := str(row["look"])
+		if tint_rules(look).is_empty():
+			continue
+		var at: Vector3 = row["pos"]
+		var tall := height_of(look) * float(row["scale"])
+		var key := Vector2i(floori(at.x / TINT_CELL), floori(at.z / TINT_CELL))
+		var near: Array = []
+		for dx in range(-1, 2):
+			for dz in range(-1, 2):
+				for j: int in grid.get(key + Vector2i(dx, dz), []):
+					if j == k or str(placed[j]["look"]) != look:
+						continue
+					var pj: Vector3 = placed[j]["pos"]
+					var reach := TINT_NEAR + 0.25 * (tall + height_of(look) * float(placed[j]["scale"]))
+					if Vector2(pj.x - at.x, pj.z - at.z).length() < reach:
+						near.append(j)
+		var code := _lone_code(look, at) if near.is_empty() else _cluster_code(look, at, k, near)
+		if not near.is_empty():
+			stats["clustered"] += 1
+		if tint_level(code) > 0:
+			stats["varied"] += 1
+		if code != float(row.get("tint", -1.0)):
+			row["tint"] = code
+			stats["changed"] += 1
+			var t: Dictionary = _types.get(look, {})
+			if not t.is_empty() and int(row["i"]) >= 0:
+				(t["mm"] as MultiMesh).set_instance_custom_data(int(row["i"]),
+						Color(1.0 if bool(row["flip"]) else 0.0, float(row.get("sway", 0.0)), float(row.get("phase", 0.0)), code))
+	return stats
+
+
+## The cluster rule for placed prop `k` (painting `look` at `at`) with `near` (indices of the same painting beside it).
+func _cluster_code(look: String, at: Vector3, k: int, near: Array) -> float:
+	var chance := tint_knob(look, "tint_chance", TINT_CHANCE) + tint_knob(look, "tint_cluster", TINT_CLUSTER) * float(near.size())
+	var settled: Array = near.filter(func(j: int) -> bool: return j < k)
+	var plain_by := settled.any(func(j: int) -> bool: return tint_level(float(placed[j].get("tint", 0.0))) == 0)
+	if _spot01(at, "on") >= chance and not plain_by:
+		return tint_code(at, 0, 0)
+	var best := tint_code(at, 0, TINT_FULL)
+	var best_d := -1.0
+	if settled.is_empty():
+		return best
+	for i in TINT_TRIES:
+		var c := tint_code(at, i, TINT_FULL)
+		var d := INF
+		for j: int in settled:
+			d = minf(d, tint_distance(look, c, float(placed[j].get("tint", 0.0))))
+		if d > best_d:
+			best_d = d
+			best = c
+	return best
 
 
 static func _pair(r: Dictionary, key: String, dflt: Vector2) -> Vector2:
@@ -519,10 +703,10 @@ static func _pair(r: Dictionary, key: String, dflt: Vector2) -> Vector2:
 	return dflt
 
 
-## The painting's material gets its rules: part k's tint_hue_k (lo, hi, sat_min, all hues 1/0), tint_hs_k (h min, h
-## max, s min, s max), tint_v_k (v min, v max, link, on 1/0).
+## The painting's material gets its rules (pass 137: with its tint_strength laid in): part k's tint_hue_k (lo, hi,
+## sat_min, all hues 1/0), tint_hs_k (h min, h max, s min, s max), tint_v_k (v min, v max, link, on 1/0).
 func _set_tint_uniforms(mat: ShaderMaterial, id: String) -> void:
-	var rules := tint_rules(id)
+	var rules := tint_rules_scaled(id)
 	for k in TINT_PARTS:
 		var on := k < rules.size()
 		var r: Dictionary = rules[k] if on else {}
