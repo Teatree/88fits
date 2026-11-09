@@ -124,6 +124,12 @@ func _tick() -> void:
 				_fail("no game after 30 s")
 				_finish()
 		"play":
+			# pass 136 (lead): the floating Wanted posters after the landing (pass 112) wait for a tap like any screen; a
+			# player takes one, so the check does too (smoke_run's way), or the run stands paused under them
+			var bp = _game.get("bounty_posters")
+			if bp != null and bp.visible and not bp.is_done():
+				bp.choose(0)
+				_notes.append("took a Wanted poster")
 			if bool(_game.get("_run_started")) and _played_from < 0.0:
 				_played_from = _t
 				var key := InputEventKey.new()
