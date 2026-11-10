@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "+50% damage and +1 pierce, in rounds half again as big that hit wider.",
+  "text": "Bigger silver bullets: +50% damage and +1 pierce.",
   "vfx": "a bluish silver round with a pale tracer and flash, a harder kick",
   "effects": [
     {

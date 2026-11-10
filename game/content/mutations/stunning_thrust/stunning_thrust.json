@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "Every hit has a 15% chance to stun for a second.",
+  "text": "Each hit has a 15% chance of stunning the enemy for 1 s.",
   "vfx": "a stunned creature stands frozen in a pale yellow tint, little stars over it",
   "effects": [],
   "params": {

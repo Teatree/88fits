@@ -8,7 +8,7 @@
   "kind": "hero",
   "element": "",
   "hero": "drifter",
-  "text": "A blast that catches nine or more creatures lands a Mini Crit on every one of them.",
+  "text": "A blast that hits 9 or more enemies lands a Mini Crit on each of them.",
   "vfx": "a big blast in a packed crowd, every creature in it flashing the mini crit's pale gold number",
   "effects": [],
   "params": {

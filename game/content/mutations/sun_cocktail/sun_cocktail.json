@@ -8,7 +8,7 @@
   "kind": "hero",
   "element": "",
   "hero": "solenne",
-  "text": "Bottles shine with sunlight and burst where they land: a small blast for 150% of their damage that pushes a little.",
+  "text": "Bottles burst with sunlight where they land, a small blast for 150% damage.",
   "vfx": "a golden bottle with a sunburst round it in flight, a little sun bursting where it breaks, a gold ring racing out",
   "effects": [],
   "params": {

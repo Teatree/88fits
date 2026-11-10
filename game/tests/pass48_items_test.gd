@@ -22,14 +22,14 @@ const DATA := {
 ## the player-facing line of each, word for word (Garry's brief)
 const TEXT := {
 	# (pass 95: the lines name the ladder's numbers)
-	"phoenix_feather": "Two seconds after you fall, you get back up at half health (more with Second Wind) with the revive's blast. Once a run; it never levels up.",
-	"skedaddle": "After a hit, run 25% faster for 2 s (+3% and +0.3 s a rung, Evolved +5% and +0.5 s).",
-	"powder_keg": "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a twelfth of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
-	"loose_change": "A hit has a 32% chance to knock a coin worth 10 gold out of you (+8% a rung, Evolved +12%). It lands a few steps away: go and get it.",
-	"gas_mask": "1% damage reduction for every poisoned enemy, up to 12% (20% at level 2, 30% once Evolved).",
-	"hot_streak": "Kills make you stronger for the rest of the run: +7% attack damage per 1,000 kills (more each rung), up to +100%.",
+	"phoenix_feather": "When you fall, you get back up at half health. Once a run.",
+	"skedaddle": "After a hit, run 25% faster for 2 s.",
+	"powder_keg": "Kills have a 6.5% chance of exploding, hurting everything close by.",
+	"loose_change": "Getting hit has a 32% chance of dropping a 10 gold coin close by.",
+	"gas_mask": "1% damage reduction for every poisoned enemy, up to 12%.",
+	"hot_streak": "+7% attack damage for every 1,000 kills this run, up to +100%.",
 }
-const DESPERADO_TEXT := "The more you are hurt, the harder you hit: +1.6% attack damage for every 10% of health you are missing at level 1 (+16% near death), up to +51% once Evolved."
+const DESPERADO_TEXT := "The more you are hurt, the harder you hit: up to +16% attack damage near death."
 
 const FAKE_GAME := """extends Node
 var player: Node3D

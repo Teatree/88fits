@@ -5,7 +5,7 @@
   "weight": 5,
   "max_level": 3,
   "flavour": "A long soak. A short temper.",
-  "text": "+26 max HP and +0.65 HP regen a second. Every heal sends out a pulse that hurts enemies within 3 m: 5 damage, +2 for each HP healed, up to 40.",
+  "text": "+26 max HP and +0.65 HP regen a second. Every heal hurts enemies close by.",
   "levels": [
     [
       {

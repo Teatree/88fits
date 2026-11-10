@@ -83,7 +83,8 @@ const R_STAT_GAP := 40
 const R_NOTE_PX := 20
 const R_ITEM_FRAME := 112.0
 const R_ITEM_NAME_PX := 38
-const R_ITEM_TEXT_PX := 26
+## Pass 138 (lane TEXTUI; Garry: "make the text bigger and more clear"): an item's words 31 (26 before).
+const R_ITEM_TEXT_PX := 31
 const R_ITEM_LABEL_PX := 18
 const R_LOOK_COLS := 4
 const R_FADE := Color("212a42")
@@ -315,7 +316,8 @@ static func describe(def: ContentDef, level: int, sheet: StatSheet) -> String:
 		return TextGen.perk_text(def as PerkDef)
 	if def is MutationDef:
 		return (def as MutationDef).text
-	return def.flavour
+	# pass 138 (lane TEXTUI): no flavour quip outside the Collection
+	return ""
 
 
 # ---------------------------------------------------------------- the looks (pass 111, lane SKINS)
@@ -899,9 +901,9 @@ static func royale_item_row(it: Dictionary, sheet: StatSheet, unknown: bool, fra
 	nm.name = "ItemName"
 	nm.size_flags_vertical = Control.SIZE_SHRINK_END
 	head.add_child(nm)
-	var d := W.serif_text(words, text_px, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	# pass 138 (lane TEXTUI): the kit's description face
+	var d := W.desc_text(words, text_px)
 	d.name = "Text"
-	d.color = R.WHITE
 	d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(d)
 	if bonus != "":

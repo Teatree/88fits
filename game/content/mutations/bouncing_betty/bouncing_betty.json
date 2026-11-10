@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "The mine leaps and bursts at chest height: ×1.5 radius, ×2 knockback.",
+  "text": "Mines leap and burst at chest height in a bigger blast.",
   "vfx": "the mine pops up, then a wide ring blast",
   "effects": [],
   "params": {

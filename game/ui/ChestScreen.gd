@@ -55,6 +55,9 @@ const PANEL_PAD_X := 46.0
 const PANEL_PAD_Y := 42.0
 const NAME_PX := 84
 const NAME_PX_ROYALE := 66
+## Pass 138 (lane TEXTUI; Garry: "make the text bigger and more clear"): what the landed item does, 42 (34 before), in the
+## kit's description face (W.desc_text); an upgrade's change rows 38 (34 before).
+const EFFECT_PX := 42
 ## The buttons' vertical padding (SKIP and BANISH, TAKE IT); under Royale button_pad_v grows it by half of what Ultra's
 ## line box lacks against Alfa Slab's, so the buttons' rects are the same under both themes.
 const BUTTON_PAD_V := 30.0
@@ -135,7 +138,7 @@ const BOSS_TITLE_COLOR := W.TOAST_PURPLE
 const BOSS_LIGHT := Color("9262ca")
 ## The landed item's tag and change rows (pass 58): the tag's type, the rows' type and the width they are centred in.
 const TAG_PX := 30
-const CHANGE_PX := 34
+const CHANGE_PX := 38
 ## The favourite's heart on the landed 420 px plate (pass 62): a little under a card's share, so it stays a mark.
 const FAV_HEART_FRAC := 0.17
 const CHANGES_W := 700.0
@@ -199,7 +202,8 @@ func _ready() -> void:
 	_marks_host = CenterContainer.new()
 	_marks_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_marks_host)
-	_effect = W.serif_text("", 34, W.INK, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, true)
+	# pass 138 (lane TEXTUI): the kit's description face, EFFECT_PX (34 before)
+	_effect = W.desc_text("", EFFECT_PX, HORIZONTAL_ALIGNMENT_CENTER)
 	col.add_child(_effect)
 	_changes_host = CenterContainer.new()
 	_changes_host.name = "ChangesHost"

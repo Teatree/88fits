@@ -90,7 +90,11 @@ const RY_SILHOUETTE := Color(0.03, 0.04, 0.07, 1.0)
 const RY_PAGE_FRAME := 200.0
 const RY_CARD_PAD := Vector2(28, 24)
 const RY_KIND_PX := 20
-const RY_EFFECT_PX := 28
+## Pass 138 (lane TEXTUI; Garry: "make the text bigger and more clear"): what it does 34 (28 before), a level cell's words
+## 24 in Rubik 500 as before (the narrow cells wrapped badly bigger or heavier), a mutation column's 28 (24), the
+## evolution's 29 (24), in the kit's description face (W.desc_text); the flavour stays here (the only screen that shows it
+## since pass 138).
+const RY_EFFECT_PX := 34
 const RY_FLAVOUR_PX := 22
 const RY_SECTION_GAP := 34.0
 const RY_CELL_NUM_PX := 30
@@ -98,10 +102,10 @@ const RY_CELL_PX := 24
 const RY_COL_GAP := 14.0
 const RY_COL_FRAME := 96.0
 const RY_COL_NAME_PX := 28
-const RY_COL_PX := 24
+const RY_COL_PX := 28
 const RY_EVO_FRAME := 160.0
 const RY_EVO_NAME_PX := 44
-const RY_EVO_PX := 24
+const RY_EVO_PX := 29
 
 var _tab := 0
 var _tabs: WTabs
@@ -480,9 +484,8 @@ func _hero_card_royale(def: ContentDef, locked: bool = false) -> PanelContainer:
 	if not danger.is_empty():
 		word_c = W.BRASS_DARK if danger[0] == "gear" else danger[1]
 	v.add_child(W.label(_kind_line(def), RY_KIND_PX, word_c))
-	var fx := W.serif_text(_full_text(def), RY_EFFECT_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EFFECT_PX * 1.3, true)
+	var fx := W.desc_text(_full_text(def), RY_EFFECT_PX)
 	fx.name = "Effect"
-	fx.color = R.WHITE
 	v.add_child(fx)
 	if def.flavour != "" and not (def is EnemyDef and (def as EnemyDef).doc != ""):
 		var fl := W.serif_text(def.flavour, RY_FLAVOUR_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
@@ -554,6 +557,7 @@ func _cell_royale(n: String, text: String, fill: Color = Color(0, 0, 0, 0)) -> P
 		var num := W.slab_text(n, RY_CELL_NUM_PX, W.BRASS, HORIZONTAL_ALIGNMENT_LEFT, float(RY_CELL_NUM_PX))
 		num.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		h.add_child(num)
+	# pass 138 (lane TEXTUI): the narrow level cells keep their 24 px Rubik 500 (600 wrapped "+1 / projectile")
 	var t := W.serif_text(text, RY_CELL_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_CELL_PX * 1.3, true)
 	t.color = R.WHITE
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -623,8 +627,7 @@ func _path_cell_royale(m: MutationDef, cell_w: float) -> PanelContainer:
 	var n := W.slab_text(m.display_name, RY_COL_NAME_PX, W.INK, HORIZONTAL_ALIGNMENT_CENTER, RY_COL_NAME_PX * 1.1)
 	n.wrap = true
 	v.add_child(n)
-	var t := W.serif_text(m.text.strip_edges(), RY_COL_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_CENTER, RY_COL_PX * 1.3, true)
-	t.color = R.WHITE
+	var t := W.desc_text(m.text.strip_edges(), RY_COL_PX, HORIZONTAL_ALIGNMENT_CENTER)
 	v.add_child(t)
 	return p
 
@@ -672,9 +675,9 @@ func _evolution_royale(evo: ContentDef) -> PanelContainer:
 	var line := Loc.t("ui.collection.evolution_unfound")
 	if found or evo is PassiveDef:
 		line = _full_text(evo)
-	var t := W.serif_text(line, RY_EVO_PX, W.INK if found or evo is PassiveDef else W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EVO_PX * 1.3, true)
-	if found or evo is PassiveDef:
-		t.color = R.WHITE
+	var t := W.desc_text(line, RY_EVO_PX)
+	if not (found or evo is PassiveDef):
+		t.color = R.SECONDARY
 	v.add_child(t)
 	return p
 

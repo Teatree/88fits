@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Poisoning a creature may slow its moves and attacks by 50% for 3 s: a 20% chance that grows 20% with every re-poisoning, then 10 s before it can again.",
+  "text": "Poison has a 20% chance of slowing an enemy by 50% for 3 s.",
   "vfx": "a creature dark green while poisoned and slowed",
   "effects": [],
   "params": {

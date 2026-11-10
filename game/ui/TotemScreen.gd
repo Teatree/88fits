@@ -18,6 +18,12 @@
 ## segments, the gold nail on their left edge), the gain gold Ultra ROYALE_AMOUNT_PX with the stat in white, the spirit in
 ## italic, the rank track (WNotches: the range's floor and ceiling, the roll's third in gold); held, a card sits on its
 ## navy base (straight down) with the gold inner edge, its segment steps right as today.
+## Pass 138 (lane TOTEM; Garry: "there are 5 rarities now (Common, Uncommon, Rare, Epic, Legendary). And the ui will
+## change: remove the stars, center the text; border should now have the rarity indicator; remove the little dot on the
+## left"): a gift card says its rarity (TotemBoons.tier_of, 1 Common .. 5 Legendary) on its border alone, in the item
+## frames' colours (R.RARITY): a rim inside the panel's navy edge (RIM_BY_TIER, Legendary's in the gold bevel), a glow
+## round Epic and Legendary (GLOW_BY_TIER), the rarity's word on a tab across the top edge; the gain and its stat on one
+## centred line, the spirit's name centred under it; no stars, no nail, no gold inner line by size.
 class_name TotemScreen
 extends WModal
 
@@ -84,11 +90,7 @@ const TAG := Vector2(630, 240)
 const TAG_BORDER := 5
 const TAG_SHADOW := 8
 const LINE_GAP := 10.0
-const STAT_PX := 30
 const AMOUNT_GAP := 14.0
-const SPIRIT_PX := 26
-## the nail's middle: 2 px right of the tag's left edge (CSS left -19 px on the padding box, 32 px wide)
-const NAIL_DX := 2.0
 const BASE_AT := Vector2(30, 1510)
 const BASE := Vector2(360, 64)
 const BASE_RADIUS := 6
@@ -100,19 +102,30 @@ const ROYALE_HEADER_Y := 214.0
 const ROYALE_HEADER_MAX_W := 1000.0
 const ROYALE_TAG_X := 440.0
 const ROYALE_TAG := Vector2(596, 226)
-const ROYALE_TAG_PAD_L := 34.0
-## Pass 123 (Garry: "Bing back a visual different between weaker and stronger totem UI elements (not the faces). The stronger
-## the effect the more prominent the visuals. This effect should be subtle"; "Instead of rectangles to display the
-## 'strength' of the Upgrade use stars instead. Remove those numbers on the left and write of the stars"): by the roll's
-## third (TotemBoons.roll_third): the gain's size, a gold inner line on the card and a soft glow round it; the three stars
-## under the spirit's name say the same.
-const ROYALE_AMOUNT_BY_THIRD := [52, 56, 62]
-const ROYALE_INNER_BY_THIRD := [0, 2, 3]
-const ROYALE_INNER_A_BY_THIRD := [0.0, 0.4, 0.8]
-const ROYALE_GLOW_BY_THIRD := [0, 8, 16]
-const ROYALE_GLOW_A_BY_THIRD := [0.0, 0.14, 0.3]
-const ROYALE_STAR_PX := 46.0
 const ROYALE_PRESS_TAG := Vector2(0, 8)
+## Pass 138 (lane TOTEM): the gift card by its rarity tier (index 0 Common .. 4 Legendary), in R.RARITY's colours: the
+## rim's width inside the panel's navy edge (Legendary's the gold bevel R.RIM_BEVEL), the glow round the card (px and
+## alpha of the rarity's glow colour; Epic and Legendary only); the word's tab across the top edge (TAB_H tall, Rubik 700
+## TAB_PX tracked, TAB_PAD each side, a TAB_EDGE navy edge; navy type on the light fills, cream on the dark ones); the
+## gain (Ultra AMOUNT_PX, gold) and its stat (Rubik STAT_PX_R) on one centred line, the spirit (italic SPIRIT_PX_R)
+## centred under it, the pair shrunk together to fit TEXT_PAD inside the rim.
+const RIM_BY_TIER := [5, 5, 6, 7, 9]
+## a soft wash of the rarity's colour inside the rim, INNER_GLOW_PX deep, at most INNER_GLOW_A_BY_TIER strong at the rim
+const INNER_GLOW_PX := 26
+const INNER_GLOW_A_BY_TIER := [0.10, 0.14, 0.16, 0.2, 0.24]
+const GLOW_BY_TIER := [0, 0, 0, 18, 26]
+const GLOW_A_BY_TIER := [0.0, 0.0, 0.0, 0.55, 0.7]
+const TAB_H := 46.0
+const TAB_PX := 26
+const TAB_PAD := 22.0
+const TAB_EDGE := 3
+const TAB_NAVY_TYPE := [true, true, false, false, true]
+const AMOUNT_PX := 62
+const STAT_PX_R := 32
+const SPIRIT_PX_R := 28
+const TEXT_PAD := 22.0
+## the text block's middle sits this far under the card's middle (the tab takes the top edge)
+const TEXT_DROP := 8.0
 
 # --- states ------------------------------------------------------------------------------------------------------------
 const PRESS_SEG_X := 14.0
@@ -179,7 +192,8 @@ class GiftRow:
 	signal hold_changed(on: bool)
 
 	var boon: Dictionary = {}
-	## the roll's third (1..3): the gauge's filled notches (the bot's "feathers" since pass 73)
+	## the gift's rarity tier, 1 Common .. 5 Legendary (pass 138; the roll's third 1..3 before it; the bot's "feathers"
+	## since pass 73: it takes the gift with the most)
 	var feathers := 1
 	var group: CanvasGroup
 	var body: Control
@@ -193,13 +207,13 @@ class GiftRow:
 	var tag: Panel
 	var tag_box: HardBox
 	var tag_box_down: HardBox
-	var nail: WNail
 	var amount: WText
 	var stat: WText
 	var spirit: WText
-	var gauge: WNotches
-	## pass 123: the Royale card's three stars in the gauge's place (null under Wanted)
-	var stars: WMarks
+	## pass 138: the rarity's rim over the card and the tab with its word (TotemScreen.draw_rarity)
+	var rarity: Control
+	var rarity_tab: Control
+	var rarity_word: WText
 	var seg_home := Vector2.ZERO
 	var tag_home := Vector2.ZERO
 	## pass 123: where the tag sits in the row and its size, and a held tag's step (TAG_AT, TAG, PRESS_TAG under Wanted;
@@ -223,13 +237,13 @@ class GiftRow:
 		super._ready()
 		add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 
-	## The segment (where it sits held, too) and the tag with its nail and shadow: a finger on either is this gift's; the
-	## gap beside the nail, between the segment and the tag, is nobody's.
+	## The segment (where it sits held, too) and the tag with its base and its rarity tab: a finger on either is this
+	## gift's; the gap between the segment and the tag is nobody's.
 	func _has_point(p: Vector2) -> bool:
 		if Rect2(Vector2.ZERO, Vector2(SEG + PRESS_SEG_X, SEG)).has_point(p):
 			return true
-		var nail := WNail.SIDE * 0.5 - NAIL_DX
-		return Rect2(tag_at - Vector2(nail, 0), tag_size + Vector2(TAG_SHADOW + nail, TAG_SHADOW)).has_point(p)
+		var over := TAB_H * 0.5
+		return Rect2(tag_at - Vector2(0, over), tag_size + Vector2(TAG_SHADOW, TAG_SHADOW + over)).has_point(p)
 
 	func _gui_input(e: InputEvent) -> void:
 		var pos := Vector2.ZERO
@@ -606,7 +620,7 @@ func _make_row(b: Dictionary, k: int) -> GiftRow:
 	row.name = "Gift_%s" % str(b.get("id", k))
 	row.boon = b
 	row.screen = self
-	row.feathers = BOONS.roll_third(b)
+	row.feathers = BOONS.tier_of(b)
 	row.tag_at = Vector2(ROYALE_TAG_X - SEG_X, (SEG - ROYALE_TAG.y) * 0.5)
 	row.tag_size = ROYALE_TAG
 	row.press_tag = ROYALE_PRESS_TAG
@@ -618,7 +632,7 @@ func _make_row(b: Dictionary, k: int) -> GiftRow:
 	row.glow_holder = glow_holder
 	var group := CanvasGroup.new()
 	group.name = "Group"
-	group.fit_margin = 12.0
+	group.fit_margin = 40.0
 	row.add_child(group)
 	row.group = group
 	var body := Control.new()
@@ -700,23 +714,22 @@ func _make_row(b: Dictionary, k: int) -> GiftRow:
 	down.inner_color = W.BRASS
 	row.tag_box_down = down
 	tag.add_theme_stylebox_override("panel", row.tag_box)
-	# pass 123: a stronger gift's card a little more prominent (ROYALE_*_BY_THIRD): a gold inner line, a soft glow round it
-	var third: int = clampi(row.feathers, 1, 3) - 1
-	row.tag_box.inner = int(ROYALE_INNER_BY_THIRD[third])
-	row.tag_box.inner_color = Color(R.GOLD_TEXT, float(ROYALE_INNER_A_BY_THIRD[third]))
-	if int(ROYALE_GLOW_BY_THIRD[third]) > 0:
+	# pass 138: Epic and Legendary glow round the card in their rarity's colour (GLOW_BY_TIER); it moves with the card
+	var tier: int = clampi(row.feathers, 1, 5) - 1
+	if int(GLOW_BY_TIER[tier]) > 0:
 		var tg := Panel.new()
 		tg.name = "TagGlow"
 		var gsb := StyleBoxFlat.new()
 		gsb.bg_color = Color(0, 0, 0, 0)
-		gsb.shadow_color = Color(R.GOLD_TEXT, float(ROYALE_GLOW_A_BY_THIRD[third]))
-		gsb.shadow_size = int(ROYALE_GLOW_BY_THIRD[third])
+		gsb.shadow_color = Color(rarity_colour(tier + 1, "glow"), float(GLOW_A_BY_TIER[tier]))
+		gsb.shadow_size = int(GLOW_BY_TIER[tier])
 		gsb.set_corner_radius_all(R.RADIUS)
 		tg.add_theme_stylebox_override("panel", gsb)
 		tg.size = row.tag_size
-		tg.position = row.tag_at
+		tg.position = Vector2.ZERO
 		tg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		body.add_child(tg)
+		tg.show_behind_parent = true
+		tag.add_child(tg)
 		row.set_meta("tag_glow", tg)
 	body.add_child(tag)
 	row.tag = tag
@@ -731,66 +744,155 @@ func _make_row(b: Dictionary, k: int) -> GiftRow:
 	return row
 
 
-## The tag's three lines, centred top to bottom inside its border: the effect (amount and stat on one baseline), the
-## spirit, the gauge; and the nail on its left edge.
+## Pass 138: the card's two lines, centred both ways inside its rim (a little under the middle, the tab takes the top
+## edge): the gain in gold Ultra and its stat on one baseline, the spirit's name in italic under it; the rarity's rim
+## and its tab over the card (draw_rarity, the tab's word in the rarity's name).
 func _fill_tag(row: GiftRow, b: Dictionary) -> void:
-	var top3 := BOONS.roll_third(b) >= 3
-	# pass 123, Royale: the gain in gold (the mock's), bigger; the gauge still says which third the roll landed in
-	var amount_px: int = int(ROYALE_AMOUNT_BY_THIRD[clampi(BOONS.roll_third(b), 1, 3) - 1])
-	var amount := W.slab_text(BOONS.amount_text(b), amount_px, W.BRASS)
+	var tier := clampi(row.feathers, 1, 5)
+	var amount := W.slab_text(BOONS.amount_text(b), AMOUNT_PX, W.BRASS)
 	amount.name = "Amount"
-	var stat := W.serif_text(BOONS.stat_text(b), STAT_PX, W.INK, 600, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
+	var stat := W.serif_text(BOONS.stat_text(b), STAT_PX_R, W.INK, 600, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
 	stat.name = "Stat"
-	var spirit := W.serif_text(BOONS.title(b), SPIRIT_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
+	var spirit := W.serif_text(BOONS.title(b), SPIRIT_PX_R, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, false, false)
 	spirit.name = "Spirit"
-	var ends := BOONS.range_texts(b)
-	var gauge: WNotches = null
-	var stars: WMarks = null
-	stars = WMarks.new()
-	stars.name = "Gauge"
-	stars.mode = "stars"
-	stars.total = 3
-	stars.held = clampi(BOONS.roll_third(b), 0, 3)
-	stars.mark = ROYALE_STAR_PX
-	stars.gap = 6.0
 	row.tag.add_child(amount)
 	row.tag.add_child(stat)
 	row.tag.add_child(spirit)
-	row.tag.add_child(stars)
 	row.amount = amount
 	row.stat = stat
 	row.spirit = spirit
-	row.gauge = gauge
-	row.stars = stars
+	var room := row.tag_size.x - 2.0 * (R.PANEL_EDGE + float(RIM_BY_TIER[tier - 1]) + TEXT_PAD)
+	# the pair shrinks together when the line would pass the room (the longest stat names)
+	var line_w := amount.text_width() + AMOUNT_GAP + stat.text_width()
+	if line_w > room:
+		var k := room / maxf(line_w, 1.0)
+		amount.font_size = maxi(int(floor(AMOUNT_PX * k)), R.ULTRA_MIN)
+		stat.font_size = maxi(int(floor(STAT_PX_R * k)), 18)
+		line_w = amount.text_width() + AMOUNT_GAP + stat.text_width()
+	if spirit.text_width() > room:
+		spirit.font_size = maxi(int(floor(SPIRIT_PX_R * room / maxf(spirit.text_width(), 1.0))), 18)
 	# the effect line: two faces on one baseline (CSS align-items: baseline); its box is the taller part above the
 	# baseline and the taller part below it
-	var a_up := _baseline_in(W.slab(), amount_px, amount_px)
-	var a_dn := float(amount_px) - a_up
-	var s_lh := W.normal_height(W.serif(600), STAT_PX)
-	var s_up := _baseline_in(W.serif(600), STAT_PX, s_lh)
+	var a_px := amount.font_size
+	var a_up := _baseline_in(W.slab(), a_px, a_px)
+	var a_dn := float(a_px) - a_up
+	var s_lh := W.normal_height(W.serif(600), stat.font_size)
+	var s_up := _baseline_in(W.serif(600), stat.font_size, s_lh)
 	var s_dn := s_lh - s_up
 	var up := maxf(a_up, s_up)
 	var effect_h := up + maxf(a_dn, s_dn)
-	var spirit_h := W.normal_height(W.serif(400, true), SPIRIT_PX)
-	var gauge_h: float = ROYALE_STAR_PX
-	var block := effect_h + LINE_GAP + spirit_h + LINE_GAP + gauge_h
-	var inner_h := row.tag_size.y - 2.0 * TAG_BORDER
-	var y := TAG_BORDER + (inner_h - block) * 0.5
-	var x := TAG_BORDER + (ROYALE_TAG_PAD_L)
+	var spirit_h := W.normal_height(W.serif(400, true), spirit.font_size)
+	var block := effect_h + LINE_GAP + spirit_h
+	var y := (row.tag_size.y - block) * 0.5 + TEXT_DROP
+	var x := (row.tag_size.x - line_w) * 0.5
 	amount.position = Vector2(x, y + up - a_up)
 	amount.size = amount.get_combined_minimum_size()
 	stat.position = Vector2(x + amount.text_width() + AMOUNT_GAP, y + up - s_up)
 	stat.size = stat.get_combined_minimum_size()
 	y += effect_h + LINE_GAP
-	spirit.position = Vector2(x, y)
+	spirit.position = Vector2((row.tag_size.x - spirit.text_width()) * 0.5, y)
 	spirit.size = spirit.get_combined_minimum_size()
-	y += spirit_h + LINE_GAP
-	stars.position = Vector2(x, y)
-	stars.size = stars.get_combined_minimum_size()
-	var nail := WNail.at_center(Vector2(NAIL_DX, row.tag_size.y * 0.5))
-	nail.name = "Nail"
-	row.tag.add_child(nail)
-	row.nail = nail
+	# the rim over the card's edge, then the tab with the rarity's word across the top edge
+	var rim := Control.new()
+	rim.name = "Rarity"
+	rim.size = row.tag_size
+	rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rim.draw.connect(func() -> void: draw_rarity(rim, Rect2(Vector2.ZERO, rim.size), tier))
+	row.tag.add_child(rim)
+	# under the words (its wash reaches in from the edge)
+	row.tag.move_child(rim, 0)
+	row.rarity = rim
+	var word := R.label(BOONS.rarity_name(tier), TAB_PX, R.NAVY if TAB_NAVY_TYPE[tier - 1] else R.CREAM)
+	word.name = "Word"
+	var tab := Control.new()
+	tab.name = "RarityTab"
+	tab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tw := ceilf(word.text_width() + 2.0 * TAB_PAD)
+	tab.size = Vector2(tw, TAB_H)
+	tab.position = Vector2(roundf((row.tag_size.x - tw) * 0.5), -roundf(TAB_H * 0.5))
+	tab.draw.connect(func() -> void: draw_tab(tab, Rect2(Vector2.ZERO, tab.size), tier))
+	row.tag.add_child(tab)
+	tab.add_child(word)
+	word.size = word.get_combined_minimum_size()
+	word.position = ((tab.size - word.size) * 0.5).round()
+	row.rarity_tab = tab
+	row.rarity_word = word
+
+
+## A rarity's colour by its tier (1 Common .. 5 Legendary) and part of R.RARITY ("base", "light", "dark", "rim", "glow";
+## a rarity without a glow glows in its base).
+static func rarity_colour(tier: int, part: String = "base") -> Color:
+	var r: Dictionary = R.RARITY.get(BOONS.rarity_id(tier), R.RARITY["common"])
+	return r.get(part, r["base"])
+
+
+## The rarity's rim over a card's `rect` (pass 138): inside the panel's navy edge, RIM_BY_TIER wide in the rarity's
+## colour with its light line on the outer side and its dark line on the inner; Legendary in the gold bevel's four bands.
+static func draw_rarity(ci: CanvasItem, rect: Rect2, tier: int) -> void:
+	var t := clampi(tier, 1, 5)
+	var w := int(RIM_BY_TIER[t - 1])
+	var r := rect.grow(-R.PANEL_EDGE)
+	var rad := maxi(R.RADIUS - R.PANEL_EDGE, 2)
+	var bands: Array = []
+	if t == 5:
+		# the gold bevel: light, base, dark, then the bright inner lip
+		var bw := maxi(int(round(w / 4.0)), 1)
+		for k in range(R.RIM_BEVEL.size()):
+			bands.append([R.RIM_BEVEL[k], bw if k < R.RIM_BEVEL.size() - 1 else w - bw * (R.RIM_BEVEL.size() - 1)])
+	else:
+		bands = [[rarity_colour(t, "light"), 1], [rarity_colour(t, "base"), maxi(w - 2, 1)], [rarity_colour(t, "dark"), 1]]
+	var inset := 0
+	for band: Array in bands:
+		var bw2 := int(band[1])
+		if bw2 <= 0:
+			continue
+		var sb := StyleBoxFlat.new()
+		sb.draw_center = false
+		sb.set_border_width_all(bw2)
+		sb.border_color = band[0]
+		sb.set_corner_radius_all(maxi(rad - inset, 1))
+		sb.anti_aliasing = true
+		ci.draw_style_box(sb, r.grow(-inset))
+		inset += bw2
+	# the wash inside the rim: four bands from the rim inward, the rarity's colour fading to nothing (mitred corners, two
+	# steps so the fade eases out)
+	var col := rarity_colour(t, "base")
+	var a := float(INNER_GLOW_A_BY_TIER[t - 1])
+	var o := r.grow(-inset)
+	var mid := o.grow(-INNER_GLOW_PX * 0.4)
+	var inn := o.grow(-INNER_GLOW_PX)
+	_wash(ci, o, mid, Color(col, a), Color(col, a * 0.36))
+	_wash(ci, mid, inn, Color(col, a * 0.36), Color(col, 0.0))
+
+
+## The band between two nested rects as four trapezoids, `c_out` at the outer edge fading to `c_in` at the inner.
+static func _wash(ci: CanvasItem, o: Rect2, i: Rect2, c_out: Color, c_in: Color) -> void:
+	var oc := [o.position, Vector2(o.end.x, o.position.y), o.end, Vector2(o.position.x, o.end.y)]
+	var ic := [i.position, Vector2(i.end.x, i.position.y), i.end, Vector2(i.position.x, i.end.y)]
+	for k in range(4):
+		var n := (k + 1) % 4
+		ci.draw_polygon(PackedVector2Array([oc[k], oc[n], ic[n], ic[k]]), PackedColorArray([c_out, c_out, c_in, c_in]))
+
+
+## The rarity's tab (pass 138): a rounded box in the rarity's colour (Legendary's light-to-gold), the navy edge, a light
+## lip along its top.
+static func draw_tab(ci: CanvasItem, rect: Rect2, tier: int) -> void:
+	var t := clampi(tier, 1, 5)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = rarity_colour(t, "base")
+	sb.set_border_width_all(TAB_EDGE)
+	sb.border_color = R.NAVY
+	sb.set_corner_radius_all(R.RADIUS_TAB)
+	sb.anti_aliasing = true
+	ci.draw_style_box(sb, rect)
+	var lip := StyleBoxFlat.new()
+	lip.bg_color = Color(rarity_colour(t, "light"), 0.85)
+	lip.set_corner_radius_all(maxi(R.RADIUS_TAB - TAB_EDGE, 1))
+	lip.corner_radius_bottom_left = 0
+	lip.corner_radius_bottom_right = 0
+	lip.anti_aliasing = true
+	var inner := rect.grow(-TAB_EDGE)
+	ci.draw_style_box(lip, Rect2(inner.position, Vector2(inner.size.x, maxf(roundf(inner.size.y * 0.32), 2.0))))
 
 
 ## Where the baseline sits from the top of a line box `lh` tall of `f` at `px` (CSS half-leading round the face's own

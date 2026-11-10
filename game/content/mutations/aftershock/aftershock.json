@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "A beat after every impact a shockwave rolls out to twice the blast, for 40% damage.",
+  "text": "Every impact sends out a second shockwave twice as wide.",
   "vfx": "a second, wider ring of dust after each impact",
   "effects": [],
   "params": {

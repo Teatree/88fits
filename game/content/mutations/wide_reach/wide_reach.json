@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "A creature within 2.8 m makes the mine crouch and spring at it, blowing where it lands.",
+  "text": "Mines jump at enemies close by and blow where they land.",
   "vfx": "the mine squashes down, its lamp blinks fast, and it leaps on an arc onto the creature",
   "effects": [],
   "params": {

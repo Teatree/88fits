@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "The buddy digs in behind sandbags: twin barrels, +40% damage, shots knock back, it turns slowly.",
+  "text": "The turret digs in behind sandbags: twin barrels and +40% damage.",
   "vfx": "a low sandbag bunker with two barrels",
   "effects": [
     {

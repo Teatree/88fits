@@ -420,7 +420,7 @@ func test_the_hornet_nest_is_called_killer_bees_everywhere() -> void:
 		assert_object(m).override_failure_message(id).is_not_null()
 		_no_hornet(m.display_name + " " + m.flavour + " " + m.text, id)
 	assert_str(Registry.mutation("second_sting").text).contains("bee")
-	assert_str(Registry.mutation("tarantula_hawk").text).contains("4 s")
+	assert_str(Registry.mutation("tarantula_hawk").text).contains("stings")
 	# pass 129 (re-pinned): the unlock quest (40 Armadillos, a creature no row brings) is retired; a Trail node gives the bees
 	assert_object(Registry.quests.get("unlock_hornet_nest")).is_null()
 	assert_bool(Trail.gated("weapon", "hornet_nest")).is_true()

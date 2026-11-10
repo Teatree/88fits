@@ -185,9 +185,9 @@ func test_the_words_the_rows_and_the_estimate() -> void:
 	var words := inst.description()
 	assert_str(words).contains("Breathes")
 	assert_str(words).contains("cone of fire")
-	assert_str(words).contains("where you face")
-	assert_str(words).contains("every second")
-	assert_str(words).contains("Sets on fire")
+	# pass 138 (lane TEXTS): Garry's row (c1d5f178), nothing glued on
+	assert_str(words).not_contains("where you face")
+	assert_str(words).not_contains("Sets on fire")
 	var rows: Array = inst.stat_rows()
 	var stats: Array = rows.map(func(r: Dictionary) -> String: return str(r["stat"]))
 	assert_array(stats).contains(["damage", "cooldown", "duration", "range", "cone_deg", "fire_damage", "dps"])
@@ -208,9 +208,10 @@ func test_the_words_the_rows_and_the_estimate() -> void:
 	# the path's words
 	var full := _inst(WID, PATH, 5)
 	var fw := full.description()
-	assert_str(fw).contains("shoves them away")
-	assert_str(fw).contains("Stand still 2 s")
-	assert_str(fw).contains("from all sides")
+	# pass 138 (lane TEXTS): Backdraft's and Held Breath's own cards say theirs; the breath's text glues nothing on
+	assert_str(fw).not_contains("shoves them away")
+	assert_str(fw).not_contains("Stand still")
+	assert_str(Registry.mutation("held_breath").text).contains("from all sides")
 	var frows: Array = full.stat_rows()
 	assert_array(frows.map(func(r: Dictionary) -> String: return str(r["stat"]))).contains(["knockback", "still"])
 

@@ -167,7 +167,8 @@ func test_the_gifts_are_data_titled_with_the_references_words() -> void:
 	var stats: Array = []
 	for e: Dictionary in pool:
 		names.append(str(e["name"]))
-		for k in ["id", "name", "animal", "stat", "op", "min", "max", "step", "weight"]:
+		# (pass 138, lane TOTEM, re-pinned on purpose: five rarity amounts, `tiers`, in place of min, max and step)
+		for k in ["id", "name", "animal", "stat", "op", "tiers", "weight"]:
 			assert_bool(e.has(k)).override_failure_message("%s lacks %s" % [e.get("id"), k]).is_true()
 		var stat := str(e["stat"])
 		# a stat the hero's sheet knows, and the words TextGen has for it
@@ -175,9 +176,10 @@ func test_the_gifts_are_data_titled_with_the_references_words() -> void:
 		assert_bool(TextGen.STATS.has(stat)).override_failure_message(stat).is_true()
 		assert_bool(stats.has(stat)).override_failure_message("two gifts of " + stat).is_false()
 		stats.append(stat)
-		# small but not nothing: never under a third of its top, never zero
-		assert_float(absf(float(e["min"]))).is_greater(0.0)
-		assert_float(absf(float(e["min"]))).is_greater_equal(absf(float(e["max"])) / 3.0 - 0.0001)
+		# small but not nothing: never zero; the old range (Uncommon to Epic) never under a third of its top
+		var t: Array = BOONS.tier_amounts(e)
+		assert_float(absf(float(t[0]))).is_greater(0.0)
+		assert_float(absf(float(t[1]))).is_greater_equal(absf(float(t[3])) / 3.0 - 0.0001)
 	for w in REF_WORDS:
 		assert_bool(names.has(w)).override_failure_message("no gift named " + w).is_true()
 	# the commonest stats weigh more than the rarest
@@ -206,7 +208,8 @@ func test_an_offer_is_three_different_stats_each_rolled_in_its_range() -> void:
 			var lo := minf(float(b["min"]), float(b["max"]))
 			var hi := maxf(float(b["min"]), float(b["max"]))
 			assert_float(float(b["value"])).is_between(lo - 0.00001, hi + 0.00001)
-			assert_int(int(b["quality"])).is_between(1, 3)
+			# (pass 138, lane TOTEM, re-pinned on purpose: `quality` is the rarity tier, 1 Common .. 5 Legendary)
+			assert_int(int(b["quality"])).is_between(1, 5)
 	# the amounts range over the whole span: over many offers the smallest and the biggest both come up
 	# (pass 76, lane TOTEM, re-pinned on purpose: the Whale's range is read from the pool, 2-6 since pass 76, was 6-14)
 	var whale := {}
@@ -219,8 +222,10 @@ func test_an_offer_is_three_different_stats_each_rolled_in_its_range() -> void:
 		for b: Dictionary in BOONS.offer(d, rng):
 			if str(b["stat"]) == "max_hp":
 				seen[int(round(float(b["value"])))] = true
-	assert_bool(seen.has(int(round(float(whale["min"]))))).is_true()
-	assert_bool(seen.has(int(round(float(whale["max"]))))).is_true()
+	# (pass 138: the Whale's five amounts; the first totem's offers reach Common to Epic, never Legendary)
+	var amounts: Array = BOONS.tier_amounts(whale)
+	assert_bool(seen.has(int(round(float(amounts[0]))))).is_true()
+	assert_bool(seen.has(int(round(float(amounts[3]))))).is_true()
 
 
 func test_common_stats_are_offered_more_often() -> void:
@@ -443,7 +448,8 @@ func test_the_game_opens_the_menu_and_the_pick_stays() -> void:
 		assert_str(p.stat.text).is_equal(BOONS.stat_text(b))
 		assert_str(p.spirit.text).is_equal(BOONS.title(b))
 		assert_bool(p.spirit.text.contains(",")).is_equal(str(b["animal"]) != "")
-		assert_int(p.stars.held).is_equal(int(b["quality"]))
+		# (pass 138: no stars; the rarity's word on the card's border tab)
+		assert_str(p.rarity_word.text).is_equal(BOONS.rarity_name(int(b["quality"])).to_upper())
 		assert_int(p.feathers).is_equal(int(b["quality"]))
 	# a press on the second plank takes its gift; the run goes on
 	planks[1].pressed.emit()
@@ -489,6 +495,7 @@ func test_the_menu_fits_the_screen_with_and_without_a_cutout() -> void:
 			prev_bottom = r.end.y
 			# the words fit the tag
 			var tag: Rect2 = (p.tag as Control).get_global_rect()
-			for t in [p.stat, p.spirit, p.stars]:
+			# (pass 138: the rarity's tab in the stars' place)
+			for t in [p.stat, p.spirit, p.rarity_tab]:
 				assert_float((t as Control).get_global_rect().end.x).is_less_equal(tag.end.x)
 		scr.visible = false

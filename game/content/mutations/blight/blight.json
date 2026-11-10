@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "poison",
   "hero": "",
-  "text": "+2 poison stacks, and a creature that dies poisoned passes it to the nearest one.",
+  "text": "+2 poison stacks, and poisoned enemies pass the poison on when they die.",
   "vfx": "a green wisp jumps from the corpse to its neighbour",
   "effects": [
     {

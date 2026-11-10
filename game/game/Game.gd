@@ -2724,7 +2724,8 @@ func _drum_boost_start(def: StructureDef) -> void:
 func _use_totem(def: StructureDef, at: Vector3 = Vector3.INF) -> void:
 	_request_modal(Modal.TOTEM, func() -> bool:
 		# (pass 77, lane SIMRUN: a run sim's own dice for the gifts, Run.totem_rng; null in play: random as ever)
-		var offer: Array = TOTEM_SCREEN.BOONS.offer(def, Run.totem_rng)
+		# pass 138 (lane TOTEM): the rarity odds grow with the gifts taken so far (TotemBoons.offer's `claimed`)
+		var offer: Array = TOTEM_SCREEN.BOONS.offer(def, Run.totem_rng, 0, Run.totem_boons.size())
 		# pass 129 (lane TRAILCORE): the Trail's Spirit Guide (`totem_boost`): every gift's amount x (1 + it)
 		offer = TOTEM_SCREEN.BOONS.boosted(offer, Run.player_sheet.get_stat("totem_boost", 0.0))
 		if offer.is_empty():

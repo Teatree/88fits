@@ -266,4 +266,5 @@ func test_powder_keg_deals_a_third_of_its_old_damage_at_every_rank() -> void:
 		em.damage_radius(Vector3(1, 0, -3), float(consts["KEG_RADIUS"]), 120.0 * frac, str(consts["POWDER_KEG"]), float(consts["KEG_KNOCK"]))
 		assert_float(before - em.hp[i]).override_failure_message("rank %d" % rank).is_equal_approx(10.0, 0.01)
 	assert_float(Run.player_sheet.get_stat("powder_keg_chance", 0.0)).is_equal_approx(0.155, 0.0001)
-	assert_str(Registry.passive("powder_keg").text).contains("a twelfth of its max health")
+	# pass 138 (lane TEXTS): the short text in Garry's style keeps the main numbers only
+	assert_str(Registry.passive("powder_keg").text).contains("6.5% chance of exploding")

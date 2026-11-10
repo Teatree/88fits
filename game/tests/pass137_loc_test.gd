@@ -134,17 +134,18 @@ func test_pilot_stranger_texts() -> void:
 	assert_array(Loc.warnings()).is_empty()
 
 
-## The old ProjectileEmitter sentences, written out as the code had them, against the table at several amounts.
+## The old ProjectileEmitter sentences, written out as the code had them, against the table at several amounts (pass 138,
+## lane TEXTS: the flare, dart and priority rows rewritten in Garry's style).
 func test_pilot_weapon_sentences() -> void:
 	for amount in [1, 2, 5]:
 		var a := str(amount)
 		var s := "" if amount == 1 else "s"
 		assert_str(Loc.t("gen.weapon.shot.forward", {"amount": a, "cone": "30"})).is_equal("Fires %d pellet%s in a %d° cone where you face." % [amount, s, 30])
 		assert_str(Loc.t("gen.weapon.shot.random", {"amount": a, "range": "8"})).is_equal("Fires %d shot%s at random enemies within %.0f m." % [amount, s, 8.0])
-		assert_str(Loc.t("gen.weapon.shot.flare", {"amount": a, "range": "8"})).is_equal("Fires %d flare%s at the nearest enemy within %.0f m that is not burning yet." % [amount, s, 8.0])
-		assert_str(Loc.t("gen.weapon.shot.dart", {"amount": a, "range": "8"})).is_equal("Fires %d dart%s at the nearest enemy within %.0f m that is not poisoned yet." % [amount, s, 8.0])
+		assert_str(Loc.t("gen.weapon.shot.flare", {"amount": a, "range": "8"})).is_equal("Fires %d %s enemies on fire." % [amount, "flare that sets" if amount == 1 else "flares that set"])
+		assert_str(Loc.t("gen.weapon.shot.dart", {"amount": a, "range": "8"})).is_equal("Fires %d poison dart%s at an enemy that is not poisoned yet." % [amount, s])
 		assert_str(Loc.t("gen.weapon.shot.priority", {"amount": a, "range": "14", "who": "the strongest enemy nearby"})).is_equal(
-			"Fires %d shot%s within %.0f m and aims at %s." % [amount, s, 14.0, "the strongest enemy nearby"])
+			"Fires %d shot%s at %s within %.0f m." % [amount, s, "the strongest enemy nearby", 14.0])
 		assert_str(Loc.t("gen.weapon.shot.nearest", {"amount": a, "range": "8"})).is_equal("Fires %d shot%s at the nearest enemy within %.0f m." % [amount, s, 8.0])
 		assert_str(Loc.t("gen.weapon.ricochet", {"count": a, "pct": "50"})).is_equal("Every round ricochets %d time%s at %d%%." % [amount, s, 50])
 	assert_str(Loc.t("gen.weapon.blast.lane", {"width": "2.6", "length": "10"})).is_equal(
@@ -170,7 +171,10 @@ func test_item_rows_match_their_shape() -> void:
 		# pass 137 (lane W2-TEXTGEN): every behaviour has its own rows now; the shape it comes with is TextGen.home_shape
 		var shape := TextGen.home_shape(def)
 		assert_str(shape).override_failure_message(key + ": no home shape").is_not_empty()
-		assert_str(Loc.t(key, {})).override_failure_message(key).is_equal(Loc.t("gen.weapon." + shape, {}))
+		# pass 138 (lane TEXTS): Garry's and the lane's rewrites made each item's row its own words; it still exists
+		# beside its shape's generic row
+		assert_str(Loc.row_text(key)).override_failure_message(key).is_not_empty()
+		assert_bool(Loc.has("gen.weapon." + shape)).override_failure_message(key).is_true()
 		checked += 1
 	assert_int(checked).is_greater(60)
 	# the rule items' and the box perk's own rows read as the rule's generic row (lane W2-TEXTGEN)

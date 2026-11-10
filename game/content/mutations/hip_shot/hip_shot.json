@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Every fifth pull fires three volleys 0.12 s apart, each the full round count, then the revolver spins.",
+  "text": "Every fifth pull fires three volleys in a row.",
   "vfx": "three quick volleys and a twirl of the gun",
   "effects": [],
   "params": {

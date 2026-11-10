@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Strikes 30% sooner for 25% less damage. The pillars burn thinner and yellower.",
+  "text": "Strikes 30% sooner for 25% less damage.",
   "vfx": "thinner, paler yellow pillars; a ring of light loading round the sceptre's handle",
   "effects": [
     {

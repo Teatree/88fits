@@ -857,8 +857,8 @@ func _shop_held() -> void:
 	g.set_paused(false)
 
 
-## 30, 30b (pass 123, lane RUN_B): the Totem gifts with the mock's offer from the pole's own pool (Le-loo +2 %, Kuuma
-## +1 %, Chet-woot +2 %: the mock's 8_Totem), "TOTEM 1 OF 10"; 30b the middle gift held. 30c: a pole the map's count
+## 30, 30b (pass 123, lane RUN_B): the Totem gifts with the mock's offer from the pole's own pool (pass 138: Le-loo
+## Common, Kuuma Rare, Chet-woot Epic), "TOTEM 1 OF 10"; 30b the middle gift held. 30c: a pole the map's count
 ## does not know ("4TH TOTEM").
 func _totem() -> void:
 	_clear_ui()
@@ -868,16 +868,13 @@ func _totem() -> void:
 		return
 	var boons = load("res://core/systems/TotemBoons.gd")
 	var pool: Array = boons.pool_of(d)
-	var want := {"wolf": 0.02, "bullhead": 0.01, "bear": 0.02}
+	# pass 138 (lane TOTEM): the gifts at rarity tiers (Le-loo Common, Kuuma Rare, Chet-woot Epic: TotemBoons.roll's tier)
+	var want := {"wolf": 1, "bullhead": 3, "bear": 4}
 	var offer: Array = []
 	for id in ["wolf", "bullhead", "bear"]:
 		for e: Dictionary in pool:
 			if str(e.get("id", "")) == id:
-				var b: Dictionary = {"id": id, "name": str(e.get("name", "")), "animal": str(e.get("animal", "")),
-					"stat": str(e.get("stat", "")), "op": str(e.get("op", "add")), "value": float(want[id]),
-					"min": float(e.get("min", 0.0)), "max": float(e.get("max", 0.0))}
-				b["quality"] = boons.quality(float(b["value"]), float(b["min"]), float(b["max"]))
-				offer.append(b)
+				offer.append(boons.roll(e, RandomNumberGenerator.new(), int(want[id])))
 	g.set_paused(true)
 	var ts = g.totem_screen
 	ts.open(offer, d, 1, 10)

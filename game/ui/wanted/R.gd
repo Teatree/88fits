@@ -500,3 +500,15 @@ const MODAL_LINK_PX := 20
 ## the mock's see-through black; CELL_EDGE px navy, corners RADIUS, no base.
 const CELL := Color("1b2339")
 const CELL_EDGE := 3
+
+## Pass 138 (lane TEXTUI; Garry: "Item descriptions are hard to read, make the text bigger and more clear"): what an item
+## does, on every screen that shows it (the level-up and mutation cards, the chest, the evolution, the Stranger, the Shop,
+## the pause Build rows, the Collection, the Outlaw sheets), is set by W.desc_text: Rubik DESC_WEIGHT (600, one step
+## heavier than the body's 500) in DESC_INK (white, where the cards had the cream), DESC_LH lines, its numbers 800 in the
+## kit's NUMBER_HI. DESC_PX is the level-up card's size (30 before); every other screen's own size grew by about DESC_GROW
+## (its constants say before and after). The flavour quip shows only in the Collection.
+const DESC_PX := 38
+const DESC_WEIGHT := 600
+const DESC_INK := Color("ffffff")
+const DESC_LH := 1.24
+const DESC_GROW := 1.25

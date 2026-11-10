@@ -158,9 +158,9 @@ func test_the_item_names_the_painted_ghost_and_lends_no_weapon() -> void:
 	for key: String in ["fire_min", "fire_max", "range_min", "range_max", "round"]:
 		assert_bool(g.has(key)).override_failure_message(key).is_false()
 	var t := TextGen.passive_text(p)
-	assert_str(t).contains("circles it for 8 s")
-	assert_str(t).contains("up to 6")
-	assert_str(t).contains("no knockback")
+	# pass 138 (lane TEXTS): Garry's style, the main effect only
+	assert_str(t).contains("for 8 s")
+	assert_str(t).contains("ghost rises")
 
 
 # ---------------------------------------------------------------- power

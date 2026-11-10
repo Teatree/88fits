@@ -1,40 +1,40 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/gas_mask/gas_mask_icon_evolved.png" id="1_78s5d"]
-[ext_resource type="Texture2D" path="res://content/passives/gas_mask/gas_mask_icon.png" id="2_x5ma5"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_epx1k"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_p5c81"]
+[ext_resource type="Texture2D" path="res://content/passives/gas_mask/gas_mask_icon_evolved.png" id="1_8emtn"]
+[ext_resource type="Texture2D" path="res://content/passives/gas_mask/gas_mask_icon.png" id="2_78s5d"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_78s5d"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_x5ma5"]
 
 [sub_resource type="Resource" id="Resource_78s5d"]
-script = ExtResource("3_epx1k")
+script = ExtResource("3_78s5d")
 stat = "gas_mask_cap"
 value = 0.12
 target = "player"
 
 [sub_resource type="Resource" id="Resource_x5ma5"]
-script = ExtResource("3_epx1k")
+script = ExtResource("3_78s5d")
 stat = "gas_mask_cap"
 value = 0.08
 target = "player"
 
 [sub_resource type="Resource" id="Resource_epx1k"]
-script = ExtResource("3_epx1k")
+script = ExtResource("3_78s5d")
 stat = "gas_mask_cap"
 value = 0.1
 target = "player"
 
 [resource]
-script = ExtResource("4_p5c81")
+script = ExtResource("3_x5ma5")
 levels = [[SubResource("Resource_78s5d")], [SubResource("Resource_x5ma5")], [SubResource("Resource_epx1k")]]
 max_level = 3
-text = "1% damage reduction for every poisoned enemy, up to 12% (20% at level 2, 30% once Evolved)."
-evolved_icon = ExtResource("1_78s5d")
+text = "1% damage reduction for every poisoned enemy, up to 12%."
+evolved_icon = ExtResource("1_8emtn")
 id = "gas_mask"
 display_name = "Gas Mask"
 flavour = "Breathe easy in the bad air."
 rarity = "epic"
 weight = 5.0
-icon = ExtResource("2_x5ma5")
+icon = ExtResource("2_78s5d")
 icon_file = "gas_mask_icon.png"
 placeholder = {
 "color": "#6E8F5A",

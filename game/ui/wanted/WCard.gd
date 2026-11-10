@@ -55,7 +55,8 @@ const STAR_PX := 40.0
 const TAG_PX := 26
 ## A tag's word: the string table's row for WItem.tag's id (pass 137; tag_pill).
 const TAG_KEY := "ui.card.tag.%s"
-const CHANGE_PX := 30
+## Pass 138 (lane TEXTUI): an upgrade's change rows 34 (30 before), with the description's growth.
+const CHANGE_PX := 34
 ## The favourite's heart, as a share of the plate's side, and how far it reaches past the plate's corner (pass 62); the
 ## word's type size on a card.
 const FAV_FRAC := 0.25
@@ -66,7 +67,7 @@ const FAV_WORD_PX := 22
 ## o: word, word_color, name, name_size (60), stars [total, held, upto] or [], star_px (40; 28 before pass 48), effect,
 ## rarity ("" = no seal), plate_px (170), level (the plate's colour for a weapon or a line, pass 48; 0 = common), dots
 ## (Vector2i held/total mutation dots on a weapon's plate, pass 48) and dots_ready (the glow), evolution (bool), price
-## (-1 = none), short (gold missing), shadow (10), pad [t, r, b, l], gap (28), col_gap (8), effect_size (30), text_right
+## (-1 = none), short (gold missing), shadow (10), pad [t, r, b, l], gap (28), col_gap (8), effect_size (R.DESC_PX, pass 138; 30 before), text_right
 ## (room for the seal, 110), seal_px (96), locked (bool), kind_mark (pass 54: the plate's corner glyph, "weapon" or "line";
 ## by default the def's own, W.kind_mark_of; "" for none); pass 58: tag ("UPGRADE", "NEW", "EVOLUTION" or ""), tag_size
 ## (26), changes (WItem.changes rows: shown in place of the effect line when there are any), change_size (30), pulse
@@ -160,7 +161,8 @@ static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 		c.changes_box = change_rows(ch, int(o.get("change_size", CHANGE_PX)))
 		c._col.add_child(c.changes_box)
 	elif eff != "":
-		c.effect_text = W.serif_text(eff, int(o.get("effect_size", 30)), W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, -1.0, true)
+		# pass 138 (lane TEXTUI): the kit's description face (W.desc_text), R.DESC_PX by default (30 before)
+		c.effect_text = W.desc_text(eff, int(o.get("effect_size", R.DESC_PX)))
 		c.effect_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		c._col.add_child(c.effect_text)
 	var price := int(o.get("price", -1))

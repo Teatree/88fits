@@ -42,6 +42,9 @@ const ROYALE_BUILD_INSET := 24
 const ROYALE_CELL_LABEL_PX := 18
 const ROYALE_CELL_VALUE_PX := 32
 const ROYALE_TAG_PX := 20
+## Pass 138 (lane TEXTUI; Garry: "make the text bigger and more clear"): an open passive's words now and at its next level.
+const NOW_PX := 30
+const NEXT_PX := 27
 ## The Stats tab under Royale: a stat that did not move reads in the secondary blue at this alpha (the Wanted ink-soft
 ## faded to 62 % on the slate read as nothing), the open cell's light band, the change chips' ink.
 const ROYALE_DIM_ALPHA := 0.78
@@ -305,9 +308,11 @@ func _one_line(def: ContentDef, level: int, inst: WeaponInstance) -> String:
 	var s := ""
 	if inst:
 		# the first sentence that says what it does (not the weapon's name, not the tails every weapon shares)
-		for sentence in inst.description().split(". "):
+		# pass 138 (lane TEXTS): the description is the item's own row now (nothing glued on), an evolution's mutations
+		# note on its second line: the row's line only
+		for sentence in inst.description().get_slice("\n", 0).split(". "):
 			var t := sentence.strip_edges().trim_suffix(".")
-			if t == "" or t == def.display_name or t == "Knocks enemies back" or t.begins_with("Evolved:") or t.ends_with(" only"):
+			if t == "" or t == def.display_name:
 				continue
 			s = t
 			break
@@ -326,9 +331,8 @@ func _one_line(def: ContentDef, level: int, inst: WeaponInstance) -> String:
 		s = TextGen.describe_effects(TextGen._sum_effects((def as PassiveDef).effects_for_level(maxi(level, 1))))
 		if level >= (def as PassiveDef).max_level and (def as PassiveDef).evolves_into != "":
 			s += " " + Loc.t("ui.pause.maxed_can_evolve")
-	if s == "" or s.begins_with(" · "):
-		s = def.flavour.trim_suffix(".") + s
-	return s
+	# pass 138 (lane TEXTUI; Garry: "Hide the clever quips"): the flavour no longer stands in for a missing line
+	return s.trim_prefix(" · ")
 
 
 ## The stars' size on a Build row (pass 48, Garry: bigger stars everywhere; 24 before).
@@ -414,9 +418,13 @@ func _royale_row(row: WRow, def: ContentDef, level: int, inst: WeaponInstance, o
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 6)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(W.serif_text(desc, 24, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	# pass 138 (lane TEXTUI): the kit's description face, NOW_PX (24 before) and its next level NEXT_PX (22 italic before)
+	v.add_child(W.desc_text(desc, NOW_PX))
 	if nxt != "":
-		v.add_child(W.serif_text(nxt, 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+		var nt := W.desc_text(nxt, NEXT_PX)
+		nt.name = "Next"
+		nt.color = R.SECONDARY
+		v.add_child(nt)
 	p.add_child(v)
 	row.body.add_child(p)
 

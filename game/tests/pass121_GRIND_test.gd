@@ -71,10 +71,10 @@ func test_it_is_a_one_shot_item_of_one_level() -> void:
 		assert_bool(g.is_evolved_rung(lv)).is_false()
 	# the card says it works once and never levels up; nothing promises rungs
 	var t := TextGen.passive_text(g)
-	assert_str(t).starts_with("Once:")
+	# pass 138 (lane TEXTS): Garry's style, one sentence
+	assert_str(t).contains("once")
 	assert_str(t).contains("weakest weapon")
 	assert_str(t).contains("evolves")
-	assert_str(t).contains("never levels up")
 	assert_int(t.length()).is_less_equal(190)
 	for s: String in [t, TextGen.passive_description(g, 1), WItem.effect({"def": g, "level_from": 0, "level_to": 1})]:
 		assert_bool(s.contains("Evolved")).override_failure_message(s).is_false()

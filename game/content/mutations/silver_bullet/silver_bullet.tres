@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/mutations/silver_bullet/silver_bullet_icon.png" id="1_6vsax"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_8eslr"]
-[ext_resource type="Texture2D" path="res://content/mutations/silver_bullet/silver_bullet_icon.png" id="2_xie0m"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_6scr3"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_8eslr"]
 
 [sub_resource type="Resource" id="Resource_8eslr"]
 script = ExtResource("1_8eslr")
@@ -16,10 +16,10 @@ stat = "pierce"
 value = 1.0
 
 [resource]
-script = ExtResource("3_6scr3")
+script = ExtResource("2_8eslr")
 weapon = "revolver"
 mutation_kind = "element"
-text = "+50% damage and +1 pierce, in rounds half again as big that hit wider."
+text = "Bigger silver bullets: +50% damage and +1 pierce."
 vfx = "a bluish silver round with a pale tracer and flash, a harder kick"
 effects = [SubResource("Resource_8eslr"), SubResource("Resource_xie0m")]
 params = {
@@ -36,7 +36,7 @@ display_name = "Silver Bullet"
 flavour = "For the things that do not stay dead."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("2_xie0m")
+icon = ExtResource("1_6vsax")
 icon_file = "silver_bullet_icon.png"
 placeholder = {
 "color": "#C8D8F0",

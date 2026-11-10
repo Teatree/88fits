@@ -446,8 +446,9 @@ func _stranger_after(i: int) -> void:
 		events[i]["hp_max_after"] = snappedf(float(player.get("max_hp")), 0.1)
 
 
-## A Totem Pole's menu closing (pass 74, Game): the gifts it offered (ids, stats, amounts, their quality 1-3 and their
-## words) and the one taken (the event's id; "" when none was).
+## A Totem Pole's menu closing (pass 74, Game): the gifts it offered (ids, stats, amounts, their quality and their
+## words; pass 138: `quality` is the gift's rarity tier, 1 Common .. 5 Legendary, before it the third of its range 1-3) and
+## the one taken (the event's id; "" when none was).
 func totem_offer(offer: Array, taken: Dictionary) -> void:
 	var ids: Array = []
 	var stats: Array = []

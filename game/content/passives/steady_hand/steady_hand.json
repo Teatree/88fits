@@ -40,7 +40,7 @@
     ]
   ],
   "repeat_last_level": true,
-  "text": "The longer you stand still, the harder you hit: +13% attack damage a second (faster each rung), up to +100%. Moving drops it.",
+  "text": "+13% attack damage for every second you stand still, up to +100%. Moving drops it.",
   "art_prompt": "a brown leather-gloved hand holding a silver revolver perfectly level and still, pointing to the right, a thin straight red aiming line from its barrel",
   "placeholder": {
     "color": "#C0C8D0",

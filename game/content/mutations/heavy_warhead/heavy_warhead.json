@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "+40% damage, ×2 knockback, +15% area of effect: bigger rockets, a stronger blast.",
+  "text": "Bigger rockets: +40% damage, double knockback and a 15% bigger blast.",
   "vfx": "fatter rockets, a white flash and a wider fireball with a ring of sparks",
   "effects": [
     {

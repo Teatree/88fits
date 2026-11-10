@@ -738,13 +738,15 @@ func test_the_text_says_what_they_do() -> void:
 	Run.start(Registry.character("calavera"), Registry.map("red_canyon"))
 	var g := _inst("guitarra")
 	assert_str(g.description()).contains("70° cone of melody")
-	assert_str(g.description()).contains("lifted")
+	assert_str(g.description()).contains("lifts")
 	g.bonus_effects = [Effect.make("amount", "add", 2.0)]
 	g.rebuild(Run.player_sheet, [g])
-	assert_str(g.description()).contains("2 echoes")
+	# pass 138 (lane TEXTS): the strums a chord in the row ("3 times in a row"), no echo sentence glued on
+	assert_str(g.description()).contains("3 times in a row")
 	assert_str(_inst("requiem").description()).contains("ring of melody")
 	assert_str(_inst("guitarra", ["far_reach"]).description()).contains("180°")
-	assert_str(_inst("guitarra", ["music_slap"]).description()).contains("aside")
+	assert_str(_inst("guitarra", ["music_slap"]).description()).not_contains("aside")
+	assert_str(Registry.mutation("music_slap").text).contains("aside")
 	var rows := {}
 	for r: Dictionary in _inst("guitarra").stat_rows():
 		rows[str(r["stat"])] = r
@@ -756,7 +758,9 @@ func test_the_text_says_what_they_do() -> void:
 	assert_float(_inst("guitarra").dps_estimate()).is_equal_approx(_inst("guitarra").stat("damage") * 3.0 / cd, 0.01)
 	var sp := _inst("spear", ["pinning_throw"])
 	assert_str(sp.description()).contains("spear")
-	assert_str(sp.description()).contains("pinned")
+	# pass 138 (lane TEXTS): Pinning Throw's card says the pin; the spear's own text no longer glues it on
+	assert_str(sp.description()).not_contains("pinned")
+	assert_str(Registry.mutation("pinning_throw").text).contains("pin")
 	assert_str(sp.description()).not_contains("Pierces")
 	var srows: Array = sp.stat_rows().map(func(r): return str(r["stat"]))
 	assert_bool(srows.has("pin")).is_true()

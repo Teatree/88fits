@@ -435,13 +435,15 @@ func test_the_wide_sweep_and_the_thunder_lance_keep_it() -> void:
 	assert_int(t.crit_hits).is_equal(0)
 	assert_float(float(_stroke(t, em, [i], spots)[0])).is_equal_approx(plain * crit_mult, 0.01)
 	assert_int(t.crit_hits).is_equal(1)
-	assert_str(t.inst.description()).contains("Every 4th sweep is a guaranteed crit and reaches 20% further.")
+	# pass 138 (lane TEXTS): Heartseeker's card says the crit; the weapon's text no longer glues it on
+	assert_str(t.inst.description()).not_contains("guaranteed crit")
+	assert_str(Registry.mutation("heartseeker").text).contains("guaranteed crit")
 	t.queue_free()
 	# the Thunder Lance carries it (the evolution keeps the path and the hero's pick): its 4th stroke's sweep is plain,
 	# the thrust after it the crit
 	var lance := _thruster(w, "thunder_lance", ["stunning_thrust", "long_spear", "pike_sweep", "heartseeker"])
 	assert_bool((lance.inst.params.get("crit_stroke", {}) as Dictionary).is_empty()).is_false()
-	assert_str(lance.inst.description()).contains("Every 4th thrust is a guaranteed crit")
+	assert_str(lance.inst.description()).not_contains("guaranteed crit")
 	for k in range(3):
 		em.pos[i] = spots[0]
 		em._rebuild_grid()
@@ -559,7 +561,9 @@ func test_the_moonshine_keeps_the_sun_cocktail() -> void:
 	assert_bool(evo.has_mutation("sun_cocktail")).is_true()
 	for key in ["land_blast", "halo", "tint"]:
 		assert_bool(evo.params.get(key) is Dictionary).override_failure_message("the Moonshine lost " + key).is_true()
-	assert_str(evo.description()).contains("bursts with sunlight as it lands")
+	# pass 138 (lane TEXTS): the Moonshine's own row and the note that every mutation still applies
+	assert_str(evo.description()).not_contains("bursts with sunlight")
+	assert_str(evo.description()).contains("All your mutations still apply")
 
 
 # ---------------------------------------------------------------- Sun Cocktail: the blast

@@ -7,6 +7,9 @@ extends GdUnitTestSuite
 ## whole steps of what the screen shows (TextGen says a mul in whole percents), its smallest roll at least a third of its
 ## biggest (pass 73), and its span never a multiple of three steps, so the feathers (which third of the range a roll fell
 ## in) never hang on a rounding error and 1, 2 and 3 feathers all come up. The rule's table: tools/dl/p76/balancing_TOTEM.md.
+## Pass 138 (lane TOTEM, re-pinned on purpose): five rarity tiers in place of a range; the Rare amount is the old range's
+## middle (the old average gift, still about 0.4 of a level), Uncommon and Epic its ends, Common under and Legendary over
+## them; the map's gifts in the order they are taken (the odds improve with each) still come to about one maxed line.
 
 const BOONS := preload("res://core/systems/TotemBoons.gd")
 
@@ -43,17 +46,9 @@ func _levels(stat: String, op: String, value: float) -> float:
 	return value / le.value
 
 
-## Every value a gift can roll: min to max in whole steps, snapped and clamped as TotemBoons.roll does.
+## Every value a gift can roll: its five tier amounts (pass 138).
 func _values(e: Dictionary) -> Array:
-	var lo := float(e["min"])
-	var hi := float(e["max"])
-	var step := float(e["step"])
-	var n := int(round(absf(hi - lo) / step))
-	var out: Array = []
-	for k in range(n + 1):
-		var v := snappedf(lerpf(lo, hi, float(k) / float(maxi(n, 1))), step)
-		out.append(clampf(v, minf(lo, hi), maxf(lo, hi)))
-	return out
+	return BOONS.tier_amounts(e)
 
 
 func test_every_gift_is_about_four_tenths_of_a_level_of_its_line() -> void:
@@ -63,11 +58,12 @@ func test_every_gift_is_about_four_tenths_of_a_level_of_its_line() -> void:
 		var stat := str(e["stat"])
 		assert_bool(LINE_OF.has(stat)).override_failure_message("no line named for the gift of " + stat).is_true()
 		assert_object(_line_effect(stat)).override_failure_message("%s has no %s" % [LINE_OF.get(stat), stat]).is_not_null()
-		var avg := (float(e["min"]) + float(e["max"])) / 2.0
+		# pass 138: the Rare amount, the old range's middle
+		var avg := float(BOONS.tier_amounts(e)[2])
 		var lv := _levels(stat, str(e["op"]), avg)
 		assert_float(lv).override_failure_message("%s averages %.2f levels of %s" % [e["id"], lv, LINE_OF[stat]]).is_between(0.3, 0.55)
 		# a mul gift and its line pull the same way (the Thunderbird's cooldown down with the Tower's)
-		assert_bool(signf(float(e["min"])) == signf(_line_effect(stat).value)).override_failure_message(str(e["id"])).is_true()
+		assert_bool(signf(avg) == signf(_line_effect(stat).value)).override_failure_message(str(e["id"])).is_true()
 
 
 func test_a_maps_gifts_come_to_about_one_maxed_line() -> void:
@@ -75,18 +71,29 @@ func test_a_maps_gifts_come_to_about_one_maxed_line() -> void:
 	var d := _pole()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 76
-	var total := 0.0
-	var n := 0
-	for k in range(3000):
-		for b: Dictionary in BOONS.offer(d, rng):
-			total += _levels(str(b["stat"]), str(b["op"]), float(b["value"]))
-			n += 1
-	var mean := total / float(n)
-	assert_float(mean).is_between(0.33, 0.47)
-	# ten to twelve poles a map: about four levels in all, one maxed line (it was about 7-8 before pass 76)
+	# pass 138: the gifts taken in order, the k-th at the odds for k taken before it
 	var per_map := StructureManager.per_map_range(d)
-	assert_float(mean * per_map.x).is_greater(3.0)
-	assert_float(mean * per_map.y).is_less(5.8)
+	var by_claim: Array = []
+	for c in range(int(per_map.y)):
+		var total := 0.0
+		var n := 0
+		for k in range(1500):
+			for b: Dictionary in BOONS.offer(d, rng, 0, c):
+				total += _levels(str(b["stat"]), str(b["op"]), float(b["value"]))
+				n += 1
+		by_claim.append(total / float(n))
+	# the first gift weaker than the old average, the last stronger
+	assert_float(float(by_claim[0])).is_less(0.4)
+	assert_float(float(by_claim[by_claim.size() - 1])).is_greater(0.38)
+	# ten to twelve poles a map: about four levels in all, one maxed line (it was about 7-8 before pass 76)
+	var few := 0.0
+	for c in range(int(per_map.x)):
+		few += float(by_claim[c])
+	var all := 0.0
+	for v in by_claim:
+		all += float(v)
+	assert_float(few).is_greater(2.8)
+	assert_float(all).is_less(5.8)
 
 
 func test_every_roll_reads_as_the_amount_it_gives() -> void:
@@ -94,31 +101,22 @@ func test_every_roll_reads_as_the_amount_it_gives() -> void:
 		for v: float in _values(e):
 			var boon := {"stat": str(e["stat"]), "op": str(e["op"]), "value": v}
 			if str(e["op"]) == "mul":
-				# TextGen says a mul in whole percents: a roll is a whole percent, so the screen tells the truth
-				assert_float(absf(v * 100.0 - round(v * 100.0))).override_failure_message("%s %f" % [e["id"], v]).is_less(0.000001)
+				# a roll is a whole or a half percent (pass 138: TotemBoons says the half), so the screen tells the truth
+				assert_float(absf(v * 200.0 - round(v * 200.0))).override_failure_message("%s %f" % [e["id"], v]).is_less(0.000001)
 			var words := BOONS.amount_text(boon)
 			assert_str(words).is_not_empty()
 			assert_bool(words.begins_with("+") or words.begins_with("−")).override_failure_message(words).is_true()
 
 
-func test_every_gift_hangs_one_two_or_three_feathers_by_its_third() -> void:
+func test_every_gift_hangs_its_tier_and_is_small_but_not_nothing() -> void:
+	# (pass 138, re-pinned on purpose: the feathers are the rarity tier; pass 73's "smallest roll a third of the biggest"
+	# is now the Common amount at least an eighth of the Legendary one: Garry asked for both ends to move apart)
 	for e: Dictionary in BOONS.pool_of(_pole()):
 		var vals := _values(e)
-		var n := vals.size() - 1
-		assert_int(n).override_failure_message("%s rolls one number" % e["id"]).is_greater_equal(2)
-		# never a multiple of three steps: no roll sits on a third, where a rounding error would pick the feathers
-		assert_int(n % 3).override_failure_message("%s spans %d steps" % [e["id"], n]).is_not_equal(0)
-		var small := minf(absf(float(e["min"])), absf(float(e["max"])))
-		var seen := {}
-		for v: float in vals:
-			var q := BOONS.quality(v, float(e["min"]), float(e["max"]))
-			# the third of the range its size falls in, counted in whole steps from the smallest roll
-			var k := int(round((absf(v) - small) / float(e["step"])))
-			assert_int(q).override_failure_message("%s rolls %f" % [e["id"], v]).is_equal(mini(int(3.0 * k / float(n)) + 1, 3))
-			seen[q] = true
-		assert_bool(seen.has(1) and seen.has(2) and seen.has(3)).override_failure_message(str(e["id"])).is_true()
-		# small but not nothing (pass 73): the smallest roll is at least a third of the biggest
-		assert_float(absf(float(e["min"]))).is_greater_equal(absf(float(e["max"])) / 3.0 - 0.0001)
+		for k in range(vals.size()):
+			var b := BOONS.roll(e, RandomNumberGenerator.new(), k + 1)
+			assert_int(BOONS.roll_third(b)).is_equal(k + 1)
+		assert_float(absf(float(vals[0]))).is_greater_equal(absf(float(vals[4])) / 8.0 - 0.0001)
 
 
 func test_the_weights_and_the_feathers_rule_are_kept() -> void:
@@ -134,7 +132,7 @@ func test_the_weights_and_the_feathers_rule_are_kept() -> void:
 	assert_int(BOONS.quality(0.02, 0.01, 0.03)).is_equal(2)
 	assert_int(BOONS.quality(0.03, 0.01, 0.03)).is_equal(3)
 	assert_int(BOONS.quality(-0.04, -0.04, -0.02)).is_equal(3)
-	# a damage reduction gift never brings the cap near: twelve of the best roll stay under half of it
+	# a damage reduction gift never brings the cap near: twelve of the old best (pass 138: Epic) stay under half of it
 	for e: Dictionary in BOONS.pool_of(_pole()):
 		if str(e["stat"]) == "damage_reduction":
-			assert_float(12.0 * maxf(absf(float(e["min"])), absf(float(e["max"])))).is_less(0.4)
+			assert_float(12.0 * absf(float(BOONS.tier_amounts(e)[3]))).is_less(0.4)

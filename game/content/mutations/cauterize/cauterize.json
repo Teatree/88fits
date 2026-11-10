@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "A branded creature takes +40% from everything for 3 s.",
+  "text": "Branded enemies take 40% more damage for 3 s.",
   "vfx": "a glowing brand on the creature that flares on every hit",
   "effects": [
     {

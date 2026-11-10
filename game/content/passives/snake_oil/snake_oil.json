@@ -5,7 +5,7 @@
   "weight": 5,
   "max_level": 3,
   "flavour": "Cures what ails you. And then some.",
-  "text": "Heals can fill your health past full, up to 25% of max HP more, shown pink on your health bar. Regen stops at full.",
+  "text": "Heals can fill your health past full, up to 25% more.",
   "levels": [
     [
       {

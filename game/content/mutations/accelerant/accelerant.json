@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "Clouds last twice as long and burning creatures spread the fire when they die.",
+  "text": "Flames last twice as long, and burning enemies spread the fire when they die.",
   "vfx": "pools that keep burning, a burst of flame when a burning creature dies",
   "effects": [
     {

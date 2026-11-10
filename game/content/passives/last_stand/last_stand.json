@@ -5,7 +5,7 @@
   "weight": 5,
   "max_level": 3,
   "flavour": "Not today.",
-  "text": "When a hit leaves you under 30% health, time slows for 2 s and you deal 2.3 times the damage (more each rung).",
+  "text": "When a hit leaves you under 30% health, time slows and you deal 2.3 times the damage for 2 s.",
   "levels": [
     [
       {

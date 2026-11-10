@@ -262,13 +262,12 @@ func _totem_offer() -> Array:
 	var boons = TotemScreen.BOONS
 	var pool: Array = boons.pool_of(Registry.structure("totem_pole"))
 	var out: Array = []
+	# pass 138 (lane TOTEM): the gifts at set rarity tiers (Uncommon, Rare, Epic)
+	var tiers := {"wolf": 2, "bullhead": 3, "bear": 4}
 	for id in ["wolf", "bullhead", "bear"]:
 		for e: Dictionary in pool:
 			if str(e.get("id", "")) == id:
-				var b := {"id": id, "name": str(e.get("name", "")), "animal": str(e.get("animal", "")), "stat": str(e.get("stat", "")),
-					"op": str(e.get("op", "add")), "value": float(e.get("min", 0.0)), "min": float(e.get("min", 0.0)), "max": float(e.get("max", 0.0))}
-				b["quality"] = boons.quality(float(b["value"]), float(b["min"]), float(b["max"]))
-				out.append(b)
+				out.append(boons.roll(e, RandomNumberGenerator.new(), int(tiers[id])))
 	return out
 
 
@@ -309,16 +308,14 @@ func test_the_totem_under_royale_keeps_the_pole_and_heads_the_screen() -> void:
 		assert_object(row.face).is_not_null()
 		assert_bool(row.face.is_visible_in_tree()).is_true()
 		# the gain in gold Ultra
-		# pass 123 (Garry: "The stronger the effect the more prominent the visuals", "use stars instead"): by the roll's third
-		var third: int = clampi(row.feathers, 1, 3) - 1
-		assert_int(row.amount.font_size).is_equal(int(TotemScreen.ROYALE_AMOUNT_BY_THIRD[third]))
+		# pass 138 (lane TOTEM): no stars; the rarity on the border (its rim and tab), Epic and Legendary glow
+		var tier: int = clampi(row.feathers, 1, 5) - 1
+		assert_int(row.amount.font_size).is_less_equal(TotemScreen.AMOUNT_PX)
 		assert_bool(row.amount.color.is_equal_approx(R.GOLD_TEXT)).is_true()
-		assert_object(row.gauge).is_null()
-		assert_object(row.stars).is_not_null()
-		assert_int(row.stars.total).is_equal(3)
-		assert_int(row.stars.held).is_equal(third + 1)
-		assert_int(row.tag_box.inner).is_equal(int(TotemScreen.ROYALE_INNER_BY_THIRD[third]))
-		assert_bool(row.has_meta("tag_glow")).is_equal(int(TotemScreen.ROYALE_GLOW_BY_THIRD[third]) > 0)
+		assert_object(row.rarity).is_not_null()
+		assert_object(row.rarity_tab).is_not_null()
+		assert_int(row.tag_box.inner).is_equal(0)
+		assert_bool(row.has_meta("tag_glow")).is_equal(int(TotemScreen.GLOW_BY_TIER[tier]) > 0)
 		# a finger on the card is the gift's; the gap between the segment and the card is nobody's
 		assert_bool(row._has_point(row.tag_at + row.tag_size * 0.5)).is_true()
 		assert_bool(row._has_point(Vector2(TotemScreen.SEG + TotemScreen.PRESS_SEG_X + 20.0, TotemScreen.SEG * 0.5))).is_false()

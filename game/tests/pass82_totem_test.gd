@@ -95,24 +95,25 @@ func test_a_deep_camera_cutout_moves_the_screen_down_by_what_passes_130() -> voi
 # ---------------------------------------------------------------- the gauge and the numbers
 
 func test_the_gauge_shows_the_rolls_third_of_its_own_range_and_both_ends() -> void:
-	# the thirds, as rolled and worked out again without `quality`
-	for v in [[0.01, 1], [0.02, 2], [0.03, 3]]:
+	# (pass 138, lane TOTEM, re-pinned on purpose: a gift's rarity tier 1..5 in place of the third of its range: as rolled
+	# (`quality`), and worked out again without it from where the amount sits on its ladder, min Common .. max Legendary)
+	for v in [[0.01, 1], [0.02, 3], [0.03, 5]]:
 		var b := {"stat": "move_speed", "op": "mul", "value": v[0], "min": 0.01, "max": 0.03}
 		assert_int(BOONS.roll_third(b)).is_equal(int(v[1]))
 		b["quality"] = int(v[1])
 		assert_int(BOONS.roll_third(b)).is_equal(int(v[1]))
-	assert_int(BOONS.roll_third({"stat": "cooldown", "op": "mul", "value": -0.04, "min": -0.04, "max": -0.02})).is_equal(3)
+	# the size counts, whatever the sign: the Thunderbird's −4% at the far end of −2% .. −4%
+	assert_int(BOONS.roll_third({"stat": "cooldown", "op": "mul", "value": -0.04, "min": -0.04, "max": -0.02})).is_equal(5)
 	var offer := []
-	for v in [0.01, 0.02, 0.03]:
-		offer.append({"id": "wolf", "name": "Le-loo", "animal": "the Wolf", "stat": "move_speed", "op": "mul", "value": v,
-			"min": 0.01, "max": 0.03, "quality": BOONS.quality(v, 0.01, 0.03)})
+	for t in [1, 3, 5]:
+		offer.append({"id": "wolf", "name": "Le-loo", "animal": "the Wolf", "stat": "move_speed", "op": "mul", "value": 0.02,
+			"min": 0.005, "max": 0.04, "quality": t})
 	var scr := _open(offer)
 	await get_tree().create_timer(0.6).timeout
 	var rows: Array = scr.planks()
 	for k in range(3):
-		assert_int(rows[k].stars.total).is_equal(3)
-		assert_int(rows[k].stars.held).is_equal(k + 1)
-		assert_int(rows[k].feathers).is_equal(k + 1)
+		assert_int(rows[k].feathers).is_equal(2 * k + 1)
+		assert_str(rows[k].rarity_word.text).is_equal(BOONS.rarity_name(2 * k + 1).to_upper())
 
 
 func test_amounts_and_range_ends_carry_their_sign_and_unit() -> void:

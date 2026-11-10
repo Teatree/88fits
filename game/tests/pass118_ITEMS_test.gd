@@ -129,7 +129,8 @@ func test_both_keys_bank_their_own_and_the_bank_resets_with_a_new_run() -> void:
 func test_the_keys_say_what_they_do() -> void:
 	var jt := TextGen.passive_text(Registry.passive("jade_key"))
 	assert_str(jt).contains("+1% luck")
-	assert_str(jt).contains("only the chests after it")
+	# pass 138 (lane TEXTS): Garry's style, the main effect only
+	assert_str(jt).contains("for the rest of the run")
 	assert_str(TextGen.passive_text(Registry.passive("ruby_key"))).contains("+2% attack damage")
 	# the upgrade card names the step per chest, never a raw stat id
 	var nx := WItem.effect({"def": Registry.passive("jade_key"), "level_from": 1, "level_to": 2})
@@ -188,7 +189,8 @@ func test_any_hero_is_offered_another_heros_weapon_at_its_guest_weight() -> void
 func test_the_card_says_whose_own_it_is_never_only() -> void:
 	_start("astro")
 	var t := CardPool.preview_weapon(Registry.weapon("revolver"), 1).description()
-	assert_str(t).contains("Drifter's own.")
+	# pass 138 (lane TEXTS; Garry: nothing glued on): the owner is no longer said on the card
+	assert_bool(t.contains("'s own.")).is_false()
 	assert_bool(t.contains(" only.")).is_false()
 
 

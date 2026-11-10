@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "The spear sets alight everything it passes through.",
+  "text": "Spears set every enemy they pass through on fire.",
   "vfx": "the spear burns its way through the line; everything it touched is on fire",
   "effects": [
     {

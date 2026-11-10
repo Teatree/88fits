@@ -42,7 +42,7 @@
   ],
   "repeat_last_level": false,
   "trade": "",
-  "text": "The Ghost takes a hit for you now and then: a chance to take no hit at all, 3% at level 1, 20% at level 4.",
+  "text": "Each hit has a 3% chance of missing you.",
   "evolves_into": "ghost_step",
   "art_prompt": "a cowboy boot in mid step with two faded motion-blur afterimages behind it",
   "placeholder": {

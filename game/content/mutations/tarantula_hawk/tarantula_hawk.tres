@@ -7,7 +7,7 @@
 script = ExtResource("2_n8m2i")
 weapon = "hornet_nest"
 mutation_kind = "volume"
-text = "Every fourth burst (every burst while a flower's buff lasts) sends a big purple bee at the strongest enemy near: it buzzes round it and darts in to sting five times over 4 s, each a bee's damage, slowing its moves and attacks 10%."
+text = "Every fourth burst also sends a Tarantula Hawk that stings the strongest enemy five times."
 vfx = "a big glowing purple ball that buzzes round its prey in circles and darts in to sting, its prey tinted purple"
 params = {
 "hawk": {

@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/hot_sauce/hot_sauce_icon_b.png" id="1_vnc05"]
+[ext_resource type="Texture2D" path="res://content/passives/hot_sauce/hot_sauce_icon_b.png" id="1_huwqx"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_684dt"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_xx8i8"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_vnc05"]
 
 [sub_resource type="Resource" id="Resource_vnc05"]
 script = ExtResource("2_684dt")
@@ -11,12 +11,12 @@ value = 0.25
 target = "player"
 
 [resource]
-script = ExtResource("3_xx8i8")
+script = ExtResource("2_vnc05")
 line = true
 levels = [[SubResource("Resource_vnc05")]]
 max_level = 4
 evolves_into = "ghost_pepper"
-text = "The Devil deals you in: +25% difficulty a level. Dark variants and elite-marked creatures come more often: tougher, but each pays more XP and may drop a chest."
+text = "+25% difficulty a level: tougher enemies that pay more XP and may drop a chest."
 variants = {
 "A": {
 "icon": "res://content/passives/hot_sauce/hot_sauce_icon.png",
@@ -55,7 +55,7 @@ id = "hot_sauce"
 display_name = "The Devil"
 flavour = "The Devil deals you in. The desert can smell it a mile off."
 weight = 8.0
-icon = ExtResource("1_vnc05")
+icon = ExtResource("1_huwqx")
 icon_file = "hot_sauce_icon.png"
 placeholder = {
 "color": "#E0402A",

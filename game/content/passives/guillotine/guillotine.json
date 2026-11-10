@@ -4,7 +4,7 @@
   "flavour": "No appeals. No second hit.",
   "rarity": "rare",
   "weight": 5,
-  "text": "Finishes the job: a creature left under the threshold by any of your hits dies on the spot. 9% of its health at level 1, 23% once Evolved. Bosses are spared.",
+  "text": "Your hits finish off any enemy left under 9% health, except bosses.",
   "max_level": 4,
   "levels": [
     [

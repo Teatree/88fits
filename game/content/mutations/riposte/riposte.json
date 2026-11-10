@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "Strokes come 25% faster and throw what they hit twice as far.",
+  "text": "Swings come 25% faster and knock enemies twice as far.",
   "vfx": "a heavy brass guard bar; every stroke ends in a quick reverse flick with a clang of sparks",
   "effects": [
     {

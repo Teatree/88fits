@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "A bee that kills turns and dives at the next creature, once.",
+  "text": "A bee that kills dives at the next enemy.",
   "vfx": "the bee loops round and stings again",
   "effects": [],
   "params": {

@@ -249,7 +249,7 @@ func test_old_picks_hidden_new_picks_in_their_slots_evolutions_repointed() -> vo
 
 func test_flurry_doubles_the_slices_without_touching_the_cut() -> void:
 	var f: MutationDef = Registry.mutation("flurry")
-	assert_str(f.text).is_equal("Twice the slices a stroke.")
+	assert_str(f.text).is_equal("Twice as many slashes a swing.")
 	assert_int(f.effects.size()).is_equal(1)
 	assert_str((f.effects[0] as Effect).stat).is_equal("amount")
 	assert_str((f.effects[0] as Effect).op).is_equal("mul")
@@ -330,7 +330,8 @@ func test_the_whirlwind_spins_full_circles_and_a_crit_refunds_the_cooldown() -> 
 	assert_bool(t._trail_colour().is_equal_approx(Color("#A8F0FF"))).is_true()
 	for word in ["Flurry", "Riposte", "Critical Thinking"]:
 		assert_str(Registry.weapon("whirlwind").flavour).contains(word)
-	assert_str(t.inst.description()).contains("360°")
+	# pass 138 (lane TEXTS): the Whirlwind's own short row
+	assert_str(t.inst.description()).contains("full circle")
 	# every hit a crit: every swing gives a fifth of the cooldown back
 	Run.player_sheet.set_base("crit_chance", 1.0)
 	var i := _creature(em, Vector3(2.5, 0, 0), 100.0)
@@ -358,7 +359,7 @@ func test_the_whirlwind_spins_full_circles_and_a_crit_refunds_the_cooldown() -> 
 
 func test_wide_sweep_sweeps_every_spear_in_one_stroke_and_cuts_each_creature_once() -> void:
 	var ws: MutationDef = Registry.mutation("pike_sweep")
-	assert_str(ws.text).is_equal("A 120° sweep like a sabre's, with less knockback.")
+	assert_str(ws.text).is_equal("The spear sweeps a 120° arc instead of thrusting.")
 	var w := _world()
 	var em: EnemyManager = w["em"]
 	var t := _thruster(w, "pike", ["pike_sweep"], 5)
@@ -387,7 +388,7 @@ func test_wide_sweep_sweeps_every_spear_in_one_stroke_and_cuts_each_creature_onc
 
 func test_stunning_thrust_stuns_when_the_roll_says_so() -> void:
 	var st: MutationDef = Registry.mutation("stunning_thrust")
-	assert_str(st.text).is_equal("Every hit has a 15% chance to stun for a second.")
+	assert_str(st.text).is_equal("Each hit has a 15% chance of stunning the enemy for 1 s.")
 	var stun: Dictionary = st.params["thrust"]["stun"]
 	assert_float(float(stun["chance"])).is_equal_approx(0.15, 0.0001)
 	assert_float(float(stun["seconds"])).is_equal_approx(1.0, 0.0001)
@@ -539,7 +540,7 @@ func test_thorny_weed_dust_wake_and_the_dust_devil_carry_their_numbers() -> void
 	assert_float(th.stat("damage", 0.0)).is_equal_approx(plain.stat("damage", 0.0) * 1.35, 0.001)
 	assert_float(float(th.params.get("out_speed_mult", 0.0))).is_equal_approx(0.7, 0.0001)
 	assert_float(float(th.params.get("back_speed_mult", 0.0))).is_equal_approx(1.4, 0.0001)
-	assert_str(Registry.mutation("thorns").text).is_equal("Heavier and thornier: +35% damage. It rolls out slower and comes back faster.")
+	assert_str(Registry.mutation("thorns").text).is_equal("Heavier and thornier: +35% damage.")
 	var dw := _inst("tumbleweed", ["dust_wake"])
 	var aura: Dictionary = dw.params["aura"]
 	assert_float(float(aura["radius"])).is_equal_approx(1.6, 0.0001)
@@ -547,7 +548,7 @@ func test_thorny_weed_dust_wake_and_the_dust_devil_carry_their_numbers() -> void
 	assert_float(float(aura["seconds"])).is_equal_approx(0.4, 0.0001)
 	assert_float(float(aura["every"])).is_equal_approx(0.2, 0.0001)
 	assert_str(str(aura["tint"])).is_equal("#1A5A1E")
-	assert_str(Registry.mutation("dust_wake").text).is_equal("A faint dust wake: enemies within 1.6 m are slowed a little.")
+	assert_str(Registry.mutation("dust_wake").text).is_equal("Leaves a dust wake that slows enemies a little.")
 	# the Dust Devil over the whole path: its own speed, wake and return win (final), the second pass and x2 home
 	var dd := _inst("dust_devil", ["thorns", "dust_wake", "boomerang"])
 	assert_bool(bool(dd.params.get("return", false))).is_true()

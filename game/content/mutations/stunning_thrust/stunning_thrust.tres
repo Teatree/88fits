@@ -7,7 +7,7 @@
 script = ExtResource("2_r3s1v")
 weapon = "pike"
 mutation_kind = "element"
-text = "Every hit has a 15% chance to stun for a second."
+text = "Each hit has a 15% chance of stunning the enemy for 1 s."
 vfx = "a stunned creature stands frozen in a pale yellow tint, little stars over it"
 params = {
 "thrust": {

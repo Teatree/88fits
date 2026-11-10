@@ -87,6 +87,7 @@ params = {
 "threat_reach": 3.0
 },
 "fire_forward": true,
+"fx_style": "lance",
 "pierce_falloff": {
 "first_mult": 1.15,
 "floor": 0.4,

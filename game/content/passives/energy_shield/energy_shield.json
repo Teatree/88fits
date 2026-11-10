@@ -18,7 +18,7 @@
   ],
   "repeat_last_level": true,
   "trade": "",
-  "text": "The Guardian's blue bar over your health: while it holds, a hit takes shield and no HP; it recharges once you go 3 s untouched.",
+  "text": "A blue shield over your health takes hits for you and recharges after 3 s untouched.",
   "evolves_into": "aegis",
   "art_prompt": "a glowing blue round energy shield bubble with a hexagon pattern and a bright blue rim",
   "placeholder": {

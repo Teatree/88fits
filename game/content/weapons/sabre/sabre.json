@@ -72,6 +72,7 @@
   "evolves_with": "",
   "evolves_into": "whirlwind",
   "params": {
+    "fx_style": "crescent",
     "fire_forward": true,
     "thrust": {
       "out": 0.06,

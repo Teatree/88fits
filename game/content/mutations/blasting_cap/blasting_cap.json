@@ -8,7 +8,7 @@
   "kind": "hero",
   "element": "",
   "hero": "mira",
-  "text": "A mine that kills drops a gold nugget; +25% radius.",
+  "text": "Mines that kill drop a gold nugget and blow 25% wider.",
   "vfx": "a coin pops out of the crater",
   "effects": [
     {

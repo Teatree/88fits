@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "The first enemy each spear strikes is pinned in place for 1.2 s.",
+  "text": "Spears pin the first enemy they hit for 1.2 s.",
   "vfx": "the first creature a spear strikes stops dead, dust kicked up at its feet",
   "effects": [],
   "params": {

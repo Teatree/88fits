@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Half of all impacts deal 2.5 times the damage to a boss, an Elite or an elite creature in the blast.",
+  "text": "Impacts have a 50% chance of dealing 2.5 times the damage to bosses and Elites.",
   "vfx": "a gold flash ring and a kick of the camera on the big one",
   "effects": [],
   "params": {

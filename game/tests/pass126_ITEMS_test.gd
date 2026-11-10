@@ -137,8 +137,9 @@ func test_the_items_are_there_available_and_on_the_ladder() -> void:
 	# the book's numbers are the first level's
 	assert_float(scale.levels[0][0].value).is_equal(25.0)
 	assert_float(scale.levels[0][1].value).is_equal_approx(0.05, 0.00001)
-	assert_bool(scale.text.contains("25 coins") and scale.text.contains("5% of the next level's XP")).is_true()
-	assert_bool(can.text.contains("+3 HP a second for 15 s") and can.text.contains("+25%")).is_true()
+	# pass 138 (lane TEXTS): the short text in Garry's style keeps the main numbers only
+	assert_bool(scale.text.contains("25 coins") and scale.text.contains("5% of a level's XP")).is_true()
+	assert_bool(can.text.contains("3 HP a second for 15 s")).is_true()
 	# Banish is out of it, in the words too
 	assert_bool(scale.text.to_lower().contains("banish")).is_false()
 

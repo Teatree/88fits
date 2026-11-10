@@ -220,7 +220,8 @@ func test_alley_oop_is_the_basketballs_volume_mutation_and_full_court_press_is_h
 	assert_float(float(lc["height"])).is_equal(3.5)
 	assert_float(float(lc["air_time"])).is_equal(0.9)
 	assert_float(float(lc["fall_damage_frac"])).is_equal(1.0)
-	assert_str(ao.text).is_equal("Each hit has a 15% chance to throw the creature into the air. It can't attack up there and takes the hit again when it lands.")
+	# Garry's words (commit c1d5f178)
+	assert_str(ao.text).is_equal("Each hit has a 15% chance to throw the creature into the air.")
 	# the dark blue ball: its body flat in #0A4FA8 (out of the sky's warm ambient, the lead's pass-69 fix), a blue glow, the seams kept
 	assert_str(str(ao.params["tint"]["body"])).is_equal("#0A4FA8")
 	assert_str(str(ao.params["tint"]["emission"])).is_equal("#1A5CFF")
@@ -644,13 +645,15 @@ func test_the_real_balls_heat_glows_in_its_seams_hotter_than_its_body() -> void:
 func test_the_words_say_the_launch() -> void:
 	assert_str(TextGen.launch_words({})).is_empty()
 	assert_str(TextGen.launch_words({"launch": {"chance": 0.15, "fall_damage_frac": 1.0}})).contains("15% chance to throw the enemy into the air")
-	assert_str(TextGen.launch_words({"launch": {"chance": 0.15, "fall_damage_frac": 1.0}})).contains("takes the hit again when it lands")
+	# pass 138 (lane TEXTS): Garry's launch row (c1d5f178) says the chance only; Alley-Oop's own card says it, the
+	# ball's text no longer glues it on; Slam Dunk is its row and the mutations note
 	var ao := _real_ball(["alley_oop"])
-	assert_str(ao.description()).contains("15% chance to throw the enemy into the air")
+	assert_str(ao.description()).not_contains("into the air")
+	assert_str(Registry.mutation("alley_oop").text).contains("15% chance to throw the creature into the air")
 	var sd := _real_ball(["on_fire", "alley_oop", "rebound"], "slam_dunk")
 	var d := sd.description()
-	assert_str(d).contains("25% chance")
-	assert_str(d).contains("takes 150% of the hit when it lands")
+	assert_str(d).not_contains("25% chance")
+	assert_str(d).ends_with("All your mutations still apply and get stronger.")
 	# the plain ball says nothing of it
 	assert_str(_real_ball([]).description()).not_contains("into the air")
 

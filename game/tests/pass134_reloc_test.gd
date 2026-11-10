@@ -197,13 +197,13 @@ func test_the_defaults_and_a_mended_block() -> void:
 	assert_float(em.relocate.chance).is_equal(1.0)
 
 
-func test_red_canyon_plays_hidden_at_six_in_ten() -> void:
+func test_red_canyon_plays_its_file() -> void:
+	# pass 138 (Garry: "return it to how it was before"): Red Canyon plays the open relocation again (hidden off,
+	# chance 1, every 0.4 s); the burn rule stays. The game reads whatever the map file holds.
 	var raw: Dictionary = ((JSON.parse_string(FileAccess.get_file_as_string(MAP_JSON)) as Dictionary).get("timeline_data", {}) as Dictionary).get("relocate", {})
-	assert_bool(raw.get("hidden") is bool and bool(raw["hidden"])).is_true()
-	assert_float(float(raw.get("chance", -1.0))).is_equal_approx(0.6, 1e-6)
 	var c: Dictionary = Registry.map("red_canyon").timeline.relocate_cfg()
-	assert_bool(bool(c["hidden"])).is_true()
-	assert_float(float(c["chance"])).is_equal_approx(0.6, 1e-6)
+	assert_bool(bool(c["hidden"])).is_equal(bool(raw.get("hidden", false)))
+	assert_float(float(c["chance"])).is_equal_approx(clampf(float(raw.get("chance", 1.0)), 0.0, 1.0), 1e-6)
 
 
 # ---------------------------------------------------------------- 2. hidden

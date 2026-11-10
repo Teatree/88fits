@@ -7,7 +7,7 @@
 script = ExtResource("2_g1jwj")
 weapon = "turret_buddy"
 mutation_kind = "element"
-text = "A turret that despawns explodes: a 3 m blast for 4× its shot's damage, throwing them back."
+text = "A turret explodes when it goes, a 3 m blast."
 vfx = "a fireball where the turret stood as it goes"
 params = {
 "turret": {

@@ -81,9 +81,10 @@ func test_hot_streak_says_it_in_fewer_words() -> void:
 	var t := Registry.passive("hot_streak").text
 	assert_int(t.length()).is_less(120)
 	# (pass 95, lane PASSIVES: +7% at level 1 on the rarity ladder)
-	assert_str(t).contains("+7% attack damage per 1,000 kills")
+	# pass 138 (lane TEXTS): the short text in Garry's style keeps the main numbers only
+	assert_str(t).contains("+7% attack damage for every 1,000 kills")
 	assert_str(t).contains("+100%")
-	assert_str(t).contains("rest of the run")
+	assert_str(t).contains("this run")
 	assert_str(t).not_contains("Getting hit")
 
 

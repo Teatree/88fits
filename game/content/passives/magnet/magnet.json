@@ -44,7 +44,7 @@
     ]
   ],
   "repeat_last_level": false,
-  "text": "Every few seconds, at random, pulls every EXP gem within 6 m to you. Rungs reach farther and pull more often.",
+  "text": "Every few seconds pulls every EXP gem within 6 m to you.",
   "placeholder": {
     "color": "#8A69F2",
     "glyph": "magnet"

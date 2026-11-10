@@ -122,27 +122,28 @@ LADDER = {
                + [[E("leave_water_regen", 0.5), E("leave_water_seconds", 2), E("water_damage", 0.25)]],
 }
 
-# the hand-written card lines that named the old numbers (a new card shows `text` verbatim; the upgrades read the rungs)
+# the hand-written card lines that named the old numbers (a new card shows `text` verbatim; the upgrades read the rungs);
+# pass 138 (lane TEXTS): shortened in Garry's style, the level-1 numbers only
 TEXT = {
-    "barrel_rush": "Smash a barrel to run 30% faster for 4 s. Each rung after: +8% and +0.6 s more; Evolved +12% and +0.9 s.",
-    "cold_snap": "A hit may freeze a creature for 1 second: blue, still and harmless. 3% at level 1, 11% once Evolved. Bosses shrug it off.",
-    "counterpunch": "After an evade, your next attack deals double damage, and for 2.5 s you attack 25% faster and move 20% faster. Evolved: 2.5 times.",
-    "desperado": "The more you are hurt, the harder you hit: +1.6% attack damage for every 10% of health you are missing at level 1 (+16% near death), up to +51% once Evolved.",
-    "gas_mask": "1% damage reduction for every poisoned enemy, up to 12% (20% at level 2, 30% once Evolved).",
-    "guillotine": "Finishes the job: a creature left under the threshold by any of your hits dies on the spot. 9% of its health at level 1, 23% once Evolved. Bosses are spared.",
-    "heavyweight": "+1.2% attack damage for every 10 max HP you have (+0.15% a rung, Evolved +0.25%).",
-    "hot_springs": "+26 max HP and +0.65 HP regen a second. Every heal sends out a pulse that hurts enemies within 3 m: 5 damage, +2 for each HP healed, up to 40.",
-    "hot_streak": "Kills make you stronger for the rest of the run: +7% attack damage per 1,000 kills (more each rung), up to +100%.",
-    "last_stand": "When a hit leaves you under 30% health, time slows for 2 s and you deal 2.3 times the damage (more each rung).",
-    "loose_change": "A hit has a 32% chance to knock a coin worth 10 gold out of you (+8% a rung, Evolved +12%). It lands a few steps away: go and get it.",
-    "magnet": "Every few seconds, at random, pulls every EXP gem within 6 m to you. Rungs reach farther and pull more often.",
-    "pocket_watch": "Power-ups you pick up last 20% longer, more each rung (+76% once Evolved); at levels 1, 3 and Evolved they also drop more often (+14% in all).",
-    "powder_keg": "A kill has a 6.5% chance to blow up (+2% a rung, Evolved +3%): a twelfth of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
-    "siesta": "Standing still heals you: +1.4 health a second, more each rung.",
-    "skedaddle": "After a hit, run 25% faster for 2 s (+3% and +0.3 s a rung, Evolved +5% and +0.5 s).",
-    "snake_oil": "Heals can fill your health past full, up to 25% of max HP more, shown pink on your health bar. Regen stops at full.",
-    "steady_hand": "The longer you stand still, the harder you hit: +13% attack damage a second (faster each rung), up to +100%. Moving drops it.",
-    "vulture": "A critical hit may heal you for 2% of your max health. 6% of crits at level 1, 20% once Evolved.",
+    "barrel_rush": "Smash a barrel to run 30% faster for 4 s.",
+    "cold_snap": "Hits have a 3% chance of freezing an enemy for 1 s.",
+    "counterpunch": "After an evade, your next attack deals double damage and you attack and move faster for 2.5 s.",
+    "desperado": "The more you are hurt, the harder you hit: up to +16% attack damage near death.",
+    "gas_mask": "1% damage reduction for every poisoned enemy, up to 12%.",
+    "guillotine": "Your hits finish off any enemy left under 9% health, except bosses.",
+    "heavyweight": "+1.2% attack damage for every 10 max HP you have.",
+    "hot_springs": "+26 max HP and +0.65 HP regen a second. Every heal hurts enemies close by.",
+    "hot_streak": "+7% attack damage for every 1,000 kills this run, up to +100%.",
+    "last_stand": "When a hit leaves you under 30% health, time slows and you deal 2.3 times the damage for 2 s.",
+    "loose_change": "Getting hit has a 32% chance of dropping a 10 gold coin close by.",
+    "magnet": "Every few seconds pulls every EXP gem within 6 m to you.",
+    "pocket_watch": "Power-ups you pick up last 20% longer.",
+    "powder_keg": "Kills have a 6.5% chance of exploding, hurting everything close by.",
+    "siesta": "Standing still heals you 1.4 health a second.",
+    "skedaddle": "After a hit, run 25% faster for 2 s.",
+    "snake_oil": "Heals can fill your health past full, up to 25% more.",
+    "steady_hand": "+13% attack damage for every second you stand still, up to +100%. Moving drops it.",
+    "vulture": "Critical hits have a 6% chance of healing you for 2% of your max health.",
 }
 TRADE = {"beer": "−4 to −5% max HP a level"}
 

@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_jp66f")
 weapon = "orbit_saws"
-text = "The ring breathes from ×0.9 to ×1.6 its radius. A saw hit shoves the creature sideways along the spin, once a second."
+text = "The ring grows and shrinks, reaching up to 60% wider."
 vfx = "the ring of saws swells wide and draws in again, and creatures are batted aside along it"
 params = {
 "breathe": {

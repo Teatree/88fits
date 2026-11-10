@@ -1,35 +1,35 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/passives/phoenix_feather/phoenix_feather_icon_evolved.png" id="1_l7j4w"]
-[ext_resource type="Texture2D" path="res://content/passives/phoenix_feather/phoenix_feather_icon.png" id="2_dy71j"]
-[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_135gr"]
-[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="4_janhx"]
+[ext_resource type="Texture2D" path="res://content/passives/phoenix_feather/phoenix_feather_icon_evolved.png" id="1_jkera"]
+[ext_resource type="Texture2D" path="res://content/passives/phoenix_feather/phoenix_feather_icon.png" id="2_l7j4w"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_dy71j"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="3_l7j4w"]
 
 [sub_resource type="Resource" id="Resource_l7j4w"]
-script = ExtResource("3_135gr")
+script = ExtResource("3_l7j4w")
 stat = "phoenix_revive"
 value = 1.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_dy71j"]
-script = ExtResource("3_135gr")
+script = ExtResource("3_l7j4w")
 stat = "phoenix_hp"
 value = 0.5
 target = "player"
 
 [resource]
-script = ExtResource("4_janhx")
+script = ExtResource("3_dy71j")
 levels = [[SubResource("Resource_l7j4w"), SubResource("Resource_dy71j")]]
 max_level = 1
-text = "Two seconds after you fall, you get back up at half health (more with Second Wind) with the revive's blast. Once a run; it never levels up."
-evolved_icon = ExtResource("1_l7j4w")
+text = "When you fall, you get back up at half health. Once a run."
+evolved_icon = ExtResource("1_jkera")
 single = true
 id = "phoenix_feather"
 display_name = "Phoenix Feather"
 flavour = "Some birds will not stay down."
 rarity = "uncommon"
 weight = 6.0
-icon = ExtResource("2_dy71j")
+icon = ExtResource("2_l7j4w")
 icon_file = "phoenix_feather_icon.png"
 placeholder = {
 "color": "#E8603A",

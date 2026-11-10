@@ -86,7 +86,8 @@ func test_poison_weapons_are_content() -> void:
 	var inst := WeaponInstance.new(Registry.weapon("rattlesnake"), 8)
 	inst.rebuild(StatSheet.new(), [])
 	assert_int(inst.stat_int("poison_stacks")).is_greater(1)
-	assert_str(inst.description()).contains("Poisons")
+	# pass 138 (lane TEXTS): the row says it, no "Poisons: ..." sentence glued on
+	assert_str(inst.description()).contains("poison")
 
 
 func test_shop_prices_scale_with_power() -> void:

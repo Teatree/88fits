@@ -45,10 +45,17 @@ uniform float glint_every = 6.0;
 uniform float glint_length = 0.5;
 uniform float glint_width = 0.14;
 uniform vec4 glint_color : source_color = vec4(1.0, 0.97, 0.86, 1.0);
+// Pass 138 (lane FX; Garry: "Barrel should flicker white when Player hits ... a similar enemy flicker that they get, just
+// colour it white and back with a mask or something"): with HIT_FLASH defined (only BarrelField.barrel_shader() defines
+// it, so every scenery prop compiles without it and costs nothing) INSTANCE_CUSTOM.y is the hit flash 0..1 in place of
+// the sway (a barrel's sway was always 0): the painted pixels go that far to white, as enemy_billboard's `v_flash`.
 
 varying vec2 v_uv;
 varying vec4 v_roll;
 varying float v_glint;
+#ifdef HIT_FLASH
+varying float v_flash;
+#endif
 
 // Pass 85 (lane WORLD): the natural tints, up to two parts per painting (PropField._set_tint_uniforms): hue window
 // (lo, hi, sat_min, all hues), the hue shift and saturation factor ranges, the value factor range with the link and on.
@@ -106,6 +113,10 @@ void vertex() {
 	float flip = INSTANCE_CUSTOM.x;
 	float sway = INSTANCE_CUSTOM.y;
 	float phase = INSTANCE_CUSTOM.z;
+#ifdef HIT_FLASH
+	v_flash = clamp(INSTANCE_CUSTOM.y, 0.0, 1.0);
+	sway = 0.0;
+#endif
 	vec2 uv = UV;
 	if (flip > 0.5) {
 		uv.x = 1.0 - uv.x;
@@ -175,5 +186,9 @@ void fragment() {
 			float peak = sin(v_glint * 3.14159);
 			ALBEDO += glint_color.rgb * glint * (band * 0.9 + peak * 0.12);
 		}
+#ifdef HIT_FLASH
+		// the hit flash: the painting's own pixels to white (its shape is the mask), as a creature's
+		ALBEDO = mix(ALBEDO, vec3(1.0), v_flash);
+#endif
 	}
 }

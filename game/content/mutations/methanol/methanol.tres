@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/mutations/methanol/methanol_icon.png" id="1_3778e"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_ekdl0"]
-[ext_resource type="Texture2D" path="res://content/mutations/methanol/methanol_icon.png" id="2_5vuyq"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_h5qqm"]
-[ext_resource type="PackedScene" path="res://content/mutations/methanol/methanol_visual_bottle.tscn" id="4_wi1v0"]
-[ext_resource type="PackedScene" path="res://content/mutations/methanol/methanol_visual_bottle_trail.tscn" id="5_ax4ik"]
-[ext_resource type="PackedScene" path="res://content/mutations/methanol/methanol_visual.tscn" id="6_f0xmb"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_ekdl0"]
+[ext_resource type="PackedScene" path="res://content/mutations/methanol/methanol_visual_bottle.tscn" id="3_5vuyq"]
+[ext_resource type="PackedScene" path="res://content/mutations/methanol/methanol_visual_bottle_trail.tscn" id="4_h5qqm"]
+[ext_resource type="PackedScene" path="res://content/mutations/methanol/methanol_visual.tscn" id="5_wi1v0"]
 
 [sub_resource type="Resource" id="Resource_ekdl0"]
 script = ExtResource("1_ekdl0")
@@ -20,35 +20,35 @@ op = "mul"
 value = 0.75
 
 [resource]
-script = ExtResource("3_h5qqm")
+script = ExtResource("2_ekdl0")
 weapon = "molotov"
 mutation_kind = "volume"
-text = "The fire burns blue: pools 50% bigger, burns last 75% longer, −20% burn damage."
+text = "The fire burns blue: 50% bigger pools and longer burns, for 20% less burn damage."
 vfx = "blue flames in the pools, on burning creatures and dripping from the bottle"
 effects = [SubResource("Resource_ekdl0"), SubResource("Resource_5vuyq")]
 params = {
 "cloud_mult": 1.5,
 "fire_blue": true
 }
-visual = ExtResource("6_f0xmb")
+visual = ExtResource("5_wi1v0")
 visual_file = "methanol_visual.tscn"
 variants = {
 "B": {
 "fresh": true,
 "note": "the glass bottle, pale blue methanol",
-"visual": ExtResource("4_wi1v0"),
+"visual": ExtResource("3_5vuyq"),
 "visual_file": "methanol_visual_bottle.tscn"
 },
 "C": {
 "fresh": true,
 "note": "the glass bottle base first, pale blue methanol",
-"visual": ExtResource("5_ax4ik"),
+"visual": ExtResource("4_h5qqm"),
 "visual_file": "methanol_visual_bottle_trail.tscn"
 },
 "D": {
 "fresh": true,
 "note": "the glass bottle, pale blue methanol",
-"visual": ExtResource("4_wi1v0"),
+"visual": ExtResource("3_5vuyq"),
 "visual_file": "methanol_visual_bottle.tscn"
 }
 }
@@ -58,7 +58,7 @@ display_name = "Methanol"
 flavour = "Burns cold. Burns long."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("2_5vuyq")
+icon = ExtResource("1_3778e")
 icon_file = "methanol_icon.png"
 placeholder = {
 "color": "#5A8CFF",

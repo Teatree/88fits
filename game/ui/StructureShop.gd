@@ -62,7 +62,9 @@ const ROYALE_TRAY_BASE := 8.0
 const ROYALE_CARD_GAP := 28.0
 const ROYALE_PLATE := 160.0
 const ROYALE_NAME_PX := 48
-const ROYALE_EFFECT_PX := 28
+## Pass 138 (lane TEXTUI; Garry: "make the text bigger and more clear"): the cards' text 35 (28 before), the kit's
+## description face (W.desc_text through WCard).
+const ROYALE_EFFECT_PX := 35
 const ROYALE_PAD := [40, 32, 36, 30]
 const ROYALE_PRICE_W := 260.0
 const ROYALE_PRICE_W_SHORT := 200.0

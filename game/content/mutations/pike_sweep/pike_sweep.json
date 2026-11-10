@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "A 120° sweep like a sabre's, with less knockback.",
+  "text": "The spear sweeps a 120° arc instead of thrusting.",
   "vfx": "the spear swings across the front, every spear of the volley sweeping together",
   "effects": [
     {

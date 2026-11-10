@@ -403,16 +403,17 @@ func test_the_pod_glows_with_the_pressure() -> void:
 
 func test_the_weapon_text_says_the_pressure_is_built_standing_still() -> void:
 	var inst := _inst("rocket_pod", ["pressure_cooker"])
+	# pass 138 (lane TEXTS; Garry: nothing glued on): Pressure Cooker's own card says the rule, the weapon's text
+	# is its row alone
 	var text := TextGen.weapon_description(inst.def, inst.sheet, inst.params)
-	assert_str(text).contains("Standing still builds pressure")
-	assert_str(text).contains("200%")
-	assert_str(text).contains("15 s")
-	assert_str(text).contains("a hit vents half")
-	assert_str(text.to_lower()).not_contains("unhit")
-	# the Hellfire Battery's own numbers (its final keeps a pressure block) read the same way
+	assert_str(text).not_contains("pressure")
+	var pc := Registry.mutation("pressure_cooker").text
+	assert_str(pc).contains("Standing still")
+	assert_str(pc).contains("200%")
+	assert_str(pc).contains("15 s")
+	assert_str(pc.to_lower()).not_contains("unhit")
 	var hb := _inst("hellfire_battery")
 	var ht := TextGen.weapon_description(hb.def, hb.sheet, hb.params)
-	assert_str(ht).contains("Standing still builds pressure")
 	assert_str(ht.to_lower()).not_contains("unhit")
 
 

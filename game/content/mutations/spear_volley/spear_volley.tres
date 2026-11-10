@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/mutations/spear_volley/spear_volley_icon.png" id="1_01w82"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_vay1c"]
-[ext_resource type="Texture2D" path="res://content/mutations/spear_volley/spear_volley_icon.png" id="2_4rv25"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_vtc0e"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_vay1c"]
 
 [sub_resource type="Resource" id="Resource_vay1c"]
 script = ExtResource("1_vay1c")
@@ -17,10 +17,10 @@ op = "mul"
 value = -0.4
 
 [resource]
-script = ExtResource("3_vtc0e")
+script = ExtResource("2_vay1c")
 weapon = "spear"
 mutation_kind = "volume"
-text = "Three spears for every one, fanned out, −40% damage each."
+text = "Throws three spears for every one, −40% damage each."
 vfx = "a fan of three spears for every throw"
 effects = [SubResource("Resource_vay1c"), SubResource("Resource_4rv25")]
 params = {
@@ -31,7 +31,7 @@ display_name = "Spear Volley"
 flavour = "Three in the air before the first one lands."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("2_4rv25")
+icon = ExtResource("1_01w82")
 icon_file = "spear_volley_icon.png"
 placeholder = {
 "color": "#D8E0F0",

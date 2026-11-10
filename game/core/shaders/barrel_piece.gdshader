@@ -18,6 +18,8 @@ varying vec2 v_local;
 varying float v_solid;
 varying vec2 v_piece;
 varying vec3 v_cut;
+// pass 138 (lane FX): the hit flash of a barrel a round broke (BarrelDebris: the basis' third column is 1 + flash)
+varying float v_flash;
 
 void vertex() {
 	vec4 rect = INSTANCE_CUSTOM;
@@ -26,6 +28,7 @@ void vertex() {
 	v_solid = COLOR.a;
 	v_piece = UV;
 	v_cut = COLOR.rgb;
+	v_flash = clamp(MODEL_MATRIX[2].z - 1.0, 0.0, 1.0);
 	vec3 origin = MODEL_MATRIX[3].xyz;
 	vec2 ax = MODEL_MATRIX[0].xy;
 	float w = length(ax);
@@ -63,4 +66,5 @@ void fragment() {
 	}
 	float lum = dot(c.rgb, vec3(0.3, 0.59, 0.11));
 	ALBEDO = mix(c.rgb, vec3(lum), mute) * (1.0 - mute * 0.3);
+	ALBEDO = mix(ALBEDO, vec3(1.0), v_flash);
 }

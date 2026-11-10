@@ -268,7 +268,8 @@ func test_calaveras_crit_is_five_percent() -> void:
 func test_wide_reach_springs_from_two_point_eight_metres() -> void:
 	var wr: MutationDef = Registry.mutation("wide_reach")
 	assert_float(float((wr.params["spring"] as Dictionary)["sense"])).is_equal_approx(2.8, 0.001)
-	assert_str(wr.text).contains("2.8 m")
+	# pass 138 (lane TEXTS; Garry's "close by" for "within N m")
+	assert_str(wr.text).contains("close by")
 	# the Jackrabbit's own spring is as it was
 	assert_float(float((Registry.weapon("jackrabbit_mines").params["jackrabbit"] as Dictionary)["sense"])).is_equal(6.0)
 
@@ -352,7 +353,8 @@ func test_both_barrels_fires_its_second_shot_a_beat_after_the_first() -> void:
 	assert_int(pe.second_barrels).is_equal(1)
 	assert_int(live.call()).is_equal(per_volley * 4)
 	assert_float(float(inst.params.get("double_gap", 0.0))).is_equal_approx(ProjectileEmitter.DOUBLE_GAP, 0.001)
-	assert_str(inst.description()).contains("fires twice in quick succession")
+	# pass 138 (lane TEXTS): Both Barrels' card says it; the weapon's own text no longer glues it on
+	assert_str(inst.description()).not_contains("fires twice")
 
 
 # ---------------------------------------------------------------- Dragon's Breath: 60% of them
@@ -360,7 +362,9 @@ func test_both_barrels_fires_its_second_shot_a_beat_after_the_first() -> void:
 func test_dragons_breath_lights_sixty_percent_and_the_blunderbuss_all() -> void:
 	var db := _inst("boomstick", ["dragons_breath"], 5)
 	assert_float(db.ignite_chance()).is_equal_approx(0.6, 0.001)
-	assert_str(db.description()).contains("Sets 60% of the enemies it hits on fire")
+	# pass 138 (lane TEXTS): the mutation's own card says the 60% (Garry's words); nothing glued on the weapon's
+	assert_str(db.description()).not_contains("on fire")
+	assert_str(Registry.mutation("dragons_breath").text).contains("60%")
 	var rows := {}
 	for r: Dictionary in db.stat_rows():
 		rows[str(r["stat"])] = str(r["value"])
@@ -368,7 +372,7 @@ func test_dragons_breath_lights_sixty_percent_and_the_blunderbuss_all() -> void:
 	# the evolution keeps its fire sure, over the Dragon's Breath it carries
 	var bb := _inst("blunderbuss", ["dragons_breath", "birdshot_lane", "both_barrels"])
 	assert_float(bb.ignite_chance()).is_equal(1.0)
-	assert_str(bb.description()).contains("Sets on fire")
+	assert_str(bb.description()).not_contains("Sets on fire")
 	# everything else sets on fire as ever
 	assert_float(_inst("molotov").ignite_chance()).is_equal(1.0)
 

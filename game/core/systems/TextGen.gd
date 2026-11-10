@@ -377,10 +377,17 @@ static func _ball_shape(sheet: StatSheet, pr: Dictionary) -> String:
 ## Pass 137 (lane W2-TEXTGEN): an item's own description row (weapon.<id>.desc, evolution.<id>.desc) when its sentence is
 ## the shape it comes with (`shape` = `home`), else "" (Loc.t_first then takes the shape's generic row): the pilot's rule
 ## for the guns (_pe_shape), for every behaviour.
-static func _own_key(def: WeaponDef, shape: String, home: String) -> String:
+static func _own_key(def: WeaponDef, shape: String, home: String, vars: Dictionary = {}) -> String:
+	if def == null:
+		return ""
+	var own := ("evolution.%s.desc" if def.is_evolution else "weapon.%s.desc") % def.id
+	# pass 138 (lane TEXTS): an evolution always carries its three path mutations, so its own row says what it does
+	# whatever they did to the shape, whenever the row's variables are all here (_row_fits)
+	if def.is_evolution and _row_fits(own, vars):
+		return own
 	if shape != home:
 		return ""
-	return ("evolution.%s.desc" if def.is_evolution else "weapon.%s.desc") % def.id
+	return own
 
 
 static func ball_words(def: WeaponDef, sheet: StatSheet, pr: Dictionary) -> String:
@@ -394,25 +401,8 @@ static func ball_words(def: WeaponDef, sheet: StatSheet, pr: Dictionary) -> Stri
 	var way := (", " + Loc.t("gen.weapon.ball.way_all")) if rp >= 80 else ((", " + Loc.t("gen.weapon.ball.way_some", {"n": str(rp)})) if rp > 0 else "")
 	var vars := {"who": who, "range": "%.0f" % sheet.get_stat("range", 8.0), "hops": str(hops), "reach": "%.0f" % float(rd.get("reach", 7.0)), "way": way}
 	var shape := _ball_shape(sheet, pr)
-	var text := Loc.t_first([_own_key(def, shape, _ball_shape(sheet, _home_params(def))), "gen.weapon." + shape], vars)
-	# pass 69: Alley-Oop's launch (Slam Dunk's, amplified)
-	text += launch_words(pr)
-	var ct = pr.get("catch")
-	if not ct is Dictionary:
-		return text
-	var c: Dictionary = ct
-	var per := float(c.get("heat_per", 0.0))
-	var top := int(c.get("heat_max", 10))
-	if per > 0.0 and top > 0:
-		text += " " + Loc.t("gen.weapon.ball.heat", {"pct": str(int(round(per * 100.0))), "top": str(int(round(per * float(top) * 100.0)))})
-		text += " " + Loc.t("gen.weapon.ball.heat_keep" if bool(c.get("heat_keep", false)) else "gen.weapon.ball.heat_cools")
-	var sl = c.get("slam")
-	if sl is Dictionary:
-		var at := int((sl as Dictionary).get("at_heat", top))
-		var at_words := Loc.t("gen.weapon.ball.at_full") if at >= top else Loc.t("gen.weapon.ball.at_heat", {"heat": str(at)})
-		text += " " + Loc.t("gen.weapon.ball.slam", {"at": at_words, "pct": str(int(round(float((sl as Dictionary).get("damage_frac", 1.0)) * 100.0))),
-			"radius": "%.1f" % float((sl as Dictionary).get("radius", 3.5))})
-	return text
+	# pass 138 (lane TEXTS): the row alone; Alley-Oop's launch, the Heat and Slam Dunk's dunk are no longer glued on
+	return Loc.t_first([_own_key(def, shape, _ball_shape(sheet, _home_params(def)), vars), "gen.weapon." + shape], vars)
 
 
 ## The Dragon's Breath in words (pass 95, lane BREATH; core/behaviors/FireBreath.gd): the cone, how long and how often
@@ -429,18 +419,9 @@ static func breath_words(sheet: StatSheet, pr: Dictionary, def: WeaponDef = null
 		"cooldown": "%.1f" % sheet.get_stat("cooldown", 10.0), "damage": str(int(round(sheet.get_stat("damage", 12.0)))),
 		"every": Loc.t("gen.weapon.breath.every_second") if each_second else Loc.t("gen.weapon.breath.every_tick", {"tick": "%.1f" % tick})}
 	var shape := _breath_shape(sheet, pr)
-	var own := _own_key(def, shape, _breath_shape(sheet, _home_params(def))) if def != null else ""
-	var text := Loc.t_first([own, "gen.weapon." + shape], vars)
-	if float(bd.get("seconds_per_amount", 1.0)) > 0.0:
-		text += " " + Loc.t("gen.weapon.breath.extra", {"seconds": _plain(float(bd.get("seconds_per_amount", 1.0)))})
-	if float(bd.get("knock", 0.0)) > 0.0:
-		text += " " + Loc.t("gen.weapon.breath.shove_second" if each_second else "gen.weapon.breath.shove_hit")
-	var st = bd.get("still")
-	if st is Dictionary:
-		var sd: Dictionary = st
-		text += " " + Loc.t("gen.weapon.breath.still_ring" if bool(sd.get("ring", true)) else "gen.weapon.breath.still", {
-			"seconds": _plain(float(sd.get("seconds", 2.0))), "long": _plain(float(sd.get("duration_mult", 2.0))), "hits": _plain(float(sd.get("damage_mult", 1.5)))})
-	return text
+	var own := _own_key(def, shape, _breath_shape(sheet, _home_params(def)), vars) if def != null else ""
+	# pass 138 (lane TEXTS): the row alone; the extra seconds, Backdraft's shove and Held Breath are no longer glued on
+	return Loc.t_first([own, "gen.weapon." + shape], vars)
 
 
 ## The breath's cone in degrees now (pass 95): breath.cone_deg x the area stat, 15 at least, 360 at most.
@@ -465,28 +446,35 @@ static func frisbee_words(sheet: StatSheet, pr: Dictionary, def: WeaponDef = nul
 	var less := int(round((1.0 - clampf(float(fd.get("step", 0.85)), 0.0, 1.0)) * 100.0))
 	var flo := int(round(clampf(float(fd.get("floor", 0.25)), 0.0, 1.0) * 100.0))
 	var vars := {"amount": str(amount), "range": "%.0f" % range_m, "less": str(less), "floor": str(flo)}
-	var text := Loc.t_first([_own_key(def, "frisbee", "frisbee") if def != null else "", "gen.weapon.frisbee"], vars)
-	var cr = pr.get("carry")
-	if cr is Dictionary and float((cr as Dictionary).get("chance", 0.0)) > 0.0:
-		text += " " + Loc.t("gen.weapon.frisbee.carry_drop" if float((cr as Dictionary).get("drop_hit", 0.0)) > 0.0 else "gen.weapon.frisbee.carry",
-			{"pct": str(int(round(float((cr as Dictionary).get("chance", 0.0)) * 100.0)))})
-	var pm := float(pr.get("proc_mult", 1.0))
-	if pm > 1.001:
-		text += " " + Loc.t("gen.weapon.frisbee.procs", {"pct": str(int(round((pm - 1.0) * 100.0)))})
-	var st = pr.get("stun")
-	if st is Dictionary and float((st as Dictionary).get("chance", 0.0)) > 0.0:
-		text += " " + Loc.t("gen.weapon.stun_chance", {"pct": str(int(round(float((st as Dictionary).get("chance", 0.0)) * maxf(pm, 1.0) * 100.0))),
-			"seconds": "%.1f" % float((st as Dictionary).get("seconds", 1.0))})
-	if pr.get("loop") is Dictionary:
-		text += " " + Loc.t("gen.weapon.frisbee.loop")
+	# pass 138 (lane TEXTS): the row alone; Carry, Trick Shot, a stun and the Flying Saucer's loop are no longer glued on
+	return Loc.t_first([_own_key(def, "frisbee", "frisbee", vars) if def != null else "", "gen.weapon.frisbee"], vars)
+
+
+## What a weapon does, in one or two short sentences (pass 138, lane TEXTS; Garry: "the description is just: Lobs {amount}
+## {thing} at the densest crowd. Explodes in a {area} m radius."): the item's own row (weapon.<id>.desc /
+## evolution.<id>.desc) or its shape's generic row, nothing glued on after it. The pierce drop-off, the knockback, the
+## fuse, the burn and the poison, the held mutations' own sentences, "<Outlaw>'s own." and "Evolved: cannot level
+## further." are no longer appended (the mutations' cards, the pause screen's mutation names and stat rows say them).
+## An evolution adds its mutations note on a line of its own under its row (evolution_note).
+static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Dictionary = {}) -> String:
+	var text := _weapon_sentence(def, sheet, params)
+	if def.is_evolution:
+		text += "\n" + evolution_note(def)
 	return text
 
 
-static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Dictionary = {}) -> String:
+## Pass 138 (lane TEXTS; Garry: "At the bottom add a note saying that all the previously claimed mutations still apply. If
+## it increases mutations it should just mention that it does."): the evolution's own note row (evolution.<id>.note, the
+## ones whose `final` block raises a path mutation's numbers) else gen.evolution.mutations_note.
+static func evolution_note(def: WeaponDef) -> String:
+	return Loc.t_first(["evolution.%s.note" % def.id if def != null else "", "gen.evolution.mutations_note"])
+
+
+## The row a weapon's description is (pass 138: weapon_description without the evolution's note).
+static func _weapon_sentence(def: WeaponDef, sheet: StatSheet, params: Dictionary = {}) -> String:
 	var amount := sheet.get_int("amount", 1)
 	var range_m := sheet.get_stat("range", 8.0)
 	var pr: Dictionary = params if not params.is_empty() else def.params
-	var text := ""
 	var behavior := def.behavior
 	# priority targeting (pass 48, EnemyManager.priority_index): the strong and the close before the merely close
 	var who := Loc.t("gen.weapon.who.priority") if def.targeting == "priority" else Loc.t("gen.weapon.who.nearest")
@@ -495,18 +483,14 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 		behavior = "Spear"
 	match behavior:
 		"Spear":
-			# through everything in its way, and it stands in the sand where it comes down
-			text = Loc.t_first([_own_key(def, "spear", "spear"), "gen.weapon.spear"], {"amount": str(amount), "who": who, "range": "%.0f" % range_m})
-			var pin = pr.get("pin")
-			if pin is Dictionary:
-				text += " " + Loc.t("gen.weapon.spear.pin", {"seconds": "%.1f" % float((pin as Dictionary).get("seconds", 1.2))})
-			var tz = pr.get("trail_zone")
-			if tz is Dictionary:
-				text += " " + Loc.t("gen.weapon.spear.dust")
+			var svars := {"amount": str(amount), "who": who, "range": "%.0f" % range_m}
+			return Loc.t_first([_own_key(def, "spear", "spear", svars), "gen.weapon.spear"], svars)
 		"ProjectileEmitter":
-			# pass 137 (lane LOCKIT, the string table's pilot): the sentence is a row of content/strings/en.json, the
-			# weapon's own (weapon.<id>.desc / evolution.<id>.desc) when the shape is the one it comes with, else the
-			# shape's generic one (gen.weapon.shot.* / gen.weapon.blast.*), so a new weapon folder still has words
+			# pass 67 (the basketball, params.return_on_hit): one ball that bounces on and flies back (ball_words)
+			if bool(pr.get("return_on_hit", false)):
+				return ball_words(def, sheet, pr)
+			# pass 137 (lane LOCKIT): the weapon's own row when the shape is the one it comes with (an evolution's whenever
+			# its variables are here, pass 138), else the shape's generic one (gen.weapon.shot.* / gen.weapon.blast.*)
 			var vars := {"amount": str(amount), "range": "%.0f" % range_m, "who": who}
 			var shape := _pe_shape(def, sheet, pr)
 			match shape:
@@ -520,30 +504,15 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 					var blc: Dictionary = pr["blast"]
 					vars["deg"] = str(int(round(float(blc.get("deg", 75.0)))))
 					vars["depth"] = "%.0f" % float(blc.get("range", range_m))
-			# pass 67 (the basketball, params.return_on_hit): one ball that bounces on and flies back to his hand (pass
-			# 137: its own words, ball_words, in place of a shot's)
-			var ball := bool(pr.get("return_on_hit", false))
-			if ball:
-				text = ball_words(def, sheet, pr)
-			else:
-				text = Loc.t_first([_own_key(def, shape, _pe_shape(def, sheet, _home_params(def))), "gen.weapon." + shape], vars)
-			var de := int(pr.get("double_every", 0))
-			if de >= 2:
-				var nth := Loc.t("gen.word.nth.%d" % de) if Loc.has("gen.word.nth.%d" % de) else Loc.t("gen.word.nth.n", {"n": str(de)})
-				text += " " + Loc.t("gen.weapon.double_every", {"nth": nth})
-			var hs = pr.get("hip_shot")
-			if hs is Dictionary:
-				text += " " + Loc.t("gen.weapon.hip_shot", {"nth": ordinal(int((hs as Dictionary).get("every", 5))), "volleys": str(int((hs as Dictionary).get("volleys", 3)))})
+			# pass 138: what an evolution's own row may name (its ricochets, its hip shot)
 			var rav = pr.get("ricochet_any")
-			if rav is Dictionary and not ball:
-				var ra := int((rav as Dictionary).get("count", 0))
-				if ra > 0:
-					text += " " + Loc.t("gen.weapon.ricochet", {"count": str(ra), "pct": str(int(round(float((rav as Dictionary).get("frac", 1.0)) * 100.0)))})
-			var mc := float(pr.get("mini_crit", 0.0))
-			if mc > 0.0:
-				text += " " + Loc.t("gen.weapon.mini_crit", {"pct": str(int(round(mc * 100.0)))})
+			vars["bounces"] = str(int((rav as Dictionary).get("count", 0))) if rav is Dictionary else "0"
+			var hs = pr.get("hip_shot")
+			vars["hip_nth"] = ordinal(int((hs as Dictionary).get("every", 5))) if hs is Dictionary else ordinal(5)
+			return Loc.t_first([_own_key(def, shape, _pe_shape(def, sheet, _home_params(def)), vars), "gen.weapon." + shape], vars)
 		"Orbiter":
-			text = Loc.t_first([_own_key(def, "orbit", "orbit"), "gen.weapon.orbit"], {"amount": str(amount), "radius": "%.1f" % sheet.get_stat("orbit_radius", 2.0)})
+			var ovars := {"amount": str(amount), "radius": "%.1f" % sheet.get_stat("orbit_radius", 2.0)}
+			return Loc.t_first([_own_key(def, "orbit", "orbit", ovars), "gen.weapon.orbit"], ovars)
 		"Lobber":
 			# pass 76 (lane LOOKS): the thing lobbed in the look's words (thing_word: "sticks"), else the sentence's own
 			# (pass 137: gen.noun.*); the sentence by what it carries (_lob_shape: lob.fire, lob.poison, lob.blast)
@@ -551,54 +520,23 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 			var thing := {"lob.fire": ["bottle", "bottles"], "lob.poison": ["bomb", "bombs"]}.get(lob, ["grenade", "grenades"]) as Array
 			var lvars := {"amount": str(amount), "area": "%.1f" % sheet.get_stat("area", 2.5),
 				"thing": thing_word(def, amount, Loc.t("gen.weapon.noun." + str(thing[0])), Loc.t("gen.weapon.noun." + str(thing[1])))}
-			text = Loc.t_first([_own_key(def, lob, _lob_shape(sheet)), "gen.weapon." + lob], lvars)
-			# pass 62, Sun Cocktail (params.land_blast): a small blast where each one lands
-			text += land_blast_words(pr, sheet)
-			# pass 76 (lane DYN): the dynamite's fuse and the Drifter's mass mini crits
-			text += fuse_words(pr, amount) + mass_mini_words(pr)
+			return Loc.t_first([_own_key(def, lob, _lob_shape(sheet), lvars), "gen.weapon." + lob], lvars)
 		"Beam":
-			text = Loc.t_first([_own_key(def, "zap", "zap"), "gen.weapon.zap"], {"range": "%.0f" % range_m, "chains": str(sheet.get_int("chains", 2))})
+			var bvars := {"range": "%.0f" % range_m, "chains": str(sheet.get_int("chains", 2))}
+			return Loc.t_first([_own_key(def, "zap", "zap", bvars), "gen.weapon.zap"], bvars)
 		"Thruster":
 			var th = pr.get("thrust", {})
 			var slice_deg: float = float(th.get("slice_deg", 0.0)) if th is Dictionary else 0.0
-			# pass 53: the Spear's sweep swings every blade in one stroke ("blades"), the Thunder Lance alternates a sweep and
-			# a throwing thrust, Stunning Thrust stuns, the Whirlwind's crits refund the stroke, the stunned take more.
-			# Pass 137: the sentence by _thrust_shape (thrust.sweep: blades sweeping together, thrust.slice: swings a
+			# pass 137: the sentence by _thrust_shape (thrust.sweep: blades sweeping together, thrust.slice: swings a
 			# stroke, thrust.thrust)
 			var tshape := _thrust_shape(pr)
-			text = Loc.t_first([_own_key(def, tshape, _thrust_shape(_home_params(def))), "gen.weapon." + tshape],
-				{"amount": str(amount), "deg": str(int(slice_deg)), "who": who, "range": "%.1f" % range_m})
-			if slice_deg > 0.0 and th is Dictionary and bool(th.get("alternate", false)):
-				text += " " + Loc.t("gen.weapon.thrust.alternate")
-			var st = th.get("stun") if th is Dictionary else null
-			if st is Dictionary:
-				var sc := float((st as Dictionary).get("chance", 0.0))
-				var ss := "%.1f" % float((st as Dictionary).get("seconds", 1.0))
-				text += " " + (Loc.t("gen.weapon.stun_always", {"seconds": ss}) if sc >= 1.0 else Loc.t("gen.weapon.stun_chance", {"pct": str(int(round(sc * 100.0))), "seconds": ss}))
-			if float(pr.get("crit_refund", 0.0)) > 0.0:
-				text += " " + Loc.t("gen.weapon.thrust.crit_refund", {"pct": str(int(round(float(pr.get("crit_refund", 0.0)) * 100.0)))})
-			if float(pr.get("stunned_mult", 1.0)) > 1.0:
-				text += " " + Loc.t("gen.weapon.thrust.stunned_mult", {"mult": "%.1f" % float(pr.get("stunned_mult", 1.0))})
-			# pass 62, Heartseeker (params.crit_stroke): every Nth stroke a guaranteed crit with a longer reach
-			text += crit_stroke_words(pr)
+			var tvars := {"amount": str(amount), "deg": str(int(slice_deg)), "who": who, "range": "%.1f" % range_m}
+			return Loc.t_first([_own_key(def, tshape, _thrust_shape(_home_params(def)), tvars), "gen.weapon." + tshape], tvars)
 		"Smasher":
 			var sm = pr.get("smash", {})
 			var blast: float = (float(sm.get("radius", 1.6)) if sm is Dictionary else 1.6) * sheet.get_stat("area", 1.0)
-			text = Loc.t_first([_own_key(def, "smash", "smash"), "gen.weapon.smash"], {"amount": str(amount), "range": "%.1f" % range_m, "blast": "%.1f" % blast})
-			# pass 48: the Earthshaker's cracks carry lightning and a second wave, and it always crushes big game (pass
-			# 137: one sentence a mix, "gen.weapon.smash.quake", "gen.weapon.smash.quake_zap", "gen.weapon.smash.quake_roll",
-			# "gen.weapon.smash.quake_zap_roll")
-			var qk = (sm as Dictionary).get("quake") if sm is Dictionary else null
-			if qk is Dictionary:
-				var qkey := "gen.weapon.smash.quake"
-				if (qk as Dictionary).get("zap") is Dictionary:
-					qkey += "_zap"
-				if (qk as Dictionary).get("roll") is Dictionary:
-					qkey += "_roll"
-				text += " " + Loc.t(qkey, {"lines": str(int((qk as Dictionary).get("lines", 4)))})
-			var gs = pr.get("giant_slayer")
-			if gs is Dictionary and bool((gs as Dictionary).get("always", false)):
-				text += " " + Loc.t("gen.weapon.smash.giant_slayer", {"mult": _plain(float((gs as Dictionary).get("mult", 2.5)))})
+			var mvars := {"amount": str(amount), "range": "%.1f" % range_m, "blast": "%.1f" % blast}
+			return Loc.t_first([_own_key(def, "smash", "smash", mvars), "gen.weapon.smash"], mvars)
 		"MineLayer":
 			# pass 48: the Land Mine had no sentence ("Land Mine."); pass 137: the sentence by _mine_shape
 			var jr = pr.get("jackrabbit")
@@ -609,9 +547,9 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 			elif spring is Dictionary:
 				sense = float((spring as Dictionary).get("sense", 3.5))
 			var mshape := _mine_shape(pr)
-			text = Loc.t_first([_own_key(def, mshape, _mine_shape(_home_params(def))), "gen.weapon." + mshape], {"amount": str(amount),
-				"cooldown": "%.1f" % sheet.get_stat("cooldown", 2.0), "area": "%.1f" % sheet.get_stat("area", 2.2),
-				"sense": ("%.0f" % sense) if mshape == "mine.jackrabbit" else ("%.1f" % sense)})
+			var nvars := {"amount": str(amount), "cooldown": "%.1f" % sheet.get_stat("cooldown", 2.0), "area": "%.1f" % sheet.get_stat("area", 2.2),
+				"sense": ("%.0f" % sense) if mshape == "mine.jackrabbit" else ("%.1f" % sense)}
+			return Loc.t_first([_own_key(def, mshape, _mine_shape(_home_params(def)), nvars), "gen.weapon." + mshape], nvars)
 		"GravityGun":
 			var gv = pr.get("gravity", {})
 			var gd: Dictionary = gv if gv is Dictionary else {}
@@ -623,119 +561,70 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 			var gvars := {"amount": str(amount), "range": "%.0f" % range_m}
 			if gshape == "gravity.throw":
 				gvars["blast"] = "%.1f" % float(area_radius(def, sheet, pr)[1])
-			text = Loc.t_first([_own_key(def, gshape, ghome), "gen.weapon." + gshape], gvars)
+			return Loc.t_first([_own_key(def, gshape, ghome, gvars), "gen.weapon." + gshape], gvars)
 		"Spawner":
 			var cap: int = int(round(float(pr.get("max_turrets", 6)) * float(pr.get("max_turrets_mult", 1.0))))
 			var life := sheet.get_stat("lifetime", 12.0)
 			# the Turret Family's never go (a lifetime of 9999)
 			var stays := Loc.t("gen.weapon.spawn.stays", {"who": who}) if life >= 999.0 else Loc.t("gen.weapon.spawn.shoots_for", {"who": who, "seconds": "%.0f" % life})
-			text = Loc.t_first([_own_key(def, "spawn", "spawn"), "gen.weapon.spawn"], {"amount": str(maxi(amount, 1)),
-				"cooldown": "%.1f" % sheet.get_stat("cooldown", 6.0), "cap": str(cap), "stays": stays})
+			var pvars := {"amount": str(maxi(amount, 1)), "cooldown": "%.1f" % sheet.get_stat("cooldown", 6.0), "cap": str(cap), "stays": stays,
+				"who": who, "seconds": "%.0f" % life}
+			return Loc.t_first([_own_key(def, "spawn", "spawn", pvars), "gen.weapon.spawn"], pvars)
 		"MissilePod":
 			# a pod that circles the hero: rockets with a blast, or seekers that sting and fizzle (the bees of the Killer
-			# Bees' hive and its evolutions, pass 49: they read as bees, not seekers)
+			# Bees' hive and its evolutions, pass 49: they read as bees, not seekers); pass 137: pod.rockets or pod.bees
 			var blast_m := sheet.get_stat("area", 0.0)
 			var prey := Loc.t("gen.weapon.who.priority") if def.targeting == "priority" else Loc.t("gen.weapon.who.enemies")
-			# pass 137: rockets (pod.rockets) or bees (pod.bees), by the blast
 			var pshape := "pod.rockets" if blast_m > 0.3 else "pod.bees"
 			var phome := "pod.rockets" if float(def.base.get("area", 0.0)) > 0.3 else "pod.bees"
-			text = Loc.t_first([_own_key(def, pshape, phome), "gen.weapon." + pshape], {"amount": str(amount), "prey": prey, "range": "%.0f" % range_m,
-				"blast": "%.1f" % blast_m})
-			if blast_m > 0.3:
-				# pass 53: Cluster Munitions and Pressure Cooker, and the Hellfire Battery that carries both
-				var cl = pr.get("cluster")
-				if cl is Dictionary:
-					var cc := float((cl as Dictionary).get("chance", 0.3))
-					# rows "gen.weapon.pod.cluster_all", "gen.weapon.pod.cluster_all_chain", "gen.weapon.pod.cluster", "gen.weapon.pod.cluster_chain"
-					var ckey := "gen.weapon.pod.cluster_all" if cc >= 1.0 else "gen.weapon.pod.cluster"
-					if bool((cl as Dictionary).get("chain", false)):
-						ckey += "_chain"
-					text += " " + Loc.t(ckey, {"count": str(int((cl as Dictionary).get("count", 5))), "chance": str(int(round(cc * 100.0))),
-						"pct": str(int(round(float((cl as Dictionary).get("damage_frac", 0.25)) * 100.0)))})
-				var ps = pr.get("pressure")
-				if ps is Dictionary:
-					# pass 60 (lane WP): the pressure is built by standing still (MissilePod._tick_pressure), moving lets it
-					# all out and a hit vents `hit_vent` of it (half without the key)
-					var vent := clampf(float((ps as Dictionary).get("hit_vent", 0.5)), 0.0, 1.0)
-					var vent_s := Loc.t("gen.weapon.pod.vent_half") if absf(vent - 0.5) < 0.01 else (Loc.t("gen.weapon.pod.vent_all") if vent >= 0.999 else "%d%%" % int(round(vent * 100.0)))
-					text += " " + Loc.t("gen.weapon.pod.pressure", {"pct": str(int(round(float((ps as Dictionary).get("max", 2.0)) * 100.0))),
-						"seconds": "%.0f" % float((ps as Dictionary).get("seconds", 15.0)), "vent": vent_s})
-				var op = pr.get("overpressure")
-				if op is Dictionary:
-					text += " " + Loc.t("gen.weapon.pod.overpressure", {"nth": ordinal(int((op as Dictionary).get("every", 4)))})
+			var kvars := {"amount": str(amount), "prey": prey, "range": "%.0f" % range_m, "blast": "%.1f" % blast_m}
+			return Loc.t_first([_own_key(def, pshape, phome, kvars), "gen.weapon." + pshape], kvars)
 		"LaserBeam":
-			text = Loc.t_first([_own_key(def, "laser", "laser"), "gen.weapon.laser"], {"range": "%.0f" % range_m, "seconds": "%.1f" % sheet.get_stat("duration", 2.0)})
+			var avars := {"range": "%.0f" % range_m, "seconds": "%.1f" % sheet.get_stat("duration", 2.0)}
+			return Loc.t_first([_own_key(def, "laser", "laser", avars), "gen.weapon.laser"], avars)
 		"ConeWave":
-			# the Guitarra (pass 46): a cone of melody that lifts what stands in it and sets it down where it stood (pass
-			# 137: cone.ring for a full ring, else cone.cone)
+			# the Guitarra (pass 46): a cone of melody that lifts what stands in it (pass 137: cone.ring for a full ring,
+			# else cone.cone); pass 138: `amount` is the strums a chord (the echoes)
 			var cone = pr.get("cone", {})
 			var cd: Dictionary = cone if cone is Dictionary else {}
 			var deg := cone_width(pr, sheet.get_stat("area", 1.0))
 			var cshape := "cone.ring" if deg >= 359.0 else "cone.cone"
 			var chome := "cone.ring" if cone_width(_home_params(def), sheet.get_stat("area", 1.0)) >= 359.0 else "cone.cone"
-			text = Loc.t_first([_own_key(def, cshape, chome), "gen.weapon." + cshape], {"deg": str(int(round(deg))), "range": "%.1f" % range_m,
-				"lift": "%.1f" % float(cd.get("lift", 0.6))})
-			if bool(cd.get("side_random", false)):
-				text += " " + Loc.t("gen.weapon.cone.slap")
-			if amount > 1:
-				text += " " + Loc.t("gen.weapon.cone.echoes", {"echoes": str(amount - 1)})
+			var cvars := {"deg": str(int(round(deg))), "range": "%.1f" % range_m, "lift": "%.1f" % float(cd.get("lift", 0.6)), "amount": str(maxi(amount, 1))}
+			return Loc.t_first([_own_key(def, cshape, chome, cvars), "gen.weapon." + cshape], cvars)
 		"SunScepter":
-			# the Sun Scepter (pass 54): pillars of sunlight on what she can see, the close likelier; Zenith's sweep; Gold Dust
+			# the Sun Scepter (pass 54): pillars of sunlight on what she can see, the close likelier; pass 138: `amount` is
+			# the pillars a strike, `nth` Zenith's screen-wide strike
 			var sun = pr.get("sun", {})
 			var sr: float = (float((sun as Dictionary).get("radius", 1.3)) if sun is Dictionary else 1.3) * sheet.get_stat("area", 1.0)
-			text = Loc.t_first([_own_key(def, "sun", "sun"), "gen.weapon.sun"], {"cooldown": "%.1f" % sheet.get_stat("cooldown", 1.1),
-				"damage": str(int(round(sheet.get_stat("damage", 14.0)))), "radius": "%.1f" % sr})
-			if amount > 1:
-				text += " " + Loc.t("gen.weapon.sun.pillars", {"amount": str(amount)})
+			var uvars := {"cooldown": "%.1f" % sheet.get_stat("cooldown", 1.1), "damage": str(int(round(sheet.get_stat("damage", 14.0)))),
+				"radius": "%.1f" % sr, "amount": str(maxi(amount, 1))}
 			var zn = pr.get("zenith")
 			if zn is Dictionary:
-				text += " " + Loc.t("gen.weapon.sun.zenith", {"nth": ordinal(int((zn as Dictionary).get("every", 10))), "pct": str(int(round(float((zn as Dictionary).get("frac", 0.8)) * 100.0)))})
-			var gd = pr.get("gold_dust")
-			if gd is Dictionary:
-				text += " " + Loc.t("gen.weapon.sun.gold_dust", {"pct": str(int(round(float((gd as Dictionary).get("chance", 0.3)) * 100.0)))})
+				uvars["nth"] = ordinal(int((zn as Dictionary).get("every", 10)))
+			return Loc.t_first([_own_key(def, "sun", "sun", uvars), "gen.weapon.sun"], uvars)
 		"Frisbee":
 			# pass 69 (lane FRIS): the Frisbee, frisbee_words
-			text = frisbee_words(sheet, pr, def)
+			return frisbee_words(sheet, pr, def)
 		"SaltShaker":
 			# pass 69 (lane SALT): patches of salt in the hero's wake
-			text = salt_words(sheet, pr, def)
+			return salt_words(sheet, pr, def)
 		"FireBreath":
 			# pass 95 (lane BREATH): the Dragon's Breath, breath_words
-			text = breath_words(sheet, pr, def)
-		_:
-			text = Loc.t("gen.item.name_only", {"name": def.display_name})
-	var extras: Array = []
-	var pd := sheet.get_stat("poison_damage", 0.0)
-	if pd > 0.0:
-		var st := maxi(sheet.get_int("poison_stacks", 1), 1)
-		extras.append(Loc.t("gen.weapon.poisons_stacks" if st > 1 else "gen.weapon.poisons", {"damage": "%.0f" % (pd * st),
-			"seconds": "%.0f" % sheet.get_stat("poison_duration", 10.0), "stacks": str(st)}))
-	var fd := sheet.get_stat("fire_damage", 0.0)
-	if fd > 0.0:
-		# only some of what it hits, when the weapon says so (pass 51: Dragon's Breath's 60%)
-		var ic := clampf(float(pr.get("ignite_chance", 1.0)), 0.0, 1.0)
-		extras.append(Loc.t("gen.weapon.burns" if ic >= 1.0 else "gen.weapon.burns_some", {"pct": str(int(round(ic * 100.0))), "damage": "%.0f" % fd,
-			"seconds": "%.1f" % sheet.get_stat("fire_duration", 1.8), "spread": str(int(round(sheet.get_stat("fire_spread", 0.5) * 100.0)))}))
-	var pierce := sheet.get_int("pierce", 0)
-	# pass 62: the pierce drop-off, while Settings.pierce_falloff is on, says how the pierce hits ("Pierces 2: the first
-	# enemy takes ...")
-	var pfw := pierce_falloff_words(pr, behavior, pierce)
-	if pierce > 0 and behavior == "ProjectileEmitter" and pfw == "":
-		extras.append(Loc.t("gen.weapon.pierces", {"pierce": str(pierce)}))
-	if pfw != "":
-		extras.append(pfw)
-	if sheet.get_stat("knockback", 0.0) > 0.0:
-		extras.append(Loc.t("gen.weapon.knocks_back"))
-	if def.hero != "":
-		# pass 118 (lane ITEMS): anyone may find it now; the card still says whose own it is
-		var reg := _registry()
-		var owner = reg.character(def.hero) if reg else null
-		extras.append(Loc.t("gen.weapon.outlaws_own", {"who": str(owner.display_name) if owner else def.hero.capitalize()}))
-	if def.is_evolution:
-		extras.append(Loc.t("gen.weapon.evolved"))
-	if not extras.is_empty():
-		text += " " + " ".join(extras)
-	return text
+			return breath_words(sheet, pr, def)
+	return Loc.t("gen.item.name_only", {"name": def.display_name})
+
+
+## Pass 138 (lane TEXTS): whether row `key` exists and every variable it names is in `vars` (an evolution's own row is
+## used whatever its path did to the shape only then: a Garry row such as the Doomstick's {cone} falls back to the
+## shape's row under Birdshot Lane, as before).
+static func _row_fits(key: String, vars: Dictionary) -> bool:
+	if key == "" or not Loc.has(key):
+		return false
+	for v in Loc.variables(Loc.row_text(key)):
+		if not vars.has(str(v)):
+			return false
+	return true
 
 
 ## Pass 137 (lane LOCKIT): which sentence a ProjectileEmitter's description opens with, as the string table's key under
@@ -1239,20 +1128,9 @@ static func salt_words(sheet: StatSheet, pr: Dictionary, def: WeaponDef = null) 
 	var r := salt_radius(sheet, pr)
 	var vars := {"amount": str(n), "radius": "%.1f" % r, "cooldown": "%.1f" % sheet.get_stat("cooldown", 1.6), "lasts": _plain(snappedf(secs, 0.1)),
 		"damage": str(int(round(dmg))), "tick": _plain(float(sd.get("tick", 0.5)))}
-	var text := Loc.t_first([_own_key(def, "salt", "salt") if def != null else "", "gen.weapon.salt"], vars)
-	var cr = sd.get("crunch")
-	var sl := float(sd.get("slow", 0.0))
-	if cr is Dictionary:
-		text += " " + Loc.t("gen.weapon.salt.crunch_slow" if sl > 0.0 else "gen.weapon.salt.crunch", {"mult": _plain(float((cr as Dictionary).get("mult", 2.0))),
-			"pct": str(int(round(sl * 100.0)))})
-	elif sl > 0.0:
-		text += " " + Loc.t("gen.weapon.salt.slow", {"pct": str(int(round(sl * 100.0)))})
-	var luck := float(sd.get("luck_mult", 1.0))
-	if luck > 1.0:
-		text += " " + Loc.t("gen.weapon.salt.luck", {"mult": _plain(luck)})
-	if bool(sd.get("momentum_on_enter", false)):
-		text += " " + Loc.t("gen.weapon.salt.momentum")
-	return text
+	# pass 138 (lane TEXTS): the row alone; Hiwa Kai's crystals, the slow, Thing About Luck and Salt Flats are no longer
+	# glued on
+	return Loc.t_first([_own_key(def, "salt", "salt", vars) if def != null else "", "gen.weapon.salt"], vars)
 
 
 static var _whole_re: RegEx

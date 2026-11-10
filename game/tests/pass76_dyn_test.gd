@@ -640,7 +640,7 @@ func test_the_drifter_favours_the_dynamite_and_has_fire_in_the_hole() -> void:
 	assert_float(float(fh.weight)).is_equal_approx(float(fan.weight), 0.0001)
 	assert_bool(fh.has_icon()).is_true()
 	assert_int(int((fh.params["mass_mini"] as Dictionary)["min_hits"])).is_equal(9)
-	assert_str(fh.text).contains("nine or more")
+	assert_str(fh.text).contains("9 or more")
 	# a Drifter's run: the dynamite offered whatever its quest, never the Peashooter; his own mutation opens on it
 	Save.data = Save._default()
 	Run.start(c, Registry.map("red_canyon"))
@@ -651,7 +651,9 @@ func test_the_drifter_favours_the_dynamite_and_has_fire_in_the_hole() -> void:
 	assert_bool(open.has("fire_in_the_hole")).is_true()
 	assert_bool(Run.add_mutation("fire_in_the_hole")).is_true()
 	assert_bool(g.params.get("mass_mini") is Dictionary).is_true()
-	assert_str(g.description()).contains("9 or more")
+	# pass 138 (lane TEXTS): Fire in the Hole's own card says it; the Dynamite's text is Garry's two sentences
+	assert_str(g.description()).not_contains("9 or more")
+	assert_str(Registry.mutation("fire_in_the_hole").text).contains("9 or more")
 	# the evolution keeps it, with its own fuse
 	for m: String in ["new_equipment", "frag", "sticky"]:
 		Run.add_mutation(m, true)
@@ -679,15 +681,19 @@ func test_the_peashooter_and_fan_the_hammer_are_out_of_play() -> void:
 
 # ---------------------------------------------------------------- the words
 
+## Pass 138 (lane TEXTS; Garry: "'It lies where it lands and blows {when}.' is not part of it and neither is 'Knocks
+## enemies back.'"): the card no longer says the fuse; fuse_words still reads the data (the words are kept in the table).
 func test_the_card_says_it_blows_a_second_after_it_lands() -> void:
 	var one := _inst("lob_grenade")
-	assert_str(one.description()).contains("It lies where it lands and blows a second later.")
+	assert_str(one.description()).not_contains("lies where it lands")
+	assert_str(TextGen.fuse_words(one.params, 1)).contains("It lies where it lands and blows a second later.")
 	# a volley (level 3 throws two)
 	var two := _inst("lob_grenade", [], 3)
 	assert_int(two.stat_int("amount", 1)).is_equal(2)
-	assert_str(two.description()).contains("Each one lies where it lands and blows a second later.")
+	assert_str(two.description()).not_contains("lies where it lands")
+	assert_str(TextGen.fuse_words(two.params, 2)).contains("Each one lies where it lands and blows a second later.")
 	# with Sticky, only the one that finds nothing to stick to lies
-	assert_str(_inst("lob_grenade", ["sticky"]).description()).contains("One that sticks to nothing lies where it lands")
+	assert_str(TextGen.fuse_words(_inst("lob_grenade", ["sticky"]).params, 2)).contains("One that sticks to nothing lies where it lands")
 	# the words follow the data
 	assert_str(TextGen.fuse_words({"fuse": {"seconds": 0.8}})).contains("blows 0.8 s later")
 	assert_str(TextGen.fuse_words({})).is_equal("")

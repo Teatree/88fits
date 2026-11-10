@@ -30,7 +30,8 @@ func test_weapon_description_forward_cone() -> void:
 	var inst := WeaponInstance.new(w, 1)
 	inst.rebuild(StatSheet.new(), [])
 	assert_str(inst.description()).contains("5 pellets in a 35° cone")
-	assert_str(inst.description()).contains("Knocks enemies back")
+	# pass 138 (lane TEXTS; Garry: "neither is 'Knocks enemies back.'"): nothing glued on
+	assert_str(inst.description()).not_contains("Knocks enemies back")
 
 
 func test_next_level_text_maxed() -> void:

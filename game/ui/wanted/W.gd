@@ -248,6 +248,18 @@ static func serif_text(t: String, size: int, color: Color = INK, weight: int = 4
 	return w
 
 
+## Pass 138 (lane TEXTUI): what an item does, as every screen shows it: Rubik R.DESC_WEIGHT in R.DESC_INK at R.DESC_LH,
+## wrapped, its numbers 800 in R.NUMBER_HI (the tokens in R.gd). `size` R.DESC_PX on a level-up card.
+static func desc_text(t: String, size: int = R.DESC_PX, align: int = HORIZONTAL_ALIGNMENT_LEFT, wrap: bool = true) -> WText:
+	var w := text(t, R.body(R.DESC_WEIGHT), size, R.DESC_INK, align, roundf(size * R.DESC_LH), wrap)
+	w.color = R.DESC_INK
+	w.bold_font = R.body(BOLD_WEIGHT)
+	w.bold_numbers = true
+	w.bold_color = R.NUMBER_HI
+	w.name = "Desc"
+	return w
+
+
 ## The weight a number is set in inside body text (Bitter is variable to 900).
 const BOLD_WEIGHT := 800
 

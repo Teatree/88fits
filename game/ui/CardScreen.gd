@@ -204,7 +204,11 @@ const ROYALE_PATH_CARD_H := 290.0
 const ROYALE_PATH_GAP := 30.0
 const ROYALE_PATH_FRAME_PX := 160.0
 const ROYALE_PATH_CARD_NAME_PX := 48
-const ROYALE_PATH_TEXT_PX := 24
+## Pass 138 (lane TEXTUI; Garry: "make the text bigger and more clear"): the mutation cards' text 28 (24 before), in the
+## kit's description face (W.desc_text through WCard), ROYALE_PATH_PAD_V above and below the words (30 before); the three
+## cards stay equal, as tall as the longest words need when those need more than the room's share (the fit then squeezes).
+const ROYALE_PATH_TEXT_PX := 28
+const ROYALE_PATH_PAD_V := 24
 const ROYALE_SKIP_W := 590.0
 const ROYALE_SKIP_H := 106.0
 const ROYALE_SKIP_PX := 40
@@ -279,7 +283,7 @@ func _make_path_skip() -> WButton:
 ## and the stars (W.text, WStarLine) and a navy drop straight down under the dry line.
 func _build_head() -> void:
 	# build_header's header with a larger star line (STAR_LINE_PX: LEVEL UP)
-	header = WModalHeader.make(Loc.t(LEVEL_UP_KEY), Loc.t("ui.cards.level_title", {"level": "1"}), Loc.t(PICK_KEY), 150, W.PAPER, STAR_LINE_PX, HEADER_TOP, star_colour())
+	header = WModalHeader.make(Loc.t(LEVEL_UP_KEY), Loc.t("ui.cards.level_title", {"level": "1"}), _pick_line(), 150, W.PAPER, STAR_LINE_PX, HEADER_TOP, star_colour())
 	add_child(header)
 	_drop(header.line, 2)
 	_build_banish_note()
@@ -685,9 +689,11 @@ func _say_level_up() -> void:
 	header.set_title_fit(_title_text, 150, W.PAPER, get_viewport_rect().size.x - 80.0)
 
 
-## The level-up's dry line: the hint's on the first offers of a save, else the desert's.
+## The level-up's line: the hint's on the first offers of a save, else none. Pass 138 (lane TEXTUI; Garry: "Hide the clever
+## quips, at least from the Gameplay screens (Level Up)"): the desert's quip (PICK_KEY, "Pick one. The desert waits.") is
+## no longer shown; the row stays in the table.
 func _pick_line() -> String:
-	return Loc.t(HINT_KEY) if _with_hints else Loc.t(PICK_KEY)
+	return Loc.t(HINT_KEY) if _with_hints else ""
 
 
 ## The weapons the mutation offer's reel runs past (pass 54): those with a path still open (Run.path_offer_weapons, the
@@ -967,7 +973,7 @@ func _make_card(card: Dictionary) -> WCard:
 	if path_mode:
 		# pass 123: the mock's mutation cards: a 160 px frame in the mutations' teal (its rim and glow) 28 px from the words,
 		# the name 48, the full text 24
-		extra = {"plate_px": ROYALE_PATH_FRAME_PX, "name_size": ROYALE_PATH_CARD_NAME_PX, "rarity": "", "pad": [30, 32, 30, 32],
+		extra = {"plate_px": ROYALE_PATH_FRAME_PX, "name_size": ROYALE_PATH_CARD_NAME_PX, "rarity": "", "pad": [ROYALE_PATH_PAD_V, 32, ROYALE_PATH_PAD_V, 32],
 			"stars": [], "gap": 28, "effect_size": ROYALE_PATH_TEXT_PX, "plate_fill": R.MUTATION_FILL}
 	elif path_mode:
 		extra = {"plate_px": 170.0, "name_size": 56, "rarity": "", "pad": [30, 32, 30, 32], "stars": [], "icon_frac": 0.72}
@@ -1045,6 +1051,11 @@ func _fit() -> void:
 		gap = ROYALE_PATH_GAP
 		var room_top := maxf(top, PATH_HEAD_TOP + W.safe_top() + _path_head.get_combined_minimum_size().y + HEAD_CLEAR)
 		var h := clampf((royale_cards_bottom(vp.y) - room_top - gap * (n - 1)) / float(n), 0.0, ROYALE_PATH_CARD_H)
+		# pass 138 (lane TEXTUI): equal cards, never under the longest words (bigger text: a long mutation needs more)
+		for c in _cards:
+			if is_instance_valid(c):
+				(c as Control).custom_minimum_size.y = 0.0
+				h = maxf(h, (c as Control).get_combined_minimum_size().y)
 		for c in _cards:
 			if is_instance_valid(c):
 				(c as Control).custom_minimum_size.y = h
@@ -1087,7 +1098,10 @@ func royale_cards_bottom(vh: float) -> float:
 
 ## The level-up header's foot (screen y) where it settles: its top, then its star line, title, line and banish mode's line.
 func header_foot() -> float:
-	return HEADER_TOP + W.safe_top() + header.get_combined_minimum_size().y
+	# pass 138 (lane TEXTUI): the level-up's line is empty without the first offers' hint (no quip), but its room is kept,
+	# so a refusal that shows there later ("No skips left this stage.") never lands on a squeezed list's first card
+	var held := 0.0 if header.line.visible or path_mode else header.line.custom_minimum_size.y
+	return HEADER_TOP + W.safe_top() + header.get_combined_minimum_size().y + held
 
 
 func _pick(card: Dictionary, button: Control = null) -> void:

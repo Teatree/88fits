@@ -8,7 +8,7 @@ script = ExtResource("2_ogrc2")
 weapon = "salt"
 mutation_kind = "hero"
 hero = "buck"
-text = "Walking into a salt patch puts his speed-up at full at once."
+text = "Walking into salt fills the speed-up at once."
 vfx = "his speed trail flares as he steps into the salt"
 params = {
 "salt": {

@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "Sticks to the first creature it lands by and rides it into its pack before it blows.",
+  "text": "Sticks to the first enemy it lands near and rides it into the crowd before it blows.",
   "vfx": "the grenade rides on a creature's back, blinking, then blows",
   "effects": [],
   "params": {

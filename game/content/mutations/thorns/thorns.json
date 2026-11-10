@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "Heavier and thornier: +35% damage. It rolls out slower and comes back faster.",
+  "text": "Heavier and thornier: +35% damage.",
   "vfx": "a heavier weed, slower out and quick home",
   "effects": [
     {

@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "Every chord slaps them sideways: +60% damage, 40% slower.",
+  "text": "Chords slap enemies aside for 60% more damage, but strum 40% slower.",
   "vfx": "what the chord lifts comes down thrown to one side or the other",
   "effects": [
     {

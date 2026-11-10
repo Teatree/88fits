@@ -5,7 +5,7 @@
   "weight": 9,
   "max_level": 6,
   "flavour": "Even the desert gets a cold night.",
-  "text": "A hit may freeze a creature for 1 second: blue, still and harmless. 3% at level 1, 11% once Evolved. Bosses shrug it off.",
+  "text": "Hits have a 3% chance of freezing an enemy for 1 s.",
   "levels": [
     [
       {

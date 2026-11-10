@@ -15,6 +15,8 @@ var name_text: WText
 var suffix: WText
 ## The chevron's box, its glyph as tall as the box: 24 x 40 until pass 137, twice that since (Garry).
 const CHEVRON := Vector2(48, 80)
+## Pass 138 (lane TEXTUI): the line under the name, what the item does (24 before).
+const EFFECT_PX := 29
 
 
 static func make(def: ContentDef, effect: String, marks: Control, p_open: bool = false, locked_look: bool = false,
@@ -62,8 +64,10 @@ static func make(def: ContentDef, effect: String, marks: Control, p_open: bool =
 		r.suffix.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		nl.add_child(r.suffix)
 		tc.add_child(nl)
-	var e := W.serif_text(effect, 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
-	e.max_lines = 2
+	# pass 138 (lane TEXTUI; Garry: "make the text bigger and more clear"): the kit's description face at EFFECT_PX (24 in the
+	# secondary blue before), up to 3 lines (2 before)
+	var e := W.desc_text(effect, EFFECT_PX)
+	e.max_lines = 3
 	tc.add_child(e)
 	r.head.add_child(tc)
 	if marks:

@@ -1535,7 +1535,7 @@ func _fx_arc_look() -> Dictionary:
 		smear = Color(str(_razor().get("glow", "#FFE7A0")))
 		edge_w = 0.12
 		smear_a = 0.32
-	var look := {"edge": edge, "smear": smear, "core": core, "edge_w": edge_w, "smear_a": smear_a, "inner": 0.42}
+	var look := {"edge": edge, "smear": smear, "core": core, "edge_w": edge_w, "smear_a": smear_a, "inner": 0.42, "style": _fx_style("slash")}
 	if _fx_kind() == "stab":
 		# the Spear's sweep: a narrow fan of light with a sharp bright point
 		look["inner"] = 0.7
@@ -1595,7 +1595,14 @@ func _fx_thrust_look() -> Dictionary:
 		heat = 0.3
 		heat_col = Color(0.62, 0.82, 1.0)
 	var crackle := 1.0 if _combo == 2 and _thrust_flag("crackle") else 0.0
-	return {"glow": glow, "body": body, "core": core, "width": width, "flash": glow, "flash_size": flash_size, "heat": heat, "heat_col": heat_col, "crackle": crackle}
+	return {"glow": glow, "body": body, "core": core, "width": width, "flash": glow, "flash_size": flash_size, "heat": heat, "heat_col": heat_col, "crackle": crackle, "style": _fx_style("stab")}
+
+
+## Pass 138 (lane MELEE): the style a stroke of `kind` ("slash", "stab") is drawn in: the weapon's `params.fx_style`
+## when it names one of that kind's (MeleeFx.SLASH_STYLES / STAB_STYLES), else the kind's default (a stab weapon's
+## sweep draws the default crescent).
+func _fx_style(kind: String) -> String:
+	return MeleeFx.style_of(kind, str(inst.params.get("fx_style", "")))
 
 
 ## The angle each side a swing's arc shows: the slice's own half angle and the edge's width at 70% of the reach (what

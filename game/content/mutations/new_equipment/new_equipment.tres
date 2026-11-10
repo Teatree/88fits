@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_5afoq"]
-[ext_resource type="Texture2D" path="res://content/mutations/new_equipment/new_equipment_icon.png" id="2_dgba4"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_y37i1"]
-[ext_resource type="Texture2D" path="res://content/mutations/new_equipment/new_equipment_icon_b.png" id="4_302xn"]
-[ext_resource type="Texture2D" path="res://content/mutations/new_equipment/new_equipment_icon_c.png" id="5_na88p"]
-[ext_resource type="Texture2D" path="res://content/mutations/new_equipment/new_equipment_icon_d.png" id="6_7feip"]
+[ext_resource type="Texture2D" path="res://content/mutations/new_equipment/new_equipment_icon.png" id="1_67chx"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_5afoq"]
+[ext_resource type="Texture2D" path="res://content/mutations/new_equipment/new_equipment_icon_b.png" id="3_dgba4"]
+[ext_resource type="Texture2D" path="res://content/mutations/new_equipment/new_equipment_icon_c.png" id="4_y37i1"]
+[ext_resource type="Texture2D" path="res://content/mutations/new_equipment/new_equipment_icon_d.png" id="5_302xn"]
 
 [sub_resource type="Resource" id="Resource_5afoq"]
 script = ExtResource("1_5afoq")
@@ -26,10 +26,10 @@ op = "mul"
 value = 0.2
 
 [resource]
-script = ExtResource("3_y37i1")
+script = ExtResource("2_5afoq")
 weapon = "lob_grenade"
 mutation_kind = "element"
-text = "+30% knockback, +20% area, +20% damage, and a grenade 35% bigger."
+text = "A bigger grenade: +20% damage, +20% area and +30% knockback."
 vfx = "a bigger, shinier grenade"
 effects = [SubResource("Resource_5afoq"), SubResource("Resource_dgba4"), SubResource("Resource_y37i1")]
 params = {
@@ -42,38 +42,38 @@ variants = {
 "B": {
 "flavour": "One stick is a warning. A bundle is a statement.",
 "fresh": true,
-"icon": ExtResource("4_302xn"),
+"icon": ExtResource("3_dgba4"),
 "icon_file": "new_equipment_icon_b.png",
 "name": "Dynamite Bundle",
 "note": "B · the bundle: three sticks in black tape",
 "params": {
 "model_form": "bundle"
 },
-"text": "+30% knockback, +20% area, +20% damage, and a bundle of sticks 35% bigger."
+"text": "A bigger bundle of sticks: +20% damage, +20% area and +30% knockback."
 },
 "C": {
 "flavour": "One stick is a warning. A bundle is a statement.",
 "fresh": true,
-"icon": ExtResource("5_na88p"),
+"icon": ExtResource("4_y37i1"),
 "icon_file": "new_equipment_icon_c.png",
 "name": "Dynamite Bundle",
 "note": "C · the bundle: four sticks tied with rope and a bow",
 "params": {
 "model_form": "bundle"
 },
-"text": "+30% knockback, +20% area, +20% damage, and a bundle of sticks 35% bigger."
+"text": "A bigger bundle of sticks: +20% damage, +20% area and +30% knockback."
 },
 "D": {
 "flavour": "One stick is a warning. A bundle is a statement.",
 "fresh": true,
-"icon": ExtResource("6_7feip"),
+"icon": ExtResource("5_302xn"),
 "icon_file": "new_equipment_icon_d.png",
 "name": "Dynamite Bundle",
 "note": "D · the bundle: seven sticks in copper wire",
 "params": {
 "model_form": "bundle"
 },
-"text": "+30% knockback, +20% area, +20% damage, and a bundle of sticks 35% bigger."
+"text": "A bigger bundle of sticks: +20% damage, +20% area and +30% knockback."
 }
 }
 variant_base = "A"
@@ -82,7 +82,7 @@ display_name = "New Equipment"
 flavour = "Fresh from the quartermaster."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("2_dgba4")
+icon = ExtResource("1_67chx")
 icon_file = "new_equipment_icon.png"
 placeholder = {
 "color": "#7A8A4A",

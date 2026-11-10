@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/mutations/thorns/thorns_icon.png" id="1_3osiw"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_h2t8o"]
-[ext_resource type="Texture2D" path="res://content/mutations/thorns/thorns_icon.png" id="2_msqq5"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_c6ka6"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_h2t8o"]
 
 [sub_resource type="Resource" id="Resource_h2t8o"]
 script = ExtResource("1_h2t8o")
@@ -11,10 +11,10 @@ op = "mul"
 value = 0.35
 
 [resource]
-script = ExtResource("3_c6ka6")
+script = ExtResource("2_h2t8o")
 weapon = "tumbleweed"
 mutation_kind = "element"
-text = "Heavier and thornier: +35% damage. It rolls out slower and comes back faster."
+text = "Heavier and thornier: +35% damage."
 vfx = "a heavier weed, slower out and quick home"
 effects = [SubResource("Resource_h2t8o")]
 params = {
@@ -49,7 +49,7 @@ display_name = "Thorny Weed"
 flavour = "It was always a little mean."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("2_msqq5")
+icon = ExtResource("1_3osiw")
 icon_file = "thorns_icon.png"
 placeholder = {
 "color": "#A8B060",

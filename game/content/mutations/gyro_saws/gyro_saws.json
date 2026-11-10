@@ -8,7 +8,7 @@
   "kind": "hero",
   "element": "",
   "hero": "astro",
-  "text": "The ring widens 30% while she moves and tightens when she stops.",
+  "text": "The ring widens 30% while moving and tightens when standing still.",
   "vfx": "the ring breathes with the outlaw's steps",
   "effects": [],
   "params": {

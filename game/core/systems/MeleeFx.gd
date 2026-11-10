@@ -11,6 +11,13 @@
 ##          head shows at his hand, darts out to the reach in `ext`, lands with the hit (land(): the impact star, else a
 ##          glint), snaps back leaving an afterimage, while the streak behind it thins away from the hand over `fade`.
 ##   flash  the star at the point (core/shaders/melee_flash.gdshader; a hit's has a shock ring and a dark rim).
+## Pass 138 (lane MELEE; Garry: "Sword is barely visible, should be wider and more noticeable", "Spear tip looks
+## childish"): each stroke has styles, the weapon JSON's `params.fx_style` (the look's `style`, MeleeFx.style_of):
+##   a swing  "crescent" (the default: a bold flag-shaped crescent, core/shaders/melee_slash.gdshader style 1), "cel"
+##            (the same hard-edged with a thick outline, style 2), "classic" (pass 136's thin arc, melee_arc.gdshader);
+##   a thrust "lance" (the default: a spindle of light to a needle point, air rings, a pierce on a hit,
+##            core/shaders/melee_lance.gdshader style 1), "wind" (a needle with two wind ribbons and an energy diamond,
+##            style 2), "spearhead" (pass 137's drawn head, melee_thrust.gdshader).
 ## Looks only: no dice (randf only for each effect's own seed), nothing that changes a hit. Ticked by its Thruster
 ## (WeaponBehavior._process: the replay's delta, paused with the game), so a capture can step it by hand.
 class_name MeleeFx
@@ -33,10 +40,22 @@ const TIP_W := 0.25
 const THRUST_ANTI := 0.08
 const THRUST_SNAP := 0.09
 const THRUST_GHOST := 0.16
+## pass 138: the styles (the first of each list the default), a new-style swing's dissolve (at least this long), a
+## lance's light running on through the point on a hit, its width (x the lane's half width, clamped), its needle
+const SLASH_STYLES := ["crescent", "cel", "classic"]
+const STAB_STYLES := ["lance", "wind", "spearhead"]
+const SLASH_FADE := 0.22
+const PIERCE_T := 0.14
+const LANCE_W := 0.62
+const LANCE_W_MIN := 0.1
+const LANCE_W_MAX := 0.32
+const NEEDLE := 0.55
 
 static var _arc_shader: Shader
 static var _thrust_shader: Shader
 static var _flash_shader: Shader
+static var _slash_shader: Shader
+static var _lance_shader: Shader
 static var _quad_xz: ArrayMesh
 static var _quad_strip: ArrayMesh
 static var _quad_xy: ArrayMesh
@@ -65,6 +84,8 @@ static func _shaders() -> void:
 		_arc_shader = load("res://core/shaders/melee_arc.gdshader")
 		_thrust_shader = load("res://core/shaders/melee_thrust.gdshader")
 		_flash_shader = load("res://core/shaders/melee_flash.gdshader")
+		_slash_shader = load("res://core/shaders/melee_slash.gdshader")
+		_lance_shader = load("res://core/shaders/melee_lance.gdshader")
 	if _quad_xz == null:
 		# x -1..1, z -1..1 on the ground plane (the arc)
 		_quad_xz = _quad([Vector3(-1, 0, -1), Vector3(1, 0, -1), Vector3(1, 0, 1), Vector3(-1, 0, 1)])
@@ -112,10 +133,16 @@ func _entry(pool: Array, cap: int, mesh: Mesh, shader: Shader) -> Dictionary:
 	return oldest
 
 
+## The style a stroke of `kind` ("slash" or "stab") draws in: `st` when it names one of that kind's, else the default.
+static func style_of(kind: String, st: String) -> String:
+	var list: Array = SLASH_STYLES if kind == "slash" else STAB_STYLES
+	return st if list.has(st) else str(list[0])
+
+
 ## A swing: centred on `yaw` (the Thruster's yaw sense), `half_w` radians each side, `reach` deep, revealed from the
 ## `sign` end (+1 starts at -half_w, the hit test's swing k even) over `sweep` seconds, gone over `fade`. `look`:
 ## edge, smear, core (Color), edge_w (metres), smear_a, inner (share of the reach the crescent reaches in to), crackle,
-## tipped (0..1), ease ("cos": the slice's own, else linear).
+## tipped (0..1), ease ("cos": the slice's own, else linear), style (pass 138: style_of("slash", ...)).
 func arc(anchor: Node3D, yaw: float, half_w: float, reach: float, sweep: float, fade: float, sign: float, look: Dictionary = {}) -> void:
 	if Run.sim_mode or anchor == null:
 		return
@@ -123,6 +150,14 @@ func arc(anchor: Node3D, yaw: float, half_w: float, reach: float, sweep: float, 
 	var e := _entry(_arcs, ARC_MAX, _quad_xz, _arc_shader)
 	var R := maxf(reach, 0.2) * ARC_PAD
 	var m: ShaderMaterial = e["mat"]
+	var style := style_of("slash", str(look.get("style", "")))
+	var bold := style != "classic"
+	var want: Shader = _slash_shader if bold else _arc_shader
+	if m.shader != want:
+		m.shader = want
+	if bold:
+		m.set_shader_parameter("style", 2 if style == "cel" else 1)
+		m.set_shader_parameter("diss", 0.0)
 	m.set_shader_parameter("half_w", clampf(half_w, 0.05, PI))
 	m.set_shader_parameter("r_out", 1.0 / ARC_PAD)
 	m.set_shader_parameter("r_in", float(look.get("inner", 0.3)) / ARC_PAD)
@@ -136,13 +171,15 @@ func arc(anchor: Node3D, yaw: float, half_w: float, reach: float, sweep: float, 
 	m.set_shader_parameter("edge_col", look.get("edge", Color(0.82, 0.92, 1.0)))
 	m.set_shader_parameter("smear_col", look.get("smear", Color(0.55, 0.7, 0.95)))
 	m.set_shader_parameter("core_col", look.get("core", Color.WHITE))
-	m.set_shader_parameter("shade_a", float(look.get("shade_a", 0.4)))
+	m.set_shader_parameter("shade_a", float(look.get("shade_a", 0.8 if bold else 0.4)))
 	e["live"] = true
 	e["t"] = 0.0
 	e["anchor"] = anchor
 	e["lift"] = float(look.get("lift", ARC_LIFT))
 	e["sweep"] = maxf(sweep, 0.01)
-	e["fade"] = maxf(fade, 0.01)
+	e["fade"] = maxf(fade, SLASH_FADE if bold else 0.01)
+	e["bold"] = bold
+	e["style"] = style
 	e["cos"] = str(look.get("ease", "cos")) == "cos"
 	e["R"] = R
 	var mi: MeshInstance3D = e["mi"]
@@ -152,7 +189,7 @@ func arc(anchor: Node3D, yaw: float, half_w: float, reach: float, sweep: float, 
 	_place(e)
 	_arc_frame(e)
 	arcs_made += 1
-	last_arc = {"yaw": yaw, "half_w": half_w, "reach": reach, "sign": sign}
+	last_arc = {"yaw": yaw, "half_w": half_w, "reach": reach, "sign": sign, "style": style}
 
 
 ## A thrust down `dir` from `anchor` (his chest's place on the ground plane), its point reaching `length` from him (the
@@ -167,6 +204,12 @@ func thrust(anchor: Node3D, dir: Vector3, length: float, lane_half: float, delay
 		return
 	_shaders()
 	var e := _entry(_thrusts, THRUST_MAX, _quad_strip, _thrust_shader)
+	var style := style_of("stab", str(look.get("style", "")))
+	var lance := style != "spearhead"
+	var m: ShaderMaterial = e["mat"]
+	var want: Shader = _lance_shader if lance else _thrust_shader
+	if m.shader != want:
+		m.shader = want
 	var d := Vector3(dir.x, 0.0, dir.z)
 	d = d.normalized() if d.length_squared() > 0.0001 else Vector3.FORWARD
 	var wk := float(look.get("width", 1.0))
@@ -180,13 +223,29 @@ func thrust(anchor: Node3D, dir: Vector3, length: float, lane_half: float, delay
 	var tip_len := TIP_LEN * tip
 	var back := tip_len * 1.6
 	var qlen := back + full + 0.6
-	var m: ShaderMaterial = e["mat"]
+	if lance:
+		# pass 138: a thrust of light; behind the hand only room for the gathering glint, past the point room for the
+		# overshoot and the pierce
+		back = 0.3
+		tip_len = NEEDLE * tip
+		qlen = back + full + 1.1
+		var lw := clampf(hw * LANCE_W, LANCE_W_MIN, LANCE_W_MAX)
+		qw = maxf(qw, lw * 3.2 + 0.25)
+		m.set_shader_parameter("style", 2 if style == "wind" else 1)
+		m.set_shader_parameter("full", full)
+		m.set_shader_parameter("lance_w", lw)
+		m.set_shader_parameter("needle", tip_len)
+		m.set_shader_parameter("pierce", 0.0)
+		m.set_shader_parameter("ring_t", -1.0)
+		m.set_shader_parameter("shade_a", float(look.get("shade_a", 0.7)))
+	else:
+		m.set_shader_parameter("streak_w", minf(maxf(TIP_W * tip * 0.95, hw * 0.8), TIP_W * tip * 1.1))
+		m.set_shader_parameter("tip_len", tip_len)
+		m.set_shader_parameter("tip_w", TIP_W * tip)
+		m.set_shader_parameter("shade_a", float(look.get("shade_a", 0.3)))
 	m.set_shader_parameter("quad_len", qlen)
 	m.set_shader_parameter("quad_half", qw)
 	m.set_shader_parameter("s0", back)
-	m.set_shader_parameter("streak_w", minf(maxf(TIP_W * tip * 0.95, hw * 0.8), TIP_W * tip * 1.1))
-	m.set_shader_parameter("tip_len", tip_len)
-	m.set_shader_parameter("tip_w", TIP_W * tip)
 	m.set_shader_parameter("glow_col", look.get("glow", Color(0.45, 0.68, 1.0)))
 	m.set_shader_parameter("body_col", look.get("body", Color(0.8, 0.92, 1.0)))
 	m.set_shader_parameter("core_col", look.get("core", Color.WHITE))
@@ -194,7 +253,9 @@ func thrust(anchor: Node3D, dir: Vector3, length: float, lane_half: float, delay
 	m.set_shader_parameter("heat_col", look.get("heat_col", look.get("glow", Color(1.0, 0.35, 0.1))))
 	m.set_shader_parameter("crackle", float(look.get("crackle", 0.0)))
 	m.set_shader_parameter("seed", randf() * 100.0)
-	m.set_shader_parameter("shade_a", float(look.get("shade_a", 0.3)))
+	e["lance"] = lance
+	e["style"] = style
+	e["pierce_at"] = -1.0
 	e["live"] = true
 	e["t"] = 0.0
 	e["anchor"] = anchor
@@ -222,7 +283,7 @@ func thrust(anchor: Node3D, dir: Vector3, length: float, lane_half: float, delay
 	_place(e)
 	_thrust_frame(e)
 	thrusts_made += 1
-	last_thrust = {"dir": d, "length": length, "lane_half": lane_half}
+	last_thrust = {"dir": d, "length": length, "lane_half": lane_half, "style": style}
 
 
 ## The stroke's hit moment (its Thruster, right after the strike): every thrust whose head has arrived and not yet landed
@@ -244,6 +305,8 @@ func _land(e: Dictionary, hit: bool) -> void:
 	if hit:
 		flash(at, e["flash"], e["flash_core"], float(e["flash_size"]), 0.2, d, 1.0)
 		impacts_made += 1
+		# pass 138: a lance's light runs on through the point
+		e["pierce_at"] = float(e["t"])
 	else:
 		flash(at, e["flash"], e["flash_core"], float(e["flash_size"]) * 0.45, 0.14, d, 0.0)
 		glints_made += 1
@@ -323,13 +386,21 @@ func _arc_frame(e: Dictionary) -> void:
 	var f := 1.0 - clampf((t - sw) / float(e["fade"]), 0.0, 1.0)
 	var m: ShaderMaterial = e["mat"]
 	m.set_shader_parameter("head", head)
-	m.set_shader_parameter("fade", f * f)
+	if bool(e.get("bold", false)):
+		# pass 138: the crescent erodes over the fade (`diss`), its strength going only in the second half
+		m.set_shader_parameter("diss", 1.0 - f)
+		m.set_shader_parameter("fade", smoothstep(0.0, 0.5, f))
+	else:
+		m.set_shader_parameter("fade", f * f)
 	if t >= sw + float(e["fade"]):
 		e["live"] = false
 		(e["mi"] as MeshInstance3D).visible = false
 
 
 func _thrust_frame(e: Dictionary) -> void:
+	if bool(e.get("lance", false)):
+		_lance_frame(e)
+		return
 	var t := float(e["t"]) - float(e["delay"])
 	var mi: MeshInstance3D = e["mi"]
 	var anti := minf(THRUST_ANTI, float(e["delay"]))
@@ -398,6 +469,79 @@ func _thrust_frame(e: Dictionary) -> void:
 	m.set_shader_parameter("ghost_pt", full)
 	m.set_shader_parameter("glint", glint)
 	if t >= ext + hold + maxf(fd, THRUST_SNAP):
+		e["live"] = false
+		mi.visible = false
+
+
+## Pass 138: a thrust of light (the "lance" and "wind" styles). A glint gathers at his hand for the last THRUST_ANTI of
+## the delay, the point darts out to the reach in `ext` with a hard stop (the light drawn from the hand to it, air rings
+## left behind), rides a 0.1 m overshoot over `hold` (the hit lands as it arrives: land(), a pierce on a hit, else a
+## glint), then the light goes from the hand towards the point, thinning, over `fade`; the point stays at the reach.
+func _lance_frame(e: Dictionary) -> void:
+	var t := float(e["t"]) - float(e["delay"])
+	var mi: MeshInstance3D = e["mi"]
+	var anti := minf(THRUST_ANTI, float(e["delay"]))
+	if t < -anti:
+		mi.visible = false
+		return
+	mi.visible = true
+	var ext := float(e["ext"])
+	var hold := float(e["hold"])
+	var fd := float(e["fade"])
+	var full := float(e["full"])
+	var m: ShaderMaterial = e["mat"]
+	var start := 0.12
+	var pt := full
+	var front := full
+	var tail := 0.0
+	var thin := 0.0
+	var fade := 1.0
+	var lines := float(e["lines"])
+	var glint := 0.0
+	if t < 0.0:
+		# the gathering: a glint at his hand, nothing drawn yet
+		var w := 1.0 + t / maxf(anti, 0.001)
+		pt = start
+		front = -1.0
+		glint = w * 0.8
+		lines = 0.0
+	elif t < ext:
+		# the dart: a fast start, a hard stop at the reach
+		var q := t / ext
+		pt = lerpf(start, full, 1.0 - pow(1.0 - q, 4.0))
+		front = pt
+	elif t < ext + hold:
+		# the overshoot and settle, the landing's glint
+		var h := (t - ext) / maxf(hold, 0.001)
+		pt = full + 0.1 * sin(PI * h) * (1.0 - h)
+		front = pt
+		lines *= 1.0 - h
+		glint = 1.0 - h
+	else:
+		# the light goes from the hand towards the point, thinning
+		var f := clampf((t - ext - hold) / fd, 0.0, 1.0)
+		front = full
+		lines = 0.0
+		tail = pow(f, 0.7)
+		thin = f
+		fade = 1.0 - f * f
+	if not bool(e["flashed"]) and t >= ext + 0.02:
+		_land(e, false)
+	var pierce := 0.0
+	var pa := float(e.get("pierce_at", -1.0))
+	if pa >= 0.0:
+		pierce = 1.0 - clampf((float(e["t"]) - pa) / PIERCE_T, 0.0, 1.0)
+	m.set_shader_parameter("pt", pt)
+	m.set_shader_parameter("pt_a", 1.0)
+	m.set_shader_parameter("front", front)
+	m.set_shader_parameter("tail", tail)
+	m.set_shader_parameter("thin", thin)
+	m.set_shader_parameter("fade", fade)
+	m.set_shader_parameter("lines", lines)
+	m.set_shader_parameter("glint", glint)
+	m.set_shader_parameter("ring_t", t if t >= 0.0 else -1.0)
+	m.set_shader_parameter("pierce", pierce)
+	if t >= ext + hold + fd:
 		e["live"] = false
 		mi.visible = false
 

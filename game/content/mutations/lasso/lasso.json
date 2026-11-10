@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "Every 2 s the iron swings out to 5 m and drags what it hits back to you.",
+  "text": "Every 2 s the iron swings out and drags enemies back to you.",
   "vfx": "the iron flies out on a glowing line and hauls creatures in",
   "effects": [
     {

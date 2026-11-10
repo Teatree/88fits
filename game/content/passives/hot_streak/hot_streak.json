@@ -5,7 +5,7 @@
   "weight": 6,
   "max_level": 4,
   "flavour": "It only gets hotter.",
-  "text": "Kills make you stronger for the rest of the run: +7% attack damage per 1,000 kills (more each rung), up to +100%.",
+  "text": "+7% attack damage for every 1,000 kills this run, up to +100%.",
   "levels": [
     [
       {

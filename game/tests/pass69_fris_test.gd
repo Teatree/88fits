@@ -558,13 +558,13 @@ func test_the_frisbee_is_whole_and_in_play() -> void:
 
 
 func test_the_words() -> void:
-	assert_str(Registry.mutation("carry").text).is_equal("It has a 10% chance to carry the enemy away.")
+	assert_str(Registry.mutation("carry").text).is_equal("The frisbee has a 10% chance of carrying an enemy away.")
 	var f: WeaponDef = Registry.weapon("frisbee")
 	var inst := WeaponInstance.new(f, 1)
 	inst.rebuild(StatSheet.new(), [inst])
 	var text := TextGen.weapon_description(f, inst.sheet, inst.params)
-	assert_str(text).contains("Throws a frisbee at the nearest enemy within 12 m")
-	assert_str(text).contains("15% less (never under 25%)")
+	# pass 138 (lane TEXTS): Garry's style, the main effect only
+	assert_str(text).is_equal("Throws a frisbee that curves through every enemy in the way.")
 	assert_str(text).not_contains("Pierces")
 	assert_str(TextGen.amount_noun(f, inst.sheet, inst.params)).is_equal("frisbees")
 	var rows: Array = inst.stat_rows().map(func(r: Dictionary) -> String: return str(r["stat"]))
@@ -576,11 +576,10 @@ func test_the_words() -> void:
 	si.mutations = [Registry.mutation("carry"), Registry.mutation("poison_razors"), Registry.mutation("frisbee_trick_shot")]
 	si.rebuild(StatSheet.new(), [si])
 	var st := TextGen.weapon_description(sv, si.sheet, si.params)
-	assert_str(st).contains("Throws 3 frisbees")
-	assert_str(st).contains("20% chance to carry the first enemy it hits away and drop it with a hit")
-	assert_str(st).contains("50% better")
-	assert_str(st).contains("loops once")
-	assert_str(st).contains("Poisons")
+	# pass 138 (lane TEXTS): the Flying Saucer's own short row, its mutations note under it; nothing glued on
+	assert_str(st).contains("Throws 3 glowing saucers that loop once")
+	assert_str(st).not_contains("Poisons")
+	assert_str(st).ends_with("All your mutations still apply and get stronger.")
 
 
 func test_the_disc_meshes_build_for_every_look() -> void:

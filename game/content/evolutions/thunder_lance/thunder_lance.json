@@ -23,6 +23,7 @@
     []
   ],
   "params": {
+    "fx_style": "lance",
     "fire_forward": true,
     "pierce_falloff": {
       "step": 0.8,

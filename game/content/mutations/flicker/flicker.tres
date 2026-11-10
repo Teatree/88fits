@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="MutationDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/mutations/flicker/flicker_icon.png" id="1_n480u"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_r1srg"]
-[ext_resource type="Texture2D" path="res://content/mutations/flicker/flicker_icon.png" id="2_exvxj"]
-[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_qenba"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_r1srg"]
 
 [sub_resource type="Resource" id="Resource_r1srg"]
 script = ExtResource("1_r1srg")
@@ -17,10 +17,10 @@ op = "mul"
 value = -0.25
 
 [resource]
-script = ExtResource("3_qenba")
+script = ExtResource("2_r1srg")
 weapon = "sun_scepter"
 mutation_kind = "volume"
-text = "Strikes 30% sooner for 25% less damage. The pillars burn thinner and yellower."
+text = "Strikes 30% sooner for 25% less damage."
 vfx = "thinner, paler yellow pillars; a ring of light loading round the sceptre's handle"
 effects = [SubResource("Resource_r1srg"), SubResource("Resource_exvxj")]
 params = {
@@ -47,7 +47,7 @@ display_name = "Flicker"
 flavour = "Quick light, quick strikes."
 rarity = "rare"
 weight = 8.0
-icon = ExtResource("2_exvxj")
+icon = ExtResource("1_n480u")
 icon_file = "flicker_icon.png"
 placeholder = {
 "color": "#FFE86A",

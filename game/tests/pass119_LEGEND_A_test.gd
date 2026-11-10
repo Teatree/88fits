@@ -179,8 +179,8 @@ func test_the_cards_say_the_rules_from_the_numbers() -> void:
 	var t := TextGen.passive_text(ih)
 	assert_str(t).contains("Every 30 s")
 	assert_str(t).contains("25% of its max HP")
-	assert_str(t).contains("Elites and bosses 5%")
-	assert_str(t).contains("thrown aside")
+	# pass 138 (lane TEXTS): Garry's style, the main effect and its numbers only
+	assert_str(t).not_contains("Elites and bosses")
 	var evo := TextGen.passive_description(ih, 2)
 	assert_str(evo).contains("Evolved")
 	assert_str(evo).contains("every 22 s")

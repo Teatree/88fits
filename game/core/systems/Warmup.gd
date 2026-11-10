@@ -232,6 +232,12 @@ func _build_rest(game: Node) -> void:
 		var sm := ShaderMaterial.new()
 		sm.shader = sh
 		_quad(sm)
+	# pass 138 (lane MELEE): the Sabre's and the Spear's strokes (core/systems/MeleeFx.gd): their shaders compile here,
+	# not at the first stroke mid-run
+	for sh: Shader in [preload("res://core/shaders/melee_slash.gdshader"), preload("res://core/shaders/melee_lance.gdshader"), preload("res://core/shaders/melee_flash.gdshader")]:
+		var mm := ShaderMaterial.new()
+		mm.shader = sh
+		_quad(mm)
 	# pass 113 (lane TWISTER): a small tornado (the funnel, skirt and debris shaders: the map's dust devils and the King's
 	# Royal Dust Devil) and a dust devil's ring on the ground
 	add_child(TornadoFx.warm_instance())

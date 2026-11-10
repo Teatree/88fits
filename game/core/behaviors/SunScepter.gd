@@ -40,6 +40,9 @@
 ## at random spots of the circle `params.aim.min_r`..min(range, `max_r`) (Aim.dice(); a Zenith tenth with nobody waits
 ## for the next strike with someone, the count kept). Every pillar that lands burns a ring into the sand
 ## (StrikeMarks.sun: gold-white, cooling to dark). With the switch off it plays as before.
+## Pass 138 (lane FX): the ring is a small flame patch now, dimming fast (StrikeMarks.sun), and the warning ring is a
+## quarter fainter (`params.sun.ring_alpha` 0.26, Zenith 0.3; Garry: "The aiming mark is also a bit too much, make it
+## less noticeable, but not by a lot").
 class_name SunScepter
 extends WeaponBehavior
 
@@ -498,9 +501,9 @@ func _land(s: Dictionary) -> void:
 				if sweep:
 					gi = Color(gi.r, gi.g, gi.b, gi.a * IMPACT_GLOW_SWEEP)
 				tg.scorch(at, r * IMPACT_GLOW, gi, IMPACT_GLOW_OUTER, IMPACT_GLOW_HOLD, IMPACT_GLOW_FADE)
-		# pass 136: under the aim every pillar burns a ring into the sand
+		# pass 136: under the aim every pillar leaves its mark on the sand (pass 138: a small flame patch)
 		if Aim.covers(inst):
-			StrikeMarks.sun(game, at, r)
+			StrikeMarks.sun(game, at, r, sweep)
 		impacts += 1
 
 

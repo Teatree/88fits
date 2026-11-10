@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "Half of all impacts throw lightning at the three nearest creatures outside the blast within 7 m, 35% of the hit each.",
+  "text": "Impacts have a 50% chance of throwing lightning at 3 enemies close by.",
   "vfx": "thin blue bolts jump off the blast to creatures outside it, a small spark where each lands",
   "effects": [],
   "params": {

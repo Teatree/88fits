@@ -10,112 +10,156 @@ params = {
 "boons": [{
 "animal": "the Wolf",
 "id": "wolf",
-"max": 0.03,
-"min": 0.01,
 "name": "Le-loo",
 "op": "mul",
 "stat": "move_speed",
-"step": 0.01,
+"tiers": {
+"common": 0.005,
+"epic": 0.03,
+"legendary": 0.04,
+"rare": 0.02,
+"uncommon": 0.01
+},
 "weight": 3.0
 }, {
 "animal": "the Whale",
 "id": "whale",
-"max": 6.0,
-"min": 2.0,
 "name": "El-kolie",
 "op": "add",
 "stat": "max_hp",
-"step": 1.0,
+"tiers": {
+"common": 1.0,
+"epic": 6.0,
+"legendary": 8.0,
+"rare": 4.0,
+"uncommon": 2.0
+},
 "weight": 3.0
 }, {
 "animal": "the Bear",
 "id": "bear",
-"max": 0.06,
-"min": 0.02,
 "name": "Chet-woot",
 "op": "mul",
 "stat": "might",
-"step": 0.01,
+"tiers": {
+"common": 0.015,
+"epic": 0.06,
+"legendary": 0.08,
+"rare": 0.04,
+"uncommon": 0.02
+},
 "weight": 3.0
 }, {
 "animal": "",
 "id": "thunderbird",
-"max": -0.02,
-"min": -0.04,
 "name": "Thunderbird",
 "op": "mul",
 "stat": "cooldown",
-"step": 0.01,
+"tiers": {
+"common": -0.015,
+"epic": -0.04,
+"legendary": -0.05,
+"rare": -0.03,
+"uncommon": -0.02
+},
 "weight": 2.0
 }, {
 "animal": "the Seal",
 "id": "seal",
-"max": 0.2,
-"min": 0.1,
 "name": "Ol-hiyo",
 "op": "mul",
 "stat": "magnet",
-"step": 0.01,
+"tiers": {
+"common": 0.08,
+"epic": 0.2,
+"legendary": 0.26,
+"rare": 0.15,
+"uncommon": 0.1
+},
 "weight": 2.0
 }, {
 "animal": "the Salmon",
 "id": "salmon",
-"max": 0.3,
-"min": 0.1,
 "name": "Walalee",
 "op": "add",
 "stat": "regen",
-"step": 0.1,
+"tiers": {
+"common": 0.05,
+"epic": 0.3,
+"legendary": 0.4,
+"rare": 0.2,
+"uncommon": 0.1
+},
 "weight": 2.0
 }, {
 "animal": "",
 "id": "frog",
-"max": 0.04,
-"min": 0.02,
 "name": "Frog",
 "op": "mul",
 "stat": "xp_gain",
-"step": 0.01,
+"tiers": {
+"common": 0.015,
+"epic": 0.04,
+"legendary": 0.05,
+"rare": 0.03,
+"uncommon": 0.02
+},
 "weight": 2.0
 }, {
 "animal": "the Killer Whale",
 "id": "killer_whale",
-"max": 0.04,
-"min": 0.02,
 "name": "Skana",
 "op": "add",
 "stat": "crit_chance",
-"step": 0.01,
+"tiers": {
+"common": 0.015,
+"epic": 0.04,
+"legendary": 0.05,
+"rare": 0.03,
+"uncommon": 0.02
+},
 "weight": 1.5
 }, {
 "animal": "the Bullhead",
 "id": "bullhead",
-"max": 0.03,
-"min": 0.01,
 "name": "Kuuma",
 "op": "add",
 "stat": "damage_reduction",
-"step": 0.01,
+"tiers": {
+"common": 0.005,
+"epic": 0.03,
+"legendary": 0.04,
+"rare": 0.02,
+"uncommon": 0.01
+},
 "weight": 1.5
 }, {
 "animal": "",
 "id": "raven",
-"max": 0.06,
-"min": 0.02,
 "name": "Raven",
 "op": "add",
 "stat": "luck",
-"step": 0.01,
+"tiers": {
+"common": 0.015,
+"epic": 0.06,
+"legendary": 0.08,
+"rare": 0.04,
+"uncommon": 0.02
+},
 "weight": 1.0
 }, {
 "animal": "the Two-headed Serpent",
 "id": "serpent",
-"max": 0.04,
-"min": 0.02,
 "name": "Se-sook",
 "op": "mul",
 "stat": "area",
-"step": 0.01,
+"tiers": {
+"common": 0.015,
+"epic": 0.04,
+"legendary": 0.05,
+"rare": 0.03,
+"uncommon": 0.02
+},
 "weight": 1.0
 }],
 "choices": 3.0,
@@ -126,6 +170,10 @@ params = {
 "spacing": 14.0
 },
 "per_sign": 1.0,
+"rarity": {
+"same_tier": 0.3,
+"weights": [[42.0, 32.0, 18.0, 8.0, 0.0], [38.0, 32.0, 20.0, 10.0, 0.0], [34.0, 32.0, 22.0, 11.0, 1.0], [31.0, 31.0, 23.0, 13.0, 2.0], [28.0, 30.0, 24.0, 15.0, 3.0], [25.0, 29.0, 25.0, 17.0, 4.0], [22.0, 28.0, 26.0, 19.0, 5.0], [19.0, 27.0, 27.0, 21.0, 6.0], [16.0, 26.0, 28.0, 23.0, 7.0], [14.0, 25.0, 28.0, 25.0, 8.0], [12.0, 24.0, 28.0, 27.0, 9.0], [11.0, 23.0, 28.0, 28.0, 10.0]]
+},
 "spent": "grey",
 "spent_motion": {
 "fade": 0.4,

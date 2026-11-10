@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "The flare bursts into five embers that fall in a ring around whatever it hits.",
+  "text": "Flares burst into embers that rain down around what they hit.",
   "vfx": "a red burst, five arcing embers, five small fire pools",
   "effects": [],
   "params": {

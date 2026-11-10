@@ -21,7 +21,11 @@ signal closed(took: bool)
 const ROYALE_TITLE_SIDE := 40.0
 const ROYALE_PLATE := 170.0
 const ROYALE_NAME_PX := 60
-const ROYALE_EFFECT_PX := 30
+## Pass 138 (lane TEXTUI; Garry: "make the text bigger and more clear"): the deal card's text 38 (30 before), the kit's
+## description face. His quote under the portrait is a quip and hidden (Garry: "Hide the clever quips ... from the Gameplay
+## screens"): the deal panel stands PANEL_TOP down, where the quote stood (1100 under the quote before).
+const ROYALE_EFFECT_PX := 38
+const PANEL_TOP := 1012.0
 const ROYALE_NUMS_PX := 40
 const ROYALE_LABEL_PX := 22
 const ROYALE_BAR_H := 34.0
@@ -57,6 +61,7 @@ func _ready() -> void:
 	# under a camera cutout the quote and the panel move down with the portrait (pass 60; the header already does)
 	_quote.offset_top = 1012 + W.safe_top()
 	_quote.offset_bottom = 1012 + 41 + W.safe_top()
+	_quote.visible = false
 	add_child(_quote)
 	_panel = PanelContainer.new()
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -64,7 +69,7 @@ func _ready() -> void:
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_panel.offset_left = 60
 	_panel.offset_right = -60
-	_panel.offset_top = 1100 + W.safe_top()
+	_panel.offset_top = PANEL_TOP + W.safe_top()
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 22)
@@ -173,8 +178,8 @@ func _fit_layout() -> void:
 	var h := get_viewport_rect().size.y
 	var limit := h - 90.0 - (ROYALE_BUTTON_H) - BUTTON_GAP
 	var panel_h := maxf(_panel.get_combined_minimum_size().y, _panel.size.y)
-	var shift := clampf(1100.0 + top + panel_h - limit, 0.0, 660.0 * (1.0 - PORTRAIT_MIN))
-	_panel.offset_top = 1100.0 + top - shift
+	var shift := clampf(PANEL_TOP + top + panel_h - limit, 0.0, 660.0 * (1.0 - PORTRAIT_MIN))
+	_panel.offset_top = PANEL_TOP + top - shift
 	_quote.offset_top = 1012.0 + top - shift
 	_quote.offset_bottom = 1012.0 + 41.0 + top - shift
 	var s := (660.0 - shift) / 660.0

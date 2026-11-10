@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_0db1f")
 weapon = "gravity_gun"
-text = "The thrown enemy skips on to the next crowd for a second blast at 60%."
+text = "The thrown enemy skips on to the next crowd for a second blast."
 vfx = "a bounce and a second blast"
 params = {
 "gravity": {

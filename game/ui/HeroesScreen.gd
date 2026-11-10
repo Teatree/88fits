@@ -69,7 +69,8 @@ const NAME_PX := 56
 const SLOGAN_PX := 26
 const ITEM_FRAME := 88.0
 const ITEM_NAME_PX := 30
-const ITEM_TEXT_PX := 24
+## Pass 138 (lane TEXTUI; Garry: "make the text bigger and more clear"): an item's words 29 (24 before).
+const ITEM_TEXT_PX := 29
 const ITEM_LABEL_PX := 18
 ## The room between two item rows, and the rule drawn in the middle of it.
 const ITEM_GAP := 18

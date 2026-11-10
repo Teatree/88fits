@@ -54,8 +54,9 @@ func test_every_line_is_a_named_card_and_its_evolution_that_card_risen() -> void
 func test_a_card_text_keeps_its_numbers_plain() -> void:
 	# the lines with a card text of their own lead with the card and keep the rule's numbers as they were
 	assert_str(Registry.passive("clover").text).contains("+10% luck a level")
-	assert_str(Registry.passive("evade").text).contains("3% at level 1, 20% at level 4")
-	assert_str(Registry.passive("prospector").text).contains("6% a level")
+	# pass 138 (lane TEXTS): the short text in Garry's style keeps the main numbers only
+	assert_str(Registry.passive("evade").text).contains("3% chance")
+	assert_str(Registry.passive("prospector").text).contains("6% chance a level")
 	assert_str(Registry.passive("slow_burn").text).contains("20% longer a level")
 	assert_str(Registry.passive("ducktape").text).contains("15% longer a level")
 	assert_str(Registry.passive("energy_shield").text).contains("3 s untouched")

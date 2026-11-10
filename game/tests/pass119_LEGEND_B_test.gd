@@ -160,27 +160,26 @@ func test_the_four_legendaries_are_there_on_the_ladder_with_their_icons() -> voi
 
 func test_the_cards_say_the_numbers_of_their_json() -> void:
 	var t := TextGen.passive_text(Registry.passive("lightning_in_a_bottle"))
-	assert_str(t).contains("up to 3 more enemies within 5 m for 25% of the hit")
-	assert_str(t).contains("never chain")
+	# pass 138 (lane TEXTS): Garry's style, the main effect and its numbers only
+	assert_str(t).contains("arc to 3 more enemies close by for 25% of the hit")
 	assert_str(TextGen.next_level_text(Registry.passive("lightning_in_a_bottle"), 1)).contains("5 more enemies")
 	assert_str(TextGen.next_level_text(Registry.passive("lightning_in_a_bottle"), 1)).contains("35%")
 	var g := TextGen.passive_text(Registry.passive("undertakers_shovel"))
 	assert_str(g).contains("One kill in 25 leaves a grave")
-	assert_str(g).contains("2 s later")
 	assert_str(g).contains("8 s")
-	# pass 120 (lane GHOST): ghost bolts that grow with power, up to 6, in place of the first weapon's shots at 40%
-	assert_str(g).contains("up to 6")
-	assert_str(g).contains("At most 4")
+	# pass 138 (lane TEXTS): the bolts' count and the cap are no longer said (Garry's style)
+	assert_str(g).contains("ghost")
 	var f := TextGen.passive_text(Registry.passive("fools_gold"))
 	assert_str(f).contains("every 50 gold")
 	assert_str(f).contains("up to +60%")
-	assert_str(f).contains("Spending lowers it")
+	assert_str(f).contains("you carry")
 	var b := TextGen.passive_text(Registry.passive("pocket_bible"))
 	# pass 120: one cap for every hit (Garry: "every attack doesn't take more than 35% of heroes' Max HP"), so no boss share
 	assert_str(b).contains("35% of your max HP")
 	assert_str(b).not_contains("from a boss")
 	assert_str(b).contains("every 20 s")
-	assert_str(b).contains("never a boss's")
+	# pass 138 (lane TEXTS): Garry's style, the boss exception no longer said
+	assert_str(b).contains("blocked")
 
 
 # ---------------------------------------------------------------- Lightning in a Bottle

@@ -100,7 +100,7 @@ params = {
 "glint": 0.0,
 "hold_when_empty": true,
 "radius": 1.3,
-"ring_alpha": 0.35,
+"ring_alpha": 0.26,
 "ring_color": "#FF381A",
 "thin": 1.0,
 "tint": "#FFC64A",

@@ -8,7 +8,7 @@
   "kind": "hero",
   "element": "",
   "hero": "may",
-  "text": "The Tommy Gun never stops firing: a steady stream of two thirds more rounds, each 35% weaker, swaying 12° to either side on its own so it sprays the whole front.",
+  "text": "The Tommy Gun never stops firing, spraying a steady stream of weaker rounds.",
   "vfx": "an unbroken stream of rounds from the companion gun, sweeping slowly left and right across the front",
   "effects": [
     {

@@ -737,20 +737,18 @@ func test_every_evolution_here_beats_its_top_weapon() -> void:
 
 
 func test_the_new_paths_say_what_they_do() -> void:
+	# pass 138 (lane TEXTS, Garry's style: the main effect only, the side numbers dropped): the texts say the chance and
+	# the multiplier that matter; the params keep every number
 	var t: MutationDef = Registry.mutation("thors_wrath")
-	assert_str(t.text).contains("7 m")
-	assert_str(t.text).contains("35%")
+	assert_str(t.text).contains("50%")
 	# pass 49 (Garry): both at 50%
 	assert_float(float(t.params["thor"]["chance"])).is_equal(0.5)
-	assert_str(t.text).starts_with("Half of all impacts")
 	assert_float(float(Registry.mutation("giant_slayer").params["giant_slayer"]["chance"])).is_equal(0.5)
-	assert_str(Registry.mutation("giant_slayer").text).starts_with("Half of all impacts")
+	assert_str(Registry.mutation("giant_slayer").text).contains("50%")
 	assert_str(Registry.mutation("giant_slayer").text).contains("2.5")
-	assert_str(Registry.mutation("wide_reach").text).contains("2.8 m")
+	assert_str(Registry.mutation("wide_reach").text).is_not_empty()
 	assert_float(float(Registry.mutation("extra_supply").params["extra_supply"])).is_equal(0.25)
-	assert_str(Registry.mutation("repulsor").text).contains("2.5")
 	assert_str(Registry.mutation("repulsor").text).contains("40%")
-	assert_str(Registry.mutation("repulsor").text).contains("15%")
 	assert_str(Registry.mutation("tinnitus").text).contains("third")
 	for id in ["thors_wrath", "giant_slayer", "wide_reach", "extra_supply", "repulsor", "tinnitus"]:
 		assert_bool(Registry.mutation(id).hidden).override_failure_message(id).is_false()

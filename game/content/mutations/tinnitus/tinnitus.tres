@@ -7,7 +7,7 @@
 script = ExtResource("2_rn0kh")
 weapon = "guitarra"
 mutation_kind = "element"
-text = "Every third hit on the same creature deals double damage and 50% more knockback."
+text = "Every third hit on the same enemy deals double damage."
 vfx = "a small white ring on the creature the third hit lands on"
 params = {
 "tinnitus": {

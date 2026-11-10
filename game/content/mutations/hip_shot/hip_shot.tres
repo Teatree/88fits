@@ -7,7 +7,7 @@
 script = ExtResource("2_3u3nm")
 weapon = "revolver"
 mutation_kind = "volume"
-text = "Every fifth pull fires three volleys 0.12 s apart, each the full round count, then the revolver spins."
+text = "Every fifth pull fires three volleys in a row."
 vfx = "three quick volleys and a twirl of the gun"
 params = {
 "hip_shot": {

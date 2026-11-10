@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "It has a 10% chance to carry the enemy away.",
+  "text": "The frisbee has a 10% chance of carrying an enemy away.",
   "vfx": "a bigger frisbee; the first creature it hits may ride it to the end of the flight and drop off there",
   "effects": [],
   "params": {

@@ -116,7 +116,7 @@ func test_every_dynamite_look_names_the_family_and_wears_its_own_icons() -> void
 		assert_array(TextGen.weapon_nouns(Registry.weapon("golden_pineapple"))).is_equal(EVO_NOUNS[code])
 		# the words keep their numbers
 		assert_str(Registry.mutation("frag").text).contains(str(FRAG_WORDS[code]))
-		assert_str(Registry.mutation("new_equipment").text).contains("35%")
+		assert_str(Registry.mutation("new_equipment").text).contains("+20% damage")
 		var flav: String = Registry.weapon("golden_pineapple").flavour
 		for part: String in ["1.3 s", "40%", "12", "4 small"]:
 			assert_str(flav).override_failure_message("%s: %s" % [code, flav]).contains(part)

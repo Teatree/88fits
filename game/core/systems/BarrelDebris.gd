@@ -45,6 +45,9 @@ var _rest := PackedByteArray()   # 0 flying, 1 settling on the ground, 2 lying
 var _target := PackedFloat32Array()
 var _cut := PackedColorArray()   # which edges are cuts (barrel_piece.gdshader reads COLOR.rgb)
 var _live := PackedByteArray()
+## pass 138 (lane FX): each piece's hit flash (1 when a round broke the barrel, falling by BarrelField.FLASH_DECAY a
+## second; barrel_piece.gdshader reads it from the basis' third column, 1 + flash, which nothing else uses)
+var _flash := PackedFloat32Array()
 var _rng := RandomNumberGenerator.new()
 var _n_live := 0
 
@@ -56,6 +59,7 @@ func setup(g: Node, m: MapBase, sprites: Array) -> void:
 	var total := POOL * sprites.size()
 	_pos.resize(total); _vel.resize(total); _ang.resize(total); _spin.resize(total); _size.resize(total)
 	_age.resize(total); _rest.resize(total); _target.resize(total); _live.resize(total); _cut.resize(total)
+	_flash.resize(total)
 	var shader: Shader = load("res://core/shaders/barrel_piece.gdshader")
 	for k in sprites.size():
 		if not ResourceLoader.exists(sprites[k]):
@@ -89,8 +93,9 @@ func setup(g: Node, m: MapBase, sprites: Array) -> void:
 
 
 ## Barrel kind `kind` (0 exp, 1 coins, 2 powerup), drawn `quad_m` metres tall with its foot at `at`, bursts; `from` is
-## where the hero stood (the pieces fly away from him). Returns how many pieces it made.
-func burst(kind: int, at: Vector3, quad_m: float, from: Vector3) -> int:
+## where the hero stood (the pieces fly away from him). Returns how many pieces it made. `flash` (pass 138): a round broke
+## it, so the pieces start white and fall back as a struck barrel does.
+func burst(kind: int, at: Vector3, quad_m: float, from: Vector3, flash := false) -> int:
 	if Run.sim_mode or kind < 0 or kind >= _mm.size() or _mm[kind] == null:
 		return 0
 	var cam: Camera3D = get_viewport().get_camera_3d() if is_inside_tree() else null
@@ -140,6 +145,7 @@ func burst(kind: int, at: Vector3, quad_m: float, from: Vector3) -> int:
 		_size[i] = Vector2((rect.z - rect.x) * quad_m, (rect.w - rect.y) * quad_m) * (1.0 if stump else GROW)
 		_age[i] = 0.0
 		_rest[i] = 0
+		_flash[i] = 1.0 if flash else 0.0
 		mm.set_instance_custom_data(slot, Color(rect.x, rect.y, rect.z, rect.w))
 		# the cuts: a stave's top and bottom (and its sides between staves), the lid's bottom, the stump's top
 		var top_cut := rect.y > box.y + 0.001
@@ -181,6 +187,8 @@ func _process(delta: float) -> void:
 
 func _step(i: int, delta: float) -> void:
 	_age[i] += delta
+	if _flash[i] > 0.0:
+		_flash[i] = maxf(_flash[i] - delta * BarrelField.FLASH_DECAY, 0.0)
 	var sz := _size[i]
 	if _rest[i] < 2:
 		var v := _vel[i]
@@ -215,12 +223,18 @@ func _draw(k: int, s: int) -> void:
 	var sz := _size[i]
 	var a := _ang[i]
 	# column 0 = (cos a, sin a) * width, column 1's length = height (barrel_piece.gdshader reads them as such)
-	var b := Basis(Vector3(cos(a) * sz.x, sin(a) * sz.x, 0.0), Vector3(0.0, sz.y, 0.0), Vector3(0, 0, 1))
+	var b := Basis(Vector3(cos(a) * sz.x, sin(a) * sz.x, 0.0), Vector3(0.0, sz.y, 0.0), Vector3(0, 0, 1.0 + _flash[i]))
 	var mm: MultiMesh = _mm[k]
 	mm.set_instance_transform(s, Transform3D(b, _pos[i]))
 	var solid := 1.0 - clampf((_age[i] - LINGER) / FADE, 0.0, 1.0)
 	var cut := _cut[i]
 	mm.set_instance_color(s, Color(cut.r, cut.g, cut.b, solid))
+
+
+## Piece `slot` of kind `kind`'s hit flash now (tests).
+func flash_of(kind: int, slot: int) -> float:
+	var i := kind * POOL + slot
+	return _flash[i] if i >= 0 and i < _flash.size() else 0.0
 
 
 ## Pieces flying or lying now (tests).

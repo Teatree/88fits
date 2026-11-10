@@ -143,6 +143,15 @@ var _grid_dirty := true
 var _grid_n := -1
 ## a knocked barrel's drawing (index -> {from, to, t}): looks only
 var _anims: Dictionary = {}
+## Pass 138 (lane FX; Garry: "Barrel should flicker white when Player hits ... a similar enemy flicker that they get, just
+## colour it white and back with a mask or something"): every round that strikes a standing barrel sets its hit flash to
+## 1, and it falls by FLASH_DECAY a second (a creature's own: EnemyManager sets 1.0 and takes delta x 6.0, linear, gone in
+## a sixth of a second), ticked with the game and stopped by a pause. The barrel shader (HIT_FLASH, prop_billboard) reads
+## it from INSTANCE_CUSTOM.y and turns the painted pixels that far to white. A breaking round flashes the debris instead
+## (BarrelDebris.burst `flash`: the barrel is gone that frame). Walking into one breaks it with no flash. Looks only (no
+## dice, nothing a rule reads; none in the sim's fast mode). Index -> flash, only the barrels flashing now.
+const FLASH_DECAY := 6.0
+var _flash: Dictionary = {}
 var _knock_ctx_cache: Dictionary = {}
 var _shots := PackedInt32Array()
 
@@ -227,6 +236,8 @@ static func barrel_shader() -> Shader:
 		_shader_5 = Shader.new()
 		_shader_5.code = base.code.replace("stencil_mode write, compare_always, %d;" % SceneryStencil.VALUE,
 			"stencil_mode write, compare_always, %d;" % SceneryStencil.STRUCTURE)
+		# pass 138 (lane FX): the hit flash in INSTANCE_CUSTOM.y (the scenery's shader has none)
+		_shader_5.code = _shader_5.code.replace("shader_type spatial;", "shader_type spatial;\n#define HIT_FLASH")
 	return _shader_5
 
 
@@ -456,10 +467,14 @@ func _physics_process(delta: float) -> void:
 ## The barrel bursts: splinters in its own wood, dust, gems (three times as many from a light one), a crack and a kick.
 ## Pass 137 (lane BARRELS): `from` is where the blow came from (a round's side; INF = the hero: walking into it).
 func _break(i: int, from: Vector3 = Vector3.INF) -> void:
+	var shot := from != Vector3.INF
 	alive[i] = 0
 	broken += 1
 	shot_hits.erase(i)
 	_anims.erase(i)
+	if _flash.has(i):
+		_set_flash(i, 0.0)
+		_flash.erase(i)
 	_grid_dirty = true
 	# pass 113 (lane TASKS): one barrel broken by the hero (brown and black alike), for the barrel tasks
 	Run.barrels_broken += 1
@@ -475,7 +490,8 @@ func _break(i: int, from: Vector3 = Vector3.INF) -> void:
 	if debris != null:
 		if from == Vector3.INF:
 			from = game.player.global_position if game.player != null else at
-		debris.burst(t, at, float(QUAD_M[clampi(t, 0, 2)]), from)
+		# pass 138 (lane FX): a round's break flashes the pieces white as a hit flashes a standing barrel
+		debris.burst(t, at, float(QUAD_M[clampi(t, 0, 2)]), from, shot)
 	if game.fx:
 		# staves, hoop pieces and a cloud of dust, big enough to read from the camera's height (pass 116: the wood of the
 		# board's barrels, gold hoop bits from the coins one, white stripe bits from the power-up one)
@@ -680,6 +696,7 @@ func shot_hit(i: int, dir: Vector3, from: Vector3) -> void:
 	shot_hits[i] = n
 	shot_knocks += 1
 	_knock(i, dir)
+	flash_hit(i)
 
 
 ## The rounds a barrel of kind `t` takes to break (its kind's `shots`, at least 1; read from the map's block once a field).
@@ -748,6 +765,29 @@ func knock_ok(i: int, q: Vector3) -> bool:
 	return true
 
 
+## Pass 138 (lane FX): barrel `i` flashes white from now (a round's hit; see FLASH_DECAY).
+func flash_hit(i: int) -> void:
+	if Run.sim_mode or i < 0 or i >= alive.size() or alive[i] == 0:
+		return
+	_flash[i] = 1.0
+	_set_flash(i, 1.0)
+
+
+## Barrel `i`'s hit flash now (0 = none; tests).
+func flash_of(i: int) -> float:
+	return float(_flash.get(i, 0.0))
+
+
+## Writes barrel `i`'s flash `v` into its instance's custom data (y; z keeps its glint clock, as _billboards set it).
+func _set_flash(i: int, v: float) -> void:
+	var t: int = light[i] if i < light.size() else 0
+	var mm := _mm_of(t)
+	if mm == null or not mm.use_custom_data or i >= _index_in.size():
+		return
+	var k: int = _index_in[i]
+	mm.set_instance_custom_data(k, Color(0.0, v, float(k) * 1.618 + float(t) * 7.31, 0.0))
+
+
 ## Barrel `i` drawn at `at`, `w` its squash (0 = at rest), its shadow under it.
 func _draw_barrel(i: int, at: Vector3, w: float) -> void:
 	var t: int = light[i] if i < light.size() else 0
@@ -762,11 +802,21 @@ func _draw_barrel(i: int, at: Vector3, w: float) -> void:
 ## The knocked barrels' drawing (looks only): the slide eases out over KNOCK_S with a small hop, the squash rings down over
 ## WOBBLE_S.
 func _process(delta: float) -> void:
-	if _anims.is_empty():
+	if _anims.is_empty() and _flash.is_empty():
 		return
 	delta = Lockstep.dt(delta)
 	if game != null and bool(game.get("paused")):
 		return
+	# pass 138 (lane FX): the hit flashes fall back to nothing
+	for i in _flash.keys():
+		var f := maxf(float(_flash[i]) - delta * FLASH_DECAY, 0.0)
+		if i >= alive.size() or alive[i] == 0 or f <= 0.0:
+			_flash.erase(i)
+			if i < alive.size():
+				_set_flash(i, 0.0)
+			continue
+		_flash[i] = f
+		_set_flash(i, f)
 	for i in _anims.keys():
 		var a: Dictionary = _anims[i]
 		var t: float = float(a["t"]) + delta

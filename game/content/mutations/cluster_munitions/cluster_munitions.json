@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "30% of blasts scatter five bomblets: step on one and it pops for a quarter of the rocket's damage.",
+  "text": "Blasts have a 30% chance of scattering bomblets that pop when stepped on.",
   "vfx": "a field of small dark bomblets with blinking red lamps round the blast, each popping under a foot",
   "effects": [],
   "params": {

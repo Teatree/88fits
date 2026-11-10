@@ -2,7 +2,7 @@
   "id": "assayers_scale",
   "name": "Assayer's Scale",
   "flavour": "It weighs what you walked away from.",
-  "text": "Skipping a card or chest pays 25 coins and 5% of the next level's XP; levels raise both. Evolved: the pay doubles.",
+  "text": "Skipping a card or chest pays 25 coins and 5% of a level's XP.",
   "rarity": "rare",
   "weight": 6,
   "max_level": 4,

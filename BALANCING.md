@@ -10623,3 +10623,129 @@ reworking before a second language.
 
 **78.SIM.** The run sim (game/tools/sim_run.gd) always plays with Coins x25 off, so its gold measures the real economy.
 
+## 79. Pass 138: barrels flash, the Sun's flame patch, the Sabre and the Spear redrawn, five Totem rarities, the relocation back, short item texts
+
+Garry (2026-11-10): "Barrel should flicker white when Player hits"; "Sword and Spear - Still don't look good ... Spear tip
+looks childish ... Sword is barely visible, should be wider and more noticeable"; "Teleporting Enemies, let's do that more
+intense. Basically return it to how it was before ... But don't revert the change about enemies on fire or poisoned";
+"Sun Attack leftover ring is a bit too much ... Maybe a slight and quickly dimming flame patch on the ground? The aiming
+mark is also a bit too much, make it less noticeable, but not by a lot"; "Let's make it so there are 5 rarities now
+(Common, Uncommon, Rare, Epic, Legendary)"; "Faces have a neck ... remove that neck"; "the Evolution text is huge ... Just
+give it a short description ... At the bottom add a note saying that all the previously claimed mutations still apply";
+"Item descriptions are hard to read, make the text bigger and more clear ... look at what I did and understanding my
+approach apply it to other items ... Hide the clever quips ... Dynamite stick description ... Should be that the
+description is just: Lobs {amount} {thing} at the densest crowd. Explodes in a {area} m radius."
+
+**79.RELOC. The relocation back to pass 128's strength** (lead). Red Canyon's `timeline_data.relocate`: `hidden` false
+(a far creature sinks and rises again in sight, as in pass 128), `chance` 1.0 (every creature far for `seconds` 5 s goes),
+`every` 0.4 s (at most 150 moves a minute). The pass 134 burn rule stays as it was: at its turn a burning creature takes
+the rest of its burns at once, dies where it stands or moves unburnt; poison rides along. The keys and the Level Editor's
+boxes stay (75.RELOC), so Garry can set either way again.
+
+79.FX. **The barrel's hit flash** (Garry: "Barrel should flicker white when Player hits. Right now it moves with
+knockback, which feels about right, but it should also get a similar enemy flicker that they get, just colour it white
+and back with a mask or something"): every round of the Outlaw's that strikes a standing barrel sets its hit flash to 1.
+The flash then falls by `BarrelField.FLASH_DECAY` 6.0 a second, the creatures' own rate (EnemyManager: 1.0, minus
+delta x 6, linear, gone in a sixth of a second). It is ticked with the game and stops while paused. The barrel's painted
+pixels go that far to white (prop_billboard.gdshader `HIT_FLASH`, INSTANCE_CUSTOM.y, the painting's alpha as the mask).
+The round that breaks a barrel starts its debris white instead (BarrelDebris `flash`), since the barrel is gone that
+frame. Walking into a barrel breaks it with no flash. Looks only: no dice, and none in the sim's fast mode. **The sun's
+mark** (Garry: "Sun Attack leftover ring is a bit too much. I meant that there should be a little mark of the sun attack.
+Maybe a slight and quickly dimming flame patch on the ground? The aiming mark is also a bit too much, make it less
+noticeable, but not by a lot"): pass 136's burnt ring (StrikeMarks SUN_GLOW / SUN_HOLD / SUN_FADE, 4.2 s) is gone. Each
+pillar that lands under the aim now leaves a small flame patch. It is a hot orange-to-red lobed glow `SUN_PATCH` 0.5 x
+the strike's radius (at least `SUN_PATCH_MIN` 0.35 m), at full strength at once, then x (1 - t / `SUN_LIFE` 1.2 s) ^
+`SUN_CURVE` 2.0 (under half left at 0.4 s, a tenth at 0.8 s, gone at 1.2 s). It has `SUN_FLAMES` 3 small flame tongues
+(`SUN_FLAME_H` 0.5 m) and `SUN_EMBERS` 2 embers, and `SUN_LICKS` 2 more tongues at `SUN_LICK_AT` 0.2 s. A Zenith sweep's
+pillar gets `SUN_FLAMES_SWEEP` 1 tongue and no lick. No more than `FLAME_FRAME_CAP` 10 tongues are laid in one frame, and
+at most `CAP` 24 patches lie at once. The warning ring before a pillar is a quarter fainter: `params.sun.ring_alpha`
+0.26 (was 0.35), Zenith 0.3 (was 0.4). Its width is unchanged.
+
+**79.MELEE - the Sabre's swing and the Spear's thrust redrawn (looks only).** Garry: "Sword and Spear - Still don't look
+good. Look for actually good looking VFX effects that show the Spear Thrusts and Sword Swings. Spear tip looks childish,
+you chose the worst possible version. Sword is barely visible, should be wider and more noticeable." Each stroke now has
+styles named by the weapon JSON's `params.fx_style` (`MeleeFx.style_of`; an unknown or missing name plays the default).
+**A swing** (`crescent`, the default for the Sabre and the Whirlwind; core/shaders/melee_slash.gdshader): a crescent drawn
+to the hit's own reach, its band reaching in to 42% of the reach (`inner`, as before), thickest at the leading edge and
+tapering to a point behind it, pointed at both ends once done (thickest ~62% along); a white-hot cutting edge on the rim, a
+saturated band darkening and breaking into streaks inside, a dark outline outside the rim and along the leading edge,
+sparks thrown off the rim; after the sweep it erodes in streaks along the arc over **at least 0.22 s**
+(`MeleeFx.SLASH_FADE`; the Thruster's 0.12 s `FX_ARC_FADE` still times `classic`). `cel` is the same shape hard-edged with
+a thick outline and two echo arcs; `classic` is pass 136's arc. **A thrust** (`lance`, the default for the Spear and the
+Thunder Lance; core/shaders/melee_lance.gdshader): no spearhead; a glint gathers at the hand for the last 0.08 s, a
+spindle of light darts from the hand to a needle point in 0.08 s with a hard stop so the point reaches **the hit's own
+reach** as the hit lands, overshoots 0.1 m and settles; half width 0.62 x the lane's half width, clamped 0.1-0.32 m
+(`LANCE_W`), needle 0.55 m (`NEEDLE`); air rings left behind across the lane as it darts, speed lines; on a hit the impact
+star with its shock ring (as pass 137) and the light runs on through the point for 0.14 s (`PIERCE_T`), on a miss a small
+glint; then the light goes from the hand towards the point over 0.22 s. `wind` is a needle with two wind ribbons and an
+energy diamond; `spearhead` is pass 137's. Every build keeps its touch (Heartseeker's warm-up and red crit, fire orange,
+Venom Tip green, Riposte brass, Critical Thinking's razor, the Thunder Lance's crackle). The new shaders are warmed under
+the spawn beam (`Warmup`). No dice, no change to any hit, its timing, reach, knockback or damage; still one quad a stroke,
+pools ARC_MAX 8, THRUST_MAX 6, FLASH_MAX 6.
+
+**79.TOTEM. Five Totem rarities.** Garry (2026-11-10): "Currently there are 3 levels and it's frequent that we get 2 or
+even 3 stat increase options that are of the same level and the selection is mostly just random look like. Let's make it
+so there are 5 rarities now (Common, Uncommon, Rare, Epic, Legendary) ... Legendary is a bit stronger than the strongest
+right now, Common is a bit weaker than the weakest right now. The rarity of the different rarities is as you'd expect:
+Legendary the rarest, Common most common. But a couple of rules: offered stat increases are the same [rarity] more
+rarely (but it still happens sometimes); the more totems Player claims the better the rarity chances. At first the
+chances can be something like 70% chance of Common, Uncommon, Rare, 30% chance of Uncommon, Rare, Epic, and they get
+better with each Totem claim (don't follow this to the T)."
+- **A gift's rarity is its amount.** Every spirit of content/structures/totem_pole `params.boons` names five amounts,
+  `tiers` {common, uncommon, rare, epic, legendary} (its old `min` / `max` / `step` are gone; TotemBoons still reads an
+  entry with only min and max as 0.75 x min, min, the middle, max, 1.3 x max). Uncommon is the old min, Rare the old
+  middle (the old average gift), Epic the old max; Common 0.5-0.8 x the old min, Legendary 1.25-1.33 x the old max:
+  Le-loo move speed +0.5 / 1 / 2 / 3 / 4 %; El-kolie max HP +1 / 2 / 4 / 6 / 8; Chet-woot attack damage +1.5 / 2 / 4 / 6 / 8 %;
+  Thunderbird cooldown −1.5 / 2 / 3 / 4 / 5 %; Ol-hiyo pickup radius +8 / 10 / 15 / 20 / 26 %; Walalee regen +0.05 / 0.1 /
+  0.2 / 0.3 / 0.4; Frog XP +1.5 / 2 / 3 / 4 / 5 %; Skana crit +1.5 / 2 / 3 / 4 / 5 %; Kuuma damage reduction +0.5 / 1 / 2 /
+  3 / 4 %; Raven luck +1.5 / 2 / 4 / 6 / 8 %; Se-sook area +1.5 / 2 / 3 / 4 / 5 %. The spirits' weights are unchanged.
+- **The odds** (`params.rarity.weights`): one row of five weights (Common .. Legendary) for each count of gifts taken
+  before this one this run (Run.totem_boons), the last row for any later one: [42, 32, 18, 8, 0] at the first totem,
+  then 38/32/20/10/0, 34/32/22/11/1, 31/31/23/13/2, 28/30/24/15/3, 25/29/25/17/4, 22/28/26/19/5, 19/27/27/21/6,
+  16/26/28/23/7, 14/25/28/25/8, 12/24/28/27/9, 11/23/28/28/10 (the twelfth and after). No Legendary before the third
+  totem; Legendary never weighs more than any other rarity.
+- **Same rarity more rarely** (`params.rarity.same_tier` 0.3): within one offer a rarity already rolled weighs 0.3 as
+  much for each copy of it. Measured: all three alike 0.7% (11.5% if independent), exactly two alike 41% at the first
+  totem and about 27% from the sixth (61% / 52% independent; before pass 138: 11% and 67%). The stat rule (never two of
+  one stat) stays. Two draws a gift from the pole's dice (Run.totem_rng): the spirit, then its rarity.
+- What a run gets: the mean gift is 0.68 of the old average at the first totem, 1.0 by the eleventh; a map's ten gifts
+  taken in order come to 0.83 of the old ten (twelve: 0.86). Early totems are weaker and late ones stronger than before;
+  the knob is the weights table.
+- **New display rule**: a multiplied gift that is not a whole percent says its half ("+0.5% move speed", "+1.5% attack
+  damage") on the card, the toast and the record's words (TotemBoons.amount_text / text); TextGen's own sentence (whole
+  percents) is unchanged elsewhere.
+- **The gift card** (ui/TotemScreen.gd): no stars, no nail, no gold inner line by size; the rarity on the border in the
+  item frames' colours (R.RARITY): a rim inside the panel's navy edge 5 / 5 / 6 / 7 / 9 px (Legendary the gold bevel),
+  a wash of the colour 26 px in from it, a glow round Epic (18 px) and Legendary (26 px), the rarity's word on a tab
+  across the top edge (Rubik 700, 26 px, tracked); the gain (Ultra 62, gold) and its stat (Rubik 32) on one centred line,
+  the spirit's name (italic 28) centred under it, the pair shrunk together if a line would pass the room.
+- **The faces** (tools/totem_necks.py): the wooden necks under nine of the eleven carved heads are cut away (the
+  serpent's whole plank block), the cut edge inked as the head's own outline; each head at its old size, centred on the
+  cedar block over one shared drop shadow (5 px right, 7 px down, blur 5, 50 %, near-black brown); the whale and the
+  bear had no neck and only gained the shadow.
+- The record's `quality` (totem_offer, totems) is the rarity tier 1..5 (analytics/SCHEMA.md); the bot still takes the
+  gift with the most "feathers", now the highest rarity.
+
+79.TEXTUI. Garry: "Item descriptions are hard to read, make the text bigger and more clear" and "Hide the clever quips, at
+least from the Gameplay screens (Level Up) and what not. You can keep em in the Collections Screen." One description face in
+the kit (`W.desc_text`, tokens in R.gd): Rubik `DESC_WEIGHT` 600 in `DESC_INK` white, lines `DESC_LH` 1.24, numbers 800 in
+NUMBER_HI; the level-up card's `DESC_PX` 38 (30 before) and every other screen's description about a quarter bigger (the
+mutation cards 28 from 24, equal at the longest words' height, the chest and evolution 42 from 34, the Stranger 38 from 30, the Shop 35 from 28, the pause rows 29
+from 24 with 3 lines, the Collection 34 / 28 / 29 from 28 / 24 / 24, the Outlaw sheet 31 from 26, the Outlaws screen 29
+from 24; the change rows 34 and 38 from 30 and 34). New rules: an item's flavour shows only in the Collection; the level-up's
+line under its title is empty unless the first offers' hint is on (`ui.cards.pick` no longer shown); the Stranger's quote is
+hidden and his deal panel stands at 1012 (1100 before).
+
+79.TEXTS. Garry: "Just give it a short description that accurately describes what the Evolution does. At the bottom add
+a note saying that all the previously claimed mutations still apply. If it increases mutations it should just mention
+that it does." and "the description is just: 'Lobs {amount} {thing} at the densest crowd. Explodes in a {area} m
+radius.'" A weapon's description (`TextGen.weapon_description`) is its own row (`weapon.<id>.desc`, or its shape's
+`gen.weapon.*` row when a mutation changes the shape) and nothing is appended: no fuse, knockback, pierce or pierce
+drop-off, burn, poison, held-mutation sentence, owner or "Evolved:" line. An evolution always reads its own
+`evolution.<id>.desc` row (whatever its path did to the shape, as long as the row's variables are there), then on a line
+of its own `evolution.<id>.note` or `gen.evolution.mutations_note` ("All your mutations still apply."); the 16
+evolutions whose `final` block raises a path mutation's numbers (Blunderbuss, Dust Devil, Fire Eater, Flying Saucer,
+Golden Pineapple, Golden Revolver, Grave Hail, Hellfire Battery, Hive Queen, Hiwa Kai, Iron Bastion, Moonshine, Pea
+Cannon, Slam Dunk, Storm Cloud, Thunder Lance) say "All your mutations still apply and get stronger." No number or rule
+of play changed. Texts of 124 rows and 91 content texts rewritten in Garry's style (docs/texts/pass138_text_changes.md);
+his four families' texts untouched.

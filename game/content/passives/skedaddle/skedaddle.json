@@ -5,7 +5,7 @@
   "weight": 7,
   "max_level": 4,
   "flavour": "When the lead flies, so do you.",
-  "text": "After a hit, run 25% faster for 2 s (+3% and +0.3 s a rung, Evolved +5% and +0.5 s).",
+  "text": "After a hit, run 25% faster for 2 s.",
   "levels": [
     [
       {

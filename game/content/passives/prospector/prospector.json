@@ -19,7 +19,7 @@
     ]
   ],
   "repeat_last_level": true,
-  "text": "The Miner digs for you: a kill may drop an extra XP gem, 6% a level.",
+  "text": "Kills have a 6% chance a level of dropping an extra XP gem.",
   "art_prompt": "a miner's pickaxe with a wooden handle leaning on a grey rock, a big glowing purple crystal gem growing out of the rock",
   "placeholder": {
     "color": "#8A69F2",

@@ -279,9 +279,10 @@ func test_every_text_reads_well_at_every_rung() -> void:
 		for lv in range(2, p.max_level + 1):
 			assert_bool(TextGen.describe_effects(p.effects_at_level(lv)) != "").override_failure_message("%s rung %d says nothing" % [p.id, lv]).is_true()
 	# a hand-written line that named the old numbers names the new (the tool rewrote it)
-	assert_str(Registry.passive("skedaddle").text).is_equal("After a hit, run 25% faster for 2 s (+3% and +0.3 s a rung, Evolved +5% and +0.5 s).")
+	assert_str(Registry.passive("skedaddle").text).is_equal("After a hit, run 25% faster for 2 s.")
 	assert_str(Registry.passive("magnet").text).contains("within 6 m")
-	assert_str(Registry.passive("desperado").text).contains("up to +51% once Evolved")
+	# pass 138 (lane TEXTS): Garry's style, the level-1 number only
+	assert_str(Registry.passive("desperado").text).contains("up to +16%")
 
 
 # ---------------------------------------------------------------- the run

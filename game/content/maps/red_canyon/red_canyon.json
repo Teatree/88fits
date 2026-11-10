@@ -4310,7 +4310,7 @@
       "enabled": true,
       "distance": 16.0,
       "seconds": 5.0,
-      "every": 0.6,
+      "every": 0.4,
       "ring": [
         19.0,
         24.0
@@ -4319,8 +4319,8 @@
       "sink": 0.35,
       "scan": 0.5,
       "squads": false,
-      "hidden": true,
-      "chance": 0.6
+      "hidden": false,
+      "chance": 1.0
     },
     "sand": "ripples_pebbles",
     "oases": {

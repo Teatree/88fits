@@ -44,7 +44,7 @@ process.stdin.on('end', () => {
   out.cfgHigh = Model.relocateCfg({ relocate: { chance: 3, hidden: 1 } });
   out.cfgLow = Model.relocateCfg({ relocate: { chance: -0.5 } });
   out.cfgWord = Model.relocateCfg({ relocate: { chance: 'often', hidden: 'yes' } });
-  out.textMap = Model.relocateText(q.tl || {});
+  out.textMap = Model.relocateText({ relocate: { hidden: true, chance: 0.6 } });
   out.textSink = Model.relocateText({ relocate: { hidden: false, chance: 1 } });
   out.issuesZero = Model.relocateIssues({ relocate: { chance: 0 } });
   out.issuesMap = Model.relocateIssues(q.tl || {});
@@ -74,7 +74,10 @@ def checks(check, run_node, server):
     mp = json.loads(_read(CONTENT, "maps", "red_canyon", "red_canyon.json"))
     tl = mp.get("timeline_data", {})
     blk = tl.get("relocate", {})
-    check(blk.get("hidden") is True and blk.get("chance") == 0.6, "RELOC134: Red Canyon's block: hidden true, chance 0.6: %s" % {k: blk.get(k) for k in ("hidden", "chance")})
+    # pass 138: Red Canyon plays the open relocation again (hidden false, chance 1.0, Garry: "return it to how it was
+    # before"); the map's own values are read, never pinned
+    check(isinstance(blk.get("hidden"), bool) and isinstance(blk.get("chance"), (int, float)) and 0 <= blk.get("chance") <= 1,
+          "RELOC134: Red Canyon's block names hidden (a switch) and chance (0..1): %s" % {k: blk.get(k) for k in ("hidden", "chance")})
     res = run_node({"tl": tl}, RUNNER)
     if not res:
         check(False, "RELOC134: node ran fields.js and model.js")
@@ -96,7 +99,7 @@ def checks(check, run_node, server):
         check(not any("hero" in (x or {}).get("label", "").lower() or "hero" in (x or {}).get("help", "").lower() for x in (h, c, res["sink"])),
               "RELOC134: no new text says hero")
         cm = res["cfgMap"]
-        check(cm["hidden"] is True and abs(cm["chance"] - 0.6) < 1e-9, "RELOC134: relocateCfg reads Red Canyon's two keys: %s" % {k: cm[k] for k in ("hidden", "chance")})
+        check(cm["hidden"] is blk.get("hidden") and abs(cm["chance"] - float(blk.get("chance"))) < 1e-9, "RELOC134: relocateCfg reads Red Canyon's two keys: %s" % {k: cm[k] for k in ("hidden", "chance")})
         check(res["cfgHigh"]["chance"] == 1 and res["cfgHigh"]["hidden"] is True and res["cfgLow"]["chance"] == 0
               and res["cfgWord"]["chance"] == 1 and res["cfgWord"]["hidden"] is False,
               "RELOC134: relocateCfg mends as the game does (the chance inside 0..1, a word = the default): %s" % [res["cfgHigh"], res["cfgLow"]["chance"], res["cfgWord"]["chance"], res["cfgWord"]["hidden"]])

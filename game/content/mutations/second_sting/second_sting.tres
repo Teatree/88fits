@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_oleps")
 weapon = "hornet_nest"
-text = "A bee that kills turns and dives at the next creature, once."
+text = "A bee that kills dives at the next enemy."
 vfx = "the bee loops round and stings again"
 params = {
 "second_sting": true

@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "20% of hits zap the same enemy 3 more times for 40% damage each.",
+  "text": "Hits have a 20% chance of zapping the same enemy 3 more times.",
   "vfx": "small jagged bolts out of the air into the creature, sparks, a pale blue tint",
   "effects": [],
   "params": {

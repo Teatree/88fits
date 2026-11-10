@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "A round that kills bounces on to the next enemy at 80%, every time.",
+  "text": "A bullet that kills bounces on to the next enemy.",
   "vfx": "a gold spark and a second tracer at every bounce",
   "effects": [
     {

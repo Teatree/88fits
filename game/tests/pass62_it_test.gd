@@ -468,9 +468,12 @@ func test_the_spears_thrust_drops_off_by_distance_along_its_line() -> void:
 	assert_float(_lost(em, b)).is_equal_approx(_taken(em, b, d * 1.15 * 0.8), 0.001)
 	assert_float(_lost(em, c)).is_equal_approx(_taken(em, c, d * 1.15 * 0.64), 0.001)
 	assert_float(_lost(em, off)).is_equal(0.0)
-	# its words say it while it is on, and nothing when it is off
-	assert_str(t.inst.description()).contains("The first enemy along the thrust takes 15% more, each one behind it 20% less than the one before.")
+	# its words say it while it is on, and nothing when it is off (pass 138, lane TEXTS: the words live in
+	# pierce_falloff_words; the card's text is the weapon's row alone and never glues them on)
+	assert_str(TextGen.pierce_falloff_words(t.inst.params, "Thruster", 0)).is_equal("The first enemy along the thrust takes 15% more, each one behind it 20% less than the one before.")
+	assert_str(t.inst.description()).not_contains("less than the one before")
 	Settings.pierce_falloff = false
+	assert_str(TextGen.pierce_falloff_words(t.inst.params, "Thruster", 0)).is_equal("")
 	assert_str(t.inst.description()).not_contains("less than the one before")
 
 
@@ -539,18 +542,20 @@ func test_a_sweep_and_birdshots_lane_are_untouched() -> void:
 
 
 func test_the_words_follow_the_switch() -> void:
+	# pass 138 (lane TEXTS; Garry: nothing glued on): the drop-off's words (pierce_falloff_words) follow the switch;
+	# a card's text is the weapon's row alone, with the switch on or off
 	var tg := _inst("tommy_gun")
-	assert_str(tg.description()).contains("Pierces 2: the first enemy takes 15% more, each one after it 20% less than the one before.")
-	assert_str(tg.description()).not_contains("Pierces 2.")
-	assert_str(_inst("iron_bastion").description()).contains("Its rounds pierce 1: the first enemy takes 10% more")
-	assert_str(_inst("chicago_typewriter").description()).contains("20% more")
-	# no pierce, no words: the Boomstick before level 5, Turret Buddy
-	assert_str(_inst("boomstick", [], 1).description()).not_contains("less than the one before")
-	assert_str(_inst("boomstick", [], 5).description()).contains("10% more")
-	assert_str(_inst("turret_buddy").description()).not_contains("pierce")
+	var pw := func(w: WeaponInstance) -> String:
+		return TextGen.pierce_falloff_words(w.params, w.def.behavior, w.stat_int("pierce"))
+	assert_str(pw.call(tg)).is_equal("Pierces 2: the first enemy takes 15% more, each one after it 20% less than the one before.")
+	assert_str(tg.description()).not_contains("Pierces")
+	assert_str(pw.call(_inst("chicago_typewriter"))).contains("20% more")
+	# no pierce, no words: the Boomstick before level 5
+	assert_str(pw.call(_inst("boomstick", [], 1))).is_equal("")
+	assert_str(pw.call(_inst("boomstick", [], 5))).contains("10% more")
 	Settings.pierce_falloff = false
-	assert_str(tg.description()).not_contains("less than the one before")
-	assert_str(tg.description()).contains("Pierces 2.")
+	assert_str(pw.call(tg)).is_equal("")
+	assert_str(tg.description()).not_contains("Pierces")
 
 
 func test_the_switch_is_saved_with_the_settings() -> void:

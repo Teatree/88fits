@@ -48,7 +48,7 @@
     ]
   ],
   "repeat_last_level": true,
-  "text": "Standing still heals you: +1.4 health a second, more each rung.",
+  "text": "Standing still heals you 1.4 health a second.",
   "art_prompt": "a wide straw sombrero resting on a plump white pillow, a small glowing red heart floating just above it",
   "placeholder": {
     "color": "#E8D080",

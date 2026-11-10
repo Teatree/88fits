@@ -6,7 +6,7 @@
   "max_level": 1,
   "single": true,
   "flavour": "Some birds will not stay down.",
-  "text": "Two seconds after you fall, you get back up at half health (more with Second Wind) with the revive's blast. Once a run; it never levels up.",
+  "text": "When you fall, you get back up at half health. Once a run.",
   "levels": [
     [
       {

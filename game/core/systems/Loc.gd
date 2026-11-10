@@ -77,6 +77,13 @@ static func has(key: String) -> bool:
 	return _table.has(key)
 
 
+## A row's template as written, its variables unfilled ("" when there is no such row; pass 138: TextGen asks which
+## variables an item's own row needs).
+static func row_text(key: String) -> String:
+	_ensure()
+	return str(_table.get(key, ""))
+
+
 ## The text of `key` with `vars` put in; the key itself (and one warning) when there is no such row.
 static func t(key: String, vars: Dictionary = {}) -> String:
 	_ensure()

@@ -385,15 +385,14 @@ func test_the_cards_say_what_the_sceptre_does() -> void:
 	var base := _inst("sun_scepter")
 	var t := base.description()
 	assert_str(t).contains("pillar of sunlight")
-	assert_str(t).contains("you can see")
-	assert_str(t).contains("14 damage in 1.3 m")
-	# pass 118 (lane ITEMS): anyone may find it; the card says whose own it is
-	assert_str(t).contains("Solenne's own.")
-	assert_str(_inst("sun_scepter", [], 3).description()).contains("2 pillars a strike.")
+	# pass 138 (lane TEXTS; Garry's style: the main effect, its key numbers, nothing glued on)
+	assert_str(t).contains("14 damage in a 1.3 m radius")
+	assert_str(t).not_contains("'s own.")
+	assert_str(_inst("sun_scepter", [], 3).description()).contains("Calls 2 pillars of sunlight")
 	var z := _inst("zenith", ["heat_stroke", "flicker", "gold_dust"]).description()
-	assert_str(z).contains("Every 10th strike hits every enemy on the screen at 80%.")
-	assert_str(z).contains("Its kills drop a coin 30% of the time.")
-	assert_str(z).contains("Sets 35% of the enemies it hits on fire")
+	assert_str(z).contains("Every 10th strike hits every enemy on screen.")
+	assert_str(z).not_contains("coin")
+	assert_str(z).not_contains("on fire")
 	var rows: Array = base.stat_rows()
 	var names: Array = []
 	for r: Dictionary in rows:

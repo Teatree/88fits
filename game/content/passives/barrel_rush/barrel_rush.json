@@ -92,7 +92,7 @@
     ]
   ],
   "repeat_last_level": true,
-  "text": "Smash a barrel to run 30% faster for 4 s. Each rung after: +8% and +0.6 s more; Evolved +12% and +0.9 s.",
+  "text": "Smash a barrel to run 30% faster for 4 s.",
   "art_prompt": "a sturdy wooden barrel with dark iron hoops, the Sprint power-up's logo of two light blue winged sneakers painted on its front",
   "placeholder": {
     "color": "#A0703A",

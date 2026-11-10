@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_5e8qy")
 weapon = "molotov"
-text = "The bottle leaks as it flies: a trail of small burning spills drips along the throw, and they slow."
+text = "The bottle leaves a trail of burning oil that slows enemies."
 vfx = "drops of burning oil fall from the bottle in flight; a line of small fires lands behind it, one after another"
 params = {
 "drip": {

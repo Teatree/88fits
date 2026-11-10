@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "Burning creatures take +50% fire damage and spread the fire when they die.",
+  "text": "Burning enemies take 50% more fire damage and spread the fire when they die.",
   "vfx": "white-blue licks of flame on burning creatures, a white burst when one dies",
   "effects": [
     {

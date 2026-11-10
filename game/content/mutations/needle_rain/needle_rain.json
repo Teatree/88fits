@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "The darts arc over everything and fall from above, leaving a poison cloud where they land.",
+  "text": "Darts fall from above and leave a poison cloud where they land.",
   "vfx": "darts arcing high, a green cloud on landing",
   "effects": [
     {

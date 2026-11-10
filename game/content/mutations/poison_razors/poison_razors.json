@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "poison",
   "hero": "",
-  "text": "Razor blades round the rim: everything it cuts is poisoned.",
+  "text": "The frisbee poisons every enemy it cuts.",
   "vfx": "a hot-pink frisbee with steel razor blades stuck round its rim; the poison tick's green flash on what it cuts",
   "effects": [
     {

@@ -8,7 +8,7 @@
   "kind": "hero",
   "element": "",
   "hero": "buck",
-  "text": "Walking into a salt patch puts his speed-up at full at once.",
+  "text": "Walking into salt fills the speed-up at once.",
   "vfx": "his speed trail flares as he steps into the salt",
   "effects": [],
   "params": {

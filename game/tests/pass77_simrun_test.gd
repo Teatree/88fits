@@ -306,7 +306,7 @@ func test_seed_dice_repeats_the_draws() -> void:
 	Run.seed_dice(5)
 	assert_int(Run.totem_rng.randi()).is_equal(g1)
 	for pair in [["res://core/systems/StructureManager.gd", "_rng.seed = hash([Run.rng_seed, \"structures\"])"],
-			["res://game/Game.gd", "TOTEM_SCREEN.BOONS.offer(def, Run.totem_rng)"]]:
+			["res://game/Game.gd", "TOTEM_SCREEN.BOONS.offer(def, Run.totem_rng"]]:
 		assert_bool(FileAccess.get_file_as_string(str(pair[0])).contains(str(pair[1]))).override_failure_message(str(pair[0])).is_true()
 	Run.seed_dice(0)
 	assert_int(Run.rng_seed).is_equal(0)

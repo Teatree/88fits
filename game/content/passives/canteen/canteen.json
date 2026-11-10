@@ -2,7 +2,7 @@
   "id": "canteen",
   "name": "Canteen",
   "flavour": "Fill up. The next one is a long way off.",
-  "text": "Water no longer slows you, and leaving it gives +3 HP a second for 15 s. Evolved: enemies in water take +25% damage from you.",
+  "text": "Water no longer slows you, and leaving it heals 3 HP a second for 15 s.",
   "rarity": "uncommon",
   "weight": 8,
   "max_level": 5,

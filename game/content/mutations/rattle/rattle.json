@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "poison",
   "hero": "",
-  "text": "Poisoned creatures move 30% slower.",
+  "text": "Poisoned enemies move 30% slower.",
   "vfx": "poisoned creatures drag their feet, a dust puff at each step",
   "effects": [
     {
