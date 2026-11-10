@@ -1,0 +1,15 @@
+{
+  "id": "unlock_phoenix_feather",
+  "name": "Old Hand",
+  "condition": {
+    "type": "runs_total",
+    "count": 10
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "phoenix_feather"
+  },
+  "requires": "unlock_adrenaline",
+  "ladder": true,
+  "icon": "res://content/passives/phoenix_feather/phoenix_feather_icon.png"
+}

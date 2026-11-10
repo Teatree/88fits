@@ -560,7 +560,15 @@ QUEST_TYPES = {
     "damage_with_weapon": ["weapon", "count", "in_one_run"], "heal_with_item": ["item", "count", "in_one_run"],
     "heal_with_source": ["source", "count", "in_one_run"], "element_damage": ["element", "count", "in_one_run"],
     "barrels_total": ["count", "in_one_run"], "totems_total": ["count", "in_one_run"],
+    # pass 140 (lane QUESTS): stage bosses beaten across runs, counted at each fall under the gates below
+    "bosses_total": ["count"],
 }
+# pass 140 (lane QUESTS): the gates a condition done in one run (and bosses_total) may carry besides its type's keys:
+# `hero` (played as that outlaw), `holding` (the run holds that item id); a quest's own `requires` (a quest id or a list)
+# and `ladder` live beside its condition (QuestDef)
+QUEST_GATE_KEYS = ["hero", "holding"]
+QUEST_GATED_TYPES = ["reach_level", "survive_minutes", "survive_minutes_no_lift", "kills_in_run_of_enemy", "reach_stage",
+                     "beat_stage", "hero_level", "item_level", "evolve_item", "weapon_paths", "items_maxed", "bosses_total"]
 # pass 100 (lane QUESTS): the item kinds and rarity rungs the build quests take
 QUEST_ITEM_KINDS = ["any", "weapon", "card", "passive"]
 QUEST_RUNGS = ["uncommon", "rare", "epic", "legendary", "evolved"]
@@ -610,6 +618,13 @@ def condition_problem(cond, top_of=None):
         kind, _sep, sid = str(cond.get("source", "")).partition(":")
         if kind not in QUEST_SOURCE_KINDS or not _sep or (sid and not re.match(r"^[a-z0-9_]+$", sid)):
             return "heal_with_source: source is pickup:<id> or structure:<id> (pickup: or structure: for any)"
+    for gk in QUEST_GATE_KEYS:
+        if gk in cond and not (isinstance(cond[gk], str) and (cond[gk] == "" or re.match(r"^[a-z0-9_]+$", cond[gk]))):
+            return "%s: %s is an id (or empty)" % (t, gk)
+    if t == "bosses_total":
+        n = cond.get("count")
+        if not (isinstance(n, (int, float)) and not isinstance(n, bool) and float(n).is_integer() and n >= 1):
+            return "bosses_total: count is a whole number of 1 or more"
     if t == "item_level" and cond.get("id") and not cond.get("rung") and top_of is not None:
         top = top_of(str(cond["id"])) or 0
         lv = cond.get("level")

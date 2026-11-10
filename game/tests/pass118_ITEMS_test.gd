@@ -9,6 +9,9 @@
 ## and the weapon-card share of a level-up rises within Garry's 5-10%; Beer is the Ghost Pepper.
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): items, outlaws and stages behind a Trail node or a task (BALANCING 81.TRAIL, 81.QUESTS) opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 
 func before_test() -> void:
 	Save.data = Save._default()
@@ -45,7 +48,10 @@ func test_the_items_are_there_available_and_on_the_ladder() -> void:
 		assert_object(p).override_failure_message(id).is_not_null()
 		assert_bool(p.is_item()).is_true()
 		assert_bool(p.hidden).is_false()
-		# no unlock quest: offered from the start
+		# pass 140 (lane FIX): a Trail node gives it (BALANCING 81.TRAIL): locked on a new save, in the pool once bought
+		assert_str(UNLOCKS.locked_by("passive", id)).override_failure_message(id).is_equal("trail")
+		assert_bool(Registry.is_unlocked("passive", id)).is_false()
+		UNLOCKS.open("passive", id)
 		assert_bool(Registry.is_unlocked("passive", id)).override_failure_message(id + " is locked").is_true()
 		assert_bool(Registry.unlocked_passives().has(p)).is_true()
 		assert_str(p.flavour).is_not_empty()

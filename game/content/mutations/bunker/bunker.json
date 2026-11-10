@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "The turret digs in behind sandbags: twin barrels and +40% damage.",
+  "text": "Turrets dig in behind sandbags with 2 barrels, deal +40% damage and knock back enemies harder.",
   "vfx": "a low sandbag bunker with two barrels",
   "effects": [
     {

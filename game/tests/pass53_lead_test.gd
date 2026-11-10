@@ -238,7 +238,8 @@ func test_textgen_says_the_new_rules() -> void:
 	var t := lance.description()
 	# pass 138 (lane TEXTS; Garry: "Just give it a short description that accurately describes what the Evolution
 	# does"): each evolution's own short row, the mutations note under it; nothing glued on
-	assert_str(t).contains("140° arc, then thrusts")
+	assert_str(t).contains("140° arc for ")  # pass 140 (lane TEXTS): the damage it deals
+	assert_str(t).contains(" damage, then thrusts")
 	assert_str(t).contains("Every hit stuns")
 	assert_str(t).not_contains("A stunned enemy takes")
 	var whirl := _inst("whirlwind", ["critical_thinking", "flurry", "riposte"])

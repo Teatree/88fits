@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Every fourth burst also sends a Tarantula Hawk that stings the strongest enemy five times.",
+  "text": "Every 4th burst also sends a Tarantula Hawk that stings the strongest enemy 5 times.",
   "vfx": "a big glowing purple ball that buzzes round its prey in circles and darts in to sting, its prey tinted purple",
   "effects": [],
   "params": {

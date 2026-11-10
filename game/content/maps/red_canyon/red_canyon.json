@@ -40,6 +40,9 @@
         "boss": "tumbleweed_king",
         "description": "The canyon at sundown. Learn the ropes.",
         "difficulty": "Easy",
+        "coin_mult": 1.0,
+        "boss_purse": 325,
+        "wage": 30,
         "filter": {
           "color": "#000000",
           "strength": 0.0
@@ -194,6 +197,9 @@
         "boss": "gila_grande",
         "description": "Night falls on the canyon. Tougher, and longer.",
         "difficulty": "Medium",
+        "coin_mult": 2.66,
+        "boss_purse": 750,
+        "wage": 80,
         "xp_mult": 0.7,
         "filter": {
           "color": "#3D55C8",
@@ -382,6 +388,9 @@
         "boss": "black_sunday",
         "description": "The wind took the farms. Now it wants you.",
         "difficulty": "Hard",
+        "coin_mult": 6.0,
+        "boss_purse": 1350,
+        "wage": 150,
         "xp_mult": 1.15,
         "reward_mult": 2.75,
         "speed_mult": 1.1371,
@@ -623,6 +632,9 @@
         "boss": "brander",
         "description": "Hell opens under a blood moon. Few come back.",
         "difficulty": "Brutal",
+        "coin_mult": 8.55,
+        "boss_purse": 1700,
+        "wage": 240,
         "filter": {
           "color": "#6A1A28",
           "strength": 0.42
@@ -814,7 +826,7 @@
     "hp_growth": 0.0977,
     "hp_power": 1.25,
     "hp_curve": {
-      "mode": "formula",
+      "mode": "points",
       "formula": {
         "kind": "power",
         "a": 0.0977,
@@ -826,20 +838,80 @@
           1.0
         ],
         [
+          90,
+          1.18
+        ],
+        [
+          180,
+          1.4
+        ],
+        [
+          300,
+          1.8
+        ],
+        [
           430,
-          1.9414
+          2.3
+        ],
+        [
+          430,
+          2.0455
+        ],
+        [
+          580,
+          2.4623
+        ],
+        [
+          730,
+          2.9641
+        ],
+        [
+          880,
+          3.5682
         ],
         [
           1030,
-          3.4245
+          4.2955
+        ],
+        [
+          1030,
+          4.5366
+        ],
+        [
+          1225,
+          5.1793
+        ],
+        [
+          1420,
+          5.9131
+        ],
+        [
+          1615,
+          6.7509
         ],
         [
           1810,
-          5.5638
+          7.7073
+        ],
+        [
+          1810,
+          8.2927
+        ],
+        [
+          2050,
+          9.7361
+        ],
+        [
+          2290,
+          11.4307
+        ],
+        [
+          2530,
+          13.4202
         ],
         [
           2770,
-          8.4428
+          15.7561
         ]
       ]
     },
@@ -852,11 +924,15 @@
       "points": [
         [
           0,
-          1.21
+          0.95
+        ],
+        [
+          180,
+          1.0
         ],
         [
           430,
-          1.21
+          1.45
         ],
         [
           430,
@@ -864,35 +940,35 @@
         ],
         [
           900,
-          0.95
+          1.0234
         ],
         [
           1030,
-          1.09
+          1.1818
         ],
         [
           1030,
-          0.4
+          0.478
         ],
         [
           1700,
-          1.08
+          1.222
         ],
         [
           1810,
-          1.1
+          1.2439
         ],
         [
           1810,
-          0.456
+          0.5902
         ],
         [
           2635,
-          1.173
+          1.6585
         ],
         [
           2770,
-          0.912
+          1.2895
         ]
       ]
     },
@@ -1162,7 +1238,7 @@
         "pack": 6,
         "stats": {
           "speed": 1.725,
-          "hp_mult": 1.2
+          "hp_mult": 0.96
         },
         "pace": "waves",
         "every": 10,
@@ -1189,7 +1265,7 @@
         "pack": 10,
         "stats": {
           "speed": 2.012,
-          "hp_mult": 1.2
+          "hp_mult": 0.96
         },
         "pace": "waves",
         "every": 5,
@@ -4274,7 +4350,7 @@
         "tumbleweed_king": 40,
         "gila_grande": 60,
         "black_sunday": 70,
-        "brander": 80
+        "brander": 65
       },
       "exponent": 0.5,
       "window": 45,

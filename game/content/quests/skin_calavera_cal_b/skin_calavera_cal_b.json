@@ -10,5 +10,6 @@
     "type": "skin",
     "id": "calavera:CAL-B"
   },
+  "requires": "skin_calavera_cal_c",
   "icon": "res://content/characters/calavera/calavera_icon_b.png"
 }

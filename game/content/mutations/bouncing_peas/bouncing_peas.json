@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "Every pea bounces on to a second enemy.",
+  "text": "Every pea bounces on to 1 more enemy.",
   "vfx": "a gold spark at every bounce and a second pea trail",
   "effects": [
     {

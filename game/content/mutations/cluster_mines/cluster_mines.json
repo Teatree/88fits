@@ -9,7 +9,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Two mines a drop, twice as many on the ground, −40% damage.",
+  "text": "Drop 1 more mine and keep ×2 on the ground, but deal −40% damage.",
   "vfx": "a field of blinking lamps",
   "effects": [
     {

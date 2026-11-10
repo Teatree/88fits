@@ -18,7 +18,7 @@ value = 1.0
 [resource]
 script = ExtResource("2_72boi")
 weapon = "peashooter"
-text = "Every pea bounces on to a second enemy."
+text = "Every pea bounces on to 1 more enemy."
 vfx = "a gold spark at every bounce and a second pea trail"
 effects = [SubResource("Resource_72boi"), SubResource("Resource_vigoo")]
 id = "bouncing_peas"

@@ -1,0 +1,14 @@
+{
+  "id": "unlock_may",
+  "name": "Trigger Happy",
+  "condition": {
+    "type": "item_level",
+    "kind": "weapon",
+    "id": "tommy_gun",
+    "level": 5
+  },
+  "unlocks": {
+    "type": "character",
+    "id": "may"
+  }
+}

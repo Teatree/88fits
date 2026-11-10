@@ -178,7 +178,8 @@ func test_elite_and_boss_purses_are_five_times_pass_44s() -> void:
 	# 44's, then halved: x2.5; pass 111, lane WANTED: halved again, x1.25, the purse's half coin dropped)
 	for s in 4:
 		assert_int(Game.elite_purse(s)).is_equal(int(1.25 * (90 + 60 * s)))
-		assert_int(Game.boss_purse(s)).is_equal(int(1.25 * (260 + 140 * s)))
+		# pass 140 (lane ECON): the line is the fallback now; the map's stages name their own purse (pass140_econ_test)
+		assert_int(Game.boss_purse_line(s)).is_equal(int(1.25 * (260 + 140 * s)))
 	assert_int(Game.BOSS_COINS).is_equal(15)
 	# the bosses' coins on the sand: x5 of pass 69's (12 by default, 30, 40), halved in pass 110 and again in pass 111
 	assert_int(int(Registry.enemy("tumbleweed_king").drops.get("coins", 0))).is_equal(15)

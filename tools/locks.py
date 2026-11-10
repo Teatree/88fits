@@ -387,6 +387,11 @@ def run_godot(args, timeout=None, who="tool", job="", keep=True, godot=None, log
     Returns (returncode, output) with stdout+stderr as text (or ("", rc) streamed to this process's stdout when
     `stream`). A timeout kills Godot and returns -1."""
     godot = godot or GODOT
+    # pass 140 (lead): a ship script that already keeps the PC save for its whole run (ship.sh, ship_prod.sh) says so with
+    # GODOT_SAVE_KEPT=1; a nested keep would copy the save as the build's own steps left it (since pass 140 a tool boot sets
+    # an old save aside and starts a fresh one) and its restore would clear the outer keep: the PC save was lost that way
+    if keep and os.environ.get("GODOT_SAVE_KEPT", "") == "1":
+        keep = False
     with held("godot", who, job=job, note=note, log=log):
         if keep:
             keep_save()

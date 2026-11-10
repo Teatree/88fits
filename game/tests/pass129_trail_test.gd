@@ -333,9 +333,11 @@ func test_an_outlaw_a_node_gives_is_locked_then_owned_without_a_second_payment()
 	assert_str(Registry.hero_state(cal)).is_equal("owned")
 	assert_bool(Registry.hero_owned(cal)).is_true()
 	assert_int(Save.gold()).is_equal(1000 - Trail.price("g_outlaw"))
-	# an outlaw no node names keeps his rule
+	# an outlaw no node names keeps his rule (pass 140: Astro is free from the start; Solenne, on sale with no quest,
+	# is buyable under this fixture)
 	assert_str(Registry.hero_state(Registry.character("drifter"))).is_equal("owned")
-	assert_str(Registry.hero_state(Registry.character("astro"))).is_equal("buyable")
+	assert_str(Registry.hero_state(Registry.character("astro"))).is_equal("owned")
+	assert_str(Registry.hero_state(Registry.character("solenne"))).is_equal("buyable")
 
 
 func test_items_maps_and_skins_ask_the_trail_first() -> void:
@@ -358,7 +360,8 @@ func test_items_maps_and_skins_ask_the_trail_first() -> void:
 	var dri: CharacterDef = Registry.character("drifter")
 	assert_str(Registry.skin_state(dri, "DRI-B")).is_equal("locked")
 	assert_str(Registry.skin_requirement_text(dri, "DRI-B")).is_equal("Reach Trail Level 1")
-	assert_str(Registry.skin_state(dri, "DRI-C")).is_equal("locked")
+	# pass 140 (lane QUESTS, re-pinned): Dust Walker has no goal now (on sale from the start), and no node gives it
+	assert_str(Registry.skin_state(dri, "DRI-C")).is_equal("buyable")
 	assert_bool(Registry.skin_requirement_text(dri, "DRI-C").begins_with("Reach Trail")).is_false()
 	_rich()
 	_buy(["g_outlaw", "g_skin", "g_weapon", "g_free", "g_passive", "g_stage", "g_map"])
@@ -707,7 +710,7 @@ func test_the_migration_refunds_the_board_and_keeps_what_the_save_has() -> void:
 			"map:red_canyon"]:
 		assert_bool(had.has(key)).override_failure_message("not kept: " + key).is_true()
 	# and what it had not: an outlaw not bought, a quest not done (retired or still there), a stage not open, a hidden structure
-	for key: String in ["outlaw:astro", "weapon:sabre", "weapon:zap_beam", "passive:deadeye", "stage:red_canyon:dust", "structure:gold_bank",
+	for key: String in ["outlaw:solenne", "weapon:sabre", "weapon:zap_beam", "passive:deadeye", "stage:red_canyon:dust", "structure:gold_bank",
 			"skin:drifter:DRI-C"]:
 		assert_bool(had.has(key)).override_failure_message("kept: " + key).is_false()
 	# so the nodes that give them count as bought at no cost, the others lock

@@ -1,0 +1,13 @@
+{
+  "id": "unlock_skedaddle",
+  "name": "Hold the Line",
+  "condition": {
+    "type": "survive_minutes_no_lift",
+    "minutes": 2
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "skedaddle"
+  },
+  "icon": "res://content/passives/skedaddle/skedaddle_icon.png"
+}

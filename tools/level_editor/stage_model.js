@@ -340,6 +340,10 @@ const StageModel = (() => {
     // empty removes the key (the stage multiplier / 1 + speed per stage x the index again); its weather and its own dust devils:
     // an object, empty removes the key (as every other stage)
     else if (key === 'reward_mult' || key === 'speed_mult') { if (value === '' || value == null) delete e[key]; else e[key] = Math.max(0, num(value, 1)); }
+    // pass 140 (lane ECON): the stage's pay (WaveTimeline.stage_coin_mult, stage_boss_purse, stage_wage): a number >= 0
+    // (the purse whole), empty removes the key (coins: the round of reward_mult; the purse: the game's line; Wages: none)
+    else if (key === 'coin_mult' || key === 'wage') { if (value === '' || value == null) delete e[key]; else e[key] = Math.round(Math.max(0, num(value, 0)) * 1000) / 1000; }
+    else if (key === 'boss_purse') { if (value === '' || value == null) delete e[key]; else e[key] = Math.round(Math.max(0, num(value, 0))); }
     else if (key === 'weather' || key === 'dust_devils') { if (!isObj(value) || !Object.keys(value).length) delete e[key]; else e[key] = value; }
     // pass 107 (lane XPT): the stage's XP multiplier on every kill (WaveTimeline.stage_xp_mult): a number >= 0, rounded to
     // 0.001; empty or 1 removes the key (1 is the game's default)

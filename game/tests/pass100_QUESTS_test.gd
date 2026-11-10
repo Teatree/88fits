@@ -279,8 +279,10 @@ func test_the_converted_quests_read_their_new_conditions() -> void:
 	var want := {
 		# pass 129 (re-pinned): Overkill's, the Land Mine's, Death's, Ricochet's, Fadeaway's and May's quests are retired
 		# (Trail nodes give them); the skins' goals carry the other build types
-		"unlock_sabre": "item_level", "unlock_haste": "item_level",
-		"skin_astro_ast_b": "evolve_item", "skin_fadeaway_fad_b": "hero_level",
+		# pass 140 (lane QUESTS, re-pinned): the Tower's and Event Horizon's goals are retired (Trail nodes); The Ghost's
+		# and The Eye's tasks carry item_level and evolve_item
+		"unlock_sabre": "item_level", "unlock_evade": "item_level",
+		"unlock_deadeye": "evolve_item", "skin_fadeaway_fad_b": "hero_level",
 	}
 	for id: String in want.keys():
 		var q: QuestDef = Registry.quests.get(id)
@@ -356,6 +358,9 @@ func test_no_quest_waits_on_something_it_can_never_have() -> void:
 	while progress:
 		progress = false
 		for q: QuestDef in open.duplicate():
+			# pass 140 (lane QUESTS): a task behind another waits for it
+			if q.requires.any(func(r) -> bool: return open.any(func(o: QuestDef) -> bool: return o.id == str(r))):
+				continue
 			if _needs_met(q, have):
 				open.erase(q)
 				var u := str(q.unlocks.get("id", ""))
@@ -372,9 +377,10 @@ func test_no_quest_waits_on_something_it_can_never_have() -> void:
 
 func _needs_met(q: QuestDef, have: Dictionary) -> bool:
 	var c := q.condition
-	if c.has("hero") and not have.has("hero:" + str(c["hero"])):
+	if str(c.get("hero", "")) != "" and not have.has("hero:" + str(c["hero"])):
 		return false
-	for key in ["weapon", "id"]:
+	# pass 140 (lane QUESTS): `holding` names an item the run must hold
+	for key in ["weapon", "id", "holding"]:
 		var id := str(c.get(key, ""))
 		if id == "":
 			continue
@@ -416,8 +422,11 @@ func test_the_quest_locked_band_and_stage_spread_still_hold() -> void:
 			continue
 		by_stage[clampi(QuestTracker.stage_hint(q), 1, 3)] += 1
 		placed += 1
-	assert_float(float(by_stage[1]) / float(placed)).is_between(0.48, 0.66)
+	# pass 140 (lane QUESTS, re-pinned; plan v2): the tasks are choices a stage-1 run can do (a weapon, a Card or an item
+	# taken far); Gila Hunter, Last Stand and Evolution take stage 2: 15 / 3 / 0 of the 18 placed (the ladder's counters
+	# have no stage)
+	assert_float(float(by_stage[1]) / float(placed)).is_between(0.70, 0.90)
 	# pass 129 (lane TRAIL-SETUP, re-pinned): eight item quests are retired (Trail nodes give the items), the last-stage
 	# ones among them: the 13 that stay fall half and half on stages 1 and 2
-	assert_float(float(by_stage[2]) / float(placed)).is_between(0.30, 0.52)
+	assert_float(float(by_stage[2]) / float(placed)).is_between(0.10, 0.30)
 	assert_int(by_stage[3]).is_between(0, 2)

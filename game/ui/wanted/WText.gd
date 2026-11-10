@@ -78,6 +78,21 @@ var bold_color := Color(0, 0, 0, 0):
 		bold_color = v
 		queue_redraw()
 
+## Pass 140 (lane TEXTS; Garry: "'All your mutations still apply' - should be written in a different cursive, less visible
+## font"): with `note_size` > 0 the text's last line, when it is an evolution's mutations note (TextGen.is_note), is set
+## apart under the rest in `note_font` (Rubik Italic from W.desc_text) at `note_size` in `note_color`, NOTE_GAP of a
+## body line above it, no bold numbers. W.desc_text turns it on; 0 = one paragraph as before. `text` keeps the whole.
+var note_size := 0:
+	set(v):
+		note_size = v
+		_dirty = true
+		update_minimum_size()
+		queue_redraw()
+var note_font: Font
+var note_color := Color(1, 1, 1, 0.6)
+const NOTE_GAP := 0.3
+const NOTE_LH := 1.25
+
 ## A number with its sign and its unit: "+15%", "−20%", "×2", "1.5 s", "4 m", "90°", "3rd", "1,200"; not a digit
 ## glued to a word ("SK2", nor the tail of "v0.39"), and a unit only when no letter follows it ("3 seconds" bolds the 3
 ## alone).
@@ -85,6 +100,7 @@ const NUMBER_PATTERN := r"(?<![A-Za-z\d.,])[+\-−×]?\d+(?:[.,]\d+)*(?:\s?(?:%|
 static var _num_re: RegEx
 
 var _para: TextParagraph
+var _note_para: TextParagraph
 var _lines: Array = []   # for runs: [[TextLine, colour], ...]
 var _dirty := true
 var _shaped_w := -2.0
@@ -134,12 +150,26 @@ func _shape() -> void:
 		_para = null
 		return
 	_para = TextParagraph.new()
-	if bold_numbers and bold_font and text != "":
+	_note_para = null
+	# pass 140: the note line set apart (note_size); the body is the text before it (the same characters from 0, so the
+	# number ranges hold)
+	var body := text
+	var cut := text.rfind("\n") if note_size > 0 else -1
+	if cut >= 0 and TextGen.is_note(text.substr(cut + 1)):
+		body = text.substr(0, cut)
+		_note_para = TextParagraph.new()
+		_note_para.add_string(text.substr(cut + 1), note_font if note_font else _f(), note_size)
+		_note_para.break_flags = TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
+		_note_para.width = size.x if wrap and size.x > 1.0 else -1.0
+		_note_para.alignment = align
+	if bold_numbers and bold_font and body != "":
 		# the numbers in the bold face, the words between them in the text's own (pass 54)
-		for sp in number_spans(text):
-			_para.add_string(str(sp[0]), bold_font if sp[1] else _f(), font_size)
+		for sp in number_spans(body):
+			# pass 140: a number keeps its unit on its line ("14 m", never "14" / "m"): the space inside the span is a
+			# no-break one (one character for one, so the number ranges hold)
+			_para.add_string(str(sp[0]).replace(" ", "\u00a0") if sp[1] else str(sp[0]), bold_font if sp[1] else _f(), font_size)
 	else:
-		_para.add_string(text, _f(), font_size)
+		_para.add_string(body, _f(), font_size)
 	_para.break_flags = TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
 	_para.width = size.x if wrap and size.x > 1.0 else -1.0
 	_para.alignment = align
@@ -196,7 +226,16 @@ func _get_minimum_size() -> Vector2:
 		w = _runs_width()
 	elif _para and not wrap:
 		w = _para.get_size().x
-	return Vector2(ceilf(w + stroke * 2.0), ceilf(_lh() * _line_count()))
+		if _note_para:
+			w = maxf(w, _note_para.get_size().x)
+	return Vector2(ceilf(w + stroke * 2.0), ceilf(_lh() * _line_count() + _note_h()))
+
+
+## The note's height under the body with its gap (pass 140), 0 without one.
+func _note_h() -> float:
+	if _note_para == null or not _lines.is_empty():
+		return 0.0
+	return _lh() * NOTE_GAP + roundf(note_size * NOTE_LH) * _note_para.get_line_count()
 
 
 ## Width of the widest line as shaped now (for callers that size a plate round the text).
@@ -215,7 +254,7 @@ func _draw() -> void:
 	_shape()
 	var lh := _lh()
 	var n := _line_count()
-	var total := lh * n
+	var total := lh * n + _note_h()
 	var y0 := 0.0
 	if valign == VERTICAL_ALIGNMENT_CENTER:
 		y0 = (size.y - total) * 0.5
@@ -249,6 +288,22 @@ func _draw() -> void:
 			var lx := pos.x
 			var ly := pos.y + (asc * 0.62 if strike else asc + 4.0)
 			draw_line(Vector2(lx, ly), Vector2(lx + lw, ly), color, maxf(2.0, font_size * 0.07))
+	# pass 140: the note under the body, in its own face and colour
+	if _note_para:
+		var nlh := roundf(note_size * NOTE_LH)
+		var ny := y0 + lh * n + lh * NOTE_GAP
+		for j in _note_para.get_line_count():
+			var na := _note_para.get_line_ascent(j)
+			var nd := _note_para.get_line_descent(j)
+			var nw := _note_para.get_line_width(j)
+			var nx := 0.0
+			if not (wrap and size.x > 1.0):
+				nx = _x_for(nw)
+			elif align == HORIZONTAL_ALIGNMENT_CENTER:
+				nx = (size.x - nw) * 0.5
+			elif align == HORIZONTAL_ALIGNMENT_RIGHT:
+				nx = size.x - nw
+			_note_para.draw_line(ci, Vector2(nx, ny + j * nlh + (nlh - (na + nd)) * 0.5), j, note_color)
 
 
 func _para_line_x(i: int) -> float:

@@ -87,7 +87,7 @@
       "cone": 60
     },
     "gravity": {
-      "blast": 1.9,
+      "blast": 2.0,
       "grab": 0.32,
       "hold": 0.28,
       "throw": 0.5,

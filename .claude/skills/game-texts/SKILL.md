@@ -5,6 +5,8 @@ description: Add or change any text a player reads in 88fits / Outlaw Survivors 
 
 # Texts a player reads (pass 137)
 
+**How an item text is worded** (digits, "deal damage", every weapon says its damage, whole metres, "2 m"): `docs/texts/text_rules.md` (pass 140).
+
 Garry edits every player-facing text in the Level Editor's **Texts** tab (or as CSV in Excel). That only works if no
 player text is a literal in code. His guide: `docs/howto/texts_and_localization.html` (the tab's Guide button).
 

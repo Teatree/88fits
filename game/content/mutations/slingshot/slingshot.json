@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "The thrown enemy skips on to the next crowd for a second blast.",
+  "text": "Thrown enemies bounce on to the next crowd for another blast at 60% damage.",
   "vfx": "a bounce and a second blast",
   "effects": [],
   "params": {

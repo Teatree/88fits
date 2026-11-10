@@ -28,7 +28,7 @@
       "family": "placed"
     },
     "gravity": {
-      "blast": 1.9,
+      "blast": 2.0,
       "black_hole": {
         "radius": 3.2,
         "seconds": 3.0,

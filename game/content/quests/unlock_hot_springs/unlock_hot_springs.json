@@ -1,0 +1,15 @@
+{
+  "id": "unlock_hot_springs",
+  "name": "Spa Day",
+  "condition": {
+    "type": "heal_with_source",
+    "source": "structure:healing_well",
+    "count": 1500
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "hot_springs"
+  },
+  "requires": "unlock_snake_oil",
+  "icon": "res://content/passives/hot_springs/hot_springs_icon.png"
+}

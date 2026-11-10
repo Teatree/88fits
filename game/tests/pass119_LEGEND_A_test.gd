@@ -1,5 +1,8 @@
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): items, outlaws and stages behind a Trail node or a task (BALANCING 81.TRAIL, 81.QUESTS) opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 ## Pass 119, lane LEGEND_A (Garry: the Iron Horse, "our most powerful one yet", foreshadowed, animated start to finish,
 ## knocking back what it runs over; Personal Storm, clouds rolling in and lightning "with a preference for enemy
 ## groups", marks that fade; the two "quietly mutually exclusive ... they won't get the other offered to them again
@@ -95,6 +98,7 @@ func zoom() -> float:
 
 func before_test() -> void:
 	Save.data = Save._default()
+	UNLOCKS.open_all("passive", ["iron_horse", "personal_storm"])
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
 	Run.arena = false
 

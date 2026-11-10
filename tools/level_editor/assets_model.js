@@ -637,7 +637,26 @@ const AssetsModel = (() => {
     if (!isObj(q)) return '';
     if (q.quest_text) return String(q.quest_text);
     const c = isObj(q.condition) ? q.condition : {};
-    const nm = names || {};
+    return questGatesText(c, questBaseText(c, names || {}), names || {});
+  }
+  /** Pass 140 (lane QUESTS): TextGen.quest_gates_text: "... with Ironwood." (`hero`, where the type does not name its
+   *  outlaw: hero_level and beat_stage do), "... holding Big Game Hunter." (`holding`), or both. */
+  function questGatesText(c, text, nm) {
+    const t = String(c.type || '');
+    const hid = (t === 'hero_level' || t === 'beat_stage') ? '' : String(c.hero || '');
+    const item = String(c.holding || '');
+    if (!hid && !item) return text;
+    const base = String(text).trim().replace(/\.$/, '');
+    const cap = (id) => id.replace(/_/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase());
+    const who = hid ? ((nm.hero && nm.hero(hid)) || cap(hid)) : '';
+    const it = nm.items || {};
+    const w = (it.weapons || []).find((x) => x.id === item);
+    const p = (it.passives || []).find((x) => x.id === item);
+    const what = !item ? '' : w ? 'the ' + String(w.name || item) : p ? String(p.name || item) : cap(item);
+    if (who && what) return `${base} with ${who}, holding ${what}.`;
+    return who ? `${base} with ${who}.` : `${base} holding ${what}.`;
+  }
+  function questBaseText(c, nm) {
     const n = (k, d) => Math.trunc(num(c[k], d));
     const grouped = (v) => String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     const map = (id) => (nm.map ? nm.map(id) : String(id || '').replace(/_/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase()));
@@ -651,12 +670,14 @@ const AssetsModel = (() => {
       case 'open_chests': return `Open ${n('count', 0)} chests.`;
       case 'evolve_any': return `Evolve any weapon${n('count', 1) <= 1 ? '' : ` ${n('count', 1)} times`}.`;
       case 'extract_after_stage': return `Extract after stage ${n('stage', 1)} on ${map(c.map)}.`;
-      case 'kill_boss': return `Kill the stage ${n('stage', 1)} boss on ${map(c.map)}.`;
+      // pass 140 (lane QUESTS): "Beat the Sundown boss." (the stage's name, as TextGen.stage_word)
+      case 'kill_boss': return `Beat the ${(nm.stage && nm.stage(String(c.map || 'red_canyon'), n('stage', 1))) || `stage ${n('stage', 1)}`} boss.`;
+      case 'bosses_total': return n('count', 0) === 1 ? 'Beat a boss.' : `Beat ${grouped(n('count', 0))} bosses.`;
       case 'kills_in_run_of_enemy': return `Kill ${creature(c.enemy, n('count', 0))} in one run.`;
       case 'kills_total': return `Kill ${grouped(n('count', 0))} creatures, all time.`;
       case 'runs_total': return `Play ${n('count', 0)} runs.`;
       case 'pickups_total': return `Pick up ${n('count', 0)} power-ups.`;
-      case 'gold_total': return `Earn ${n('count', 0)} gold, all time.`;
+      case 'gold_total': return `Earn ${grouped(n('count', 0))} gold, all time.`;
       case 'reach_stage': return `Reach stage ${n('stage', 1)}.`;
       // pass 100 (lane QUESTS): TextGen.quest_build_text
       case 'hero_level': case 'item_level': case 'evolve_item': case 'weapon_paths': case 'items_maxed': return questBuildText(c, nm);

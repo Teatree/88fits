@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_0wji0")
 weapon = "flare_gun"
-text = "Flares burst into embers that rain down around what they hit."
+text = "Flares burst into 5 embers that rain down around what they hit."
 vfx = "a red burst, five arcing embers, five small fire pools"
 params = {
 "burst_spawn": {

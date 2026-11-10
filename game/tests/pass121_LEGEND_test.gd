@@ -6,6 +6,9 @@
 ## nothing while off and, on, puts one legendary into the next level-up after its time, once. BALANCING.md 63.LEGEND.
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): items, outlaws and stages behind a Trail node or a task (BALANCING 81.TRAIL, 81.QUESTS) opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 ## The legendary items' weights while a test forces them high (restored in after_test).
 var _weights: Dictionary = {}
 ## The map the run plays: a copy of Red Canyon with its own timeline, so a test can set the legendary block freely.
@@ -14,6 +17,7 @@ var _map: MapDef = null
 
 func before_test() -> void:
 	Save.data = Save._default()
+	UNLOCKS.open_all("passive", _legend_ids())
 	Run.arena = false
 	CardPool.rng = null
 	_weights.clear()

@@ -6,15 +6,15 @@
 [resource]
 script = ExtResource("2_8r7x7")
 condition = {
-"count": 1.0,
-"type": "evolve_any"
+"kind": "weapon",
+"type": "evolve_item"
 }
 unlocks = {
 "id": "deadeye",
 "type": "passive"
 }
 id = "unlock_deadeye"
-display_name = "The Eye"
+display_name = "Evolution"
 icon = ExtResource("1_smemt")
 icon_file = "unlock_deadeye_icon.png"
 placeholder = {

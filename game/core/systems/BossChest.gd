@@ -159,13 +159,14 @@ static func sample_pack(boss_id: String, stage: int = 0, fight_s: float = 30.0, 
 	var def: EnemyDef = Registry.enemy(boss_id)
 	if def == null:
 		return {}
-	var coin_k := float(maxi(int(round(Run.reward_mult())), 1))
-	var gold := float(Game.boss_purse(stage)) + float(def.drops.get("coins", Game.BOSS_COINS)) * 5.0 * coin_k
+	var t = tl if tl != null else (Run.map.timeline if Run.map else null)
+	# pass 140 (lane ECON): stage `stage`'s own coin factor and boss purse (StagePay.coin_mult, Game.boss_purse)
+	var coin_k := StagePay.coin_mult(stage, t)
+	var gold := float(Game.boss_purse(stage, t)) + float(def.drops.get("coins", Game.BOSS_COINS)) * 5.0 * coin_k
 	gold += 2.0 * PickupManager.BIG_COIN_MULT * coin_k * float(def.drops.get("gold", 0.0))
 	# pass 139 (80.COINS): x the temporary Coins x25 switch, as a real kill's chest (Game._pack_boss_chest)
 	gold *= float(PickupManager.coins_x())
 	var xp := 25.0 * def.xp_mult * float(def.drops.get("large", 0.0))
-	var t = tl if tl != null else (Run.map.timeline if Run.map else null)
 	if t != null and t.has_method("stage_xp_mult"):
 		xp *= float(t.stage_xp_mult(stage))
 	var secs: float = t.boss_seconds(boss_id) if t != null and t.has_method("boss_seconds") else 0.0

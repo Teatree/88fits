@@ -24,6 +24,13 @@ const DEFAULT_HERO := "drifter"
 ## a save that starts here holds: no file to read (load_save's "new") or a wipe. `_default()` keeps 0, so a file read
 ## over it keeps its own gold (an existing save is never given these), and no migration adds them.
 const START_GOLD := 50
+## Pass 140 (lane ECON; Garry: "Make it so that players are forced to a new save with this particular build"): the save
+## epoch, the pass that last started every player on a new save (the file's key `epoch`). A file read whose `epoch` is
+## below it (a save from before pass 140 has none: 0) is set aside as save_before_p<EPOCH>.json (its .bak and .tmp beside
+## it; never deleted) and a new save starts in its place (START_GOLD, the Trail's first steps), keeping only the player's
+## own keys and the settings (KEEP_ON_FRESH). Raise it to start every player on a new save again.
+const EPOCH := 140
+const KEEP_ON_FRESH := ["install_id", "player_name", "consent", "survey", "settings"]
 
 var data: Dictionary = {}
 ## where the file lives (the tests point it at user://test_saves so they never touch a real save)
@@ -36,6 +43,11 @@ var _sandbox_backup: Dictionary = {}
 var last_saved_unix := 0
 var last_error := ""
 var loaded_from := "new"
+## Pass 140 (lane ECON): whether load_save holds a file to EPOCH: on, except under the gdUnit runner, whose suites write
+## saves of every age by hand to test what load_save makes of them (pass140_econ_test turns it on for its own test). And
+## where this boot set an older save aside ("" when it did not).
+var epoch_check := true
+var set_aside := ""
 
 
 func path() -> String:
@@ -56,6 +68,7 @@ func _ready() -> void:
 	# the gdUnit runner (-s GdUnitCmdTool.gd) gets its own folder: the suites wipe and refill the save as they test
 	if Array(OS.get_cmdline_args()).any(func(a) -> bool: return str(a).ends_with("GdUnitCmdTool.gd")):
 		dir = "user://test_saves"
+		epoch_check = false
 	load_save()
 
 
@@ -74,6 +87,8 @@ func _notification(what: int) -> void:
 func _default() -> Dictionary:
 	return {
 		"version": VERSION,
+		# pass 140 (lane ECON): the save epoch this save was started in (EPOCH; load_save sets an older file aside)
+		"epoch": EPOCH,
 		"saved_at": 0,
 		"gold": 0,
 		"quests_done": [],
@@ -134,12 +149,17 @@ func load_save() -> void:
 	data = _default()
 	loaded_from = "new"
 	last_error = ""
+	set_aside = ""
 	for c in [[path(), "save"], [bak_path(), "backup"], [tmp_path(), "tmp"]]:
 		var p: String = c[0]
 		if not FileAccess.file_exists(p):
 			continue
 		var parsed = _read_json(p)
 		if parsed is Dictionary and not parsed.is_empty():
+			# pass 140 (lane ECON): a save from before the epoch is set aside and a new one starts here ("new")
+			if epoch_check and int(float(parsed.get("epoch", 0))) < EPOCH:
+				_start_fresh(parsed)
+				break
 			_merge_file(parsed)
 			loaded_from = str(c[1])
 			break
@@ -205,6 +225,39 @@ func _read_json(p: String) -> Variant:
 		push_warning("Save: %s line %d: %s" % [p.get_file(), j.get_error_line(), j.get_error_message()])
 		return null
 	return j.data
+
+
+## Pass 140 (lane ECON): `parsed`, a save from before EPOCH, is not this build's: save.json and its .bak and .tmp go aside
+## (save_before_p<EPOCH>.json and siblings, never deleted), `data` stays the defaults with the player's own keys and the
+## settings from it (KEEP_ON_FRESH, each of the default's kind), and the new save is written at once. load_save goes on
+## as for a new install (loaded_from "new": START_GOLD, the Trail's first steps).
+func _start_fresh(parsed: Dictionary) -> void:
+	for k: String in KEEP_ON_FRESH:
+		if parsed.has(k) and _same_kind(data.get(k), parsed[k]):
+			data[k] = parsed[k]
+	var stem := "save_before_p%d.json" % EPOCH
+	for suffix: String in ["", ".bak", ".tmp"]:
+		var src := path() + suffix
+		if FileAccess.file_exists(src):
+			var to := _aside_name(src, stem + suffix)
+			if DirAccess.rename_absolute(src, to) == OK and suffix == "":
+				set_aside = to.get_file()
+	data["fresh_start"] = {"aside": set_aside, "from_epoch": int(float(parsed.get("epoch", 0))), "at": int(Time.get_unix_time_from_system())}
+	push_warning("Save: a save from before epoch %d was set aside as %s; a new save starts" % [EPOCH, set_aside])
+	_dirty = true
+	_due_ms = 0
+
+
+## Where `src` goes aside as `name` in the save folder: that name, or name-2, -3 ... when a different file holds it (one
+## with the same bytes is the same save set aside before: it is replaced by itself).
+func _aside_name(src: String, name: String) -> String:
+	var base := dir.path_join(name)
+	var to := base
+	var n := 1
+	while FileAccess.file_exists(to) and FileAccess.get_file_as_bytes(to) != FileAccess.get_file_as_bytes(src):
+		n += 1
+		to = base.replace(".json", "-%d.json" % n)
+	return to
 
 
 ## The file's keys over the defaults, by type: a key the file has with the right type wins, a key this build does not

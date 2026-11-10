@@ -1,0 +1,14 @@
+{
+  "id": "unlock_tommy_gun",
+  "name": "Dust Yourself Off",
+  "condition": {
+    "type": "runs_total",
+    "count": 1
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "tommy_gun"
+  },
+  "ladder": true,
+  "icon": "res://content/weapons/tommy_gun/tommy_gun_icon.png"
+}

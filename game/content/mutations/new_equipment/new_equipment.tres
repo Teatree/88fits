@@ -29,7 +29,7 @@ value = 0.2
 script = ExtResource("2_5afoq")
 weapon = "lob_grenade"
 mutation_kind = "element"
-text = "A bigger grenade: +20% damage, +20% area and +30% knockback."
+text = "Deal +20% damage in a 20% wider blast and knock back enemies harder."
 vfx = "a bigger, shinier grenade"
 effects = [SubResource("Resource_5afoq"), SubResource("Resource_dgba4"), SubResource("Resource_y37i1")]
 params = {
@@ -49,7 +49,7 @@ variants = {
 "params": {
 "model_form": "bundle"
 },
-"text": "A bigger bundle of sticks: +20% damage, +20% area and +30% knockback."
+"text": "A bigger bundle of sticks deals +20% damage in a 20% wider blast and knocks back enemies harder."
 },
 "C": {
 "flavour": "One stick is a warning. A bundle is a statement.",
@@ -61,7 +61,7 @@ variants = {
 "params": {
 "model_form": "bundle"
 },
-"text": "A bigger bundle of sticks: +20% damage, +20% area and +30% knockback."
+"text": "A bigger bundle of sticks deals +20% damage in a 20% wider blast and knocks back enemies harder."
 },
 "D": {
 "flavour": "One stick is a warning. A bundle is a statement.",
@@ -73,7 +73,7 @@ variants = {
 "params": {
 "model_form": "bundle"
 },
-"text": "A bigger bundle of sticks: +20% damage, +20% area and +30% knockback."
+"text": "A bigger bundle of sticks deals +20% damage in a 20% wider blast and knocks back enemies harder."
 }
 }
 variant_base = "A"

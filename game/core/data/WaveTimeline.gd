@@ -590,6 +590,17 @@ func damage_mult_at(t: float) -> float:
 	return curve_mult(damage_curve, t) if not damage_curve.is_empty() else 1.0
 
 
+## Pass 140 (lane DIFF): the run second a source fixed at `t` in the run of stage `stage` reads the HP and ATK curves at.
+## The curves step at each stage's edge ([1030, Nightfall's end], [1030, the Dust Bowl's opening]) and a boundary second
+## samples the first point (the boss second keeps the stage it closes: the boss and its fight's rows read that). A row of a
+## later stage that starts on the stage's very first second plays only in that stage's own run (pass 87), so there it reads
+## a hair (0.01 s) inside the window: the new stage's step, not the old stage's end. Any other second is itself.
+func curve_t(t: float, stage: int) -> float:
+	if stage > 0 and stage < stage_count() and absf(t - stage_start(stage)) < 0.001:
+		return stage_start(stage) + 0.01
+	return t
+
+
 func roster_at(t: float) -> Array:
 	var out: Array = []
 	for r in roster:
@@ -916,6 +927,35 @@ func stage_reward_mult(i: int) -> float:
 	if own is float or own is int:
 		return maxf(float(own), 0.0)
 	return stage_mult(stage_clamp(i))
+
+
+## Pass 140 (lane ECON; Garry on the progression plan's stage pay: "Yes I am accepting all of the multipliers"): stage `i`'s
+## coin factor, what a coin on its sand pays per unit of its value (StagePay.coin_mult; a fraction is carried from coin to
+## coin, so 2.66 pays 2.66 a coin on average). The entry's `coin_mult`, else the round of stage_reward_mult (at least 1),
+## the pay before pass 140. reward_mult keeps its other readers (Personal Storm, the Iron Horse). Red Canyon: 1, 2.66, 6, 8.55.
+func stage_coin_mult(i: int) -> float:
+	var own = _stage_raw(i).get("coin_mult")
+	if own is float or own is int:
+		return maxf(float(own), 0.0)
+	return float(maxi(int(round(stage_reward_mult(i))), 1))
+
+
+## Pass 140 (lane ECON): stage `i`'s boss purse (Game.boss_purse): the entry's `boss_purse`, -1 without one (Game.BOSS_PURSE's
+## line by stage, the purse before pass 140). Red Canyon: 325, 750, 1350, 1700.
+func stage_boss_purse(i: int) -> int:
+	var own = _stage_raw(i).get("boss_purse")
+	if own is float or own is int:
+		return maxi(int(own), 0)
+	return -1
+
+
+## Pass 140 (lane ECON): stage `i`'s Wages, coins a minute of its clock survived, paid at the run's end with the purse
+## (StagePay.pay_wages): the entry's `wage`, 0 without one. Red Canyon: 30, 80, 150, 240.
+func stage_wage(i: int) -> float:
+	var own = _stage_raw(i).get("wage")
+	if own is float or own is int:
+		return maxf(float(own), 0.0)
+	return 0.0
 
 
 ## Pass 126 (lane STAGE): stage `i`'s weather as the map has it ({}: the stage plays as every stage did; RedCanyon.set_weather).

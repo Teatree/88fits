@@ -10850,3 +10850,166 @@ the Bounty Board its barrel on a brass plate), `PLATE_PX` 340, `FIGURE_H` 640, `
 Ultra 84 px (shrunk to 960 px wide, never under 44).
 
 80.PROG. A proposal, no rule changed (version 2, after Garry's notes on version 1). `docs/progression/progression_plan.html`, scripts in `tools/dl/p139/PROG/`: a 33-thing first run (9 weapons, 9 Cards, 15 items; Astro open), 68 locked things split between the Trail and 34 tasks by Garry's ratios (items 15/15, weapons 6/4, Cards 8/4, outlaws 4/1, skins 1/10), one first-run task (Dust Yourself Off -> the Tommy Gun), tasks that need a chosen item, outlaw or build, a one-at-a-time ladder of generic counters and 12 tasks behind another (new code: `requires`, `holding`, `hero`, `bosses_total`, a 3-row Results rule); the Trail's mix of choice, optional and rails-meeting nodes kept with 38 unlock nodes and eight new power nodes (no structures or Bounty Board on it); every later stage about twice the coins a real minute (coin multipliers, boss purses, Wages 30/80/150/240 a stage-minute, posters x1/x3/x7/x14); price {20, 6.21, 1.9, 10} so the Trail is done by run 50 at 110% of today's end power; Sundown's first three minutes softer so a first run lasts to about 3:00. Nothing of it is in the game until Garry answers its questions.
+
+## 81. Pass 140: the progression plan v2 in the game (the Trail, the tasks, the stage pay, a new save, creature strength), owned outlaws first, the text rules
+
+Garry (2026-11-10) on the plan v2 ("The Fifty-Run Plan", docs/progression/progression_plan.html): "Remove Power-ups from the
+Trails, but keep Stage"; "Yes I am accepting all of the multipliers"; "Make it so that players are forced to a new save with
+this particular build"; "let's keep 3 Unlocked: Drifter, Ironwood and Astro"; "110% is fine, bigger is fine too"; "Try to
+achieve the enemy power increase without changing the quantity of them too much ... But more with ATK and HP"; "x25 is a
+cheat, we don't balance anything around this"; "Proceed with implementation otherwise." Polish: owned outlaws bunched before
+locked ones; texts with digits, the game's own words, the damage in every weapon's description, whole metres.
+
+81.TRAIL. The Trail of the progression plan v2 (pass 140, lane TRAIL). Garry, 2026-11-10: "Remove Power-ups from the
+Trails, but keep Stage"; "Yes, let's keep 3 Unlocked: Drifter, Ironwood and Astro"; "110% is fine, bigger is fine too
+(since I am asking you to remove some power-up unlocks and trails, they should be replaced with power nodes)".
+`game/content/trail/trail.json` is written by `tools/trail_setup.py` (its DESIGN, one row a level): 130 nodes on 70 levels
+(pass 129: 100). The mix of choice, optional and rails-meeting nodes is pass 129's, unchanged: 12 choice groups of 28
+nodes, 10 optional nodes (four Stakes, four Boss Stakes, Grubstake, Spirit Guide), 3 nodes where rails meet (Extra Barrel
+at 52, Pass the Bottle at 59, Boot Hill Pass at 64, each needing every required node of the level right below); 92 plain
+nodes, 36 unlock nodes (4 outlaws, 1 skin, 29 weapons, Cards and items, 2 stages). Price `{base 20, k 6.21, power 1.9,
+round 10}` (pass 129: 40, 7.2, 1.95): an item, Card or skin node costs x0.5 of its level's price, an outlaw x2 (pass 129:
+his own price; now Calavera 2,440, Solenne 4,840, Fadeaway 8,000, Jeżyk 12,500), a stage its level's price (the Dust Bowl
+1,530, Blood Moon 5,070); level 1 keeps its own 10 for Garry's Might +5%. Every required node costs 695,225 coins (pass
+129: 897,810), the optional ones 16,112 more. Moves: the Dust Bowl 20 -> 18, Blood Moon 36 -> 34, Aegis +15 18 -> 20,
+Turret Buddy 34 -> 36, Extra Barrel 64 -> 52 and Boot Hill Pass 52 -> 64, Kill Shot +20% 58 -> 40. Astro is open from the
+start (availability `available`; his node at 9 gives Grit +5%); May has no node (a task; her node at 45 gives Aegis +15);
+Death's and The Ghost's nodes (28, 41) give The Miner and The Ember (Death and The Ghost come from tasks). No power-up,
+structure, feature or map node: Berserk and the Nuke are open from the start and their slots (8, 25) are power nodes. Power
+nodes (each the first of the plan's preference list whose type is not within five levels): Dead Eye +2% at 3, Aegis +10 at
+8, 13 and 27, Plate +2% at 25 and 42, Omen +4% at 44, Dead Eye +2% at 58 (the plan had Plate +2% at 56: at 58 Pass the Bottle
+still meets two rails). New unlock nodes: The Tower 4, Pocket Watch 5, The Star 6, Powder Keg 7, The Sage 9, Lightning in a
+Bottle 10, Magnet 12, The Storm 13, Assayer's Scale 14, Rocket Pod 15, Jade Key 17, Pocket Bible 19, The Emperor 22,
+Grindstone 24, Ruby Key 26, Zap Beam 27, Undertaker's Shovel 31, Astro · Event Horizon 32, The Devil 37, Fool's Gold 43,
+Iron Horse 55, Personal Storm 66; kept: Tumbleweed 11, Killer Bees 21, Turret Buddy 36, Land Mine 48, Ricochet 54, Overkill
+60. The last level's power (HeroPower probe, level-30 plain build): x3.28 of a fresh save, x1.125 of pass 129's
+last level (x2.91; at level 1 x4.73, x1.147); the Dust Bowl now opens at x1.33 (pass 129: x1.31), Blood Moon at x1.66 (x1.54). The plan's journey (`python tools/trail_setup.py --tables`, the stage pay
+of 81.ECON, Coins x25 never in it): Trail Level 3 after run 1, 10 after run 5, 20 after run 10, the last level after run 45
+(the plan: 50; the two power nodes in place of the power-ups and the six kept items at half price make it sooner).
+`tools/dl/p140/split.json` lists every locked thing and whether the Trail or a task unlocks it; no thing is both.
+
+81.QUESTS. **Tasks: choices, one ladder, some behind others** (plan v2 section 3; Garry: "Proceed with implementation
+otherwise", "Yes, let's keep 3 Unlocked: Drifter, Ironwood and Astro"). 34 tasks (`game/content/quests/`, ids
+`unlock_<thing>` / `skin_<outlaw>_<code>`) plus Dad's and Mira's; every one names what it unlocks and no unlock is also a
+Trail node (tools/dl/p140/split.json, pinned by pass140_quests_test). New rules:
+- **`requires`** (a quest id or a list, QuestDef.requires): a task behind another is not open (`Registry.quest_open`)
+  until that one is done: it is never checked, never a Results row, shows no progress; the Collection's tile reads
+  "After <task>" and its page "<task>: <words>" with "Opens after <task>: <its words>"; a skin's or an outlaw's line on
+  the Outlaws screen reads "After <task>.". A prerequisite with no quest file counts as done. Once open, a total across
+  runs shows its **all-time** count (the ladder's "typical run" numbers of the plan assume this: Old Hand at run 10 total,
+  not 10 runs after Killing Spree), so a task may open already done and complete in the same check (check_all re-checks
+  up to four rounds). Chains: the ladder, Gila Hunter -> Big Game, Big Heart -> Last Stand, Sweet Tooth -> Spa Day, Fire
+  Bug -> Solar Flare, Trigger Happy -> Carnival -> Midnight Mime, Sangre -> Marigold, Purple Reign -> Streetball (12).
+- **`ladder`** (QuestDef.ladder): Dust Yourself Off (1 run, the Tommy Gun: the only first-run task; a 20-second death
+  counts) -> Killing Spree (2,000 kills) -> Old Hand (10 runs) -> Pay Day (25,000 gold earned, `gold_total`) -> Body Count
+  (25,000 kills); each requires the one before, so one generic counter shows at a time.
+- **Gates `hero` and `holding`** on any condition done in one run (`QuestTracker.IN_RUN_TYPES`, a task type with
+  `in_one_run`) and on `bosses_total`: it counts only while the run is played as that outlaw / holds that item (a weapon,
+  card or passive item, its evolved form counts). A total across runs does not read them. Words: "... with Drifter.",
+  "... holding Big Game Hunter.".
+- **`bosses_total` {count}**: stage bosses beaten across runs (never one in Endless or the arena), counted at the boss's
+  fall for every open bosses_total task whose gates the run meets (`TaskTally.note_boss`, saved by gate key in
+  `totals.bosses`); a waiting task counts nothing. Big Game: 5 bosses holding Big Game Hunter.
+- **The Results' task rows: at most 3** (`ResultsScreen.MAX_PROGRESS_ROWS`): the ladder's step first, then the tasks this
+  run moved most (its gain as a share of the need), nearest to done on a tie; a task done this run always lands as an
+  unlock above them.
+- **May** is unlocked by Trigger Happy (Tommy Gun to level 5 in one run) and owned at once, nothing to pay
+  (`availability: available`; outlaws are no longer sold, pass 132). A free outlaw in `heroes_owned` (the developer
+  menu's gift) counts as owned and his task is never announced.
+- **Skins**: ten behind tasks (five behind another task); Event Horizon a Trail node (lane TRAIL); Dust Walker,
+  Thunderbird, Mission Control on sale from the start at their prices (1,500) with no goal. A task still unlocks only the
+  right to buy a skin. Changed goals: Winter Pelt (Cold Snap to Epic as Ironwood, was 40 Totem gifts), Czerwony (30
+  barrels in one run as Jezyk, was 150 barrels); the others as before.
+- Retired: unlock_lob_grenade, unlock_quickdraw, unlock_stride (their things start open), unlock_haste,
+  unlock_field_notes, unlock_zap_beam, unlock_rocket_pod (Trail nodes), the goals of Dust Walker, Thunderbird, Mission
+  Control and Event Horizon. Texts: kill_boss reads "Beat the Sundown boss." (the stage's name, never the hidden boss's),
+  gold_total's count is grouped ("25,000").
+
+81.ECON. The stage pay and a forced new save (lane ECON). Garry on the progression plan v2: "Yes I am accepting all of the
+multipliers", "x25 is a cheat, we don't balance anything around this", "Make it so that players are forced to a new save with
+this particular build". Every number is a key of the map's `timeline_data.stage_list[k]` entry (Level Editor stage card) or of
+`content/wanted/wanted.json`; the rules live in `core/systems/StagePay.gd`.
+- **Coins on the sand** (`coin_mult`, new; WaveTimeline.stage_coin_mult, StagePay.coin_mult): Sundown 1, Nightfall 2.66, the Dust
+  Bowl 6, Blood Moon 8.55 = x1 / x1.33 / x2 / x2.85 of what a coin paid before (the round of `reward_mult`: 1, 2, 3, 3; the plan
+  page's "2.75 -> 5.5, 3.34 -> 9.5, Nightfall gets one, 1.33" applied the factors to the unrounded keys and missed that Nightfall
+  already paid x2). New rule: the factor is a fraction; a coin pays the whole part of value x factor plus the fraction carried
+  from the coins before (StagePay.take; the carry starts at 0 with every game's PickupManager), so 2.66 pays 2 or 3 a coin,
+  2.66 on average, and a run and its replay pay the same coins (no dice). Coins x25 multiplies after it. A stage without
+  `coin_mult` pays the old round. `reward_mult` keeps its other meaning (Personal Storm, the Iron Horse, TextGen's numbers):
+  unchanged. A boss's catch (its chest) takes value x the factor as a float (no carry).
+- **Boss purses** (`boss_purse`, new; Game.boss_purse(stage, tl); WaveTimeline.stage_boss_purse): 325 / 750 / 1350 / 1700 = x1 /
+  x1.5 / x2 / x2 of BOSS_PURSE's line (325 + 175 a stage), which stays the fallback (Game.boss_purse_line). The bosses' own
+  `drops` (coins on the sand x the coin factor, own coin) unchanged; the Elite purse unchanged.
+- **Wages** (new rule; `wage`; StagePay): 30 / 80 / 150 / 240 coins a minute of the stage clock survived. The stage clock stands
+  still from the boss's arrival (it always has), so a run that met its boss is paid the whole stage (Sundown 215, Nightfall 800,
+  the Dust Bowl 1950, Blood Moon 3840) and Endless adds nothing. Paid once, at every end (a death, an abandon, an extraction:
+  Game.bank_run_end, before the purse is banked), straight into the purse: never x greed, never x Coins x25, never heard as
+  gold gained (no coin poster progress, no Gold Rush), never in the arena. Gold source `wages` (RunAnalytics, analytics/SCHEMA.md);
+  the Results' banked count carries them and a line under the purse says "Wages for 7:10: +215" (`ui.results.wages`).
+- **Posters** (wanted.json): `reward.stage_mult` [1, 1.25, 1.4, 1.5] -> [1, 3, 7, 14]; every count range of stages 2-4 =
+  Sundown's x1.6 / x2.2 / x3.0 rounded to the task's step (kill_enemy, kill_weapon, kill_specials, kill_elites, kill_total,
+  damage_weapon, element_damage, heal_item, heal_source, barrels); collect_coins x the count and x the stage's coin factor
+  (2.66, 6, 8.55: Nightfall 1,075-2,550, the Dust Bowl 3,300-7,925, Blood Moon 6,425-15,400). Kept: boss_fast's seconds,
+  hp_floor (a percent), hero_level, open_chests, totems (not counts the plan named; totems are 10-12 a map), barrels' `max` 40
+  (it clips the Dust Bowl's and Blood Moon's top to 40).
+- **A new save for this build** (Save.EPOCH 140, the save's key `epoch`): a file read whose `epoch` is below 140 (every save
+  before pass 140 has none) is set aside as `save_before_p140.json` (its .bak and .tmp beside it; a different file already
+  there gets -2, -3; the same bytes replace their own copy) and a new save starts: START_GOLD, the Trail's first steps, nothing
+  met. Kept (KEEP_ON_FRESH): `install_id`, `player_name`, `consent`, `survey` (PostHog keeps the same person) and `settings`
+  (they live in save.json). The developer menu's wipe writes a save of this epoch. Raise EPOCH to do it again. The gdUnit
+  runner holds no save to the epoch (Save.epoch_check off there; its suites write saves of every age by hand).
+
+### 81.DIFF Creature strength by stage from HP and ATK (the plan v2, section 6)
+
+Garry (2026-11-10): "Try to achieve the enemy power increase without changing the quantity of them too much (as I like the
+amount right now). But more with ATK and HP (and even SPD is some rare safe cases)" and "Don't stick too much to my dies at
+3:00 rule, this was more of an aspiration". Red Canyon's `hp_curve` plays its **points** now (mode "points"; the formula
+block stays beside it) and both curves are a ramp per stage that steps at each stage's edge; `stage_mults` stay [1, 2.2,
+2.05, 2.05]. Creature HP (stage multiplier x curve): Sundown x1.00 -> 2.30 (x1.40 at 3:00, as before), Nightfall 4.50 ->
+9.45, the Dust Bowl 9.30 -> 15.80 (+20% at its start; the plan's 18.60 end measured too steep: the sim bot's Black Sunday
+kills at Trail 30 fell from 2 of 6 to 0 of 6, x15.8 keeps 2 of 6), Blood Moon 17.0 -> 32.3 (+30% at its start).
+Bite: Sundown **x0.95 at 0:00, x1.0 at 3:00, x1.45 at the King** (it was a flat x1.21), Nightfall 0.79 -> 2.60, the Dust
+Bowl 0.98 -> 2.55, Blood Moon 1.21 -> 3.40 at 13:45, 2.64 at the Brander (Garry's gentler last 135 s kept at its ratio).
+The opening lesser scorpions (rows r5, r3) `hp_mult` 1.2 -> 0.96. The Brander `boss_hp_scaling.seconds` 80 -> 65. No
+count, pack, Max alive, pacing, timing or cap changed; no speed changed. **New rule**: a source that starts on a later
+stage's very first second (the Dust Bowl's da1 at 13:00, the Blood Moon's s3a1 and s3h1 at 30:10) reads the curves 0.01 s
+inside its stage (`WaveTimeline.curve_t`; WaveDirector.fixed_numbers / shown_numbers, the Level Editor's rowNumbers): it
+read the old stage's end before (da1 bit at x2.23 where the stage opens at x0.82). The boss second at a stage's end still
+reads the stage it closes (BALANCING 24.LEAD's rule for a row on a boss second holds inside one stage's run).
+
+smoke_run `-- seconds=90`: OK after 69 s (kills 458, cards 26, chests 6, portals 1, errors []). My test file alone after the
+fix: 7 of 7 pass.
+
+**81.HEROLIST.** Garry (2026-11-10): "When unlocking a hero that is in the middle of the list, we will make sure to
+rearrange the list such that the unlocked ones are bunched together and the locked ones are bunched together as well (so I
+don't have to scroll through many locked characters to get to the one that I have). This effect should be visible in both
+the main menu and the outlaw screen bottom ui element". The rule (pass 69's, now one function both menus read,
+`Registry.heroes_in_menu_order`): the outlaws not hidden, **owned first, then any on sale, then the locked ones**, each
+group in the outlaws' `order` (Drifter 1, Ironwood 2, Astro 3, Calavera 4, Solenne 5, Fadeaway 6, Jeżyk 7, May 8); the
+hidden ones (Dad, Mira) only while the developer previews them, after the rest by id. The title's carousel and the
+Outlaws screen's picker build the list again on every entry and after a buy, so an outlaw unlocked since stands with the
+owned ones; the outlaw picked stays picked by id (`Save.last_character`, `Registry.hero_index`). The arena's outlaw tab
+keeps the plain `order`.
+
+81.TEXTS. Item texts follow written rules (docs/texts/text_rules.md; Garry 2026-11-10: "there is still some
+inconsistency in how the texts are written ... Try making some kind of a set of rules for yourself"). Every weapon's
+description says the damage a hit deals (`{damage}`, the weapon's damage with the Outlaw's bonuses, a whole number:
+"Fires 1 shot at an enemy within 14 m for 20 damage."; Garry: "All weapon descriptions should do that I think"); the
+black hole says what it deals a second (damage x `black_hole.dps_frac`). An item's own description writes lengths in
+whole metres and times without a trailing ".0" (Garry: "explosion range is one of those stats that doesn't care about
+.1"); upgrade rows keep their decimals. **The Gravity Gun's blast is 2.0 m** (`params.gravity.blast`, was 1.9; the
+Singularity's copy too; Repulsor's 40% wider blast 2.8 m): the one balance number changed. Rows say "an enemy" where
+they said "the strongest enemy nearby" (weapons aim where the Outlaw faces since pass 136; the targeting rules are
+unchanged). An evolution's mutations note is drawn in its own face (Rubik Italic at R.NOTE_FRAC 0.78 of the
+description's size, R.NOTE_INK; WText.note_size via W.desc_text), and a number never wraps away from its unit. No rule
+of play changed.
+
+81.LEAD. The lead's merge decisions. (1) **Four lengths rounded in the data too** (Garry: "explosion range is one of those
+stats that doesn't care about .1. So just round it, in both balancing and text"): the Dynamite's `area` 2.8 -> 3.0, Skull
+Rain's `area` 2.2 -> 2.0, the Spear's `range` 4.6 -> 5.0, Wide Reach's `sense` 2.8 -> 3.0 (lane TEXTS rounded the Gravity
+Gun's blast 1.9 -> 2.0), so what a description says is what plays. (2) **An Elite's purse follows the stage's coin factor**
+(`StagePay.purse_factor`: `coin_mult` over the round of `reward_mult`, x1 / x1.33 / x2 / x2.85 on the four stages): lane
+ECON measured Elite purses at about 60% of Nightfall's and the Dust Bowl's gold, unscaled, which left those stages at 78% and
+46% of the plan's pay. (3) **The Trail's price stays `k` 6.21**: lane TRAIL's model finished it in 45 runs on the plan's
+purses, but lane ECON's measured purses are under the plan's on Nightfall, the Dust Bowl and Blood Moon, so the real count
+sits nearer 50; the one number to refit from real runs.

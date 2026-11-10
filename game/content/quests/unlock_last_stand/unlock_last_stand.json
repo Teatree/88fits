@@ -1,0 +1,16 @@
+{
+  "id": "unlock_last_stand",
+  "name": "Last Stand",
+  "condition": {
+    "type": "beat_stage",
+    "map": "red_canyon",
+    "stage": 2,
+    "holding": "energy_shield"
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "last_stand"
+  },
+  "requires": "unlock_energy_shield",
+  "icon": "res://content/passives/last_stand/last_stand_icon.png"
+}

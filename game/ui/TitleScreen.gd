@@ -213,12 +213,12 @@ func _ready() -> void:
 	# pass 69: a hero to be bought is not the one the title opens on (the first owned one is: the carousel lists them first)
 	if last and _is_locked(last):
 		last = null
-	_index = maxi(_heroes.find(last), 0)
+	_index = _index_of(last)
 	# pass 129 (lane TRAIL-UI): back from the Trail (Nav.back): the outlaw that was shown, locked or not, his sheet again
 	var came := Nav.take(scene_file_path)
 	var came_hero: CharacterDef = Registry.character(str(came["hero"])) if came.has("hero") else null
-	if came_hero and _heroes.has(came_hero):
-		_index = _heroes.find(came_hero)
+	if came_hero and Registry.hero_index(_heroes, came_hero.id) >= 0:
+		_index = _index_of(came_hero)
 		if bool(came.get("sheet", false)):
 			open_sheet.call_deferred()
 	# pass 101 (lane LOOKS): no run is going, so the last run's pinned strips are let go (LookArt keeps the most recent
@@ -262,15 +262,16 @@ func _place() -> void:
 	return
 
 
-## Every hero the carousel shows (pass 69: Registry.heroes_for_drawer, the drawer's list too): the owned ones first,
-## then those on sale, then the locked ones. With the developer's preview on, the hidden heroes join the locked ones.
+## Every hero the carousel shows (pass 69: the owned ones first, then those on sale, then the locked ones; with the
+## developer's preview on, the hidden heroes after them). Pass 140 (lane HEROLIST): the one order both menus read,
+## Registry.heroes_in_menu_order; built again on every entry and after a purchase, the pick kept by id.
 func _roster() -> Array:
-	var out: Array = Registry.heroes_for_drawer()
-	if bool(Settings.get("preview_locked_heroes")):
-		var hidden: Array = Registry.characters.values().filter(func(c: CharacterDef) -> bool: return c.hidden)
-		hidden.sort_custom(func(a, b): return a.id < b.id)
-		out.append_array(hidden)
-	return out
+	return Registry.heroes_in_menu_order(bool(Settings.get("preview_locked_heroes")))
+
+
+## Where outlaw `c` stands in the carousel (by id, pass 140), 0 when he is not in it.
+func _index_of(c: CharacterDef) -> int:
+	return maxi(Registry.hero_index(_heroes, c.id), 0) if c else 0
 
 
 ## Where the player stands with `c` (pass 69, Registry.hero_state): owned, buyable or locked; a hidden hero the
@@ -519,7 +520,7 @@ func _buy_now(c: CharacterDef) -> void:
 	_refresh_gold()
 	# the carousel's order follows what is owned: he moves up among the owned heroes and stays the one shown
 	_heroes = _roster()
-	_index = maxi(_heroes.find(c), 0)
+	_index = _index_of(c)
 	_reveal_figure()
 	_show_plaque(c)
 	_place()
@@ -558,7 +559,7 @@ func open_sheet() -> void:
 ## The sheet's look changed (pass 111, lane SKINS): the gold plate, and the hero drawn again in the look he wears now.
 func _on_sheet_look(c: CharacterDef) -> void:
 	_refresh_gold()
-	if _heroes.is_empty() or _heroes[_index] != c:
+	if _heroes.is_empty() or (_heroes[_index] as CharacterDef).id != c.id:
 		return
 	_show_hero(0)
 	_place()

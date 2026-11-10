@@ -1,0 +1,14 @@
+{
+  "id": "unlock_snake_oil",
+  "name": "Sweet Tooth",
+  "condition": {
+    "type": "heal_with_item",
+    "item": "cake",
+    "count": 5000
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "snake_oil"
+  },
+  "icon": "res://content/passives/snake_oil/snake_oil_icon.png"
+}

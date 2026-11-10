@@ -226,8 +226,17 @@ const StageTabs = (() => {
       Forms.numberInput({ key: 'stage.xp_mult', def: 1, min: 0, step: 0.05 }, e.xp_mult != null ? e.xp_mult : null, (v) => set('xp_mult', v, `Stage ${i + 1}'s XP from kills: x${v == null ? 1 : v}`), { path: 'stage.xp_mult', placeholder: 1 })));
     // pass 126 (lane STAGE): the coin factor and the creatures' speed, read from the stage entry; the weather and the dust devils
     // below in its look
-    form.appendChild(fieldRow('Coins and items x', 'what the outlaw\'s side reads of this stage: coins pay the round of this (at least 1), Personal Storm and the Iron Horse hit by it (`reward_mult`; empty = the stage multiplier)',
+    form.appendChild(fieldRow('Items x', 'what the outlaw\'s side reads of this stage: Personal Storm and the Iron Horse hit by it, and coins pay the round of it (at least 1) when Coins x below is empty (`reward_mult`; empty = the stage multiplier)',
       Forms.numberInput({ key: 'stage.reward_mult', def: App.stageMult(i), min: 0, step: 0.05 }, e.reward_mult != null ? e.reward_mult : null, (v) => set('reward_mult', v, `Stage ${i + 1}'s coins and items: x${v == null ? App.stageMult(i) : v}`), { path: 'stage.reward_mult' })));
+    // pass 140 (lane ECON; BALANCING 81.ECON): the stage's pay: coins on the sand, the boss's purse, Wages a minute survived
+    const roundOf = Math.max(1, Math.round(e.reward_mult != null ? Number(e.reward_mult) : App.stageMult(i)));
+    form.appendChild(fieldRow('Coins x', `a coin on this stage's sand worth v pays v x this, a fraction carried from coin to coin (2.66 pays 2 or 3, 2.66 on average) (coin_mult; empty = the round of Items x, ${roundOf})`,
+      Forms.numberInput({ key: 'stage.coin_mult', def: roundOf, min: 0, step: 0.05 }, e.coin_mult != null ? e.coin_mult : null, (v) => set('coin_mult', v, `Stage ${i + 1}'s coins: x${v == null ? roundOf : v}`), { path: 'stage.coin_mult', placeholder: roundOf })));
+    const purseLine = 325 + 175 * i;
+    form.appendChild(fieldRow('Boss purse', `the coins the boss's purse puts in its chest, before the speed bonus, greed and the Trail's Bounty; its own coins on the sand come on top (boss_purse; empty = the game's ${purseLine})`,
+      Forms.numberInput({ key: 'stage.boss_purse', def: purseLine, min: 0, step: 25 }, e.boss_purse != null ? e.boss_purse : null, (v) => set('boss_purse', v, `Stage ${i + 1}'s boss purse: ${v == null ? purseLine : v}`), { path: 'stage.boss_purse', placeholder: purseLine })));
+    form.appendChild(fieldRow('Wages a minute', 'coins a minute of this stage\'s clock survived, paid with the purse at every end, a death too; the clock stands still from the boss on, so a run that meets the boss earns the whole stage, Endless adds nothing; never x greed (`wage`; empty = none)',
+      Forms.numberInput({ key: 'stage.wage', def: 0, min: 0, step: 5 }, e.wage != null ? e.wage : null, (v) => set('wage', v, `Stage ${i + 1}'s Wages: ${v == null ? 0 : v} a minute`), { path: 'stage.wage', placeholder: 0 })));
     form.appendChild(fieldRow('Creature speed x', 'every creature of this stage walks at this (`speed_mult`; empty = 1 + speed per stage x its place in the list)',
       Forms.numberInput({ key: 'stage.speed_mult', def: 1, min: 0, step: 0.05 }, e.speed_mult != null ? e.speed_mult : null, (v) => set('speed_mult', v, `Stage ${i + 1}'s creature speed: x${v == null ? 'the default' : v}`), { path: 'stage.speed_mult' })));
     // pass 121 (lane LEGEND; Garry: "up until 4:30 in every run of any Stage there is 0 chance of getting a Legendary"): this

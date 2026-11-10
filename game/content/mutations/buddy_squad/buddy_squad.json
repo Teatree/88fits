@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Twice the turrets a drop and twice as many standing, −40% damage each.",
+  "text": "Drop ×2 turrets and keep ×2 standing, but deal −40% damage.",
   "vfx": "turrets dropped in twos (or fours), ringed round the outlaw",
   "effects": [
     {

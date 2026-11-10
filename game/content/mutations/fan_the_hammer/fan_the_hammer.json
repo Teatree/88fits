@@ -9,7 +9,7 @@
   "kind": "hero",
   "element": "",
   "hero": "drifter",
-  "text": "Two shots a cooldown at −25% damage.",
+  "text": "Fire 2 shots a cooldown, but deal −25% damage.",
   "vfx": "two quick flashes from the pod",
   "effects": [],
   "params": {

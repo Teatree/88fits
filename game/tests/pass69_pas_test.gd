@@ -6,6 +6,9 @@
 ## and the Magnet: no pickup radius any more, random pulls of EXP gems only, their wait never named.
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): items, outlaws and stages behind a Trail node or a task (BALANCING 81.TRAIL, 81.QUESTS) opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 const NEW := ["counterpunch", "heavyweight", "snake_oil", "hot_springs", "last_stand"]
 ## id -> [rarity, weight, max_level, {stat: its value at the top level}]
 const DATA := {
@@ -157,7 +160,12 @@ func test_five_new_items_and_the_magnet_with_their_numbers() -> void:
 		assert_str(p.evolves_into).is_empty()
 		assert_bool(p.hidden).is_false()
 		assert_int(p.from_stage).is_less_equal(1)
-		assert_object(Registry.quest_for("passive", id)).override_failure_message(id + " is locked").is_null()
+		# pass 140 (lane FIX): four are tasks' unlocks now (BALANCING 81.QUESTS), the Magnet a Trail node (81.TRAIL), the
+		# Counterpunch open from the start
+		var lock := "" if id == "counterpunch" else ("trail" if id == "magnet" else "task")
+		assert_str(UNLOCKS.locked_by("passive", id)).override_failure_message(id + " is locked by").is_equal(lock)
+		UNLOCKS.open("passive", id)
+		assert_bool(Registry.unlocked_passives().has(p)).override_failure_message(id + " is locked").is_true()
 		assert_str(p.text).override_failure_message(id + " has no card line").is_not_empty()
 		assert_str(p.flavour).is_not_empty()
 		assert_object(p.icon).override_failure_message(id + " has no icon").is_not_null()

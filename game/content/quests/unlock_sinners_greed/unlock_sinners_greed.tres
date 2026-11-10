@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/sinners_greed/sinners_greed_icon.png" id="1_aq2i1"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_ouaxq"]
+
+[resource]
+script = ExtResource("2_ouaxq")
+condition = {
+"count": 25000.0,
+"type": "gold_total"
+}
+unlocks = {
+"id": "sinners_greed",
+"type": "passive"
+}
+requires = ["unlock_phoenix_feather"]
+ladder = true
+id = "unlock_sinners_greed"
+display_name = "Pay Day"
+icon = ExtResource("1_aq2i1")
+icon_file = "res://content/passives/sinners_greed/sinners_greed_icon.png"

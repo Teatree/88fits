@@ -43,6 +43,13 @@ extends ContentDef
 ##  element_damage {element, count}     fire (burns) or poison (poison ticks) damage the hero's side dealt; "" = both
 ##  barrels_total {count}               barrels broken
 ##  totems_total {count}                Totem gifts taken
+## Pass 140 (lane QUESTS; plan v2's tasks):
+##  bosses_total {count}                stage bosses beaten across runs (a boss in Endless never counts), each counted
+##                                      at its fall while the run meets the condition's gates below
+## Gates any condition done in one run may carry (and bosses_total), checked while the run is on (QuestTracker.run_gates):
+##  hero    the outlaw the run is played with ("as the Drifter"); hero_level and beat_stage name theirs the same way
+##  holding an item id the run must hold (a weapon, a card or a passive item; its evolved form counts): "holding The
+##          Guardian". A total across runs (kills_total, damage_with_weapon ...) does not read them.
 ## `item_level` (pass 100) is the "Upgrade an item to level N" task; the Level Editor limits its level to the item's own.
 ## `unlocks` may also be {"type": "skin", "id": "<hero>:<CODE>"} (a hero's look sold as a skin, Registry.skin_state).
 @export var condition: Dictionary = {}
@@ -50,6 +57,13 @@ extends ContentDef
 @export var unlocks: Dictionary = {}
 ## Text shown in the collection when locked. Generated when empty.
 @export var quest_text: String = ""
+## Pass 140 (lane QUESTS): the quest ids that must be done first (the JSON's `requires`: one id or a list). Until they
+## are, this quest is not shown (Results, Collection, the Outlaws screen say only what it waits for) and cannot complete;
+## a total across runs keeps counting from the save's start, so it shows its all-time progress once it opens.
+@export var requires: Array = []
+## Pass 140 (lane QUESTS): a step of the one generic ladder (Dust Yourself Off, Killing Spree, Old Hand, Pay Day, Body
+## Count: each `requires` the one before, so one shows at a time). The Results put its row first (ResultsScreen.progress_list).
+@export var ladder: bool = false
 
 
 func kind() -> String:

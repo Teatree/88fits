@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/skedaddle/skedaddle_icon.png" id="1_05uag"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_6jplw"]
+
+[resource]
+script = ExtResource("2_6jplw")
+condition = {
+"minutes": 2.0,
+"type": "survive_minutes_no_lift"
+}
+unlocks = {
+"id": "skedaddle",
+"type": "passive"
+}
+id = "unlock_skedaddle"
+display_name = "Hold the Line"
+icon = ExtResource("1_05uag")
+icon_file = "res://content/passives/skedaddle/skedaddle_icon.png"

@@ -229,7 +229,7 @@
         "name": "Dust Walker",
         "price": 1500,
         "currency_type": "gold",
-        "unlock_quest": "skin_drifter_dri_c"
+        "unlock_quest": ""
       },
       "sprite": "drifter_sprite_c.png",
       "icon": "drifter_icon_c.png",

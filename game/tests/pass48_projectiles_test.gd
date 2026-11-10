@@ -1034,9 +1034,10 @@ func test_the_new_mutations_and_evolutions_say_what_they_do() -> void:
 	assert_str(Registry.mutation("birdshot_lane").text).contains("2.6 m")
 	assert_str(Registry.mutation("birdshot_lane").text).contains("40%")
 	# pass 138 (lane TEXTS): Garry's style, the main effect only
-	assert_str(Registry.mutation("hip_shot").text).contains("three volleys")
-	assert_str(Registry.mutation("bouncing_skull").text).contains("bounce on twice")
-	assert_str(Registry.mutation("tarantula_hawk").text).contains("five times")
+	# pass 140 (lane TEXTS): digits (Garry: "Every 5th pull fires 3 shots in a row")
+	assert_str(Registry.mutation("hip_shot").text).contains("3 shots")
+	assert_str(Registry.mutation("bouncing_skull").text).contains("2 more times")
+	assert_str(Registry.mutation("tarantula_hawk").text).contains("5 times")
 	for base: String in FAMILIES.keys():
 		var evo: WeaponDef = Registry.weapon(FAMILIES[base])
 		assert_bool(evo.flavour.length() > 20).override_failure_message(evo.id).is_true()

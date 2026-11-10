@@ -1,0 +1,15 @@
+{
+  "id": "unlock_sinners_greed",
+  "name": "Pay Day",
+  "condition": {
+    "type": "gold_total",
+    "count": 25000
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "sinners_greed"
+  },
+  "requires": "unlock_phoenix_feather",
+  "ladder": true,
+  "icon": "res://content/passives/sinners_greed/sinners_greed_icon.png"
+}

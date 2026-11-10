@@ -9,7 +9,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "One rocket: ×3 damage, ×1.8 area of effect, ×2 knockback.",
+  "text": "Fire 1 rocket that deals ×3 damage in a ×1.8 blast and knocks back enemies ×2 as hard.",
   "vfx": "one fat rocket, one big ring blast",
   "effects": [
     {

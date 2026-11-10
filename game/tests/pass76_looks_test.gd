@@ -283,9 +283,9 @@ func test_textgen_names_the_looks_things() -> void:
 	var fi := WeaponInstance.new(fw, 1)
 	fi.rebuild(StatSheet.new(), [fi])
 	assert_array(TextGen.weapon_nouns(fw)).is_equal(["jug", "jugs"])
-	assert_str(fi.description()).starts_with("Lobs 1 jug of fire at the thickest crowd")
+	assert_str(fi.description()).starts_with("Lobs 1 jug of fire at the densest crowd")
 	fw.wear_look("A")
-	assert_str(TextGen.weapon_description(fw, fi.sheet, {})).starts_with("Lobs 1 bottle of fire at the thickest crowd")
+	assert_str(TextGen.weapon_description(fw, fi.sheet, {})).starts_with("Lobs 1 bottle of fire at the densest crowd")
 
 
 func test_the_cards_show_the_look_and_the_fortune_cards_keep_theirs() -> void:

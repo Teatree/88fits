@@ -9,7 +9,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Three bottles, smaller clouds, −30% damage.",
+  "text": "Lob 2 more bottles, but deal −30% damage in smaller pools.",
   "vfx": "three smaller pools",
   "effects": [
     {

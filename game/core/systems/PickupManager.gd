@@ -362,6 +362,8 @@ var _credit_xp := 0.0
 
 
 func _ready() -> void:
+	# pass 140 (lane ECON): a new game's coins carry no fraction from the last one (StagePay.take)
+	StagePay.reset()
 	_alloc(MAX)
 	for i in range(MAX - 1, -1, -1):
 		free_list.append(i)
@@ -1100,9 +1102,10 @@ func capture_swap(c):
 
 ## A spawn the catch took: a coin's gold as _collect would pay it before greed (its value x the stage's coin factor), a
 ## gem's XP before Field Notes. A vacuum gem packs nothing (only Elites drop one).
+## Pass 140 (lane ECON): x the stage's coin factor as it is (StagePay.coin_mult, a fraction kept: the catch holds a float).
 func _captured(k: int, v: float) -> void:
 	if k == KIND_COIN:
-		_capture["gold"] = float(_capture.get("gold", 0.0)) + v * float(maxi(int(round(Run.reward_mult())), 1))
+		_capture["gold"] = float(_capture.get("gold", 0.0)) + v * StagePay.coin_mult()
 	elif k <= KIND_GEM_L:
 		_capture["xp"] = float(_capture.get("xp", 0.0)) + v
 
@@ -2140,8 +2143,10 @@ func _collect(i: int, quiet: bool = false) -> void:
 const COIN_X25 := 25
 
 
+## Pass 140 (lane ECON; BALANCING 81.ECON): the stage's coin factor is a fraction now (StagePay.coin_mult: 2.66 in Nightfall);
+## its whole part and the fraction carried from the coins before are paid (StagePay.take), then x Coins x25.
 static func coin_pay(v: float) -> int:
-	return int(v) * maxi(int(round(Run.reward_mult())), 1) * coins_x()
+	return StagePay.take(float(int(v)), StagePay.coin_mult()) * coins_x()
 
 
 ## Pass 139 (lead; Garry: "Make it so the x25 coins setting actually increases the rewards from posters and the boss reward

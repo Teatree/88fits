@@ -10,5 +10,6 @@
     "type": "skin",
     "id": "fadeaway:FAD-G"
   },
+  "requires": "skin_fadeaway_fad_b",
   "icon": "res://content/characters/fadeaway/fadeaway_icon_g.png"
 }

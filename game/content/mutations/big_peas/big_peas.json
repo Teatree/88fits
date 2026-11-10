@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Bigger peas: +35% damage and twice the knockback.",
+  "text": "Bigger peas deal +35% damage and knock back enemies ×2 as hard.",
   "vfx": "fat peas that shove what they hit",
   "effects": [
     {

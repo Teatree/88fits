@@ -9,7 +9,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "+6 bees, −60% damage each, cooldown −30%.",
+  "text": "Send 6 more bees with −30% cooldown, but deal −60% damage.",
   "vfx": "a cloud of small seekers",
   "effects": [
     {

@@ -87,10 +87,13 @@ func test_half_the_items_sit_behind_quests_spread_over_the_stages() -> void:
 		var s: int = clampi(QuestTracker.stage_hint(q), 1, 3)
 		by_stage[s] += 1
 		placed += 1
-	assert_float(float(by_stage[1]) / float(placed)).is_between(0.48, 0.66)
+	# pass 140 (lane QUESTS, re-pinned; plan v2): the tasks are choices a stage-1 run can do (a weapon, a Card or an item
+	# taken far); Gila Hunter, Last Stand and Evolution take stage 2: 15 / 3 / 0 of the 18 placed (the ladder's counters
+	# have no stage)
+	assert_float(float(by_stage[1]) / float(placed)).is_between(0.70, 0.90)
 	# pass 129 (lane TRAIL-SETUP, re-pinned): eight item quests are retired (Trail nodes give the items), the last-stage
 	# ones among them: the 13 that stay fall half and half on stages 1 and 2
-	assert_float(float(by_stage[2]) / float(placed)).is_between(0.30, 0.52)
+	assert_float(float(by_stage[2]) / float(placed)).is_between(0.10, 0.30)
 	assert_int(by_stage[3]).is_between(0, 2)
 	# the quests name real things, and every locked passive is kept out of the offers
 	for q in locked:

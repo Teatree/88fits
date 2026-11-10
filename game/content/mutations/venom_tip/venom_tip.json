@@ -9,7 +9,7 @@
   "kind": "element",
   "element": "poison",
   "hero": "",
-  "text": "Poison.",
+  "text": "Thrusts poison enemies.",
   "vfx": "a green tip, poisoned creatures",
   "effects": [
     {

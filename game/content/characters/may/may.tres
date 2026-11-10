@@ -30,7 +30,7 @@ favourite_bonus = {
 "type": "effects"
 }
 start_weapon = "big_mouth"
-availability = "purchase"
+unlock_quest = "unlock_may"
 price = 4000
 sprite_path = "res://content/characters/may/may_sprite_p.png"
 sprite_file = "may_sprite_p.png"

@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Picks up two more at once, −30% damage.",
+  "text": "Pick up 2 more, but deal −30% damage.",
   "vfx": "three creatures floating in the beam at once",
   "effects": [
     {

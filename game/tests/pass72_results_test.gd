@@ -250,25 +250,27 @@ func test_the_sources_come_in_the_order_they_joined_the_run_the_starting_weapon_
 # ---------------------------------------------------------------- the unlocks brought closer
 
 func test_the_unlocks_brought_closer_are_the_counted_ones_that_grew_nearest_first() -> void:
+	# pass 140 (lane QUESTS, re-pinned): plan v2's tasks. Killing Spree (the ladder's step: Dust Yourself Off done) grew
+	# 120 -> 380 of 2,000; Fire Bug grew 10,000 -> 30,000; Snakebite did not grow, the Hammer's task is done and Old Hand
+	# waits for Killing Spree: none of those is here. The ladder's row comes first.
 	Save.data["totals"]["kills"] = 380
-	Save.data["totals"]["chests"] = 2
-	Save.mark_quest("unlock_zap_beam")
-	# pass 129 (lane TRAIL-SETUP, re-pinned): the Tumbleweed's and the Turret Buddy's quests are retired (Trail nodes
-	# give both); the Sage's three runs grew in the Tumbleweed's place (2 of 3, behind Adrenaline's 380 of 400) and the
-	# Zap Beam's quest is the one done
 	Save.data["totals"]["runs"] = 2
-	var before := {"unlock_adrenaline": 120, "unlock_field_notes": 1, "unlock_rocket_pod": 2, "unlock_zap_beam": 8}
+	Save.mark_quest("unlock_tommy_gun")
+	Save.mark_quest("unlock_hammer")
+	Save.add_keyed_total(TaskTally.SAVE_ELEMENT, "fire", 30000)
+	var before := {"unlock_adrenaline": 120, "unlock_phoenix_feather": 1, "unlock_gas_mask": 0, "unlock_brimstone_brand": 10000,
+		"unlock_hammer": 0}
 	var list: Array = RESULTS.progress_list(before)
 	var ids: Array = list.map(func(c): return (c["q"] as QuestDef).id)
-	# the chests' did not grow, the Zap Beam's is done (it lands as an unlock): neither is here
-	assert_array(ids).is_equal(["unlock_adrenaline", "unlock_field_notes"])
+	assert_array(ids).is_equal(["unlock_adrenaline", "unlock_brimstone_brand"])
 	assert_int(int(list[0]["before"])).is_equal(120)
 	assert_int(int(list[0]["after"])).is_equal(380)
-	assert_int(int(list[0]["need"])).is_equal(400)
-	# the story's snapshot as a run begins: every counted quest not done, with its progress then
+	assert_int(int(list[0]["need"])).is_equal(2000)
+	# the story's snapshot as a run begins: every counted quest open and not done, with its progress then
 	var snap := RunTimeline.quest_progress()
 	assert_int(int(snap.get("unlock_adrenaline", -1))).is_equal(380)
-	assert_bool(snap.has("unlock_zap_beam")).is_false()
+	assert_bool(snap.has("unlock_hammer")).is_false()
+	assert_bool(snap.has("unlock_phoenix_feather")).is_false()
 	assert_bool(snap.has("unlock_pike")).is_false()
 
 

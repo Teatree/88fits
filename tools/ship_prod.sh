@@ -61,6 +61,8 @@ logline() { grep -E "$2" "$LOGS/$1.log" | head -n "${3:-5}"; }
 SHELL_PID="$(cat /proc/$$/winpid 2>/dev/null || echo 0)"
 python tools/locks.py acquire godot "the production build (ship_prod.sh)" --pid "$SHELL_PID" || exit 1
 python tools/locks.py keep > /dev/null
+# pass 140: the save is kept for the whole build; tools/godot.sh run inside (ship_play.sh's export) must not keep it again
+export GODOT_SAVE_KEPT=1
 trap 'python tools/locks.py restore > /dev/null; python tools/locks.py release godot --pid "$SHELL_PID" > /dev/null' EXIT
 export LOCK_HELD_GODOT=1   # the Python helpers that run Godot (prod_probe.py) pass through this shell's lock
 

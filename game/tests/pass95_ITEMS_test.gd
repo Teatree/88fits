@@ -507,7 +507,9 @@ func test_fire_forward_dir_follows_the_75_percent_rule() -> void:
 	assert_float(FireForward.near_range(_inst("frisbee"), 12.0)).is_equal_approx(9.0, 0.001)
 	assert_float(FireForward.near_range(_inst("tumbleweed"), 16.0)).is_equal_approx(12.0, 0.001)
 	assert_float(FireForward.near_range(_inst("basketball"), 9.0)).is_equal_approx(6.75, 0.001)
-	assert_float(FireForward.near_range(_inst("pike"), 4.6)).is_equal_approx(3.45, 0.001)
+	# pass 140 (lead, 81.LEAD): the Spear's reach rounded 4.6 -> 5.0; 75% of what its JSON says
+	var reach := float(Registry.weapon("pike").base["range"])
+	assert_float(FireForward.near_range(_inst("pike"), reach)).is_equal_approx(0.75 * reach, 0.001)
 
 
 func test_the_content_marks_the_six_weapons_and_their_evolutions() -> void:

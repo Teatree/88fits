@@ -7,7 +7,7 @@
 script = ExtResource("2_scghv")
 weapon = "rocket_pod"
 mutation_kind = "volume"
-text = "Blasts have a 30% chance of scattering bomblets that pop when stepped on."
+text = "Blasts have a 30% chance of scattering 5 bomblets that explode when stepped on."
 vfx = "a field of small dark bomblets with blinking red lamps round the blast, each popping under a foot"
 params = {
 "cluster": {

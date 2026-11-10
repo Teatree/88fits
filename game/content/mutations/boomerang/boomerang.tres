@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_pdfy8")
 weapon = "tumbleweed"
-text = "Rolls out and comes back through the crowd."
+text = "The tumbleweed comes back through the crowd."
 vfx = "the weed turns at its far point and rolls home, hitting everything twice"
 params = {
 "return": true

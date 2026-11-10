@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_ej4n1")
 weapon = "salt"
-text = "An enemy killed in the salt is 3 times as likely to drop a power-up."
+text = "Enemies killed in the salt are ×3 as likely to drop a power-up."
 vfx = "none: the power-ups say it"
 params = {
 "salt": {

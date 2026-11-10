@@ -61,8 +61,13 @@ func test_every_other_hero_is_free_or_needs_a_requirement_then_a_price() -> void
 		if c.hidden:
 			continue
 		if c.availability == "available":
-			assert_str(c.id).is_equal("drifter")
-			assert_object(Registry.quest_for("character", c.id)).is_null()
+			# pass 140 (lane FIX, re-pinned): the Drifter and Astro free from the start, May free once her task is done
+			# (Trigger Happy, BALANCING 81.QUESTS); Ironwood is free too, on sale for this suite's time
+			assert_bool(["drifter", "astro", "may"].has(c.id)).override_failure_message(c.id).is_true()
+			if c.id == "may":
+				assert_object(Registry.quest_for("character", c.id)).is_not_null()
+			else:
+				assert_object(Registry.quest_for("character", c.id)).is_null()
 		else:
 			assert_str(c.availability).override_failure_message(c.id).is_equal("purchase")
 			assert_int(c.price).override_failure_message(c.id).is_greater(0)
@@ -132,7 +137,9 @@ func test_a_heros_items_are_hidden_until_he_is_owned() -> void:
 	assert_bool(CollectionScreen.hero_item_hidden(ball)).is_false()
 	assert_bool(cs._items(0).has(ball)).is_true()
 	assert_bool(cs._items(0).has(Registry.weapon("revolver"))).is_true()
-	assert_bool(cs._items(3).any(func(d: ContentDef) -> bool: return (d as PerkDef).hero == "astro")).is_false()
+	# pass 140 (lane FIX, re-pinned): Astro is owned from the start (BALANCING 81.TRAIL): his perks show, Calavera's do not
+	assert_bool(cs._items(3).any(func(d: ContentDef) -> bool: return (d as PerkDef).hero == "calavera")).is_false()
+	assert_bool(cs._items(3).any(func(d: ContentDef) -> bool: return (d as PerkDef).hero == "astro")).is_true()
 	assert_bool(cs._items(3).any(func(d: ContentDef) -> bool: return (d as PerkDef).hero == "drifter")).is_true()
 	var rain: Array = CollectionScreen.page_mutations(Registry.weapon("skull_rain")).map(func(m: MutationDef) -> String: return m.id)
 	assert_bool(rain.has("danza_macabra")).is_false()
@@ -145,7 +152,7 @@ func test_a_heros_items_are_hidden_until_he_is_owned() -> void:
 	assert_bool(CollectionScreen.hero_item_hidden(ball)).is_false()
 	assert_bool(cs._items(0).has(ball)).is_true()
 	assert_int(cs._tally(3).y).is_greater(tally.y)
-	assert_bool(cs._items(3).any(func(d: ContentDef) -> bool: return (d as PerkDef).hero == "astro")).is_true()
+	assert_bool(cs._items(3).any(func(d: ContentDef) -> bool: return (d as PerkDef).hero == "calavera")).is_true()
 	rain = CollectionScreen.page_mutations(Registry.weapon("skull_rain")).map(func(m: MutationDef) -> String: return m.id)
 	assert_bool(rain.has("danza_macabra")).is_true()
 	# not bought is still not his (pass 129, re-pinned: Calavera's quest is retired, the Trail gives him: locked, never on sale)
@@ -175,8 +182,9 @@ func test_thorns_strike_once_a_cooldown_and_are_recorded() -> void:
 	# no hit of their own reaches him while they rise and the grid takes them in (god: no hit, so no burst of theirs)
 	g.player.god = true
 	var at: Vector3 = g.player.global_position
+	# pass 140 (lead): x1000 HP, so the Revolver's own shots cannot kill them before the burst (the test was flaky)
 	for k in 3:
-		g.enemies.spawn("skeleton", at + Vector3(0.6 * float(k) - 0.6, 0, 0.5))
+		g.enemies.spawn("skeleton", at + Vector3(0.6 * float(k) - 0.6, 0, 0.5), null, 1.0, 1000.0)
 	await get_tree().create_timer(1.2).timeout
 	g._thorns_last = -1000.0
 	var before := float(Run.damage_by_weapon.get("thorns", 0.0))

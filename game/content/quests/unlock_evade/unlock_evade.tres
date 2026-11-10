@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/evade/evade_icon.png" id="1_lfarp"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_x0a22"]
+
+[resource]
+script = ExtResource("2_x0a22")
+condition = {
+"id": "stride",
+"kind": "card",
+"level": 4.0,
+"type": "item_level"
+}
+unlocks = {
+"id": "evade",
+"type": "passive"
+}
+id = "unlock_evade"
+display_name = "Fleet Foot"
+icon = ExtResource("1_lfarp")
+icon_file = "res://content/passives/evade/evade_icon.png"

@@ -624,9 +624,11 @@ static func _row_def(r: Dictionary) -> EnemyDef:
 func fixed_numbers(t0: float, stats: Dictionary = {}) -> Dictionary:
 	var tl: WaveTimeline = timeline if timeline else WaveTimeline.new()
 	var lv := float(maxi(Run.card_level() - 1, 0))
+	# pass 140 (lane DIFF): a row on a later stage's first second reads that stage's step (WaveTimeline.curve_t)
+	var tc := tl.curve_t(t0, Run.stage)
 	return {"t0": t0,
-		"hp_time": 1.0 if stats.has("hp") else tl.hp_mult_at(t0),
-		"dmg_time": 1.0 if stats.has("damage") else tl.damage_mult_at(t0),
+		"hp_time": 1.0 if stats.has("hp") else tl.hp_mult_at(tc),
+		"dmg_time": 1.0 if stats.has("damage") else tl.damage_mult_at(tc),
 		# pass 83 (lane SCALE): times the hero-power HP factor, fixed with the row like the level (power_hp_mult)
 		"lv_hp": (1.0 + tl.level_hp_per_level * lv) * power_hp_mult(),
 		"lv_dmg": 1.0 + tl.level_damage_per_level * lv}
@@ -946,6 +948,8 @@ func _on_boss_died(_def: EnemyDef, at: Vector3) -> void:
 	else:
 		game.pickups.spawn_chest(at + Vector3(2.0, 0, 0), true)
 	Save.mark_once("boss_%s_%d" % [map.id, Run.stage + 1])
+	# pass 140 (lane QUESTS): a boss for the bosses_total tasks (Big Game), before the quest check below
+	TaskTally.note_boss()
 	# pass 87: the stage is beaten (the next one unlocks: Save.stage_unlocked), and the portal's countdown to Endless begins
 	Run.stage_beaten = true
 	if not Run.arena:
@@ -2748,8 +2752,8 @@ static func shown_numbers(tl: WaveTimeline, r: Dictionary, t: float, level: int)
 		out["dmg_time"] = tl.damage_mult_at(t)
 		out["atk"] = def.damage * sm * lv_dmg * tl.creature_damage_mult * float(out["dmg_time"])
 		return out
-	var hp_time := 1.0 if stats.has("hp") else tl.hp_mult_at(t0)
-	var dmg_time := 1.0 if stats.has("damage") else tl.damage_mult_at(t0)
+	var hp_time := 1.0 if stats.has("hp") else tl.hp_mult_at(tl.curve_t(t0, s))
+	var dmg_time := 1.0 if stats.has("damage") else tl.damage_mult_at(tl.curve_t(t0, s))
 	out["hp_time"] = hp_time
 	out["dmg_time"] = dmg_time
 	out["hp"] = def.hp * hp_time * sm * lv_hp * tl.creature_hp_mult

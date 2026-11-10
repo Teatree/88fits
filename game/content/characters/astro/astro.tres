@@ -30,7 +30,6 @@ favourite_bonus = {
 "type": "effects"
 }
 start_weapon = "gravity_gun"
-availability = "purchase"
 price = 1500
 sprite_path = "res://content/characters/astro/astro_sprite.png"
 sprite_file = "astro_sprite.png"
@@ -128,7 +127,7 @@ variants = {
 "name": "Event Horizon",
 "price": 3000.0,
 "purchasable": true,
-"unlock_quest": "skin_astro_ast_b"
+"unlock_quest": ""
 },
 "sprite": "res://content/characters/astro/astro_sprite_b.png",
 "sprite_file": "astro_sprite_b.png",
@@ -169,7 +168,7 @@ variants = {
 "name": "Mission Control",
 "price": 1500.0,
 "purchasable": true,
-"unlock_quest": "skin_astro_ast_c"
+"unlock_quest": ""
 },
 "sprite": "res://content/characters/astro/astro_sprite_c.png",
 "sprite_file": "astro_sprite_c.png",

@@ -746,7 +746,7 @@ func test_the_text_says_what_they_do() -> void:
 	assert_str(_inst("requiem").description()).contains("ring of melody")
 	assert_str(_inst("guitarra", ["far_reach"]).description()).contains("180°")
 	assert_str(_inst("guitarra", ["music_slap"]).description()).not_contains("aside")
-	assert_str(Registry.mutation("music_slap").text).contains("aside")
+	assert_str(Registry.mutation("music_slap").text).contains("knock back")  # pass 140 (lane TEXTS): the game's words
 	var rows := {}
 	for r: Dictionary in _inst("guitarra").stat_rows():
 		rows[str(r["stat"])] = r

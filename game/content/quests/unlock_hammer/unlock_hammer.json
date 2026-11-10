@@ -1,6 +1,6 @@
 {
   "id": "unlock_hammer",
-  "name": "Hammer",
+  "name": "The King Falls",
   "condition": {
     "type": "kill_boss",
     "map": "red_canyon",

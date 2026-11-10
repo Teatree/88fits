@@ -9,7 +9,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "The skulls seek.",
+  "text": "Skulls home in on enemies.",
   "vfx": "skulls corkscrew, then dive with a green trail",
   "effects": [
     {

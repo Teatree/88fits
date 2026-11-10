@@ -83,6 +83,8 @@ var healed_by_item: Dictionary = {}
 var healed_by_source: Dictionary = {}
 var barrels_broken := 0
 var totems_taken := 0
+## Pass 140 (lane QUESTS): stage bosses beaten this run by the gates of the bosses_total tasks (TaskTally.note_boss)
+var bosses_by_gate: Dictionary = {}
 var tasks_banked := false
 var chests_opened := 0
 var evolutions := 0
@@ -345,6 +347,7 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	healed_by_source.clear()
 	barrels_broken = 0
 	totems_taken = 0
+	bosses_by_gate.clear()
 	tasks_banked = false
 	# pass 72 (lane BOSS): the DPS window starts empty
 	dps_reset()

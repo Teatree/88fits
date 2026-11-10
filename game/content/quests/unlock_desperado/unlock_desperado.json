@@ -1,0 +1,16 @@
+{
+  "id": "unlock_desperado",
+  "name": "Quick Hands",
+  "condition": {
+    "type": "item_level",
+    "kind": "weapon",
+    "id": "revolver",
+    "level": 5,
+    "hero": "drifter"
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "desperado"
+  },
+  "icon": "res://content/passives/desperado/desperado_icon.png"
+}

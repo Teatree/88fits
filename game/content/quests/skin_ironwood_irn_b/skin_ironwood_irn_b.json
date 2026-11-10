@@ -2,8 +2,11 @@
   "id": "skin_ironwood_irn_b",
   "name": "Ironwood · Winter Pelt",
   "condition": {
-    "type": "totems_total",
-    "count": 40
+    "type": "item_level",
+    "kind": "passive",
+    "id": "cold_snap",
+    "rung": "epic",
+    "hero": "ironwood"
   },
   "unlocks": {
     "type": "skin",

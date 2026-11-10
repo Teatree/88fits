@@ -1,15 +1,16 @@
 {
   "id": "unlock_guillotine",
-  "name": "Guillotine",
+  "name": "Big Game",
   "condition": {
-    "type": "kill_boss",
-    "map": "red_canyon",
-    "stage": 2
+    "type": "bosses_total",
+    "count": 5,
+    "holding": "big_game_hunter"
   },
   "unlocks": {
     "type": "passive",
     "id": "guillotine"
   },
+  "requires": "unlock_big_game_hunter",
   "art_prompt": "a glass jar with a guillotine blade inside",
   "placeholder": {
     "color": "#C9A227",

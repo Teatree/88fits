@@ -34,6 +34,10 @@ and his answers (2026-11-06) are the source of every rule here; a rule he did no
 A node without its own `price` costs `round_to(base + k * level ^ power, round) * price_mult` (the node's
 `price_mult`, default 1). Prices grow as a polynomial of the level (Garry). `currency` names a `content/currencies` id.
 
+The game's set since pass 140 (the progression plan v2, `tools/trail_setup.py`): `{"base": 20, "k": 6.21, "power":
+1.9, "round": 10}` (level 10 costs 510, level 30 4,000, level 70 19,920), an item, Card or skin node `price_mult` 0.5,
+an outlaw node 2, a stage node its level's price; 130 nodes on 70 levels.
+
 ### `sections`
 
 The backdrop changes every 15 to 20 levels: each section starts at level `from` and gives two colours (`top`,

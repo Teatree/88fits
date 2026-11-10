@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "+2 chains, −25% damage.",
+  "text": "Chain to 2 more, but deal −25% damage.",
   "vfx": "a longer chain of bolts",
   "effects": [
     {

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/heavyweight/heavyweight_icon.png" id="1_15lr0"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_my0xp"]
+
+[resource]
+script = ExtResource("2_my0xp")
+condition = {
+"id": "boomstick",
+"kind": "weapon",
+"level": 5.0,
+"type": "item_level"
+}
+unlocks = {
+"id": "heavyweight",
+"type": "passive"
+}
+id = "unlock_heavyweight"
+display_name = "Heavy Shells"
+icon = ExtResource("1_15lr0")
+icon_file = "res://content/passives/heavyweight/heavyweight_icon.png"

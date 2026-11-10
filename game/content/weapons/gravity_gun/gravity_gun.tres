@@ -95,7 +95,7 @@ params = {
 },
 "gravity": {
 "arc": 2.2,
-"blast": 1.9,
+"blast": 2.0,
 "grab": 0.32,
 "height": 1.8,
 "hold": 0.28,

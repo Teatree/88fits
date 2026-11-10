@@ -1,5 +1,8 @@
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): items, outlaws and stages behind a Trail node or a task (BALANCING 81.TRAIL, 81.QUESTS) opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 ## Pass 121, lane GRIND (Garry: "Grindstone - should be a 1 time use item. And there should be an animation sequence
 ## showing a weapon being upgraded. It's one time use, no upgrades, player gets only one ever."; one a run, the lead):
 ## - the Grindstone is a one-shot item (`single`, like Phoenix Feather): one level, off the rarity ladder, rare, weight 5;
@@ -15,6 +18,7 @@ const STONE := "grindstone"
 
 func before_test() -> void:
 	Save.data = Save._default()
+	UNLOCKS.open("passive", STONE)
 	Run.arena = false
 	CardPool.rng = null
 

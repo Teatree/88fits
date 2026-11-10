@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/hot_streak/hot_streak_icon.png" id="1_0sxge"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_svspb"]
+
+[resource]
+script = ExtResource("2_svspb")
+condition = {
+"count": 25000.0,
+"type": "kills_total"
+}
+unlocks = {
+"id": "hot_streak",
+"type": "passive"
+}
+requires = ["unlock_sinners_greed"]
+ladder = true
+id = "unlock_hot_streak"
+display_name = "Body Count"
+icon = ExtResource("1_0sxge")
+icon_file = "res://content/passives/hot_streak/hot_streak_icon.png"

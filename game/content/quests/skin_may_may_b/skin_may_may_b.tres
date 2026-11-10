@@ -15,6 +15,7 @@ unlocks = {
 "id": "may:MAY-B",
 "type": "skin"
 }
+requires = ["skin_may_may_s"]
 id = "skin_may_may_b"
 display_name = "May · Midnight Mime"
 icon = ExtResource("1_mbvsv")

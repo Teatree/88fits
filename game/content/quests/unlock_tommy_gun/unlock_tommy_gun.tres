@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/tommy_gun/tommy_gun_icon.png" id="1_awnae"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_o1idt"]
+
+[resource]
+script = ExtResource("2_o1idt")
+condition = {
+"count": 1.0,
+"type": "runs_total"
+}
+unlocks = {
+"id": "tommy_gun",
+"type": "weapon"
+}
+ladder = true
+id = "unlock_tommy_gun"
+display_name = "Dust Yourself Off"
+icon = ExtResource("1_awnae")
+icon_file = "res://content/weapons/tommy_gun/tommy_gun_icon.png"

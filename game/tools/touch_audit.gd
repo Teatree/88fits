@@ -1281,8 +1281,9 @@ func _in_game() -> void:
 		run.died = true
 		# pass 72: an unlock to land, so the show has its second sequence whatever the save has done already
 		var qt = load("res://core/systems/QuestTracker.gd")
-		if not (qt.just_completed as Array).has("unlock_rocket_pod"):   # pass 129: unlock_turret_buddy retired (a Trail node)
-			qt.just_completed.append("unlock_rocket_pod")
+		# pass 140 (lane QUESTS): the Rocket Pod is a Trail node now; the Hammer's task stands in
+		if not (qt.just_completed as Array).has("unlock_hammer"):   # pass 129: unlock_turret_buddy retired (a Trail node)
+			qt.just_completed.append("unlock_hammer")
 		g.end_run()
 		# end_run's beat (1.2 s) and the fade to the Results (pass 72: its show starts at once, so no fixed wait)
 		var w := 0.0
@@ -3387,6 +3388,11 @@ func _heroes_audit() -> void:
 			may.variants[code] = e
 	save.data["gold"] = 104711
 	save.data["heroes_owned"] = ["astro", "may"]
+	# pass 140 (lane QUESTS): May is free once her task (Trigger Happy) is done: the save has done it
+	var qd: Array = (save.data["quests_done"] as Array).duplicate() if save.data.get("quests_done") is Array else []
+	if not qd.has("unlock_may"):
+		qd.append("unlock_may")
+	save.data["quests_done"] = qd
 	save.data["skins_owned"] = []
 	save.data["skin_worn"] = {}
 	save.data["hero_look"] = {}

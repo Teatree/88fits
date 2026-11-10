@@ -5,7 +5,7 @@
   "order": 3,
   "pronoun": "she",
   "hidden": false,
-  "availability": "purchase",
+  "availability": "available",
   "price": 1500,
   "currency_type": "gold",
   "trait": [],
@@ -97,7 +97,7 @@
         "name": "Event Horizon",
         "price": 3000,
         "currency_type": "gold",
-        "unlock_quest": "skin_astro_ast_b"
+        "unlock_quest": ""
       },
       "sprite": "astro_sprite_b.png",
       "anims": {
@@ -155,7 +155,7 @@
         "name": "Mission Control",
         "price": 1500,
         "currency_type": "gold",
-        "unlock_quest": "skin_astro_ast_c"
+        "unlock_quest": ""
       },
       "sprite": "astro_sprite_c.png",
       "icon": "astro_icon_c.png",

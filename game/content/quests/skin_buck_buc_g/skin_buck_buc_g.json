@@ -3,7 +3,9 @@
   "name": "Jeżyk · Czerwony",
   "condition": {
     "type": "barrels_total",
-    "count": 150
+    "count": 30,
+    "in_one_run": true,
+    "hero": "buck"
   },
   "unlocks": {
     "type": "skin",

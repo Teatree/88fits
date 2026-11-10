@@ -7,7 +7,7 @@
 script = ExtResource("2_b47ws")
 weapon = "tumbleweed"
 mutation_kind = "volume"
-text = "Leaves a dust wake that slows enemies a little."
+text = "Leaves a dust wake that slows enemies by 20%."
 vfx = "a dark green dust ring round every weed, slowed creatures tinted dark green"
 params = {
 "aura": {

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/last_stand/last_stand_icon.png" id="1_f5vi7"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_byp7p"]
+
+[resource]
+script = ExtResource("2_byp7p")
+condition = {
+"holding": "energy_shield",
+"map": "red_canyon",
+"stage": 2.0,
+"type": "beat_stage"
+}
+unlocks = {
+"id": "last_stand",
+"type": "passive"
+}
+requires = ["unlock_energy_shield"]
+id = "unlock_last_stand"
+display_name = "Last Stand"
+icon = ExtResource("1_f5vi7")
+icon_file = "res://content/passives/last_stand/last_stand_icon.png"

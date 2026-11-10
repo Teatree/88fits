@@ -20,6 +20,9 @@ const RUN_HEAL_DEATH := 1824.4 * 0.75
 const RUN_BARRELS := 30.0
 const RUN_TOTEMS := 8.0
 const FIVE := 5.0
+## Pass 140 (lane QUESTS; plan v2): the skins with no goal: on sale from the start (Dust Walker, Thunderbird, Mission
+## Control) or given by a Trail node (Event Horizon)
+const NO_GOAL := ["drifter:DRI-C", "ironwood:IRN-C", "astro:AST-C", "astro:AST-B"]
 
 
 func before_test() -> void:
@@ -79,6 +82,10 @@ func test_every_goal_is_an_item_feat_or_at_least_five_of_his_very_good_runs() ->
 		for code: String in LOOKS[hid]:
 			var m := "%s %s" % [hid, code]
 			var q: QuestDef = Registry.skin_quest(c, code)
+			# pass 140 (lane QUESTS, re-pinned): four skins have no goal now
+			if NO_GOAL.has(Registry.skin_key(hid, code)):
+				assert_object(q).override_failure_message(m + ": a goal").is_null()
+				continue
 			assert_object(q).override_failure_message(m + ": no goal").is_not_null()
 			assert_str(str(q.unlocks.get("id", ""))).is_equal(Registry.skin_key(hid, code))
 			assert_bool(Registry.quest_visible(q)).override_failure_message(m).is_true()
@@ -88,6 +95,11 @@ func test_every_goal_is_an_item_feat_or_at_least_five_of_his_very_good_runs() ->
 			var n := float(cond.get("count", 0))
 			match str(cond.get("type", "")):
 				"item_level":
+					# pass 140 (lane QUESTS): Winter Pelt is a passive item's rung (Cold Snap to Epic as Ironwood)
+					if str(cond.get("rung", "")) != "":
+						assert_object(Registry.passive(str(cond.get("id", "")))).override_failure_message(m).is_not_null()
+						assert_int(QuestTracker.rung_rank(str(cond.get("rung", "")))).override_failure_message(m).is_greater(0)
+						continue
 					var w: WeaponDef = Registry.weapon(str(cond.get("id", "")))
 					assert_object(w).override_failure_message(m).is_not_null()
 					assert_int(int(cond.get("level", 0))).override_failure_message(m + ": a level above his run's 4").is_greater(4)
@@ -109,38 +121,46 @@ func test_every_goal_is_an_item_feat_or_at_least_five_of_his_very_good_runs() ->
 					assert_object(Registry.passive(str(cond.get("item", "")))).override_failure_message(m).is_not_null()
 					assert_float(n).override_failure_message(m + ": under 5 runs").is_greater_equal(RUN_HEAL_DEATH * FIVE)
 				"barrels_total":
+					# pass 140 (lane QUESTS): Czerwony is 30 barrels in one run as Jezyk (plan v2)
+					if bool(cond.get("in_one_run", false)):
+						assert_float(n).override_failure_message(m).is_greater_equal(RUN_BARRELS)
+						assert_str(str(cond.get("hero", ""))).is_equal(hid)
+						continue
 					assert_float(n).override_failure_message(m + ": under 5 runs").is_greater_equal(RUN_BARRELS * FIVE)
 				"totems_total":
 					assert_float(n).override_failure_message(m + ": under 5 runs").is_greater_equal(RUN_TOTEMS * FIVE)
 				_:
 					assert_str(str(cond.get("type", ""))).override_failure_message(m + ": a goal outside the brief").is_empty()
-			# a career goal is across runs, never "in one run"
-			assert_bool(bool(cond.get("in_one_run", false))).override_failure_message(m).is_false()
+			# a career goal is across runs, never "in one run" (pass 140: but one played as its own outlaw)
+			if str(cond.get("hero", "")) != hid:
+				assert_bool(bool(cond.get("in_one_run", false))).override_failure_message(m).is_false()
 
 
 func test_the_goals_use_varied_tasks() -> void:
 	var types := {}
 	for hid: String in LOOKS:
 		for code: String in LOOKS[hid]:
-			types[str(Registry.skin_quest(_hero(hid), code).condition.get("type", ""))] = true
+			var q: QuestDef = Registry.skin_quest(_hero(hid), code)
+			if q:
+				types[str(q.condition.get("type", ""))] = true
 	assert_int(types.size()).is_greater_equal(6)
 
 
 func test_a_career_goal_earned_opens_the_shop_and_buying_wears_it() -> void:
-	var c := _hero("buck")
-	var q: QuestDef = Registry.skin_quest(c, "BUC-G")
-	Save.heroes_owned().append("buck")
-	Save.data["gold"] = c.skin_price("BUC-G")
-	assert_str(Registry.skin_state(c, "BUC-G")).is_equal("locked")
-	assert_bool(Save.buy_skin(c, "BUC-G")).is_false()
-	Save.data["totals"]["barrels"] = int(q.condition.get("count", 0))
+	# pass 140 (lane QUESTS, re-pinned): Czerwony is done in one run now; the Drifter's Black Hat is the career goal
+	var c := _hero("drifter")
+	var q: QuestDef = Registry.skin_quest(c, "DRI-B")
+	Save.data["gold"] = c.skin_price("DRI-B")
+	assert_str(Registry.skin_state(c, "DRI-B")).is_equal("locked")
+	assert_bool(Save.buy_skin(c, "DRI-B")).is_false()
+	Save.add_keyed_total(TaskTally.SAVE_DAMAGE, "revolver", int(q.condition.get("count", 0)))
 	assert_array(QuestTracker.check_all(false)).contains([q.id])
-	assert_str(Registry.skin_state(c, "BUC-G")).is_equal("buyable")
-	assert_bool(Save.buy_skin(c, "BUC-G")).is_true()
+	assert_str(Registry.skin_state(c, "DRI-B")).is_equal("buyable")
+	assert_bool(Save.buy_skin(c, "DRI-B")).is_true()
 	assert_int(Save.gold()).is_equal(0)
 	# (the sheet and the Heroes screen wear what they sell: Save.set_skin_worn after the purchase)
-	Save.set_skin_worn(c.id, "BUC-G")
-	assert_str(Registry.played_look(c).look_code()).is_equal("BUC-G")
+	Save.set_skin_worn(c.id, "DRI-B")
+	assert_str(Registry.played_look(c).look_code()).is_equal("DRI-B")
 
 
 func test_a_goal_done_for_a_hero_not_owned_stays_done_and_says_nothing() -> void:
@@ -148,12 +168,18 @@ func test_a_goal_done_for_a_hero_not_owned_stays_done_and_says_nothing() -> void
 	var q: QuestDef = Registry.skin_quest(c, "BUC-G")
 	Save.data["heroes_owned"] = []
 	assert_str(Registry.hero_state(c)).is_not_equal("owned")
-	Save.data["totals"]["barrels"] = int(q.condition.get("count", 0))
+	# pass 140 (lane QUESTS, re-pinned): 30 barrels in one run as Jezyk (a run of an outlaw not owned: a tool's)
+	TaskTally.bank_in_tools = true
+	Run.arena = false
+	Run.start(c, Registry.map("red_canyon"))
+	Run.barrels_broken = int(q.condition.get("count", 0))
 	QuestTracker.just_completed.clear()
 	# no banner: it is not in what the check returns, nor on the Results' list
 	assert_array(QuestTracker.check_all(true)).not_contains([q.id])
 	assert_array(QuestTracker.just_completed).not_contains([q.id])
 	assert_bool(Save.quest_done(q.id)).is_true()
+	Run.end()
+	TaskTally.bank_in_tools = false
 	# bought later, the skin is on sale at once
 	Save.heroes_owned().append("buck")
 	assert_str(Registry.hero_state(c)).is_equal("owned")
@@ -178,7 +204,10 @@ func test_the_look_every_player_owns_still_plays() -> void:
 		assert_str(Registry.worn_skin(c)).is_equal("")
 		assert_str(Registry.played_look(c).look_code()).is_equal(c.home_look())
 		for code: String in LOOKS[hid]:
-			assert_str(Registry.skin_state(c, code)).is_equal("locked")
+			# pass 140 (lane QUESTS, re-pinned): a skin with no goal and no Trail node is on sale to his owner at once
+			var key := Registry.skin_key(hid, code)
+			var on_sale := NO_GOAL.has(key) and not Trail.gated("skin", key) and Registry.hero_state(c) == "owned"
+			assert_str(Registry.skin_state(c, code)).override_failure_message(key).is_equal("buyable" if on_sale else "locked")
 
 
 func test_the_production_build_keeps_every_skin() -> void:

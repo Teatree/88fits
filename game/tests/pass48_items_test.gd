@@ -6,7 +6,12 @@
 ## and the weapons' five levels wherever a level is offered.
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): items, outlaws and stages behind a Trail node or a task (BALANCING 81.TRAIL, 81.QUESTS) opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 const NEW := ["phoenix_feather", "skedaddle", "powder_keg", "loose_change", "gas_mask", "hot_streak"]
+## pass 140 (lane FIX): what locks each on a new save (the Loose Change is open)
+const LOCKED_BY := {"phoenix_feather": "task", "skedaddle": "task", "powder_keg": "trail", "gas_mask": "task", "hot_streak": "task"}
 ## id -> [rarity, weight, max_level, {stat: its value at the top level}]
 const DATA := {
 	# re-pinned in pass 95 (lane PASSIVES): the items climb the rarity ladder (uncommon 5 levels, rare 4, epic 3) and
@@ -24,7 +29,7 @@ const TEXT := {
 	# (pass 95: the lines name the ladder's numbers)
 	"phoenix_feather": "When you fall, you get back up at half health. Once a run.",
 	"skedaddle": "After a hit, run 25% faster for 2 s.",
-	"powder_keg": "Kills have a 6.5% chance of exploding, hurting everything close by.",
+	"powder_keg": "Kills have a 6.5% chance of exploding, dealing damage to everything close by.",
 	"loose_change": "Getting hit has a 32% chance of dropping a 10 gold coin close by.",
 	"gas_mask": "1% damage reduction for every poisoned enemy, up to 12%.",
 	"hot_streak": "+7% attack damage for every 1,000 kills this run, up to +100%.",
@@ -72,6 +77,8 @@ const DT := 1.0 / 60.0
 func before_test() -> void:
 	# nothing unlocked, no Mirror ranks: the base numbers
 	Save.data = Save._default()
+	# pass 140 (lane FIX): the Phoenix Feather is Old Hand's unlock (BALANCING 81.QUESTS): opened, so a chest may hold it
+	UNLOCKS.open("passive", "phoenix_feather")
 	# (pass 137, lane POLISH: the temporary Coins x25 switch off, so a coin pays its own value)
 	Settings.coins_x25 = false
 
@@ -153,8 +160,11 @@ func test_six_new_passive_items_with_their_numbers_and_words() -> void:
 		assert_str(p.evolves_into).is_empty()
 		assert_bool(p.hidden).is_false()
 		assert_int(p.from_stage).is_less_equal(1)
-		assert_object(Registry.quest_for("passive", id)).override_failure_message(id + " is locked").is_null()
-		assert_bool(Registry.unlocked_passives().has(p)).is_true()
+		# pass 140 (lane FIX): four are tasks' unlocks, the Powder Keg a Trail node (BALANCING 81.QUESTS, 81.TRAIL): in the
+		# pool once opened
+		assert_str(UNLOCKS.locked_by("passive", id)).override_failure_message(id + " is locked by").is_equal(str(LOCKED_BY.get(id, "")))
+		UNLOCKS.open("passive", id)
+		assert_bool(Registry.unlocked_passives().has(p)).override_failure_message(id + " is locked").is_true()
 		assert_bool(_ids(Registry.sorted_passives_only()).has(id)).is_true()
 		# the card's line, the flavour, the placeholder and the painter's prompt
 		assert_str(p.text).is_equal(str(TEXT[id]))

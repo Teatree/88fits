@@ -9,7 +9,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "Cuts burn.",
+  "text": "Slashes set enemies on fire.",
   "vfx": "an orange blade, burning creatures",
   "effects": [
     {

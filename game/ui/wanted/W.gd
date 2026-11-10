@@ -257,6 +257,20 @@ static func desc_text(t: String, size: int = R.DESC_PX, align: int = HORIZONTAL_
 	w.bold_numbers = true
 	w.bold_color = R.NUMBER_HI
 	w.name = "Desc"
+	# pass 140 (lane TEXTS): an evolution's mutations note under the words, in the note face (R.NOTE_*)
+	w.note_size = int(roundf(size * R.NOTE_FRAC))
+	w.note_font = R.body(R.NOTE_WEIGHT, true)
+	w.note_color = R.NOTE_INK
+	return w
+
+
+## Pass 140 (lane TEXTS): a note on its own in the note face (an evolution's "All your mutations still apply."): Rubik
+## Italic R.NOTE_WEIGHT at R.NOTE_FRAC of `size`, R.NOTE_INK, wrapped, no bold numbers.
+static func note_text(t: String, size: int = R.DESC_PX, align: int = HORIZONTAL_ALIGNMENT_LEFT) -> WText:
+	var px := int(roundf(size * R.NOTE_FRAC))
+	var w := text(t, R.body(R.NOTE_WEIGHT, true), px, R.NOTE_INK, align, roundf(px * WText.NOTE_LH), true)
+	w.color = R.NOTE_INK
+	w.name = "Note"
 	return w
 
 

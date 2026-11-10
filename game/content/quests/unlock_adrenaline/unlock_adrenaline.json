@@ -1,14 +1,16 @@
 {
   "id": "unlock_adrenaline",
-  "name": "Adrenaline",
+  "name": "Killing Spree",
   "condition": {
     "type": "kills_total",
-    "count": 400
+    "count": 2000
   },
   "unlocks": {
     "type": "passive",
     "id": "adrenaline"
   },
+  "requires": "unlock_tommy_gun",
+  "ladder": true,
   "art_prompt": "a glass jar with a red syringe inside",
   "placeholder": {
     "color": "#C9A227",

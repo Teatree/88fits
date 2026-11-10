@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/big_game_hunter/big_game_hunter_icon.png" id="1_hp6m3"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_ia8v7"]
+
+[resource]
+script = ExtResource("2_ia8v7")
+condition = {
+"map": "red_canyon",
+"stage": 2.0,
+"type": "kill_boss"
+}
+unlocks = {
+"id": "big_game_hunter",
+"type": "passive"
+}
+id = "unlock_big_game_hunter"
+display_name = "Gila Hunter"
+icon = ExtResource("1_hp6m3")
+icon_file = "res://content/passives/big_game_hunter/big_game_hunter_icon.png"

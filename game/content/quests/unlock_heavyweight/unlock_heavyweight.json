@@ -1,0 +1,15 @@
+{
+  "id": "unlock_heavyweight",
+  "name": "Heavy Shells",
+  "condition": {
+    "type": "item_level",
+    "kind": "weapon",
+    "id": "boomstick",
+    "level": 5
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "heavyweight"
+  },
+  "icon": "res://content/passives/heavyweight/heavyweight_icon.png"
+}

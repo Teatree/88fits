@@ -531,6 +531,13 @@ func build() -> void:
 	_after_line = W.text(_after_line.text, R.body(R.LABEL_WEIGHT), 24, R.WHITE, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	_after_line.name = "PurseLine"
 	gv.add_child(_after_line)
+	# pass 140 (lane ECON): the stage's Wages came home in the banked gold (StagePay.pay_wages): one quiet line says how much
+	var wages := int(res.get("wages", 0))
+	if wages > 0:
+		var wl := W.text(Loc.t("ui.results.wages", {"gold": W.num(wages), "time": W.mmss(float(res.get("wage_seconds", 0.0)))}),
+			R.body(R.LABEL_WEIGHT), 20, W.INK_SOFT, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+		wl.name = "WagesLine"
+		gv.add_child(wl)
 	if not Save.hint_seen("results"):
 		Save.mark_hint("results")
 		gv.add_child(W.serif_text(Loc.t("ui.results.gold_note"),
@@ -821,21 +828,36 @@ func _build_unlocks() -> void:
 			(e["row"] as Control).modulate.a = 0.0
 
 
-## The unlocks the run brought closer: every counted quest not done whose progress grew since the run began
-## (`before`: RunTimeline.quests_before), nearest to done first: {q, before, after, need}.
+## Pass 140 (lane QUESTS; plan v2: "How a run ends with 1-3 task rows"): the most task rows the Results show.
+const MAX_PROGRESS_ROWS := 3
+
+
+## The unlocks the run brought closer: the counted quests not done whose progress grew since the run began (`before`:
+## RunTimeline.quests_before), {q, before, after, need}. Pass 140 (lane QUESTS): at most MAX_PROGRESS_ROWS, the ladder's
+## step first (QuestDef.ladder), then the ones this run moved most (its share of the need), nearest to done on a tie; a
+## quest waiting for another is never here (Registry.quest_open). A quest done this run lands as an unlock, always.
 static func progress_list(before: Dictionary) -> Array:
 	var out: Array = []
 	for id in before:
 		var q: QuestDef = Registry.quests.get(id)
 		# pass 76: nor a hero owned already (bought before his quest was done)
-		if q == null or Save.quest_done(q.id) or QuestTracker.owned_reward(q):
+		if q == null or Save.quest_done(q.id) or QuestTracker.owned_reward(q) or not Registry.quest_open(q):
 			continue
 		var p := QuestTracker.progress(q)
 		if p.y <= 0 or p.x <= int(before[id]):
 			continue
 		out.append({"q": q, "before": int(before[id]), "after": mini(p.x, p.y), "need": p.y})
-	out.sort_custom(func(a, b): return float(a["after"]) / float(a["need"]) > float(b["after"]) / float(b["need"]))
-	return out
+	out.sort_custom(func(a, b):
+		var la := bool((a["q"] as QuestDef).ladder)
+		var lb := bool((b["q"] as QuestDef).ladder)
+		if la != lb:
+			return la
+		var ga := float(int(a["after"]) - int(a["before"])) / float(a["need"])
+		var gb := float(int(b["after"]) - int(b["before"])) / float(b["need"])
+		if not is_equal_approx(ga, gb):
+			return ga > gb
+		return float(a["after"]) / float(a["need"]) > float(b["after"]) / float(b["need"]))
+	return out.slice(0, MAX_PROGRESS_ROWS)
 
 
 ## One unlock brought closer: its reward's plate (a silhouette: it is not his yet), what it asks, and a bar from where

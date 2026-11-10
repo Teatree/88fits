@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "Every impact sends out a second shockwave twice as wide.",
+  "text": "Every impact sends out another shockwave ×2 as wide that deals 40% of the damage.",
   "vfx": "a second, wider ring of dust after each impact",
   "effects": [],
   "params": {

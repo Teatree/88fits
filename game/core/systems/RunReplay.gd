@@ -711,9 +711,12 @@ func _lock_hero(p: Node3D) -> void:
 func check_values() -> Dictionary:
 	var p = game.get("player") if game else null
 	var em = game.get("enemies") if game else null
-	var exact: Array = [Run.play_clock, Run.level, Run.xp, Run.kills, Run.run_gold, Dice.r.state]
+	# pass 140 (lane FIX): the purse the play earned, without the Wages the run's end pays into it (StagePay.paid): the last
+	# check is taken after end_run banked them, and a replay whose end was not a recorded event never runs end_run
+	var gold := Run.run_gold - StagePay.paid
+	var exact: Array = [Run.play_clock, Run.level, Run.xp, Run.kills, gold, Dice.r.state]
 	var c := {"t": snappedf(Run.play_clock, 0.001), "lv": Run.level, "xp": snappedf(Run.xp, 0.01), "kills": Run.kills,
-		"gold": Run.run_gold, "dice": str(Dice.r.state)}
+		"gold": gold, "dice": str(Dice.r.state)}
 	c["ev"] = "%d:%d" % [ev_n, ev_hash]
 	var wd = game.get("director") if game else null
 	if wd != null and wd.has_method("dice_digest"):

@@ -296,6 +296,7 @@ Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)". Eve
 | `empty_offer`, `stranger_empty`, `shop_empty` | gold instead of a level-up, a Stranger or a shop with nothing left to offer |
 | `skip_pay` | pass 126: the Assayer's Scale's coins for a spent skip (a level-up's, a mutation offer's or a chest's) |
 | `start_gold` | pass 129: the coins the Trail's Grubstake (`start_gold`) put in the purse as the run began (booked when the recorder begins; no greed, not counted as gold earned) |
+| `wages` | pass 140: the stage's Wages, coins a minute of the stage clock survived (the map's `stage_list[k].wage`: Red Canyon 30 / 80 / 150 / 240), paid into the purse once at the run's end, a death too (no greed, no Coins x25, not counted as a coin poster's coins); the Results' purse carries them and its line under it says so |
 | `debug` | the developer's +gold buttons (the boards leave it out) |
 
 | in a run: sink | where it went |

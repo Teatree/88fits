@@ -1,5 +1,8 @@
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): items, outlaws and stages behind a Trail node or a task (BALANCING 81.TRAIL, 81.QUESTS) opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 ## Pass 119, lane LEGEND_B (Garry picked four legendary passive items off docs/legendary_items/index.html, reworked the
 ## Grindstone and replaced the Dragon's Breath's ready sign):
 ## - Lightning in a Bottle: a crit arcs to the 3 nearest creatures within 5 m for 25% of the hit (Garry: "reduce the % of
@@ -71,6 +74,8 @@ const LEGENDS := ["lightning_in_a_bottle", "undertakers_shovel", "fools_gold", "
 
 func before_test() -> void:
 	Save.data = Save._default()
+	# pass 140 (lane FIX): the Grindstone is a Trail node (BALANCING 81.TRAIL): bought, so the offers may hold it
+	UNLOCKS.open("passive", "grindstone")
 	Run.arena = false
 	CardPool.rng = null
 
@@ -148,6 +153,9 @@ func test_the_four_legendaries_are_there_on_the_ladder_with_their_icons() -> voi
 		assert_str(p.rarity).is_equal("legendary")
 		assert_int(p.max_level).override_failure_message(id).is_equal(2)
 		assert_float(float(p.weight)).is_equal(5.0)
+		# pass 140 (lane FIX): a Trail node gives it (BALANCING 81.TRAIL): locked on a new save, in play once bought
+		assert_str(UNLOCKS.locked_by("passive", id)).override_failure_message(id).is_equal("trail")
+		UNLOCKS.open("passive", id)
 		assert_bool(Registry.is_unlocked("passive", id)).override_failure_message(id + " is locked").is_true()
 		assert_str(p.flavour).is_not_empty()
 		assert_object(p.icon).override_failure_message(id + " has no icon").is_not_null()

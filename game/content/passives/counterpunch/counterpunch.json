@@ -5,7 +5,7 @@
   "weight": 8,
   "max_level": 5,
   "flavour": "Duck. Then swing.",
-  "text": "After an evade, your next attack deals double damage and you attack and move faster for 2.5 s.",
+  "text": "After an evade, your next attack deals ×2 damage and you attack and move faster for 2.5 s.",
   "levels": [
     [
       {

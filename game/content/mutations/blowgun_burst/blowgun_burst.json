@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Three darts a shot, −30% damage.",
+  "text": "Fire 2 more darts, but deal −30% damage.",
   "vfx": "three thin darts in a fan",
   "effects": [
     {

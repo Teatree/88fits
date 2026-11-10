@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "A bigger grenade: +20% damage, +20% area and +30% knockback.",
+  "text": "Deal +20% damage in a 20% wider blast and knock back enemies harder.",
   "vfx": "a bigger, shinier grenade",
   "effects": [
     {
@@ -43,7 +43,7 @@
     "B": {
       "name": "Dynamite Bundle",
       "flavour": "One stick is a warning. A bundle is a statement.",
-      "text": "A bigger bundle of sticks: +20% damage, +20% area and +30% knockback.",
+      "text": "A bigger bundle of sticks deals +20% damage in a 20% wider blast and knocks back enemies harder.",
       "icon": "new_equipment_icon_b.png",
       "note": "B · the bundle: three sticks in black tape",
       "params": {
@@ -77,7 +77,7 @@
     "C": {
       "name": "Dynamite Bundle",
       "flavour": "One stick is a warning. A bundle is a statement.",
-      "text": "A bigger bundle of sticks: +20% damage, +20% area and +30% knockback.",
+      "text": "A bigger bundle of sticks deals +20% damage in a 20% wider blast and knocks back enemies harder.",
       "icon": "new_equipment_icon_c.png",
       "note": "C · the bundle: four sticks tied with rope and a bow",
       "params": {
@@ -100,7 +100,7 @@
     "D": {
       "name": "Dynamite Bundle",
       "flavour": "One stick is a warning. A bundle is a statement.",
-      "text": "A bigger bundle of sticks: +20% damage, +20% area and +30% knockback.",
+      "text": "A bigger bundle of sticks deals +20% damage in a 20% wider blast and knocks back enemies harder.",
       "icon": "new_equipment_icon_d.png",
       "note": "D · the bundle: seven sticks in copper wire",
       "params": {

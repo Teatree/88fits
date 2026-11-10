@@ -6,6 +6,9 @@
 ## Canteen is Player._wade_mult, Player._tick_canteen and EnemyManager.damage; rules in BALANCING 68.ITEMS.
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): items, outlaws and stages behind a Trail node or a task (BALANCING 81.TRAIL, 81.QUESTS) opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 const LAUNCH := "user://debug_launch.json"
 const DT := 1.0 / 60.0
 
@@ -122,6 +125,9 @@ func test_the_items_are_there_available_and_on_the_ladder() -> void:
 		assert_bool(p.is_item()).is_true()
 		assert_bool(p.hidden).is_false()
 		assert_bool(p.on_ladder()).is_true()
+		# pass 140 (lane FIX): the Assayer's Scale is a Trail node (BALANCING 81.TRAIL), the Canteen open from the start
+		assert_str(UNLOCKS.locked_by("passive", p.id)).override_failure_message(p.id).is_equal("trail" if p.id == "assayers_scale" else "")
+		UNLOCKS.open("passive", p.id)
 		assert_bool(Registry.is_unlocked("passive", p.id)).override_failure_message(p.id + " is locked").is_true()
 		assert_bool(Registry.unlocked_passives().has(p)).is_true()
 		assert_str(p.flavour).is_not_empty()

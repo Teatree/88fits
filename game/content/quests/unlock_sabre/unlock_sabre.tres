@@ -16,7 +16,7 @@ unlocks = {
 "type": "weapon"
 }
 id = "unlock_sabre"
-display_name = "Sabre"
+display_name = "Saw Master"
 icon = ExtResource("1_b7qbg")
 icon_file = "unlock_sabre_icon.png"
 placeholder = {

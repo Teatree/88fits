@@ -563,8 +563,8 @@ func test_the_words() -> void:
 	var inst := WeaponInstance.new(f, 1)
 	inst.rebuild(StatSheet.new(), [inst])
 	var text := TextGen.weapon_description(f, inst.sheet, inst.params)
-	# pass 138 (lane TEXTS): Garry's style, the main effect only
-	assert_str(text).is_equal("Throws a frisbee that curves through every enemy in the way.")
+	# pass 138 (lane TEXTS): Garry's style, the main effect only; pass 140: the count in digits, the damage it deals
+	assert_str(text).is_equal("Throws 1 frisbee that curves through every enemy in the way for 14 damage.")
 	assert_str(text).not_contains("Pierces")
 	assert_str(TextGen.amount_noun(f, inst.sheet, inst.params)).is_equal("frisbees")
 	var rows: Array = inst.stat_rows().map(func(r: Dictionary) -> String: return str(r["stat"]))

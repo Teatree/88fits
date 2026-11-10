@@ -10,7 +10,7 @@
 script = ExtResource("2_0jsam")
 weapon = "lob_grenade"
 mutation_kind = "volume"
-text = "The burst throws six steel spikes out past the blast."
+text = "Explosions throw 6 steel spikes out past the blast."
 vfx = "six steel spikes flying out of a small blast, trailing sparks"
 params = {
 "burst_spawn": {
@@ -35,7 +35,7 @@ variants = {
 "params": {
 "model_wire": true
 },
-"text": "The burst throws six wire barbs out past the blast."
+"text": "Explosions throw 6 wire barbs out past the blast."
 },
 "C": {
 "flavour": "Saves the undertaker a trip.",
@@ -47,7 +47,7 @@ variants = {
 "params": {
 "model_colour": "red"
 },
-"text": "The burst throws six coffin nails out past the blast."
+"text": "Explosions throw 6 coffin nails out past the blast."
 },
 "D": {
 "flavour": "Saves the undertaker a trip.",
@@ -59,7 +59,7 @@ variants = {
 "params": {
 "model_colour": "red"
 },
-"text": "The burst throws six coffin nails out past the blast."
+"text": "Explosions throw 6 coffin nails out past the blast."
 }
 }
 variant_base = "A"

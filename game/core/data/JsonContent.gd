@@ -555,6 +555,13 @@ static func _quest(d: Dictionary, dir: String) -> QuestDef:
 	var u = d.get("unlocks", {})
 	q.unlocks = u if u is Dictionary else {}
 	q.quest_text = str(d.get("quest_text", ""))
+	# pass 140 (lane QUESTS): the quests done first, one id or a list
+	var rq = d.get("requires", [])
+	q.requires = []
+	for x in (rq if rq is Array else [rq]):
+		if str(x) != "":
+			q.requires.append(str(x))
+	q.ladder = bool(d.get("ladder", false))
 	return q
 
 

@@ -1,0 +1,15 @@
+{
+  "id": "unlock_hot_streak",
+  "name": "Body Count",
+  "condition": {
+    "type": "kills_total",
+    "count": 25000
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "hot_streak"
+  },
+  "requires": "unlock_sinners_greed",
+  "ladder": true,
+  "icon": "res://content/passives/hot_streak/hot_streak_icon.png"
+}

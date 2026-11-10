@@ -120,7 +120,8 @@ func test_every_purchase_hero_has_a_price_and_a_requirement_the_quests_can_check
 			assert_str(Registry.hero_state(c)).override_failure_message(c.id).is_equal(want)
 	# pass 83 (lane META, re-pinned): Garry's "2 are only unlocked for money": Astro and Ironwood are on sale with no
 	# requirement (Fadeaway, the money-only hero these tests used, has one now: pass83_meta_test pins the pair)
-	assert_str(_hero("astro").availability).is_equal("purchase")
+	# pass 140 (re-pinned): Astro is free from the start (Garry: "keep 3 Unlocked: Drifter, Ironwood and Astro")
+	assert_str(_hero("astro").availability).is_equal("available")
 	assert_object(Registry.quest_for("character", "astro")).is_null()
 	var mq := Registry.quest_for("character", "mira")
 	assert_object(mq).is_not_null()
@@ -147,7 +148,7 @@ func test_hero_state_for_each_case() -> void:
 			assert_str(Registry.hero_state(c)).override_failure_message(c.id).is_equal("owned")
 	# on sale with no requirement (pass 129, re-pinned: only Ironwood is; the Trail gives Astro and the rest)
 	assert_str(Registry.hero_state(_hero("ironwood"))).is_equal("buyable")
-	assert_str(Registry.hero_state(_hero("astro"))).is_equal("locked")
+	assert_str(Registry.hero_state(_hero("astro"))).is_equal("owned")
 	# an outlaw the Trail gives: locked until his node is bought, never on sale; owned once the save has him
 	var cal := _hero("calavera")
 	assert_str(Registry.hero_state(cal)).is_equal("locked")
@@ -229,9 +230,9 @@ func test_no_buy_without_the_requirement_or_the_gold() -> void:
 
 func test_a_save_from_before_owns_only_the_free_heroes_and_the_developer_owns_them_all() -> void:
 	Save.data = Save._default()
-	Save._merge_file({"gold": 12, "last_character": "astro"})
+	Save._merge_file({"gold": 12, "last_character": "solenne"})
 	assert_array(Save.heroes_owned()).is_empty()
-	assert_str(Registry.hero_state(_hero("astro"))).is_not_equal("owned")
+	assert_str(Registry.hero_state(_hero("solenne"))).is_not_equal("owned")
 	var n := Save.own_every_hero()
 	assert_int(n).is_greater(0)
 	for c: CharacterDef in Registry.sorted_characters():
@@ -243,15 +244,16 @@ func test_a_save_from_before_owns_only_the_free_heroes_and_the_developer_owns_th
 
 func test_a_save_whose_last_hero_is_not_owned_opens_on_the_drifter() -> void:
 	var f := FileAccess.open(Save.path(), FileAccess.WRITE)
-	f.store_string(JSON.stringify({"version": Save.VERSION, "gold": 5, "last_character": "astro"}))
+	# pass 140 (re-pinned): Astro is free now, so Solenne is the outlaw not owned
+	f.store_string(JSON.stringify({"version": Save.VERSION, "gold": 5, "last_character": "solenne"}))
 	f.close()
 	Save.load_save()
 	assert_str(str(Save.data["last_character"])).is_equal("drifter")
 	f = FileAccess.open(Save.path(), FileAccess.WRITE)
-	f.store_string(JSON.stringify({"version": Save.VERSION, "gold": 5, "last_character": "astro", "heroes_owned": ["astro"]}))
+	f.store_string(JSON.stringify({"version": Save.VERSION, "gold": 5, "last_character": "solenne", "heroes_owned": ["solenne"]}))
 	f.close()
 	Save.load_save()
-	assert_str(str(Save.data["last_character"])).is_equal("astro")
+	assert_str(str(Save.data["last_character"])).is_equal("solenne")
 	DirAccess.remove_absolute(Save.path())
 
 

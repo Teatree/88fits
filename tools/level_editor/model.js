@@ -92,7 +92,7 @@ const Model = (() => {
   // strength}, hell, shot}); stage k's window starts at the sum of the earlier lengths and its boss fires at its end (the
   // game's WaveTimeline.stage_window, lane SGAME). A map without one has `stages` windows of `stage_length` (today's
   // play exactly). A malformed entry (not an object) is skipped; a length under 1 s is the old stage_length.
-  const STAGE_LIST_KEYS = ['id', 'name', 'length', 'boss', 'description', 'difficulty', 'filter', 'hell', 'shot', 'xp_mult', 'legendary', 'reward_mult', 'speed_mult', 'weather', 'dust_devils'];  // pass 107: xp_mult (lane XPT); pass 121: legendary (lane LEGEND); pass 126: reward_mult, speed_mult, weather, dust_devils (lane STAGE)
+  const STAGE_LIST_KEYS = ['id', 'name', 'length', 'boss', 'description', 'difficulty', 'filter', 'hell', 'shot', 'xp_mult', 'legendary', 'reward_mult', 'speed_mult', 'weather', 'dust_devils', 'coin_mult', 'boss_purse', 'wage'];  // pass 107: xp_mult (lane XPT); pass 121: legendary (lane LEGEND); pass 126: reward_mult, speed_mult, weather, dust_devils (lane STAGE); pass 140: coin_mult, boss_purse, wage (lane ECON)
   /** Whether the map has its own stage_list (the stage tabs edit it; without one they show the fallback windows). */
   const hasStageList = (tl) => Array.isArray(tl && tl.stage_list) && tl.stage_list.some(isObj);
   /** Every stage's window: [{i, id, name, start, end, length, boss, entry (the map's own object, null for the fallback)}]. */
@@ -438,14 +438,25 @@ const Model = (() => {
    *  HP curve at t0; then × hp_mult. ATK the same with `damage`, damage_mult and the damage curve. An Elite-archetype
    *  mini-boss and a boss take no curve here (their own rules). `hpMult` / `atkMult` are the row's numbers over the JSON's
    *  (the Actual lanes; null when the JSON number is 0). */
+  /** The second a row fixed at t reads the HP and ATK curves at (pass 140, lane DIFF; WaveTimeline.curve_t): a row on a
+   *  later stage's very first second plays only in that stage's own run, so it reads a hair (0.01 s) inside the window
+   *  (the new stage's step); the boss second at a window's end keeps the stage it closes; any other second is itself. */
+  function curveT(tl, t) {
+    if (!hasStageList(tl)) return t;
+    const k = stageAt(tl, t);
+    const s0 = stageStart(tl, k);
+    return k > 0 && k < stages(tl) && Math.abs(t - s0) < 0.001 ? s0 + 0.01 : t;
+  }
+
   function rowNumbers(tl, c, stats, t0) {
     const st = isObj(stats) ? stats : {};
     const cc = c || {};
     const arch = archOf(cc);
     const at = Math.max(num(t0, 0), 0);
     const hpOver = setNum(st, 'hp'), dmgOver = setNum(st, 'damage');
-    const hpTime = arch === 'regular' && !hpOver ? hpTimeMult(tl, at) : 1;
-    const dmgTime = arch === 'regular' && !dmgOver ? dmgTimeMult(tl, at) : 1;
+    const ct = curveT(tl, at);
+    const hpTime = arch === 'regular' && !hpOver ? hpTimeMult(tl, ct) : 1;
+    const dmgTime = arch === 'regular' && !dmgOver ? dmgTimeMult(tl, ct) : 1;
     const jsonHp = num(cc.hp, 0), jsonDmg = num(cc.damage, 0);
     const hp = (hpOver ? Number(st.hp) : jsonHp * hpTime) * num(st.hp_mult, 1);
     const atk = (dmgOver ? Number(st.damage) : jsonDmg * dmgTime) * num(st.damage_mult, 1);
@@ -2917,7 +2928,7 @@ const Model = (() => {
     defaultKnockback, baseNumbers, knockbackOf, creatureAt, otherOverrides, seedPoints, getPath,
     MAX_BODIES, EST_HZ, EST_DEF, pickShares, eliteCount, burstOnce, burstAvg, bossBrood, spawnEstimate, estimateAt,
     STAGE_EDGE, portalTimer, stagesEstimate, ENDLESS_DEFAULTS, endlessValue, endlessWaveSize, endlessMults,
-    archOf, rowNumbers, actualSources, actualAt, actualSeries, ACTUAL_CLAMP, actualScale, eliteEveryTimes,
+    archOf, curveT, rowNumbers, actualSources, actualAt, actualSeries, ACTUAL_CLAMP, actualScale, eliteEveryTimes,
     fixedFrom, lookOf, waveEndOf, openSourceOf, eventNumbers,
     sizeRange, sizeIssues, TINT_DEF, tintRange, tintIssues, hueSpan, hueAt, hsvToRgb, toLinear, toSrgb, tintPixel,
     SPECIAL_TINT, tintSpecial, varianceSpecial, SPECIAL_DEFAULTS, specialValue, specialSource, SPECIAL_MAX_ALIVE, specialMaxAlive,

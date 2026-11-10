@@ -207,7 +207,8 @@ func _lobber(w: Dictionary, inst: WeaponInstance) -> Lobber:
 func test_a_slightly_bigger_blast_and_twice_the_knockback() -> void:
 	var lg: WeaponDef = Registry.weapon("lob_grenade")
 	var gp: WeaponDef = Registry.weapon("golden_pineapple")
-	assert_float(float(lg.base["area"])).is_equal_approx(2.8, 0.0001)
+	# pass 140 (lead, 81.LEAD; Garry: "explosion range ... just round it, in both balancing and text"): 2.8 -> 3.0
+	assert_float(float(lg.base["area"])).is_equal_approx(3.0, 0.0001)
 	assert_float(float(lg.base["area"])).is_greater(OLD_AREA)
 	assert_float(float(lg.base["knockback"])).is_equal_approx(OLD_KB * 2.0 * 1.25, 0.0001)  # pass 136: every weapon's knockback x1.25 (BALANCING 77.KNOCK)
 	assert_float(float(gp.base["knockback"])).is_equal_approx(OLD_GP_KB * 2.0 * 1.25, 0.0001)

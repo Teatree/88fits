@@ -31,7 +31,7 @@ value = 1.0
 [resource]
 script = ExtResource("3_cr5hj")
 weapon = "rocket_pod"
-text = "One rocket: ×3 damage, ×1.8 area of effect, ×2 knockback."
+text = "Fire 1 rocket that deals ×3 damage in a ×1.8 blast and knocks back enemies ×2 as hard."
 vfx = "one fat rocket, one big ring blast"
 effects = [SubResource("Resource_g3nf1"), SubResource("Resource_cuase"), SubResource("Resource_cr5hj"), SubResource("Resource_8a54m")]
 params = {

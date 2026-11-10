@@ -7,7 +7,7 @@
 script = ExtResource("2_0iexx")
 weapon = "hornet_nest"
 mutation_kind = "element"
-text = "Flowers grow from the sand; walk into one for 4 times the bees for 5 s."
+text = "Flowers grow from the sand: walk into one for ×4 bees for 5 s."
 vfx = "desert flowers on the sand, red bees with red trails while the buff lasts"
 params = {
 "pollen": {

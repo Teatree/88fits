@@ -87,15 +87,18 @@ func _inst(id: String, muts: Array = [], level := 1) -> WeaponInstance:
 
 
 func test_dynamite_reads_as_garry_wrote_it() -> void:
-	assert_str(Loc.row_text("weapon.lob_grenade.desc")).is_equal("Lobs {amount} {thing} at the densest crowd. Explodes in a {area} m radius.")
+	# pass 140 (lane TEXTS): his words, then the damage it deals (his rule: every weapon says its damage), the radius in
+	# whole metres (docs/texts/text_rules.md)
+	assert_str(Loc.row_text("weapon.lob_grenade.desc")).is_equal("Lobs {amount} {thing} at the densest crowd. Explodes in a {area} m radius for {damage} damage.")
 	var def: WeaponDef = Registry.weapon("lob_grenade")
 	var one := _inst("lob_grenade")
-	var want := "Lobs 1 %s at the densest crowd. Explodes in a %.1f m radius." % [TextGen.thing_word(def, 1, "grenade", "grenades"), one.sheet.get_stat("area", 2.5)]
+	var want := "Lobs 1 %s at the densest crowd. Explodes in a %.0f m radius for %d damage." % [TextGen.thing_word(def, 1, "grenade", "grenades"),
+		one.sheet.get_stat("area", 2.5), int(round(one.sheet.get_stat("damage", 25.0)))]
 	assert_str(one.description()).is_equal(want)
 	# with every path mutation (Sticky, Frag, New Equipment) still just the two sentences
 	var all := _inst("lob_grenade", Registry.mutations_of("lob_grenade"), def.max_level)
 	assert_str(all.description()).starts_with("Lobs 2 ")
-	assert_str(all.description()).ends_with(" m radius.")
+	assert_str(all.description()).ends_with(" damage.")
 	assert_int(all.description().count(". ")).is_equal(1)
 	assert_array(Loc.warnings()).is_empty()
 

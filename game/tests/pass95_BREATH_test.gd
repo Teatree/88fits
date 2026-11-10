@@ -1,5 +1,8 @@
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): items, outlaws and stages behind a Trail node or a task (BALANCING 81.TRAIL, 81.QUESTS) opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 ## Pass 95, lane BREATH: the Dragon's Breath (FireBreath): a cone of fire from the hero's face where he faces, every
 ## creature whose body stands in it hit every second (the first the moment it is inside) and set burning, the breath
 ## lengthened a second per point of amount (capped), the wait rule (a creature in the cone, or anyone within reach after
@@ -143,8 +146,12 @@ func test_the_weapon_is_whole_and_in_the_card_pool() -> void:
 		if o.id != WID and not o.hidden:
 			assert_float(float(w.base.get("cooldown", 0.0))).override_failure_message(o.id + " is slower").is_greater(float(o.base.get("cooldown", 1.0)))
 			assert_float(mine5).override_failure_message(o.id + " is slower at 5").is_greater(_inst(o.id, [], 5).stat("cooldown"))
+	# pass 140 (lane FIX): a task's unlock now (Fire Starter, BALANCING 81.QUESTS): locked on a new save, in the pool once done
+	assert_str(UNLOCKS.locked_by("weapon", WID)).is_equal("task")
+	UNLOCKS.open("weapon", WID)
 	assert_bool(Registry.unlocked_weapons().has(w)).is_true()
 	assert_bool(CardPool.offer_weapons().has(w)).is_true()
+	(Save.data["quests_done"] as Array).erase("unlock_dragons_breath")
 	# the path: one of each kind, in element / volume / motion order (pass66_shape_test's rule)
 	var path: Array = Registry.mutations_of(WID)
 	assert_array(path.map(func(m: MutationDef) -> String: return m.id)).is_equal(["blue_flame", "held_breath", "backdraft"])

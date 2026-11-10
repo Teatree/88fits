@@ -6,8 +6,11 @@
 [resource]
 script = ExtResource("1_vc38g")
 condition = {
-"count": 40.0,
-"type": "totems_total"
+"hero": "ironwood",
+"id": "cold_snap",
+"kind": "passive",
+"rung": "epic",
+"type": "item_level"
 }
 unlocks = {
 "id": "ironwood:IRN-B",

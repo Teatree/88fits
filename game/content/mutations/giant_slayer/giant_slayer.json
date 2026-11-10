@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Impacts have a 50% chance of dealing 2.5 times the damage to bosses and Elites.",
+  "text": "Impacts have a 50% chance of dealing ×2.5 damage to bosses and Elites.",
   "vfx": "a gold flash ring and a kick of the camera on the big one",
   "effects": [],
   "params": {

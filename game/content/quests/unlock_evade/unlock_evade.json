@@ -1,0 +1,15 @@
+{
+  "id": "unlock_evade",
+  "name": "Fleet Foot",
+  "condition": {
+    "type": "item_level",
+    "kind": "card",
+    "id": "stride",
+    "level": 4
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "evade"
+  },
+  "icon": "res://content/passives/evade/evade_icon.png"
+}

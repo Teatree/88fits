@@ -190,10 +190,16 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 	assert_float(float(tl.path_times_at(0)[0])).is_equal(79.0)
 	# the health ramp is divided by the same factor, so a stretched moment is as tough as the old one was
 	# (pass 120, re-pinned: the exponent is Garry's, 1.35 since his Level Editor retune of 2026-11-01: read from the map)
-	var b := float((tl.hp_curve.get("formula", {}) as Dictionary).get("b", 1.25))
-	for m in [1.0, 2.0, 3.0]:
-		var old: float = pow(1.0 + 0.14 * 5.0 * m, b)
-		assert_float(tl.hp_mult_at(tl.stage_length * m)).is_equal_approx(old, old * 0.005)
+	# (pass 140, re-pinned: lane DIFF set the curve to points per stage, the plan v2's strength; pass140_diff_test reads
+	# its stage edges. The formula's check holds while the map plays the formula.)
+	if str(tl.hp_curve.get("mode", "formula")) == "formula":
+		var b := float((tl.hp_curve.get("formula", {}) as Dictionary).get("b", 1.25))
+		for m in [1.0, 2.0, 3.0]:
+			var old: float = pow(1.0 + 0.14 * 5.0 * m, b)
+			assert_float(tl.hp_mult_at(tl.stage_length * m)).is_equal_approx(old, old * 0.005)
+	else:
+		for m in [1.0, 2.0, 3.0]:
+			assert_float(tl.hp_mult_at(tl.stage_length * m)).is_greater(1.0)
 	# what does not run on the clock stays: the bursts, the drops, the level scaling
 	assert_float(tl.spawn_interval).is_equal_approx(0.7, 0.0001)
 	assert_float(float(tl.pickups.get("per_kill", 0.0))).is_equal_approx(0.0045, 0.00001)

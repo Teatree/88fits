@@ -441,8 +441,10 @@ func test_wide_reach_leaps_onto_a_creature_and_blows_where_it_lands() -> void:
 	var em: EnemyManager = w["em"]
 	var ml := _layer(w, "land_mine", ["wide_reach"])
 	var mine := _drop_one(ml, Vector3.ZERO)
-	# 2.8 m since pass 51 (Garry: "a bit too wide")
-	assert_float(float(mine.spring()["sense"])).is_equal_approx(2.8, 0.001)
+	# 2.8 m since pass 51 (Garry: "a bit too wide"), 3.0 since pass 140 (81.LEAD: rounded); the mine reads the mutation's number
+	var sense := float((Registry.mutation("wide_reach").params["spring"] as Dictionary)["sense"])
+	assert_float(float(mine.spring()["sense"])).is_equal_approx(sense, 0.001)
+	assert_float(sense).is_greater(2.6)
 	# a creature 2.6 m off, walking across at 2 m/s
 	var c := _creature(em, Vector3(2.6, 0, 0))
 	em.vel[c] = Vector3(0, 0, 2.0)
@@ -749,7 +751,7 @@ func test_the_new_paths_say_what_they_do() -> void:
 	assert_str(Registry.mutation("wide_reach").text).is_not_empty()
 	assert_float(float(Registry.mutation("extra_supply").params["extra_supply"])).is_equal(0.25)
 	assert_str(Registry.mutation("repulsor").text).contains("40%")
-	assert_str(Registry.mutation("tinnitus").text).contains("third")
+	assert_str(Registry.mutation("tinnitus").text).contains("3rd")  # pass 140 (lane TEXTS): digits
 	for id in ["thors_wrath", "giant_slayer", "wide_reach", "extra_supply", "repulsor", "tinnitus"]:
 		assert_bool(Registry.mutation(id).hidden).override_failure_message(id).is_false()
 	# the paths of the four weapons: element, volume, motion

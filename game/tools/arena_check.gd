@@ -47,6 +47,11 @@ func _boot() -> void:
 	# new to the content that this save already meets (a hero's unlock_<id>: 2,500 kills, the Tumbleweed King killed)
 	# completes there, not in the arena: the check runs first, as the title would have before the arena
 	load("res://core/systems/QuestTracker.gd").call("check_all", false)
+	# pass 140 (lead): the same for the Trail tab's unlock show (pass 137's tutorial): the title plays it on the first screen
+	# with the tab bar after the Trail opens, before ARENA can be tapped; leaving the arena opens the title, which would
+	# otherwise play it there (a save mid-tutorial, as every fresh save since pass 140's new save is)
+	if bool(load("res://ui/wanted/WTabBar.gd").call("unlock_due")):
+		save.call("mark_tutorial", "tab_unlock_shown")
 	# the settings as a write would keep them now (pass 49: a setting added since the file was last written is not a change
 	# made in the arena; leaving it writes Settings.to_dict() whatever happened)
 	var before: Dictionary = (save.data as Dictionary).duplicate(true)

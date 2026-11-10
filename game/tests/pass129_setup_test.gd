@@ -1,18 +1,17 @@
 ## Pass 129, lane TRAIL-SETUP: the Trail's first set, read from the game's own file (content/trail/trail.json; the
 ## design lives in tools/trail_setup.py, Garry edits the file in the Level Editor). Shape rules, never his numbers: 100
-## nodes, a plain opening, more special nodes each third, no upgrade type twice within five levels, no unlock in a
-## choice, the outlaws in title order, both late stages gated, check() clean, a rising price curve, and the two fits'
-## bands: the power of node 100 against today's full Upgrade board (HeroPower), and the runs the purse model needs
-## (BALANCING.md pass 129; the model's numbers below are tools/trail_setup.py's STAGES and LEARN).
+## nodes or more, a plain opening, more special nodes each third, no upgrade type twice within five levels, no unlock in
+## a choice, the outlaws in title order, both late stages gated, check() clean, a rising price curve, and the power of
+## the last level (HeroPower). Pass 140 (lane TRAIL, re-pinned to plan v2): 130 nodes, the opening a power node every
+## level with the first Cards and items beside them, four outlaws at twice their level's price (Astro open, May a task),
+## the Trail's items without quests, no power-up node; the purse model's runs (pass 129's fit 2) moved to
+## tools/trail_setup.py (the progression plan's journey: `python tools/trail_setup.py --tables`).
 extends GdUnitTestSuite
 
 const UNLOCKS := ["outlaw", "skin", "weapon", "passive", "stage", "map", "structure", "powerup", "feature"]
-const OUTLAWS := ["astro", "calavera", "solenne", "fadeaway", "buck", "may"]
+const OUTLAWS := ["calavera", "solenne", "fadeaway", "buck"]
 const PLAIN_WEAPONS := [["revolver", 5], ["molotov", 4], ["orbit_saws", 4], ["boomstick", 3], ["tommy_gun", 3]]
 const PLAIN_PASSIVES := [["brawn", 3], ["vigour", 3], ["mend", 2], ["reach", 2], ["quickdraw", 2]]
-## the purse model (tools/trail_setup.py): [clear purse, open level, share at open, ready level, bounty]
-const STAGES := [[1200.0, 0, 0.25, 8, 150.0], [4000.0, 8, 0.30, 18, 150.0], [5300.0, 18, 0.35, 27, 200.0], [12000.0, 36, 0.25, 55, 250.0]]
-const LEARN := [0.1, 0.4, 0.7, 0.9]
 
 var _nodes: Array = []
 var _top := 0
@@ -77,8 +76,9 @@ func _level_of(type: String, id: String) -> int:
 	return Trail.level_for(type, id)
 
 
-func test_the_set_is_100_nodes_under_to_be_continued() -> void:
-	assert_int(_nodes.size()).is_equal(100)
+func test_the_set_is_100_nodes_or_more_under_to_be_continued() -> void:
+	# pass 140: 130 (plan v2); pass140_trail_test pins the mix
+	assert_bool(_nodes.size() >= 100).override_failure_message("%d nodes" % _nodes.size()).is_true()
 	assert_bool(_top >= 60 and _top <= 80).override_failure_message("%d levels" % _top).is_true()
 	assert_str(Trail.end_text()).is_equal("To be continued")
 	for l in range(1, _top + 1):
@@ -92,15 +92,23 @@ func test_the_game_and_the_file_agree_the_trail_is_sound() -> void:
 	assert_bool(Trail.has_nodes()).is_true()
 
 
-func test_the_opening_is_eight_plain_upgrades_each_a_different_one() -> void:
+func test_the_opening_is_plain_nodes_with_a_different_upgrade_on_every_level() -> void:
+	# pass 140 (plan v2): an upgrade on each of the first eight levels, the first Cards and items beside them from level 4
 	var seen := {}
+	var ups := 0
 	for l in range(1, 9):
 		var row := Trail.nodes_on(l)
-		assert_int(row.size()).override_failure_message("level %d" % l).is_equal(1)
-		assert_str(str(row[0]["kind"])).is_equal("node")
-		assert_bool(_is_up(row[0])).override_failure_message("level %d is no upgrade" % l).is_true()
-		seen[_type(row[0])] = true
-	assert_int(seen.size()).is_equal(8)
+		var here := 0
+		for n: Dictionary in row:
+			assert_str(str(n["kind"])).override_failure_message("level %d" % l).is_equal("node")
+			if _is_up(n):
+				seen[_type(n)] = true
+				here += 1
+			else:
+				assert_str(str(n["gives"]["type"])).override_failure_message("level %d" % l).is_equal("passive")
+		assert_bool(here >= 1).override_failure_message("level %d has no upgrade" % l).is_true()
+		ups += here
+	assert_int(seen.size()).override_failure_message("the opening repeats an upgrade type").is_equal(ups)
 	for n: Dictionary in _nodes:
 		if str(n["kind"]) == "choice":
 			assert_bool(int(n["level"]) >= 9).override_failure_message("a choice at level %d" % int(n["level"])).is_true()
@@ -126,7 +134,7 @@ func test_special_nodes_take_a_larger_share_each_third() -> void:
 	assert_bool((choice_levels[0] as Dictionary).size() <= (choice_levels[1] as Dictionary).size()
 		and (choice_levels[1] as Dictionary).size() <= (choice_levels[2] as Dictionary).size()).override_failure_message("choice levels by third").is_true()
 	# most nodes are regular, and the late third has a three-way and a four-way choice
-	assert_bool(float(special[0] + special[1] + special[2]) / 100.0 < 0.5).is_true()
+	assert_bool(float(special[0] + special[1] + special[2]) / float(_nodes.size()) < 0.5).is_true()
 	var sizes := {}
 	for g: Array in _groups():
 		assert_bool(g.size() >= 2 and g.size() <= 4).is_true()
@@ -165,23 +173,27 @@ func test_a_choice_is_between_upgrades_never_an_unlock() -> void:
 		assert_int(types.size()).override_failure_message("a choice repeats a type").is_equal(g.size())
 
 
-func test_the_outlaws_come_in_title_order_at_their_own_prices() -> void:
+func test_the_outlaws_come_in_title_order_at_twice_their_levels_price() -> void:
+	var cfg: Dictionary = Trail.read_file(Trail.DEFAULT)["price"]
 	var levels: Array = []
 	for id: String in OUTLAWS:
 		assert_bool(Trail.gated("outlaw", id)).override_failure_message(id).is_true()
 		levels.append(_level_of("outlaw", id))
 		var c: CharacterDef = Registry.character(id)
-		assert_int(Trail.price(str(Trail.gate("outlaw", id)["id"]))).override_failure_message(id).is_equal(c.price)
+		# pass 140: twice his level's price (pass 129: his own price)
+		assert_int(Trail.price(str(Trail.gate("outlaw", id)["id"]))).override_failure_message(id).is_equal(Trail.price_at(cfg, _level_of("outlaw", id), 2.0))
 		assert_str(Registry.hero_state(c)).is_equal("locked")
 		assert_str(Registry.hero_requirement_text(c)).is_equal("Reach Trail Level %d" % _level_of("outlaw", id))
 		assert_object(Registry.quest_for("character", id)).override_failure_message("%s still has an unlock quest" % id).is_null()
 	var sorted := levels.duplicate()
 	sorted.sort()
 	assert_array(levels).is_equal(sorted)
-	assert_bool(int(levels[0]) <= 10 and int(levels[levels.size() - 1]) >= 40 and int(levels[levels.size() - 1]) <= 50).override_failure_message("outlaw levels %s" % [levels]).is_true()
-	# the Drifter and (pass 132) Ironwood are free from the start: no node names them
-	assert_bool(Trail.gated("outlaw", "drifter") or Trail.gated("outlaw", "ironwood")).is_false()
-	assert_str(Registry.hero_state(Registry.character("ironwood"))).is_equal("owned")
+	assert_bool(int(levels[0]) <= 20 and int(levels[levels.size() - 1]) >= 34 and int(levels[levels.size() - 1]) <= 45).override_failure_message("outlaw levels %s" % [levels]).is_true()
+	# the Drifter, (pass 132) Ironwood and (pass 140) Astro are free from the start: no node names them; May comes from a task
+	for id: String in ["drifter", "ironwood", "astro"]:
+		assert_bool(Trail.gated("outlaw", id)).override_failure_message(id).is_false()
+		assert_str(Registry.hero_state(Registry.character(id))).override_failure_message(id).is_equal("owned")
+	assert_bool(Trail.gated("outlaw", "may")).is_false()
 
 
 func test_the_dust_bowl_and_blood_moon_are_trail_unlocks_and_the_first_two_stages_are_not() -> void:
@@ -201,21 +213,21 @@ func test_the_dust_bowl_and_blood_moon_are_trail_unlocks_and_the_first_two_stage
 	assert_bool(Save.stage_unlocked("red_canyon", 3)).is_false()
 
 
-func test_eight_items_moved_off_their_quests_and_the_dynamite_kept_its_own() -> void:
+func test_the_trails_items_have_no_quest_and_start_locked() -> void:
+	# pass 140 (plan v2): 29 weapons, Cards and items (pass 129: the eight moved off their quests)
 	var items := _nodes.filter(func(n: Dictionary) -> bool: return ["weapon", "passive"].has(str((n["gives"] as Dictionary).get("type", ""))))
-	assert_int(items.size()).is_equal(8)
+	assert_bool(items.size() >= 8).is_true()
 	for n: Dictionary in items:
 		var type := str(n["gives"]["type"])
 		var id := str(n["gives"]["id"])
 		assert_object(Registry.weapon(id) if type == "weapon" else Registry.passive(id)).override_failure_message(id).is_not_null()
 		assert_object(Registry.quest_for(type, id)).override_failure_message("%s still has an unlock quest" % id).is_null()
 		assert_bool(Registry.is_unlocked(type, id)).override_failure_message(id).is_false()
-		assert_bool(int(n["level"]) >= 6 and int(n["level"]) <= 60).override_failure_message("%s at level %d" % [id, int(n["level"])]).is_true()
+		assert_bool(int(n["level"]) >= 4 and int(n["level"]) <= 66).override_failure_message("%s at level %d" % [id, int(n["level"])]).is_true()
 	assert_bool(Trail.gated("weapon", "lob_grenade")).is_false()
-	assert_object(Registry.quest_for("weapon", "lob_grenade")).is_not_null()
-	# no structure, power-up, feature, map or skin node in this set
+	# no structure, power-up, feature or map node (Garry, pass 140: "Remove Power-ups from the Trails, but keep Stage")
 	for n: Dictionary in _nodes:
-		assert_bool(["structure", "powerup", "feature", "map", "skin"].has(str((n["gives"] as Dictionary).get("type", "")))).is_false()
+		assert_bool(["structure", "powerup", "feature", "map"].has(str((n["gives"] as Dictionary).get("type", "")))).is_false()
 
 
 func test_stakes_are_four_and_four_optional_nodes_never_two_on_a_level() -> void:
@@ -248,7 +260,7 @@ func test_the_price_curve_rises_and_the_first_node_is_nearly_free() -> void:
 		prev = p
 	assert_bool(Trail.price(str(_nodes[0]["id"])) <= 20).is_true()
 	for l in range(2, 9):
-		assert_bool(Trail.price(str(Trail.nodes_on(l)[0]["id"])) < Registry.character("astro").price).override_failure_message("level %d is not cheap" % l).is_true()
+		assert_bool(Trail.price(str(Trail.nodes_on(l)[0]["id"])) < 500).override_failure_message("level %d is not cheap" % l).is_true()
 
 
 ## The Drifter's power (HeroPower) at level 30 with a plain build, under the save as it stands.
@@ -278,68 +290,29 @@ func _trail_power(level: int) -> float:
 	return sum / 2.0
 
 
-## Fit 1 (BALANCING.md pass 129): node 100 leaves the Drifter 1.25 to 1.4 times as strong as the full Upgrade board
-## in its strongest forms (Muscle, Plate, Poultice at rank 7) was; a quarter of the board's gain where the Dust Bowl
-## opens and half where Blood Moon does, each within a wide margin (the stage nodes sit "within a few levels").
+## Fit 1 (BALANCING.md pass 129): node 100 left the Drifter 1.25 to 1.4 times as strong as the full Upgrade board in
+## its strongest forms (Muscle, Plate, Poultice at rank 7) was (measured x1.33); a quarter of the board's gain where the
+## Dust Bowl opens and half where Blood Moon does, each within a wide margin (the stage nodes sit "within a few levels").
 ## The board left the game later in pass 129, so its power is no longer measured here: BOARD_L30 is its last
-## measurement at this test's level-30 build (tools/trail_setup.py BOARD_POWER["l30"], the same probe).
+## measurement at this test's level-30 build (tools/trail_setup.py BOARD_POWER["l30"], the same probe). Pass 140 (plan
+## v2, Garry: "110% is fine, bigger is fine too"): the last level 1.1 to 1.4 times pass 129's node 100, both measured
+## here (pass 129's set as it stood: tests/fixtures/trail_pass129.json).
 const BOARD_L30 := 2.195
+const TRAIL129 := "res://tests/fixtures/trail_pass129.json"
 
 
 func test_fit_1_the_power_of_the_trail_against_the_full_board() -> void:
 	var fresh := _power()
 	var board := BOARD_L30
 	var top := _trail_power(_top) / fresh
-	assert_bool(top / board >= 1.25 and top / board <= 1.4).override_failure_message("node 100 is x%.3f of the full board (1.25 to 1.4)" % (top / board)).is_true()
+	Trail.load_from(TRAIL129)
+	_nodes = Trail.nodes()
+	var before := _trail_power(Trail.levels()) / fresh
+	Trail.load_from()
+	_nodes = Trail.nodes()
+	assert_bool(before / board >= 1.25 and before / board <= 1.4).override_failure_message("pass 129's node 100 is x%.3f of the full board (1.25 to 1.4)" % (before / board)).is_true()
+	assert_bool(top / before >= 1.1 and top / before <= 1.4).override_failure_message("the last level is x%.3f of pass 129's node 100 (1.1 to 1.4)" % (top / before)).is_true()
 	var dust := (_trail_power(_level_of("stage", "red_canyon:dust")) / fresh - 1.0) / (board - 1.0)
 	var moon := (_trail_power(_level_of("stage", "red_canyon:s3")) / fresh - 1.0) / (board - 1.0)
 	assert_bool(dust >= 0.15 and dust <= 0.35).override_failure_message("the Dust Bowl opens at %.0f%% of the board's gain (about a quarter)" % (dust * 100.0)).is_true()
 	assert_bool(moon >= 0.38 and moon <= 0.62).override_failure_message("Blood Moon opens at %.0f%% of the board's gain (about half)" % (moon * 100.0)).is_true()
-
-
-## The purse model (tools/trail_setup.py `purse`): the best-paying stage open at this Trail level.
-func _purse(run: int, level: int, greed: float) -> int:
-	var best := 0.0
-	for s: Array in STAGES:
-		if level < int(s[1]):
-			continue
-		var f := minf(1.0, float(level - int(s[1])) / float(maxi(int(s[3]) - int(s[1]), 1)))
-		best = maxf(best, (float(s[0]) * (1.0 + greed) + float(s[4])) * (float(s[2]) + (1.0 - float(s[2])) * f))
-	if run <= LEARN.size():
-		best *= float(LEARN[run - 1])
-	return int(round(best))
-
-
-## Fit 2 (BALANCING.md pass 129): by the purse model the first node is bought after run 1, about 35 of the 100 nodes
-## lie on done levels by run 20, about 65 by run 50, and every required node and outlaw is bought by about run 100
-## (optional nodes outside the budget).
-func test_fit_2_about_a_hundred_runs_for_the_hundred_nodes() -> void:
-	var order: Array = _bought(_top)
-	var last_of := {}
-	for i in range(order.size()):
-		last_of[int(Trail.node(str(order[i]))["level"])] = i
-	var gold := 0
-	var i := 0
-	var level := 0
-	var greed := 0.0
-	var by := {}
-	var done_run := 0
-	for run in range(1, 301):
-		gold += _purse(run, level, greed)
-		while i < order.size() and Trail.price(str(order[i])) <= gold:
-			var n := Trail.node(str(order[i]))
-			gold -= Trail.price(str(order[i]))
-			if _is_up(n) and _type(n) == "greed":
-				greed += float(n["gives"]["value"])
-			if int(last_of[int(n["level"])]) == i:
-				level = int(n["level"])
-			i += 1
-		by[run] = _nodes.filter(func(n: Dictionary) -> bool: return int(n["level"]) <= level).size()
-		if level >= _top:
-			done_run = run
-			break
-	assert_bool(int(by[1]) >= 1).override_failure_message("no node after run 1").is_true()
-	assert_bool(int(by[5]) >= 7).override_failure_message("%d nodes after five runs" % int(by[5])).is_true()
-	assert_bool(absi(int(by.get(20, 100)) - 35) <= 6).override_failure_message("%d nodes by run 20 (about 35)" % int(by.get(20, 100))).is_true()
-	assert_bool(absi(int(by.get(50, 100)) - 65) <= 6).override_failure_message("%d nodes by run 50 (about 65)" % int(by.get(50, 100))).is_true()
-	assert_bool(done_run >= 90 and done_run <= 110).override_failure_message("every required node at run %d (about 100)" % done_run).is_true()

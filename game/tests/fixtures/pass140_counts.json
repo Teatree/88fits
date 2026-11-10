@@ -1,0 +1,1255 @@
+{
+ "boss_fights": {
+  "dust": {
+   "length": 120,
+   "max_count": 35,
+   "rows": {
+    "bfd-1": {
+     "enemy": "straw_man",
+     "interval": 2.5,
+     "pack": 3,
+     "pattern": "scatter",
+     "t": 0
+    },
+    "bfd-2": {
+     "enemy": "dust_bunny",
+     "interval": 3,
+     "pack": 5,
+     "pattern": "scatter",
+     "t": 0
+    },
+    "bfd-3": {
+     "count": 2,
+     "enemy": "buckshot_dwarf",
+     "every": 35,
+     "max_alive": 3,
+     "pace": "waves",
+     "pattern": "scatter",
+     "t": 12
+    },
+    "bfd-4": {
+     "count": 12,
+     "enemy": "carrion_crow",
+     "every": 40,
+     "pace": "waves",
+     "pack": 12,
+     "pattern": "pack",
+     "t": 30
+    },
+    "bfd-5": {
+     "count": 2,
+     "enemy": "bull_beetle",
+     "max_alive": 2,
+     "pace": "once",
+     "pattern": "in_front",
+     "respect_cap": false,
+     "t": 60
+    },
+    "bfd-6": {
+     "count": 18,
+     "enemy": "dust_bunny",
+     "pace": "once",
+     "pattern": "ring",
+     "respect_cap": false,
+     "t": 90
+    }
+   }
+  },
+  "s1": {
+   "length": 120,
+   "max_count": 25,
+   "rows": {
+    "bf1-1": {
+     "enemy": "red_goblin",
+     "interval": 3,
+     "pack": 3,
+     "pattern": "scatter",
+     "t": 0
+    },
+    "bf1-2": {
+     "enemy": "werewolf",
+     "interval": 4,
+     "pack": 2,
+     "pattern": "scatter",
+     "t": 0
+    },
+    "bf1-3": {
+     "count": 2,
+     "enemy": "spit_cactus",
+     "every": 60,
+     "max_alive": 2,
+     "pace": "waves",
+     "pattern": "scatter",
+     "t": 20
+    },
+    "bf1-4": {
+     "count": 2,
+     "enemy": "bull_beetle",
+     "max_alive": 2,
+     "pace": "once",
+     "pattern": "in_front",
+     "respect_cap": false,
+     "t": 50
+    },
+    "bf1-5": {
+     "count": 12,
+     "enemy": "red_goblin",
+     "pace": "once",
+     "pattern": "ring",
+     "respect_cap": false,
+     "t": 75
+    }
+   }
+  },
+  "s2": {
+   "length": 120,
+   "max_count": 30,
+   "rows": {
+    "bf2-1": {
+     "enemy": "skeleton",
+     "interval": 2.5,
+     "pack": 3,
+     "pattern": "scatter",
+     "t": 0
+    },
+    "bf2-2": {
+     "enemy": "goblin",
+     "interval": 3,
+     "pack": 4,
+     "pattern": "scatter",
+     "t": 0
+    },
+    "bf2-3": {
+     "count": 2,
+     "enemy": "buckshot_dwarf",
+     "every": 40,
+     "max_alive": 3,
+     "pace": "waves",
+     "pattern": "scatter",
+     "t": 15
+    },
+    "bf2-4": {
+     "count": 3,
+     "enemy": "bull_beetle",
+     "max_alive": 3,
+     "pace": "once",
+     "pattern": "in_front",
+     "respect_cap": false,
+     "t": 45
+    },
+    "bf2-5": {
+     "count": 8,
+     "enemy": "desert_spider",
+     "pace": "once",
+     "pattern": "ring",
+     "respect_cap": false,
+     "t": 80
+    },
+    "bf2-6": {
+     "count": 1,
+     "enemy": "hammer_giant",
+     "max_alive": 1,
+     "pace": "once",
+     "pattern": "scatter",
+     "t": 100
+    }
+   }
+  },
+  "s3": {
+   "length": 120,
+   "max_count": 40,
+   "rows": {
+    "bf3-1": {
+     "enemy": "imp",
+     "interval": 2,
+     "pack": 4,
+     "pattern": "scatter",
+     "t": 0
+    },
+    "bf3-2": {
+     "enemy": "hellhound",
+     "interval": 3,
+     "pack": 2,
+     "pattern": "scatter",
+     "t": 0
+    },
+    "bf3-4": {
+     "count": 2,
+     "enemy": "buckshot_dwarf",
+     "every": 30,
+     "max_alive": 3,
+     "pace": "waves",
+     "pattern": "scatter",
+     "t": 10
+    },
+    "bf3-5": {
+     "count": 2,
+     "enemy": "bull_beetle",
+     "max_alive": 2,
+     "pace": "once",
+     "pattern": "in_front",
+     "respect_cap": false,
+     "t": 40
+    },
+    "bf3-6": {
+     "count": 16,
+     "enemy": "fire_ant",
+     "pace": "once",
+     "pattern": "ring",
+     "respect_cap": false,
+     "t": 75
+    }
+   }
+  }
+ },
+ "cap_curve": [
+  [
+   0,
+   500
+  ],
+  [
+   480,
+   500.0
+  ]
+ ],
+ "cap_max": 500,
+ "floor_curve": [],
+ "hard_cap": 500,
+ "hell_cap": [
+  0.0,
+  0.3,
+  0.0,
+  0.4
+ ],
+ "rows": {
+  "da1": {
+   "count": 12,
+   "enemy": "dust_bunny",
+   "every": 6,
+   "pace": "waves",
+   "pack": 6,
+   "pattern": "scatter",
+   "t": 1030,
+   "until": 1125
+  },
+  "da2": {
+   "enemy": "dust_bunny",
+   "interval": 6,
+   "pack": 6,
+   "pattern": "scatter",
+   "t": 1070,
+   "until": 1125
+  },
+  "da3": {
+   "count": 24,
+   "enemy": "dust_bunny",
+   "pace": "once",
+   "pattern": "ring",
+   "respect_cap": false,
+   "t": 1120,
+   "until": 1125
+  },
+  "da4": {
+   "count": 2,
+   "enemy": "buckshot_dwarf",
+   "every": 25,
+   "max_alive": 2,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 1060,
+   "until": 1270
+  },
+  "db1": {
+   "count": 24,
+   "enemy": "carrion_crow",
+   "every": 20,
+   "pace": "waves",
+   "pack": 12,
+   "pattern": "pack",
+   "t": 1150,
+   "until": 1255
+  },
+  "db2": {
+   "enemy": "carrion_crow",
+   "interval": 8,
+   "pack": 8,
+   "pattern": "scatter",
+   "t": 1160,
+   "until": 1270
+  },
+  "db3": {
+   "count": 2,
+   "enemy": "horned_toad",
+   "every": 20,
+   "max_alive": 3,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 1180,
+   "until": 1300
+  },
+  "dc1": {
+   "count": 24,
+   "enemy": "straw_man",
+   "every": 8,
+   "pace": "waves",
+   "pack": 6,
+   "pattern": "scatter",
+   "t": 1310,
+   "until": 1420
+  },
+  "dc2": {
+   "enemy": "straw_man",
+   "interval": 5,
+   "pack": 10,
+   "pattern": "scatter",
+   "t": 1330,
+   "until": 1450
+  },
+  "dc3": {
+   "enemy": "spit_cactus",
+   "interval": 6,
+   "max_alive": 3,
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 1330,
+   "until": 1450
+  },
+  "dc4": {
+   "count": 20,
+   "enemy": "monk",
+   "pace": "once",
+   "pattern": "pack",
+   "respect_cap": false,
+   "t": 1380,
+   "until": 1385
+  },
+  "dc5": {
+   "count": 50,
+   "enemy": "straw_man",
+   "pace": "once",
+   "pattern": "ring",
+   "respect_cap": false,
+   "t": 1410,
+   "until": 1415
+  },
+  "dc6": {
+   "count": 1,
+   "enemy": "hammer_giant",
+   "every": 35,
+   "max_alive": 2,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 1420,
+   "until": 1510
+  },
+  "dc7": {
+   "count": 3,
+   "enemy": "bull_beetle",
+   "max_alive": 3,
+   "pace": "once",
+   "pattern": "in_front",
+   "respect_cap": false,
+   "t": 1450,
+   "until": 1455
+  },
+  "dd0": {
+   "enemy": "dust_bunny",
+   "interval": 6,
+   "pack": 10,
+   "pattern": "scatter",
+   "t": 1460,
+   "until": 1510
+  },
+  "dd1": {
+   "count": 40,
+   "enemy": "carrion_crow",
+   "every": 20,
+   "pace": "waves",
+   "pack": 20,
+   "pattern": "pack",
+   "t": 1510,
+   "until": 1610
+  },
+  "dd2": {
+   "enemy": "carrion_crow",
+   "interval": 6,
+   "pack": 8,
+   "pattern": "scatter",
+   "t": 1520,
+   "until": 1660
+  },
+  "dd3": {
+   "count": 40,
+   "enemy": "carrion_crow",
+   "pace": "once",
+   "pattern": "in_front",
+   "respect_cap": false,
+   "t": 1610,
+   "until": 1615
+  },
+  "dd4": {
+   "count": 3,
+   "enemy": "dust_mummy",
+   "every": 20,
+   "max_alive": 6,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 1540,
+   "until": 1660
+  },
+  "dd5": {
+   "count": 3,
+   "enemy": "buckshot_dwarf",
+   "every": 18,
+   "max_alive": 4,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 1540,
+   "until": 1670
+  },
+  "de1": {
+   "count": 16,
+   "enemy": "straw_man",
+   "every": 8,
+   "pace": "waves",
+   "pack": 8,
+   "pattern": "scatter",
+   "t": 1690,
+   "until": 1810
+  },
+  "de2": {
+   "enemy": "straw_man",
+   "interval": 6,
+   "pack": 8,
+   "pattern": "scatter",
+   "t": 1700,
+   "until": 1810
+  },
+  "de3": {
+   "count": 30,
+   "enemy": "straw_man",
+   "pace": "once",
+   "pattern": "ring",
+   "respect_cap": false,
+   "t": 1730,
+   "until": 1735
+  },
+  "de4": {
+   "count": 1,
+   "enemy": "hammer_giant",
+   "every": 35,
+   "max_alive": 2,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 1690,
+   "until": 1810
+  },
+  "de5": {
+   "enemy": "spit_cactus",
+   "interval": 6,
+   "max_alive": 3,
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 1690,
+   "until": 1810
+  },
+  "de6": {
+   "count": 5,
+   "enemy": "bull_beetle",
+   "max_alive": 5,
+   "pace": "once",
+   "pattern": "in_front",
+   "respect_cap": false,
+   "t": 1760,
+   "until": 1765
+  },
+  "de7": {
+   "enemy": "dust_bunny",
+   "interval": 6,
+   "pack": 10,
+   "pattern": "scatter",
+   "t": 1730,
+   "until": 1810
+  },
+  "r1": {
+   "count": 30,
+   "enemy": "red_goblin",
+   "every": 5,
+   "pace": "waves",
+   "t": 123,
+   "until": 219
+  },
+  "r10": {
+   "count": 20,
+   "enemy": "red_goblin",
+   "every": 4,
+   "pace": "waves",
+   "pack": 2,
+   "pattern": "scatter",
+   "t": 123,
+   "until": 219
+  },
+  "r11": {
+   "count": 25,
+   "enemy": "goblin",
+   "every": 7,
+   "pace": "waves",
+   "pack": 25,
+   "pattern": "pack",
+   "t": 738,
+   "until": 870
+  },
+  "r12": {
+   "count": 10,
+   "enemy": "skeleton",
+   "every": 7,
+   "pace": "waves",
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 53,
+   "until": 123
+  },
+  "r13": {
+   "enemy": "skeleton_knight",
+   "interval": 10,
+   "pack": 5,
+   "pattern": "pack",
+   "t": 83,
+   "until": 123
+  },
+  "r14": {
+   "enemy": "spit_cactus",
+   "interval": 6,
+   "max_alive": 5,
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 257,
+   "until": 315
+  },
+  "r15": {
+   "enemy": "bull_beetle",
+   "interval": 6,
+   "max_alive": 4,
+   "pattern": "scatter",
+   "t": 306,
+   "until": 347
+  },
+  "r16": {
+   "count": 5,
+   "enemy": "cyclopean_mummy",
+   "every": 5,
+   "pace": "waves",
+   "pack": 7,
+   "pattern": "scatter",
+   "t": 368,
+   "until": 430
+  },
+  "r17": {
+   "count": 35,
+   "enemy": "monk",
+   "pace": "once",
+   "pack": 35,
+   "pattern": "in_front",
+   "t": 835,
+   "until": 844
+  },
+  "r18": {
+   "count": 35,
+   "enemy": "skeleton",
+   "pace": "once",
+   "pack": 35,
+   "pattern": "ring",
+   "t": 608,
+   "until": 617
+  },
+  "r19": {
+   "count": 10,
+   "enemy": "buckshot_dwarf",
+   "max_alive": 10,
+   "pace": "once",
+   "pack": 10,
+   "pattern": "scatter",
+   "respect_cap": false,
+   "t": 431,
+   "until": 443
+  },
+  "r2": {
+   "enemy": "goblin_runt",
+   "interval": 8,
+   "pack": 12,
+   "pattern": "scatter",
+   "t": 141,
+   "until": 200
+  },
+  "r20": {
+   "enemy": "skeleton",
+   "interval": 1.75,
+   "pack": 5,
+   "pattern": "scatter",
+   "t": 608,
+   "until": 667
+  },
+  "r21": {
+   "count": 70,
+   "enemy": "cactus_walker",
+   "every": 10,
+   "pace": "waves",
+   "pack": 30,
+   "pattern": "ring",
+   "t": 245,
+   "until": 266
+  },
+  "r22": {
+   "enemy": "desert_spider",
+   "every": 5,
+   "pace": "waves",
+   "pack": 15,
+   "pattern": "scatter",
+   "t": 480,
+   "until": 623
+  },
+  "r23": {
+   "count": 60,
+   "enemy": "carrion_crow",
+   "every": 30,
+   "pace": "waves",
+   "pack": 30,
+   "pattern": "pack",
+   "t": 575,
+   "until": 667
+  },
+  "r24": {
+   "enemy": "skeleton_knight",
+   "every": 15,
+   "pace": "waves",
+   "pack": 10,
+   "pattern": "pack",
+   "t": 608,
+   "until": 667
+  },
+  "r25": {
+   "enemy": "dust_mummy",
+   "every": 25,
+   "pace": "waves",
+   "pack": 10,
+   "pattern": "ring",
+   "t": 835,
+   "until": 911
+  },
+  "r26": {
+   "enemy": "spit_cactus",
+   "interval": 4,
+   "max_alive": 4,
+   "pack": 2,
+   "pattern": "scatter",
+   "t": 667,
+   "until": 765
+  },
+  "r27": {
+   "enemy": "bull_beetle",
+   "every": 25,
+   "max_alive": 3,
+   "pace": "waves",
+   "pack": 5,
+   "pattern": "ring",
+   "t": 730,
+   "until": 835
+  },
+  "r28": {
+   "count": 10,
+   "enemy": "buckshot_dwarf",
+   "every": 10,
+   "max_alive": 3,
+   "pace": "waves",
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 730,
+   "until": 815
+  },
+  "r29": {
+   "count": 30,
+   "enemy": "lesser_scorpion",
+   "every": 10,
+   "max_alive": 450,
+   "pace": "waves",
+   "pack": 45,
+   "pattern": "scatter",
+   "t": 911,
+   "until": 1030
+  },
+  "r3": {
+   "count": 30,
+   "enemy": "lesser_scorpion",
+   "every": 10,
+   "offset": 3,
+   "pace": "waves",
+   "pack": 6,
+   "pattern": "ring",
+   "t": 47,
+   "until": 53
+  },
+  "r30": {
+   "count": 50,
+   "enemy": "goblin",
+   "pace": "once",
+   "pack": 50,
+   "pattern": "ring",
+   "t": 861,
+   "until": 870
+  },
+  "r31": {
+   "count": 10,
+   "enemy": "goblin_runt",
+   "every": 20,
+   "pace": "waves",
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 750,
+   "until": 870
+  },
+  "r32": {
+   "count": 5,
+   "enemy": "hammer_giant",
+   "every": 20,
+   "max_alive": 2,
+   "pace": "waves",
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 911,
+   "until": 1030
+  },
+  "r4": {
+   "enemy": "bull_beetle",
+   "interval": 5,
+   "max_alive": 6,
+   "pattern": "scatter",
+   "t": 389,
+   "until": 420
+  },
+  "r5": {
+   "count": 20,
+   "enemy": "lesser_scorpion",
+   "every": 5,
+   "pace": "waves",
+   "pack": 10,
+   "pattern": "scatter",
+   "t": 0,
+   "until": 47
+  },
+  "r51": {
+   "enemy": "spit_cactus",
+   "interval": 4,
+   "max_alive": 4,
+   "pack": 2,
+   "pattern": "scatter",
+   "t": 901,
+   "until": 1030
+  },
+  "r54": {
+   "enemy": "spit_cactus",
+   "interval": 6,
+   "max_alive": 8,
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 399,
+   "until": 430
+  },
+  "r55": {
+   "count": 75,
+   "enemy": "werewolf",
+   "every": 15,
+   "pace": "waves",
+   "pack": 30,
+   "pattern": "ring",
+   "t": 317,
+   "until": 334
+  },
+  "r56": {
+   "count": 10,
+   "enemy": "buckshot_dwarf",
+   "every": 10,
+   "max_alive": 3,
+   "pace": "waves",
+   "pack": 10,
+   "pattern": "scatter",
+   "t": 443,
+   "until": 667
+  },
+  "r57": {
+   "count": 25,
+   "enemy": "goblin",
+   "every": 5,
+   "pace": "waves",
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 738,
+   "until": 870
+  },
+  "r58": {
+   "enemy": "cactus_walker",
+   "interval": 3,
+   "pack": 10,
+   "pattern": "scatter",
+   "t": 270,
+   "until": 315
+  },
+  "r59": {
+   "enemy": "werewolf",
+   "interval": 2.5,
+   "pack": 15,
+   "pattern": "scatter",
+   "t": 332,
+   "until": 389
+  },
+  "r6": {
+   "count": 1,
+   "enemy": "red_goblin",
+   "pace": "once",
+   "pattern": "in_front",
+   "respect_cap": false,
+   "t": 120
+  },
+  "r60": {
+   "count": 4,
+   "enemy": "hammer_giant",
+   "every": 20,
+   "max_alive": 2,
+   "pace": "waves",
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 714,
+   "until": 755
+  },
+  "r62": {
+   "enemy": "monk",
+   "pace": "once",
+   "pack": 20,
+   "pattern": "pack",
+   "t": 355,
+   "until": 368
+  },
+  "r63": {
+   "count": 1,
+   "enemy": "bull_beetle",
+   "max_alive": 4,
+   "pace": "once",
+   "pack": 1,
+   "pattern": "in_front",
+   "t": 160,
+   "until": 165
+  },
+  "r64": {
+   "count": 35,
+   "enemy": "monk",
+   "pace": "once",
+   "pack": 35,
+   "pattern": "in_front",
+   "t": 630,
+   "until": 639
+  },
+  "r65": {
+   "count": 35,
+   "enemy": "goblin",
+   "pace": "once",
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 723,
+   "until": 727
+  },
+  "r66": {
+   "count": 35,
+   "enemy": "monk",
+   "pace": "once",
+   "pack": 35,
+   "pattern": "in_front",
+   "t": 771,
+   "until": 780
+  },
+  "r67": {
+   "count": 1,
+   "enemy": "hammer_giant",
+   "max_alive": 1,
+   "pace": "once",
+   "pack": 1,
+   "pattern": "scatter",
+   "t": 714,
+   "until": 727
+  },
+  "r68": {
+   "count": 3,
+   "enemy": "desert_spider",
+   "pace": "once",
+   "pack": 15,
+   "pattern": "scatter",
+   "t": 469,
+   "until": 471
+  },
+  "r7": {
+   "count": 1,
+   "enemy": "roster",
+   "every": 129,
+   "pace": "waves",
+   "respect_cap": false,
+   "t": 301
+  },
+  "r8": {
+   "count": 25,
+   "enemy": "fire_ant",
+   "every": 12,
+   "pace": "waves",
+   "pattern": "scatter",
+   "respect_cap": false,
+   "t": 835,
+   "until": 923
+  },
+  "r9": {
+   "count": 5,
+   "enemy": "bull_beetle",
+   "pace": "once",
+   "pattern": "in_front",
+   "respect_cap": false,
+   "t": 960
+  },
+  "s3a1": {
+   "count": 12,
+   "enemy": "red_goblin_runt",
+   "every": 6,
+   "pace": "waves",
+   "pack": 6,
+   "pattern": "scatter",
+   "t": 1810,
+   "until": 1920
+  },
+  "s3a2": {
+   "enemy": "red_goblin_runt",
+   "interval": 6,
+   "pack": 5,
+   "pattern": "scatter",
+   "t": 1850,
+   "until": 1940
+  },
+  "s3a3": {
+   "count": 20,
+   "enemy": "red_goblin",
+   "pace": "once",
+   "pattern": "ring",
+   "respect_cap": false,
+   "t": 1900,
+   "until": 1905
+  },
+  "s3a4": {
+   "count": 2,
+   "enemy": "buckshot_dwarf",
+   "every": 25,
+   "max_alive": 2,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 1850,
+   "until": 2010
+  },
+  "s3a5": {
+   "count": 2,
+   "enemy": "horned_toad",
+   "every": 20,
+   "max_alive": 4,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 1900,
+   "until": 2110
+  },
+  "s3a6": {
+   "count": 4,
+   "enemy": "hellhound",
+   "pace": "once",
+   "pattern": "in_front",
+   "respect_cap": false,
+   "t": 1970,
+   "until": 1975
+  },
+  "s3b1": {
+   "count": 20,
+   "enemy": "skeleton",
+   "every": 8,
+   "pace": "waves",
+   "pack": 5,
+   "pattern": "scatter",
+   "t": 1990,
+   "until": 2090
+  },
+  "s3b2": {
+   "enemy": "skeleton",
+   "interval": 5,
+   "pack": 5,
+   "pattern": "scatter",
+   "t": 2000,
+   "until": 2130
+  },
+  "s3b3": {
+   "count": 8,
+   "enemy": "skeleton_knight",
+   "every": 20,
+   "pace": "waves",
+   "pack": 8,
+   "pattern": "pack",
+   "t": 2020,
+   "until": 2140
+  },
+  "s3b4": {
+   "count": 20,
+   "enemy": "monk",
+   "pace": "once",
+   "pattern": "scatter",
+   "respect_cap": false,
+   "t": 2060,
+   "until": 2065
+  },
+  "s3b5": {
+   "enemy": "dust_shaman",
+   "interval": 10,
+   "max_alive": 2,
+   "pack": 1,
+   "t": 2030,
+   "until": 2280
+  },
+  "s3c1": {
+   "count": 24,
+   "enemy": "fire_ant",
+   "every": 10,
+   "pace": "waves",
+   "pack": 8,
+   "pattern": "scatter",
+   "t": 2170,
+   "until": 2270
+  },
+  "s3c2": {
+   "enemy": "fire_ant",
+   "interval": 6,
+   "pack": 8,
+   "pattern": "scatter",
+   "t": 2180,
+   "until": 2310
+  },
+  "s3c3": {
+   "count": 30,
+   "enemy": "fire_ant",
+   "pace": "once",
+   "pattern": "ring",
+   "respect_cap": false,
+   "t": 2230,
+   "until": 2235
+  },
+  "s3c4": {
+   "count": 1,
+   "enemy": "cyclopean_mummy",
+   "max_alive": 1,
+   "pace": "once",
+   "pattern": "in_front",
+   "respect_cap": false,
+   "t": 2180,
+   "until": 2185
+  },
+  "s3c5": {
+   "enemy": "spit_cactus",
+   "interval": 6,
+   "max_alive": 3,
+   "pack": 1,
+   "t": 2170,
+   "until": 2320
+  },
+  "s3c6": {
+   "count": 4,
+   "enemy": "dust_mummy",
+   "every": 15,
+   "max_alive": 8,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 2230,
+   "until": 2320
+  },
+  "s3d1": {
+   "count": 24,
+   "enemy": "red_goblin",
+   "every": 8,
+   "pace": "waves",
+   "pack": 12,
+   "pattern": "scatter",
+   "t": 2350,
+   "until": 2450
+  },
+  "s3d2": {
+   "enemy": "red_goblin",
+   "interval": 4,
+   "pack": 6,
+   "pattern": "scatter",
+   "t": 2370,
+   "until": 2510
+  },
+  "s3d3": {
+   "count": 1,
+   "enemy": "hammer_giant",
+   "every": 30,
+   "max_alive": 2,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 2380,
+   "until": 2530
+  },
+  "s3d4": {
+   "count": 3,
+   "enemy": "buckshot_dwarf",
+   "every": 20,
+   "max_alive": 3,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 2380,
+   "until": 2500
+  },
+  "s3d5": {
+   "count": 30,
+   "enemy": "skeleton_knight",
+   "pace": "once",
+   "pattern": "ring",
+   "respect_cap": false,
+   "t": 2410,
+   "until": 2415
+  },
+  "s3d6": {
+   "count": 20,
+   "enemy": "monk",
+   "pace": "once",
+   "pattern": "scatter",
+   "respect_cap": false,
+   "t": 2480,
+   "until": 2485
+  },
+  "s3e1": {
+   "count": 28,
+   "enemy": "werewolf",
+   "pace": "once",
+   "pattern": "ring",
+   "respect_cap": false,
+   "t": 2550,
+   "until": 2555
+  },
+  "s3e2": {
+   "count": 27,
+   "enemy": "werewolf",
+   "every": 10,
+   "pace": "waves",
+   "pack": 9,
+   "pattern": "scatter",
+   "t": 2560,
+   "until": 2710
+  },
+  "s3e3": {
+   "enemy": "werewolf",
+   "interval": 4,
+   "pack": 3,
+   "pattern": "scatter",
+   "t": 2570,
+   "until": 2770
+  },
+  "s3e4": {
+   "enemy": "skeleton_knight",
+   "interval": 6,
+   "max_alive": 40,
+   "pack": 5,
+   "pattern": "pack",
+   "t": 2590,
+   "until": 2770
+  },
+  "s3e5": {
+   "count": 1,
+   "enemy": "hammer_giant",
+   "every": 40,
+   "max_alive": 2,
+   "pace": "waves",
+   "pattern": "scatter",
+   "t": 2590,
+   "until": 2770
+  },
+  "s3e6": {
+   "enemy": "spit_cactus",
+   "interval": 6,
+   "max_alive": 3,
+   "pack": 1,
+   "t": 2610,
+   "until": 2770
+  },
+  "s3e7": {
+   "enemy": "dust_shaman",
+   "interval": 10,
+   "max_alive": 2,
+   "pack": 1,
+   "t": 2580,
+   "until": 2770
+  },
+  "s3e8": {
+   "count": 5,
+   "enemy": "bull_beetle",
+   "max_alive": 5,
+   "pace": "once",
+   "pattern": "in_front",
+   "respect_cap": false,
+   "t": 2680,
+   "until": 2685
+  },
+  "s3e9": {
+   "count": 24,
+   "enemy": "skeleton_knight",
+   "pace": "once",
+   "pattern": "ring",
+   "respect_cap": false,
+   "t": 2710,
+   "until": 2715
+  },
+  "s3g1": {
+   "enemy": "fire_ant",
+   "pack": 6,
+   "t": 2771
+  },
+  "s3g2": {
+   "enemy": "werewolf",
+   "pack": 3,
+   "t": 2771
+  },
+  "s3h1": {
+   "channel": "hell",
+   "enemy": "imp",
+   "max_alive": 10,
+   "pack": 3,
+   "t": 1810,
+   "until": 2140
+  },
+  "s3h2": {
+   "channel": "hell",
+   "enemy": "imp",
+   "max_alive": 30,
+   "pack": 4,
+   "t": 2140,
+   "until": 2530
+  },
+  "s3h3": {
+   "channel": "hell",
+   "enemy": "imp",
+   "max_alive": 45,
+   "pack": 4,
+   "t": 2530
+  },
+  "s3h4": {
+   "channel": "hell",
+   "enemy": "hellhound",
+   "max_alive": 10,
+   "pack": 2,
+   "t": 1930,
+   "until": 2350
+  },
+  "s3h5": {
+   "channel": "hell",
+   "enemy": "hellhound",
+   "max_alive": 20,
+   "pack": 3,
+   "t": 2350
+  }
+ }
+}

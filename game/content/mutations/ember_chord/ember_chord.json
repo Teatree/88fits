@@ -9,7 +9,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "Every chord sets what it lifts alight.",
+  "text": "Chords set enemies on fire.",
   "vfx": "an orange wash and orange notes, and the burn's flames on everything it lifts",
   "effects": [
     {

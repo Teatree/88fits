@@ -18,7 +18,7 @@ value = 2.0
 [resource]
 script = ExtResource("3_tebme")
 weapon = "skull_rain"
-text = "The skulls seek."
+text = "Skulls home in on enemies."
 vfx = "skulls corkscrew, then dive with a green trail"
 effects = [SubResource("Resource_k0s2k"), SubResource("Resource_tc8fv")]
 params = {

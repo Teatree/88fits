@@ -19,7 +19,7 @@ value = 0.4
 [resource]
 script = ExtResource("2_f0tmd")
 weapon = "guitarra"
-text = "Chords slap enemies aside for 60% more damage, but strum 40% slower."
+text = "Chords knock back enemies and deal +60% damage, but strum 40% slower."
 vfx = "what the chord lifts comes down thrown to one side or the other"
 effects = [SubResource("Resource_f0tmd"), SubResource("Resource_2ka7b")]
 params = {

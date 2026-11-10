@@ -164,7 +164,8 @@ func test_look_b_words_fit_a_red_stick_in_barbed_wire() -> void:
 	assert_str(Registry.weapon("lob_grenade").display_name).is_equal("Dynamite Stick")
 	assert_str(Registry.mutation("new_equipment").display_name).is_equal("Dynamite Bundle")
 	assert_str(Registry.mutation("frag").display_name).is_equal("Barbed Wire")
-	assert_str(Registry.mutation("frag").text).contains("six wire barbs")
+	# pass 140 (lane TEXTS; Garry: "why write "two" when you can just write 2"): the count in digits
+	assert_str(Registry.mutation("frag").text).contains("6 wire barbs")
 	# no paper colour that is gone and no nails in the words of the weapon and its four mutations
 	for id: String in ["lob_grenade", "new_equipment", "frag", "sticky", "fire_in_the_hole"]:
 		var d = Registry.weapon(id) if Registry.weapon(id) != null else Registry.mutation(id)

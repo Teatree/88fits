@@ -386,7 +386,8 @@ func test_the_cards_say_what_the_sceptre_does() -> void:
 	var t := base.description()
 	assert_str(t).contains("pillar of sunlight")
 	# pass 138 (lane TEXTS; Garry's style: the main effect, its key numbers, nothing glued on)
-	assert_str(t).contains("14 damage in a 1.3 m radius")
+	# pass 140 (lane TEXTS): the damage it deals; the pillar's radius left to the upgrade rows (a whole metre would be far off)
+	assert_str(t).contains("for 14 damage")
 	assert_str(t).not_contains("'s own.")
 	assert_str(_inst("sun_scepter", [], 3).description()).contains("Calls 2 pillars of sunlight")
 	var z := _inst("zenith", ["heat_stroke", "flicker", "gold_dust"]).description()
@@ -430,7 +431,8 @@ func test_solenne_lands_with_her_trait_and_her_sceptre() -> void:
 	# nothing special to her now (level 1, behind its quest like everyone's), and her favourite is the Molotov
 	var haste: PassiveDef = Registry.passive("haste")
 	assert_int(Run.first_passive_level(haste)).is_equal(1)
-	assert_bool(Save.quest_done("unlock_haste")).is_false()
+	# pass 140 (lane QUESTS, re-pinned): The Tower is a Trail node (no quest): locked on a new save all the same
+	assert_bool(Registry.is_unlocked("passive", "haste")).is_false()
 	assert_bool(CardPool.offer_passives().has(haste)).is_false()
 	assert_str(c.favourite_weapon).is_equal("molotov")
 	assert_bool(CardPool.offer_weapons().has(Registry.weapon("molotov"))).is_true()

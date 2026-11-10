@@ -7,13 +7,13 @@
 script = ExtResource("2_t73w5")
 weapon = "land_mine"
 mutation_kind = "element"
-text = "Mines jump at enemies close by and blow where they land."
+text = "Mines jump at enemies close by and explode where they land."
 vfx = "the mine squashes down, its lamp blinks fast, and it leaps on an arc onto the creature"
 params = {
 "spring": {
 "apex": 1.4,
 "flight": 0.4,
-"sense": 2.8,
+"sense": 3.0,
 "windup": 0.25
 }
 }

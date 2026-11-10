@@ -9,7 +9,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "The blast ignites.",
+  "text": "Blasts set enemies on fire.",
   "vfx": "an orange fireball, everything in it burning",
   "effects": [
     {

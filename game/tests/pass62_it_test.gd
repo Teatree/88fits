@@ -1,5 +1,8 @@
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): items, outlaws and stages behind a Trail node or a task (BALANCING 81.TRAIL, 81.QUESTS) opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 ## Pass 62, lane IT (Garry's list): the Pocket Watch (a passive item: power-ups picked up off the ground last longer every
 ## level, and drop a little more often at levels 1, 3 and 5; structures, Pollen and Barrel Rush untouched), the pierce
 ## drop-off (params.pierce_falloff {step, floor, first_mult} on the Boomstick, Tommy Gun, Revolver, Spear, Turret Buddy and
@@ -200,7 +203,10 @@ func test_the_pocket_watch_is_an_uncommon_passive_item_of_five_levels() -> void:
 	assert_int(pw.max_level).is_equal(5)
 	assert_str(pw.display_name).is_equal("Pocket Watch")
 	assert_bool(FileAccess.file_exists("res://content/passives/pocket_watch/pocket_watch_icon.png")).is_true()
-	# open from the first run: no quest names it
+	# pass 140 (lane FIX): a Trail node gives it (BALANCING 81.TRAIL): locked on a new save, in the pool once bought
+	assert_str(UNLOCKS.locked_by("passive", "pocket_watch")).is_equal("trail")
+	assert_bool(Registry.unlocked_passives().has(pw)).is_false()
+	UNLOCKS.open("passive", "pocket_watch")
 	assert_bool(Registry.unlocked_passives().has(pw)).is_true()
 	# both stats are known to the sheet and named
 	assert_float(float(StatSheet.PLAYER_DEFAULTS["powerup_duration"])).is_equal(1.0)

@@ -10,8 +10,11 @@
 extends GdUnitTestSuite
 
 ## weapon id -> the outlaw who starts with it (the Drifter's Revolver apart: he is free)
-const KEYS := {"gravity_gun": "astro", "guitarra": "calavera", "pike": "ironwood", "sun_scepter": "solenne",
+## pass 140 (lane FIX): Astro is free from the start (BALANCING 81.TRAIL), so his Gravity Gun is in the pool as the
+## Drifter's Revolver is (FREE)
+const KEYS := {"guitarra": "calavera", "pike": "ironwood", "sun_scepter": "solenne",
 	"basketball": "fadeaway", "frisbee": "buck", "big_mouth": "may"}
+const FREE := {"revolver": "drifter", "gravity_gun": "astro"}
 
 
 func before_test() -> void:
@@ -52,8 +55,12 @@ func _ids(list: Array) -> Array:
 
 func test_each_outlaws_weapon_is_out_until_he_is_owned_and_in_afterwards() -> void:
 	_start("drifter")
-	# the Drifter is free: nothing waits for him
-	assert_object(Registry.weapon_comes_with(Registry.weapon("revolver"))).is_null()
+	# the Drifter and (pass 140) Astro are free: nothing waits for them, their guns are in the pool on a new save
+	for fid: String in FREE.keys():
+		assert_bool(Registry.hero_owned(Registry.character(str(FREE[fid])))).override_failure_message(str(FREE[fid])).is_true()
+		assert_object(Registry.weapon_comes_with(Registry.weapon(fid))).override_failure_message(fid).is_null()
+		assert_bool(Registry.hero_may_use(Registry.weapon(fid))).override_failure_message(fid).is_true()
+	assert_bool(_ids(Registry.unlocked_weapons()).has("gravity_gun")).is_true()
 	for wid: String in KEYS.keys():
 		var w: WeaponDef = Registry.weapon(wid)
 		var c: CharacterDef = Registry.character(str(KEYS[wid]))
@@ -89,9 +96,10 @@ func test_the_run_outlaws_own_weapon_a_held_weapon_and_his_favourite_are_always_
 	assert_bool(Registry.hero_may_use(pike, Registry.character("drifter"))).is_false()
 	assert_bool(Registry.hero_may_use(pike, Registry.character("ironwood"))).is_true()
 	Run.end()
-	# a weapon held stays in the offers whatever its key (the Drifter with the Gravity Gun in hand)
+	# a weapon held stays in the offers whatever its key (the Drifter with the Gravity Gun in hand; pass 140, lane FIX: the
+	# Sun Scepter, since Astro is owned from the start and his gun is in the offers anyway)
 	_start("drifter")
-	var gg: WeaponDef = Registry.weapon("gravity_gun")
+	var gg: WeaponDef = Registry.weapon("sun_scepter")
 	assert_bool(CardPool.offer_weapons().has(gg)).is_false()
 	Run.add_weapon(gg, 1)
 	assert_bool(CardPool.offer_weapons().has(gg)).is_true()

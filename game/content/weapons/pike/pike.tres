@@ -63,7 +63,7 @@ base = {
 "cooldown": 2.1176,
 "damage": 30.0,
 "knockback": 15.0,
-"range": 4.6
+"range": 5.0
 }
 levels = [[], [SubResource("Resource_8lbaj"), SubResource("Resource_nndpq")], [SubResource("Resource_a2so5"), SubResource("Resource_uvm3r"), SubResource("Resource_iwile")], [SubResource("Resource_mbdi8")], [SubResource("Resource_8c31y"), SubResource("Resource_5m5mk")]]
 max_level = 5

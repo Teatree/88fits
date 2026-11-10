@@ -128,12 +128,14 @@ def checks(check, run_node, server):
     check(r["kinds"] == ["any", "weapon", "card", "passive"] and r["rungs"][-2:] == ["legendary", "evolved"],
           "QUESTS100 the item kinds and the rungs: %s / %s" % (r["kinds"], r["rungs"]))
     check(len(r["keys"]) == len(set(r["keys"])), "QUESTS100 every quest row key once: %s" % r["keys"])
+    # pass 140 (lane QUESTS, re-pinned): every condition done in one run shows the gates Outlaw and Holding
+    gates = {"condition.hero", "condition.holding"}
     want_rows = {
-        "hero_level": {"condition.hero", "condition.level"},
-        "item_level": {"condition.kind", "condition.id", "condition.level", "condition.rung"},
-        "evolve_item": {"condition.kind", "condition.id"},
-        "weapon_paths": {"condition.weapon"},
-        "items_maxed": {"condition.kind", "condition.count"},
+        "hero_level": {"condition.hero", "condition.level"} | gates,
+        "item_level": {"condition.kind", "condition.id", "condition.level", "condition.rung"} | gates,
+        "evolve_item": {"condition.kind", "condition.id"} | gates,
+        "weapon_paths": {"condition.weapon"} | gates,
+        "items_maxed": {"condition.kind", "condition.count"} | gates,
     }
     common = {"name", "condition.type", "quest_text"}
     for t, rows in want_rows.items():
@@ -156,8 +158,9 @@ def checks(check, run_node, server):
     diff = [(x["id"], a, b) for x, a, b in zip(quests, r["named"], bible) if a != b and (x.get("condition") or {}).get("type") in TYPES]
     check(not diff, "QUESTS100 the page and the bible say every build quest on disk the same: %s" % diff)
     # re-pinned in pass 129 (lane TRAIL-SETUP): the Land Mine's and Death's quests are retired (Trail nodes)
-    check(stages.get("unlock_guillotine") == 2 and stages.get("unlock_sabre") == 1,
-          "QUESTS100 the bible's stage hints follow QuestTracker.stage_hint: %s" % {k: stages.get(k) for k in ("unlock_guillotine", "unlock_sabre")})
+    # re-pinned in pass 140 (lane QUESTS): the Guillotine's task counts bosses (stage 1); the Gila Hunter's is stage 2's boss
+    check(stages.get("unlock_big_game_hunter") == 2 and stages.get("unlock_guillotine") == 1 and stages.get("unlock_sabre") == 1,
+          "QUESTS100 the bible's stage hints follow QuestTracker.stage_hint: %s" % {k: stages.get(k) for k in ("unlock_big_game_hunter", "unlock_guillotine", "unlock_sabre")})
     # ---- vocab
     import vocab
     check(all(t in vocab.QUEST_TYPES for t in TYPES) and vocab.QUEST_TYPES["hero_level"] == ["hero", "level"] and vocab.QUEST_TYPES["items_maxed"] == ["kind", "count"],
@@ -182,7 +185,8 @@ def checks(check, run_node, server):
     by_id = {x["id"]: x for x in quests}
     # re-pinned in pass 129 (lane TRAIL-SETUP): six of the converted quests are retired (Trail nodes); the skins' goals
     # carry the build types beside the two that stay
-    conv = {"unlock_sabre": "item_level", "unlock_haste": "item_level", "skin_astro_ast_b": "evolve_item", "skin_fadeaway_fad_b": "hero_level"}
+    # re-pinned in pass 140 (lane QUESTS): the Tower's and Event Horizon's goals are retired (Trail nodes)
+    conv = {"unlock_sabre": "item_level", "unlock_evade": "item_level", "unlock_deadeye": "evolve_item", "skin_fadeaway_fad_b": "hero_level"}
     bad = [k for k, t in conv.items() if (by_id.get(k, {}).get("condition") or {}).get("type") != t]
     check(not bad, "QUESTS100 the converted quests carry their build types: %s" % bad)
     named = dict(zip([x["id"] for x in quests], r["named"]))

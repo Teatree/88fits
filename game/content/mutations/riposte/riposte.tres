@@ -18,7 +18,7 @@ value = 11.25
 [resource]
 script = ExtResource("2_pq6rx")
 weapon = "sabre"
-text = "Swings come 25% faster and knock enemies twice as far."
+text = "Swing 25% faster and knock back enemies ×2 as far."
 vfx = "a heavy brass guard bar; every stroke ends in a quick reverse flick with a clang of sparks"
 effects = [SubResource("Resource_pq6rx"), SubResource("Resource_5vutl")]
 params = {

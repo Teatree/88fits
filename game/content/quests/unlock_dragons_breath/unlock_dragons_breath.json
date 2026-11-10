@@ -1,0 +1,15 @@
+{
+  "id": "unlock_dragons_breath",
+  "name": "Fire Starter",
+  "condition": {
+    "type": "item_level",
+    "kind": "weapon",
+    "id": "molotov",
+    "level": 5
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "dragons_breath"
+  },
+  "icon": "res://content/weapons/dragons_breath/dragons_breath_icon.png"
+}

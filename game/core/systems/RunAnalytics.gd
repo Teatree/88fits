@@ -101,7 +101,9 @@ const GOLD_SOURCES := ["coins", "loose_change", "gold_dust", "boss_coins", "loot
 	"boss_purse", "chest", "coin_bag", "hush_money", "bounty", "dice", "empty_offer", "stranger_empty", "shop_empty",
 	"debug", "other", "boss_chest", "skip_pay",
 	# pass 129 (lane TRAILCORE): start_gold = the coins the Trail's Grubstake put in the purse as the run began (Run.start)
-	"start_gold"]
+	"start_gold",
+	# pass 140 (lane ECON): wages = the stage's Wages, paid into the purse at the run's end (StagePay.pay_wages; no greed)
+	"wages"]
 ## Where a run's gold goes (Run.spend_gold's `sink`): the shop structure, the Down! revive. The Strongbox is not a
 ## spend: it banks the purse (run_end's gold_banked, the save's gold_meta "strongbox").
 const GOLD_SINKS := ["shop", "revive", "other"]

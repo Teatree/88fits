@@ -127,7 +127,8 @@ def model_checks(check, run_node, server):
     if not r:
         check(False, "WANTED111 wanted_model.js ran under Node")
         return
-    check(r["rewards"] == [100, 220, 475, 1165, 175], "WANTED111 the reward formula, pinned as the game's suite pins it: %s" % r["rewards"])
+    # pass 140 (lane ECON): the stage_mult [1, 3, 7, 14] (was [1, 1.25, 1.4, 1.5]: 475, 1165)
+    check(r["rewards"] == [100, 220, 1140, 10850, 175], "WANTED111 the reward formula, pinned as the game's suite pins it: %s" % r["rewards"])
     check(r["dif"] == [1, 3, 2, 3, 1, 3], "WANTED111 the difficulty from where the number fell: %s" % r["dif"])
     check(r["skulls"] == [1, 3, 5], "WANTED111 skulls 1 to 5: %s" % r["skulls"])
     kt = r["kt"]
@@ -282,7 +283,7 @@ def wiring_checks(check, order):
     check([t["type"] for t in cfg["tasks"]] == gd_order and cfg["choices"] == 3 and cfg["unlock"]["runs"] >= 1,
           "WANTED111 wiring: wanted.json lists every type in order, three posters, and no board for a first-time player")
     t = _read(GAME, "tests", "pass111_wanted_test.gd")
-    check("is_equal(1165)" in t and "is_equal(475)" in t, "WANTED111 wiring: the game's suite pins the same rewards")
+    check("is_equal(10850)" in t and "is_equal(1140)" in t, "WANTED111 wiring: the game's suite pins the same rewards")
 
 
 def checks(check, run_node, server):

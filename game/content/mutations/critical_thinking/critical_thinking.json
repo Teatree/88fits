@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "+10% critical hit chance for every weapon.",
+  "text": "+10% crit chance for every weapon.",
   "vfx": "a bright razor edge on the blade; a white hairline streak across whatever it crits",
   "effects": [
     {

@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Twice the burst, −35% a round.",
+  "text": "Fire 6 more rounds a burst, but deal −35% damage.",
   "vfx": "a burst twice as long, twice the casings",
   "effects": [
     {

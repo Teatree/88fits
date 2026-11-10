@@ -163,7 +163,9 @@ func test_locked_and_hidden_things_never_come_even_when_met() -> void:
 						assert_object(w).is_not_null()
 						var own := w.id == Registry.start_weapon_for(Registry.character("drifter")).id
 						assert_bool(own or (not w.hidden and Registry.is_unlocked("weapon", id))).override_failure_message("locked or hidden " + id).is_true()
-						assert_bool(w.hero == "" or w.hero == "drifter").override_failure_message("another hero's gun " + id).is_true()
+						# pass 128: an outlaw's own gun comes once he is owned (pass 140: Astro is, from a new save)
+						var his_owned: bool = w.hero != "" and Registry.character(w.hero) != null and Registry.hero_owned(Registry.character(w.hero))
+						assert_bool(w.hero == "" or w.hero == "drifter" or his_owned).override_failure_message("another hero's gun " + id).is_true()
 					"card":
 						var p: PassiveDef = Registry.passive(id)
 						assert_object(p).is_not_null()
@@ -256,11 +258,12 @@ func test_three_posters_are_three_types_and_the_board_chances_add_up() -> void:
 
 func test_the_reward_follows_difficulty_progression_and_stage() -> void:
 	var cfg := WantedBoard.config()
-	# (base 40 + 60 a point) x (1 + 0.5 x P) x the stage's [1, 1.25, 1.5], to 5 (wanted_model.js pins the same numbers)
+	# (base 40 + 60 a point) x (1 + 0.5 x P) x the stage's [1, 3, 7, 14] (pass 140, lane ECON: was [1, 1.25, 1.4, 1.5], 475 and
+	# 1165), to 5 (wanted_model.js pins the same numbers)
 	assert_int(WantedBoard.reward_for(cfg, 1.0, 0, 0)).is_equal(100)
 	assert_int(WantedBoard.reward_for(cfg, 3.0, 0, 0)).is_equal(220)
-	assert_int(WantedBoard.reward_for(cfg, 2.5, 2, 1)).is_equal(475)
-	assert_int(WantedBoard.reward_for(cfg, 4.5, 3, 3)).is_equal(1165)  # pass 126: the Blood Moon is index 3
+	assert_int(WantedBoard.reward_for(cfg, 2.5, 2, 1)).is_equal(1140)
+	assert_int(WantedBoard.reward_for(cfg, 4.5, 3, 3)).is_equal(10850)  # pass 126: the Blood Moon is index 3
 	assert_int(WantedBoard.reward_for(cfg, 1.3, 1, 0)).is_equal(175)
 	var last := 0
 	for d in [1.0, 1.5, 2.0, 3.0, 4.0, 5.0]:

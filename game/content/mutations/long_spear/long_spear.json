@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "+40% reach, strokes 15% slower.",
+  "text": "+40% range, but thrusts 15% slower.",
   "vfx": "a longer shaft, a slower stroke",
   "effects": [
     {

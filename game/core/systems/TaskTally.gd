@@ -25,6 +25,8 @@ const SAVE_HEAL_SOURCE := "heal_with_source"
 const SAVE_ELEMENT := "element_damage"
 const SAVE_BARRELS := "barrels"
 const SAVE_TOTEMS := "totems"
+## Pass 140 (lane QUESTS): stage bosses beaten, keyed by the gates they fell under (gate_key: "<holding>|<hero>")
+const SAVE_BOSSES := "bosses"
 
 ## The tests' switch: a tool's process (headless or a script: gdUnit, smoke_run) banks and counts too.
 static var bank_in_tools := false
@@ -175,6 +177,29 @@ static func structure_heals(d: StructureDef) -> bool:
 	return false
 
 
+## Pass 140 (lane QUESTS; plan v2's Big Game: "Beat 5 bosses holding Big Game Hunter"): a stage boss fell (WaveDirector,
+## never in Endless): one more for every open bosses_total quest whose gates (hero, holding) the run meets now, kept by
+## the gates' key so quests with the same gates share a count. Only an open quest counts (one waiting for another counts
+## nothing). Never in the arena, the run sim or a tool's process (counts()).
+static func note_boss() -> void:
+	if not Run.active or not counts():
+		return
+	var keys := {}
+	for q: QuestDef in Registry.quests.values():
+		var c := q.condition
+		if str(c.get("type", "")) != "bosses_total" or Save.quest_done(q.id) or not Registry.quest_open(q):
+			continue
+		if QuestTracker.run_gates(c):
+			keys[gate_key(c)] = true
+	for k in keys.keys():
+		Run.bosses_by_gate[k] = int(Run.bosses_by_gate.get(k, 0)) + 1
+
+
+## The key a bosses_total condition counts under: its gates, "<holding>|<hero>" ("|" = any boss).
+static func gate_key(c: Dictionary) -> String:
+	return "%s|%s" % [str(c.get("holding", "")), str(c.get("hero", ""))]
+
+
 # ---------------------------------------------------------------- the save
 
 ## The run's tallies into the save's totals, once (Game.end_run, after the purse): rounded to whole points, never from the
@@ -196,6 +221,10 @@ static func bank() -> bool:
 		Save.add_total(SAVE_BARRELS, Run.barrels_broken)
 	if Run.totems_taken > 0:
 		Save.add_total(SAVE_TOTEMS, Run.totems_taken)
+	# pass 140 (lane QUESTS): the bosses beaten under each gate key
+	for gk in Run.bosses_by_gate.keys():
+		if int(Run.bosses_by_gate[gk]) > 0:
+			Save.add_keyed_total(SAVE_BOSSES, str(gk), int(Run.bosses_by_gate[gk]))
 	return true
 
 
@@ -242,6 +271,8 @@ static func run_amount(c: Dictionary) -> float:
 			return float(Run.barrels_broken)
 		"totems_total":
 			return float(Run.totems_taken)
+		"bosses_total":
+			return float(Run.bosses_by_gate.get(gate_key(c), 0))
 	return 0.0
 
 
@@ -264,6 +295,8 @@ static func saved_amount(c: Dictionary) -> float:
 			return float(Save.total(SAVE_BARRELS))
 		"totems_total":
 			return float(Save.total(SAVE_TOTEMS))
+		"bosses_total":
+			return float(Save.keyed_total(SAVE_BOSSES, gate_key(c)))
 	return 0.0
 
 

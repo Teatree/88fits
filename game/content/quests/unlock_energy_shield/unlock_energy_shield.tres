@@ -6,15 +6,17 @@
 [resource]
 script = ExtResource("2_pbgc6")
 condition = {
-"minutes": 10.0,
-"type": "survive_minutes"
+"id": "vigour",
+"kind": "card",
+"level": 4.0,
+"type": "item_level"
 }
 unlocks = {
 "id": "energy_shield",
 "type": "passive"
 }
 id = "unlock_energy_shield"
-display_name = "The Guardian"
+display_name = "Big Heart"
 icon = ExtResource("1_we8wk")
 icon_file = "unlock_energy_shield_icon.png"
 placeholder = {

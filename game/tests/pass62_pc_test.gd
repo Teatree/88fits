@@ -94,9 +94,14 @@ func test_the_curves_before_seven_ten_are_untouched() -> void:
 	# the rest of his stage 1 stands as pinned)
 	hc.hp_curve = (hc.hp_curve as Dictionary).duplicate(true)
 	hc.hp_curve["formula"]["b"] = 1.35
-	for k in range(0, 431):
+	# (pass 140, re-pinned: lane DIFF's Sundown on Garry's word, the plan v2: x1.0 at 0:00, x1.4 at 3:00 as his formula had it
+	# there, then a steeper ramp to x2.3 at the King; pass140_diff_test reads the edges)
+	assert_float(tl.hp_mult_at(0.0)).is_equal_approx(hc.hp_mult_at(0.0), 0.000001)
+	assert_float(tl.hp_mult_at(180.0)).is_equal_approx(hc.hp_mult_at(180.0), 0.02)
+	for k in range(1, 431):
 		var t := float(k)
-		assert_float(tl.hp_mult_at(t)).is_equal_approx(hc.hp_mult_at(t), 0.000001)
+		assert_float(tl.hp_mult_at(t)).is_greater_equal(tl.hp_mult_at(t - 1.0))
+		assert_float(tl.hp_mult_at(t)).is_less(hc.hp_mult_at(t) * 1.15)
 		# pass 68 re-pin: the damage curve through stage 1 is Garry's (flat at 1 until his 2026-10-12 retune in the Level
 		# Editor, flat at 1.21 since), read from the map file: only a positive multiplier is asked of it
 		assert_float(tl.damage_mult_at(t)).is_greater(0.0)

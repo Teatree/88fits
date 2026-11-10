@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Every fifth pull fires three volleys in a row.",
+  "text": "Every 5th pull fires 3 shots in a row.",
   "vfx": "three quick volleys and a twirl of the gun",
   "effects": [],
   "params": {

@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_km4jp")
 weapon = "rattlesnake"
-text = "Every 2 s a snake lunges at an enemy outside the ring for double damage."
+text = "Every 2 s a snake lunges at an enemy outside the ring for ×2 damage."
 vfx = "the snake shoots out of the ring and snaps back"
 params = {
 "strike": {

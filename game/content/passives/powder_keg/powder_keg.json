@@ -5,7 +5,7 @@
   "weight": 8,
   "max_level": 5,
   "flavour": "Handle with care. Or don't.",
-  "text": "Kills have a 6.5% chance of exploding, hurting everything close by.",
+  "text": "Kills have a 6.5% chance of exploding, dealing damage to everything close by.",
   "levels": [
     [
       {

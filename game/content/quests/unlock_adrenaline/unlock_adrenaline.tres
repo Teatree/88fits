@@ -6,15 +6,17 @@
 [resource]
 script = ExtResource("2_7we0r")
 condition = {
-"count": 400.0,
+"count": 2000.0,
 "type": "kills_total"
 }
 unlocks = {
 "id": "adrenaline",
 "type": "passive"
 }
+requires = ["unlock_tommy_gun"]
+ladder = true
 id = "unlock_adrenaline"
-display_name = "Adrenaline"
+display_name = "Killing Spree"
 icon = ExtResource("1_hxfng")
 icon_file = "unlock_adrenaline_icon.png"
 placeholder = {

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/gas_mask/gas_mask_icon.png" id="1_o7to3"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_qcidc"]
+
+[resource]
+script = ExtResource("2_qcidc")
+condition = {
+"count": 50000.0,
+"element": "poison",
+"type": "element_damage"
+}
+unlocks = {
+"id": "gas_mask",
+"type": "passive"
+}
+id = "unlock_gas_mask"
+display_name = "Snakebite"
+icon = ExtResource("1_o7to3")
+icon_file = "res://content/passives/gas_mask/gas_mask_icon.png"

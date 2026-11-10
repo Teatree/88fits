@@ -7,9 +7,13 @@
 ##     spawn beam's landing, at once, and the director's stage_started after the landing switches nothing.
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): the Phoenix Feather is a task's unlock now (Old Hand, BALANCING 81.QUESTS): opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 
 func before_test() -> void:
 	Save.data = Save._default()
+	UNLOCKS.open("passive", "phoenix_feather")
 
 
 func after_test() -> void:

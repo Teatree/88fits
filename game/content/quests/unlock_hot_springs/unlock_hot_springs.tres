@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/hot_springs/hot_springs_icon.png" id="1_7pfq8"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_1v0q0"]
+
+[resource]
+script = ExtResource("2_1v0q0")
+condition = {
+"count": 1500.0,
+"source": "structure:healing_well",
+"type": "heal_with_source"
+}
+unlocks = {
+"id": "hot_springs",
+"type": "passive"
+}
+requires = ["unlock_snake_oil"]
+id = "unlock_hot_springs"
+display_name = "Spa Day"
+icon = ExtResource("1_7pfq8")
+icon_file = "res://content/passives/hot_springs/hot_springs_icon.png"

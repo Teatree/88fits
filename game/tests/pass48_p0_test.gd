@@ -241,10 +241,12 @@ func test_priority_targeting_is_in_the_data_and_the_words() -> void:
 	# the area weapons keep theirs
 	assert_str(Registry.weapon("boomstick").targeting).is_equal("forward")
 	assert_str(Registry.weapon("hammer").targeting).is_equal("densest")
+	# pass 140 (lane TEXTS): weapons aim where the Outlaw faces since pass 136, so their words say "an enemy" (or the
+	# enemies they go for), never "the strongest enemy nearby"; the rule stays in the data (above)
 	for id in ["peashooter", "sabre", "turret_buddy", "hornet_nest"]:
 		var inst := WeaponInstance.new(Registry.weapon(id), 1)
 		inst.rebuild(StatSheet.new(), [inst])
-		assert_str(inst.description()).override_failure_message(id).contains(TextGen.PRIORITY_WHO)
+		assert_str(inst.description()).override_failure_message(id).not_contains(TextGen.PRIORITY_WHO)
 		# its pause rows still build (an unknown targeting reads as nearest everywhere it is read)
 		assert_bool(inst.stat_rows().is_empty()).override_failure_message(id).is_false()
 	var boom := WeaponInstance.new(Registry.weapon("boomstick"), 1)

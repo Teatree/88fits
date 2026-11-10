@@ -60,7 +60,7 @@ tags = ["explosive"]
 targeting = "densest"
 base = {
 "amount": 1.0,
-"area": 2.8,
+"area": 3.0,
 "cooldown": 2.5882,
 "damage": 25.0,
 "knockback": 17.5,

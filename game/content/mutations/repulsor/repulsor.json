@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "Landings throw enemies harder in a 40% wider blast.",
+  "text": "Thrown enemies deal a 40% wider blast and knock back enemies harder.",
   "vfx": "a purple blast ring and burst where a throw lands",
   "effects": [
     {

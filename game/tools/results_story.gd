@@ -75,7 +75,8 @@ static func fill(run: Node, save: Node, qt, died: bool = false) -> void:
 		tl.sources["revive"] = {"owned": -1.0, "hit": 601.0, "curve": PackedFloat32Array()}
 		table["revive"] = 900.0
 	# the counted unlocks as the run began: kills (all time), skeletons, chests
-	tl.quests_before = {"unlock_adrenaline": 120, "unlock_ironwood": 120, "unlock_tumbleweed": 40, "unlock_rocket_pod": 1}
+	# pass 140 (lane QUESTS): plan v2's tasks (Killing Spree waits for Dust Yourself Off, marked done below)
+	tl.quests_before = {"unlock_adrenaline": 120, "unlock_brimstone_brand": 12000, "unlock_gas_mask": 4000, "unlock_hammer": 0}
 	run.set("timeline", tl)
 	run.set("character", run.get_node("/root/Registry").character("drifter"))
 	run.set("extracted", not died)
@@ -96,6 +97,7 @@ static func fill(run: Node, save: Node, qt, died: bool = false) -> void:
 	if not (totals.get("kills_of_enemy") is Dictionary):
 		totals["kills_of_enemy"] = {}
 	totals["kills_of_enemy"]["skeleton"] = 112
-	save.call("mark_quest", "unlock_zap_beam")   # pass 129: unlock_turret_buddy retired (a Trail node)
+	# pass 140 (lane QUESTS): the Tommy Gun's task (Dust Yourself Off) done in this run
+	save.call("mark_quest", "unlock_tommy_gun")
 	save.call("mark_hint", "results")
-	qt.just_completed = ["unlock_zap_beam"]
+	qt.just_completed = ["unlock_tommy_gun"]

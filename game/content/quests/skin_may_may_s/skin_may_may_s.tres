@@ -14,6 +14,7 @@ unlocks = {
 "id": "may:MAY-S",
 "type": "skin"
 }
+requires = ["unlock_may"]
 id = "skin_may_may_s"
 display_name = "May · Carnival"
 icon = ExtResource("1_xkuke")

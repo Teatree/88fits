@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("2_m7g0s")
 weapon = "lob_grenade"
-text = "Sticks to the first enemy it lands near and rides it into the crowd before it blows."
+text = "Sticks to the first enemy it lands near and rides it into the crowd before it explodes."
 vfx = "the grenade rides on a creature's back, blinking, then blows"
 params = {
 "look": {

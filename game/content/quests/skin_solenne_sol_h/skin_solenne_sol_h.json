@@ -10,5 +10,6 @@
     "type": "skin",
     "id": "solenne:SOL-H"
   },
+  "requires": "unlock_brimstone_brand",
   "icon": "res://content/characters/solenne/solenne_icon_h.png"
 }

@@ -6,7 +6,9 @@
 [resource]
 script = ExtResource("1_7ay4k")
 condition = {
-"count": 150.0,
+"count": 30.0,
+"hero": "buck",
+"in_one_run": true,
 "type": "barrels_total"
 }
 unlocks = {

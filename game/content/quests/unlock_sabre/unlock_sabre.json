@@ -1,6 +1,6 @@
 {
   "id": "unlock_sabre",
-  "name": "Sabre",
+  "name": "Saw Master",
   "condition": {
     "type": "item_level",
     "kind": "weapon",

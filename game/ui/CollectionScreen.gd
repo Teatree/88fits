@@ -707,10 +707,21 @@ func _open_locked_royale(def: ContentDef) -> void:
 		content.add_child(p)
 		_section_royale(Loc.t("ui.collection.what_it_does"), _cell_royale("", _full_text(def)))
 		return
-	var words := W.serif_text(TextGen.quest_text(q) if q else Loc.t("ui.collection.not_found_line"), RY_EFFECT_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EFFECT_PX * 1.3, true)
+	# pass 140 (lane QUESTS): a task waiting for another shows its name with its words, then what it waits for (no bar:
+	# it counts nothing until then)
+	var wait := QuestTracker.waiting_on(q)
+	var quest_words := TextGen.quest_text(q) if q else Loc.t("ui.collection.not_found_line")
+	if wait:
+		quest_words = Loc.t("ui.collection.task_named", {"task": q.display_name, "text": quest_words})
+	var words := W.serif_text(quest_words, RY_EFFECT_PX, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, RY_EFFECT_PX * 1.3, true)
 	words.name = "Quest"
 	words.color = R.WHITE
 	v.add_child(WPoster.with_picture(q, words, 44.0))
+	if wait:
+		var after := W.serif_text(Loc.t("ui.collection.waits_for", {"task": wait.display_name, "text": TextGen.quest_text(wait)}), RY_FLAVOUR_PX,
+			W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+		after.name = "WaitsFor"
+		v.add_child(after)
 	if q:
 		var pr := QuestTracker.progress(q)
 		if pr.y > 0:
@@ -1057,7 +1068,8 @@ func _still_to_find(def: ContentDef) -> String:
 	var q := Registry.quest_for(W.content_kind(def), def.id)
 	if q == null and def.from_stage > 0:
 		return Loc.t("ui.collection.stage_only", {"stage": str(def.from_stage)})
-	return TextGen.quest_text(q).strip_edges().trim_suffix(".") if q else Loc.t("ui.collection.not_found")
+	# pass 140 (lane QUESTS): a task waiting for another reads "After <its name>"
+	return QuestTracker.requirement_text(q).strip_edges().trim_suffix(".") if q else Loc.t("ui.collection.not_found")
 
 
 # --- the item page ---------------------------------------------------------------------------------------------------

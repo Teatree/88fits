@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Throws three spears for every one, −40% damage each.",
+  "text": "Throw ×3 spears, but deal −40% damage.",
   "vfx": "a fan of three spears for every throw",
   "effects": [
     {

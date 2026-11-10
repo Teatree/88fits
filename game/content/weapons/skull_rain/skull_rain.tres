@@ -55,7 +55,7 @@ behavior = "Lobber"
 targeting = "densest_healthy"
 base = {
 "amount": 1.0,
-"area": 2.2,
+"area": 2.0,
 "cooldown": 2.5882,
 "damage": 6.0,
 "knockback": 2.5,

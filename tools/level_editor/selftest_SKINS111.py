@@ -377,7 +377,8 @@ def page_checks(check, run_node):
     check(r.get("named") == "Beat Nightfall with May." and r.get("any") == "Beat Blood Moon." and r.get("bare") == "Beat stage 2 with May."
           and r.get("custom") == "Do it.", "SKINS111 beat_stage's words: %s / %s / %s" % (r.get("named"), r.get("any"), r.get("bare")))
     check("beat_stage" in (r.get("types") or []), "SKINS111 the Condition list offers beat_stage")
-    check(set(r.get("shown") or []) == {"name", "condition.type", "condition.map", "condition.stage", "condition.hero", "quest_text"},
+    # pass 140 (lane QUESTS, re-pinned): and the Holding gate
+    check(set(r.get("shown") or []) == {"name", "condition.type", "condition.map", "condition.stage", "condition.hero", "condition.holding", "quest_text"},
           "SKINS111 the beat_stage form shows its map, stage and hero: %s" % r.get("shown"))
     check((r.get("mapRow") or {}).get("type") == "select" and r.get("mapOpts") == ["red_canyon"], "SKINS111 the map is a select over the maps")
     check([o.get("v") for o in (r.get("currencies") or [])] == ["gold"], "SKINS111 the page's built-in currency list is only gold, the stand-in until the registry is read")

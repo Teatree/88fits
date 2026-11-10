@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "The burst throws six steel spikes out past the blast.",
+  "text": "Explosions throw 6 steel spikes out past the blast.",
   "vfx": "six steel spikes flying out of a small blast, trailing sparks",
   "effects": [],
   "params": {
@@ -33,7 +33,7 @@
     "B": {
       "name": "Barbed Wire",
       "flavour": "Saves the undertaker a trip.",
-      "text": "The burst throws six wire barbs out past the blast.",
+      "text": "Explosions throw 6 wire barbs out past the blast.",
       "icon": "frag_icon_b.png",
       "note": "B · barbed wire wound round the stick (or the bundle); barbs in its words",
       "params": {
@@ -67,7 +67,7 @@
     "C": {
       "name": "Coffin Nails",
       "flavour": "Saves the undertaker a trip.",
-      "text": "The burst throws six coffin nails out past the blast.",
+      "text": "Explosions throw 6 coffin nails out past the blast.",
       "icon": "frag_icon_c.png",
       "note": "C · the stick (or the bundle) in red paper; nails in its words",
       "params": {
@@ -90,7 +90,7 @@
     "D": {
       "name": "Coffin Nails",
       "flavour": "Saves the undertaker a trip.",
-      "text": "The burst throws six coffin nails out past the blast.",
+      "text": "Explosions throw 6 coffin nails out past the blast.",
       "icon": "frag_icon_d.png",
       "note": "D · the stick (or the bundle) in red paper; nails in its words",
       "params": {

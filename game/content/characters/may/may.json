@@ -5,7 +5,7 @@
   "order": 8,
   "pronoun": "she",
   "hidden": false,
-  "availability": "purchase",
+  "availability": "available",
   "price": 4000,
   "currency_type": "gold",
   "trait": [],
@@ -30,7 +30,7 @@
   },
   "start_weapon": "big_mouth",
   "specials": [],
-  "unlock_quest": "",
+  "unlock_quest": "unlock_may",
   "frame_px": 256,
   "placeholder": {
     "color": "#141418",

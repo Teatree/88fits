@@ -195,7 +195,9 @@ func build() -> void:
 	content.add_theme_constant_override("separation", 0)
 	heroes = _roster()
 	var last := Registry.playable_character(str(Save.data.get("last_character", Save.DEFAULT_HERO)))
-	shown = last if last and heroes.has(last) else (heroes[0] if not heroes.is_empty() else null)
+	shown = _in_list(last)
+	if shown == null:
+		shown = heroes[0] if not heroes.is_empty() else null
 	# pass 128: opened on one outlaw by name (the Collection's "Comes with <name>"), once
 	var want: CharacterDef = Registry.character(open_on) if open_on != "" else null
 	open_on = ""
@@ -203,15 +205,15 @@ func build() -> void:
 	var came := Nav.take(scene_file_path)
 	if want == null and came.has("hero"):
 		want = Registry.character(str(came["hero"]))
-	if want and heroes.has(want):
-		shown = want
+	if want and _in_list(want):
+		shown = _in_list(want)
 	# pass 126: each list moves only under a finger that came down on it; the thumb's gutter on the page's right
 	_touch.only_inside = true
 	margin.add_theme_constant_override("margin_right", int(SIDE) + PAGE_GUTTER)
 	_build_picker()
 	_build_page_marks()
 	_fill()
-	if want and shown == want:
+	if want and shown and shown.id == want.id:
 		_reveal_tile.call_deferred(want.id)
 		if bool(came.get("looks", false)):
 			open_looks.call_deferred()
@@ -232,15 +234,17 @@ func _reveal_tile(id: String) -> void:
 		grid_scroll.ensure_control_visible(t)
 
 
-## Every hero the drawer lists (Registry.heroes_for_drawer: owned, on sale, locked), the hidden ones after them while the
-## developer previews them (the title's rule).
+## Every hero the drawer lists (owned, on sale, locked), the hidden ones after them while the developer previews them.
+## Pass 140 (lane HEROLIST): the title's order exactly (Registry.heroes_in_menu_order, the one function both read), built
+## again on every entry and after a purchase; the shown outlaw kept by id (_in_list).
 func _roster() -> Array:
-	var out: Array = Registry.heroes_for_drawer()
-	if bool(Settings.get("preview_locked_heroes")):
-		var hidden: Array = Registry.characters.values().filter(func(c: CharacterDef) -> bool: return c.hidden)
-		hidden.sort_custom(func(a, b): return a.id < b.id)
-		out.append_array(hidden)
-	return out
+	return Registry.heroes_in_menu_order(bool(Settings.get("preview_locked_heroes")))
+
+
+## Outlaw `c` as the picker's list holds him (by id, pass 140), null when he is not in it.
+func _in_list(c: CharacterDef) -> CharacterDef:
+	var i := Registry.hero_index(heroes, c.id) if c else -1
+	return heroes[i] if i >= 0 else null
 
 
 ## Where the player stands with `c`: owned, buyable or locked (a previewed hidden hero reads locked, as on the title).
@@ -786,7 +790,7 @@ func _fill_picker() -> void:
 ## (green) or LOCKED (red); the shown one gold-edged.
 func _hero_tile(h: CharacterDef) -> WTap:
 	var st := state_of(h)
-	var is_shown := h == shown
+	var is_shown := shown != null and h.id == shown.id
 	var t := WTap.new()
 	t.name = "Hero_" + h.id
 	t.set_meta("hero", h)
@@ -853,7 +857,7 @@ func _draw_glow() -> void:
 
 ## Shows `c` in the top half (a tile tapped; tools): the page again, scrolled back up to him; the picker stays where it is.
 func show_hero(c: CharacterDef) -> void:
-	if c == null or c == shown:
+	if c == null or (shown != null and c.id == shown.id):
 		return
 	shown = c
 	_fill()
@@ -867,7 +871,8 @@ func show_hero(c: CharacterDef) -> void:
 ## The page and the wallet again (a purchase, a look worn, the purse changed under it).
 func refresh() -> void:
 	heroes = _roster()
-	if shown and not heroes.has(shown):
+	shown = _in_list(shown)
+	if shown == null:
 		shown = heroes[0] if not heroes.is_empty() else null
 	_refresh_wallet()
 	_fill()

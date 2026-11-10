@@ -14,6 +14,7 @@ unlocks = {
 "id": "solenne:SOL-H",
 "type": "skin"
 }
+requires = ["unlock_brimstone_brand"]
 id = "skin_solenne_sol_h"
 display_name = "Solenne · Solar Flare"
 icon = ExtResource("1_nqfva")

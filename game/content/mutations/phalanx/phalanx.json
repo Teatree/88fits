@@ -9,7 +9,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Three spears fanned, −35% damage.",
+  "text": "Thrust 2 more spears in a fan, but deal −35% damage.",
   "vfx": "three spears fanned",
   "effects": [
     {

@@ -1,0 +1,14 @@
+{
+  "id": "unlock_thirst",
+  "name": "Second Wind",
+  "condition": {
+    "type": "heal_with_item",
+    "item": "mend",
+    "count": 2000
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "thirst"
+  },
+  "icon": "res://content/passives/thirst/thirst_icon.png"
+}

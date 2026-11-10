@@ -9,7 +9,7 @@
   "kind": "hero",
   "element": "",
   "hero": "buck",
-  "text": "+1 round in the burst for every notch of his charge (+4 at full).",
+  "text": "+1 round a burst for every notch of charge, +4 at full.",
   "vfx": "the burst grows as the momentum trail grows",
   "effects": [],
   "params": {

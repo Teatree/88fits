@@ -163,12 +163,14 @@ func test_its_creatures_are_as_strong_as_they_were() -> void:
 	for t: float in [1031.0, 1300.0, 1605.0]:
 		var old_hp := pow(1.0 + 0.0977 * t / 60.0, 1.35) * OLD_HELL_MULT
 		var new_hp := tl.hp_mult_at(_new_t(t)) * m
-		assert_float(new_hp / old_hp).override_failure_message("HP at %.0f: %.2f vs %.2f" % [t, new_hp, old_hp]).is_between(0.92, 1.12)
+		# (pass 140, re-pinned: lane DIFF's Blood Moon is +30% at its start and steeper, the plan v2 Garry accepted;
+		# pass140_diff_test reads its edges: here only never softer than pass 126 made it)
+		assert_float(new_hp / old_hp).override_failure_message("HP at %.0f: %.2f vs %.2f" % [t, new_hp, old_hp]).is_greater(0.92)
 	# the old damage curve, its points: 0.28 at 1030, 0.72 at 1700, 0.56 at 1810
 	var old_dmg := {1031.0: 0.28, 1700.0: 0.72, 1810.0: 0.56}
 	for t: float in old_dmg:
 		var new_d := tl.damage_mult_at(_new_t(t) + (0.01 if t == 1031.0 else 0.0)) * m
-		assert_float(new_d / (float(old_dmg[t]) * OLD_HELL_MULT)).override_failure_message("ATK at %.0f: %.3f" % [t, new_d]).is_between(0.97, 1.05)
+		assert_float(new_d / (float(old_dmg[t]) * OLD_HELL_MULT)).override_failure_message("ATK at %.0f: %.3f" % [t, new_d]).is_greater(0.97)
 
 
 func test_the_elite_and_the_brander_keep_their_data_hp_at_the_new_index() -> void:
@@ -208,9 +210,12 @@ func test_what_meant_the_blood_moon_keeps_meaning_it() -> void:
 			hell = k
 	for id in ["brimstone_brand", "sinners_greed"]:
 		assert_int(Registry.passive(id).from_stage).is_equal(hell + 1)
-	# pass 129 (lane TRAIL-SETUP, re-pinned): The Ghost's quest (reach the last stage) is retired; a Trail node gives the card
-	assert_object(Registry.quest_for("passive", "evade")).is_null()
-	assert_bool(Trail.gated("passive", "evade")).is_true()
+	# pass 129 (lane TRAIL-SETUP, re-pinned): The Ghost's quest (reach the last stage) is retired; pass 140 (lane FIX, re-pinned):
+	# The Ghost is a task's unlock again (Fleet Foot: The Chariot to level 4, BALANCING 81.QUESTS), no stage in it, no Trail node
+	var q: QuestDef = Registry.quest_for("passive", "evade")
+	assert_object(q).is_not_null()
+	assert_str(str(q.condition.get("type", ""))).is_equal("item_level")
+	assert_bool(Trail.gated("passive", "evade")).is_false()
 
 
 # ---------------------------------------------------------------- saves

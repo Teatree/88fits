@@ -9,7 +9,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "+3 peas a shot, −40% damage, cooldown −20%.",
+  "text": "Fire 3 more peas with −20% cooldown, but deal −40% damage.",
   "vfx": "a stream of small peas, the pod's muzzle flash every fifth of a second",
   "effects": [
     {

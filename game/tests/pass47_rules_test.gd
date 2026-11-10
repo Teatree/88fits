@@ -7,6 +7,9 @@
 ## the sheet with their names, Steady Hand's buckets and Barrel Rush's boost.
 extends GdUnitTestSuite
 
+## pass 140 (lane FIX): items, outlaws and stages behind a Trail node or a task (BALANCING 81.TRAIL, 81.QUESTS) opened in the save
+const UNLOCKS := preload("res://tests/fixtures/unlocks.gd")
+
 ## pass 70 (lane LINES): Lodestone, Mule Kick, Slow Burn and Tin Star new, Prospector and Gold Tooth made lines: 21
 const LINES := ["brawn", "bristle", "clover", "deadeye", "ducktape", "energy_shield", "evade", "field_notes", "gold_tooth",
 	"haste", "hot_sauce", "lodestone", "mend", "mule_kick", "multishot", "prospector", "slow_burn", "stride", "thirst",
@@ -224,6 +227,8 @@ func test_six_weapons_and_six_lines_all_run_and_passive_items_without_a_cap() ->
 
 
 func test_the_stranger_sells_rare_and_up_and_keeps_the_line_slots() -> void:
+	# pass 140 (lane FIX): many rare and better items are Trail nodes or tasks' unlocks now: the whole game open, as before
+	UNLOCKS.open_everything()
 	_start()
 	for id in ["brawn", "bristle", "mend", "stride", "thirst", "vigour"]:
 		Run.add_or_level_passive(id)
@@ -308,6 +313,8 @@ func test_the_chest_draws_by_the_same_weights() -> void:
 		Run.add_or_level_passive("brawn")
 	# a small pool: the two held items and three passive items of three tiers, everything else banished
 	var keep := ["cake", "siesta", "steady_hand"]
+	# pass 140 (lane FIX): the Steady Hand is Afternoon Nap's unlock (BALANCING 81.QUESTS): done in the save
+	UNLOCKS.open("passive", "steady_hand")
 	for p: PassiveDef in Registry.unlocked_passives():
 		if not p.is_line() and not keep.has(p.id):
 			Run.banished.append(p.id)
@@ -556,7 +563,7 @@ func test_the_spear_name_reaches_every_word_the_player_reads() -> void:
 		said.append_array([m.display_name, m.flavour, m.text, m.vfx])
 	for s: String in said:
 		assert_bool(s.to_lower().contains("pike")).override_failure_message("still says pike: " + s).is_false()
-	assert_str(Registry.mutation("phalanx").text).is_equal("Three spears fanned, −35% damage.")
+	assert_str(Registry.mutation("phalanx").text).is_equal("Thrust 2 more spears in a fan, but deal −35% damage.")
 	assert_bool(Registry.quests.has("unlock_pike")).is_false()
 
 

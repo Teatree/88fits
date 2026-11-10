@@ -44,6 +44,8 @@ step() { printf '\n== %s\n' "$1"; python tools/locks.py note godot "$1" --pid "$
 SHELL_PID="$(cat /proc/$$/winpid 2>/dev/null || echo 0)"   # this bash's own Windows pid: the lock's owner while it runs
 python tools/locks.py acquire godot "the build (ship.sh $*)" --pid "$SHELL_PID" || exit 1
 python tools/locks.py keep > /dev/null
+# pass 140: the save is kept for the whole build; tools/godot.sh run inside (ship_play.sh's export) must not keep it again
+export GODOT_SAVE_KEPT=1
 trap 'python tools/locks.py restore > /dev/null; python tools/locks.py release godot --pid "$SHELL_PID" > /dev/null' EXIT
 step "import"; python tools/figure_soles.py; python tools/lossy_imports.py; "$GODOT" $P --import > /dev/null 2>&1
 step "json -> tres"; "$GODOT" $P --script res://tools/import_json.gd 2>&1 | tail -n 1; IMPORTED=1

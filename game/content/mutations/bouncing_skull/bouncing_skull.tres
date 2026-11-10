@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_ea1di")
 weapon = "skull_rain"
-text = "Skulls bounce on twice after the blast, leaving a smaller blast and cloud each time."
+text = "Skulls bounce on 2 more times, leaving a smaller blast and cloud each time."
 vfx = "the skull hops on twice past its blast, smaller each time"
 params = {
 "bounce": {

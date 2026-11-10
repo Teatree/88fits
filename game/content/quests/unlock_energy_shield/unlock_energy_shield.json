@@ -1,9 +1,11 @@
 {
   "id": "unlock_energy_shield",
-  "name": "The Guardian",
+  "name": "Big Heart",
   "condition": {
-    "type": "survive_minutes",
-    "minutes": 10
+    "type": "item_level",
+    "kind": "card",
+    "id": "vigour",
+    "level": 4
   },
   "unlocks": {
     "type": "passive",

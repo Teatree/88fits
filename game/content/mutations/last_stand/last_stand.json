@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "A turret explodes when it goes, a 3 m blast.",
+  "text": "Turrets explode in a 3 m blast when they go, dealing ×4 damage.",
   "vfx": "a fireball where the turret stood as it goes",
   "effects": [],
   "params": {

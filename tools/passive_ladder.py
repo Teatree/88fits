@@ -123,27 +123,28 @@ LADDER = {
 }
 
 # the hand-written card lines that named the old numbers (a new card shows `text` verbatim; the upgrades read the rungs);
-# pass 138 (lane TEXTS): shortened in Garry's style, the level-1 numbers only
+# pass 138 (lane TEXTS): shortened in Garry's style, the level-1 numbers only; pass 140 (lane TEXTS): to the rules of
+# docs/texts/text_rules.md (digits, "deal damage", "HP")
 TEXT = {
     "barrel_rush": "Smash a barrel to run 30% faster for 4 s.",
     "cold_snap": "Hits have a 3% chance of freezing an enemy for 1 s.",
-    "counterpunch": "After an evade, your next attack deals double damage and you attack and move faster for 2.5 s.",
+    "counterpunch": "After an evade, your next attack deals ×2 damage and you attack and move faster for 2.5 s.",
     "desperado": "The more you are hurt, the harder you hit: up to +16% attack damage near death.",
     "gas_mask": "1% damage reduction for every poisoned enemy, up to 12%.",
     "guillotine": "Your hits finish off any enemy left under 9% health, except bosses.",
     "heavyweight": "+1.2% attack damage for every 10 max HP you have.",
-    "hot_springs": "+26 max HP and +0.65 HP regen a second. Every heal hurts enemies close by.",
+    "hot_springs": "+26 max HP and +0.65 HP regen a second. Every heal deals 5 damage to enemies close by.",
     "hot_streak": "+7% attack damage for every 1,000 kills this run, up to +100%.",
-    "last_stand": "When a hit leaves you under 30% health, time slows and you deal 2.3 times the damage for 2 s.",
+    "last_stand": "When a hit leaves you under 30% health, time slows and you deal ×2.3 damage for 2 s.",
     "loose_change": "Getting hit has a 32% chance of dropping a 10 gold coin close by.",
     "magnet": "Every few seconds pulls every EXP gem within 6 m to you.",
     "pocket_watch": "Power-ups you pick up last 20% longer.",
-    "powder_keg": "Kills have a 6.5% chance of exploding, hurting everything close by.",
-    "siesta": "Standing still heals you 1.4 health a second.",
+    "powder_keg": "Kills have a 6.5% chance of exploding, dealing damage to everything close by.",
+    "siesta": "Standing still heals you 1.4 HP a second.",
     "skedaddle": "After a hit, run 25% faster for 2 s.",
     "snake_oil": "Heals can fill your health past full, up to 25% more.",
     "steady_hand": "+13% attack damage for every second you stand still, up to +100%. Moving drops it.",
-    "vulture": "Critical hits have a 6% chance of healing you for 2% of your max health.",
+    "vulture": "Critical hits have a 6% chance of healing you for 2% of your max HP.",
 }
 TRADE = {"beer": "−4 to −5% max HP a level"}
 

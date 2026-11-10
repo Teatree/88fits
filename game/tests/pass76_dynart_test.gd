@@ -16,7 +16,8 @@ const NAMES := {"lob_grenade": "Dynamite Stick", "new_equipment": "Dynamite Bund
 	"sticky": "Sticky", "fire_in_the_hole": "Fire in the Hole", "golden_pineapple": "Boomtown"}
 ## Pass 128: what a look names differently (look B's shrapnel mutation).
 const NAMES_OF := {"B": {"frag": "Barbed Wire"}}
-const FRAG_WORDS := {"B": "six wire barbs", "C": "six coffin nails", "D": "six coffin nails"}
+## pass 140 (lane TEXTS; Garry: "why write "two" when you can just write 2"): the count in digits
+const FRAG_WORDS := {"B": "6 wire barbs", "C": "6 coffin nails", "D": "6 coffin nails"}
 const LOOKS := ["B", "C", "D"]
 ## The models of a look (pass 128: look B's eight, a red stick or bundle plain, in wire, in tar, in both).
 const PARTS := {"B": ["stick", "stick_wire", "stick_tar", "stick_wire_tar", "bundle", "bundle_wire", "bundle_tar", "bundle_wire_tar", "evo"],

@@ -8,7 +8,7 @@ script = ExtResource("2_hs18c")
 weapon = "peashooter"
 mutation_kind = "hero"
 hero = "drifter"
-text = "Two shots a cooldown at −25% damage."
+text = "Fire 2 shots a cooldown, but deal −25% damage."
 vfx = "two quick flashes from the pod"
 params = {
 "double_tap": {

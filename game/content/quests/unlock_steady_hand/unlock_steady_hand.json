@@ -1,0 +1,15 @@
+{
+  "id": "unlock_steady_hand",
+  "name": "Afternoon Nap",
+  "condition": {
+    "type": "item_level",
+    "kind": "passive",
+    "id": "siesta",
+    "rung": "rare"
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "steady_hand"
+  },
+  "icon": "res://content/passives/steady_hand/steady_hand_icon.png"
+}

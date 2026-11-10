@@ -1,9 +1,9 @@
 {
   "id": "unlock_deadeye",
-  "name": "The Eye",
+  "name": "Evolution",
   "condition": {
-    "type": "evolve_any",
-    "count": 1
+    "type": "evolve_item",
+    "kind": "weapon"
   },
   "unlocks": {
     "type": "passive",

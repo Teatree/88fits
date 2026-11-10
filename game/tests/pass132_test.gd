@@ -78,13 +78,14 @@ func test_a_held_hydra_keeps_its_levels() -> void:
 
 # ---------------------------------------------------------------- 3. Ironwood from the start
 
+## pass 140 (lane FIX, re-pinned): three (Garry: "Yes, let's keep 3 Unlocked: Drifter, Ironwood and Astro"; BALANCING 81.TRAIL)
 func test_two_outlaws_on_a_new_save() -> void:
 	var owned: Array = []
 	for c: CharacterDef in Registry.characters.values():
 		if not c.hidden and Registry.hero_owned(c):
 			owned.append(c.id)
 	owned.sort()
-	assert_array(owned).is_equal(["drifter", "ironwood"])
+	assert_array(owned).is_equal(["astro", "drifter", "ironwood"])
 	assert_str(Registry.character("ironwood").availability).is_equal("available")
 
 

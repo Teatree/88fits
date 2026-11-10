@@ -10,5 +10,6 @@
     "type": "skin",
     "id": "may:MAY-S"
   },
+  "requires": "unlock_may",
   "icon": "res://content/characters/may/may_icon_s.png"
 }

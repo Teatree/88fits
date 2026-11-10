@@ -48,7 +48,7 @@ params = {
 "seconds": 3.0,
 "tick": 0.25
 },
-"blast": 1.9
+"blast": 2.0
 }
 }
 id = "singularity"

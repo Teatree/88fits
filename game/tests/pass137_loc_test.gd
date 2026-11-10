@@ -141,12 +141,13 @@ func test_pilot_weapon_sentences() -> void:
 		var a := str(amount)
 		var s := "" if amount == 1 else "s"
 		assert_str(Loc.t("gen.weapon.shot.forward", {"amount": a, "cone": "30"})).is_equal("Fires %d pellet%s in a %d° cone where you face." % [amount, s, 30])
-		assert_str(Loc.t("gen.weapon.shot.random", {"amount": a, "range": "8"})).is_equal("Fires %d shot%s at random enemies within %.0f m." % [amount, s, 8.0])
-		assert_str(Loc.t("gen.weapon.shot.flare", {"amount": a, "range": "8"})).is_equal("Fires %d %s enemies on fire." % [amount, "flare that sets" if amount == 1 else "flares that set"])
-		assert_str(Loc.t("gen.weapon.shot.dart", {"amount": a, "range": "8"})).is_equal("Fires %d poison dart%s at an enemy that is not poisoned yet." % [amount, s])
-		assert_str(Loc.t("gen.weapon.shot.priority", {"amount": a, "range": "14", "who": "the strongest enemy nearby"})).is_equal(
-			"Fires %d shot%s at %s within %.0f m." % [amount, s, "the strongest enemy nearby", 14.0])
-		assert_str(Loc.t("gen.weapon.shot.nearest", {"amount": a, "range": "8"})).is_equal("Fires %d shot%s at the nearest enemy within %.0f m." % [amount, s, 8.0])
+		# pass 140 (lane TEXTS): every weapon says its damage ({damage}), and they hit "an enemy" (they aim where you face)
+		assert_str(Loc.t("gen.weapon.shot.random", {"amount": a, "range": "8", "damage": "12"})).is_equal("Fires %d shot%s at random enemies within %.0f m for 12 damage." % [amount, s, 8.0])
+		assert_str(Loc.t("gen.weapon.shot.flare", {"amount": a, "range": "8", "damage": "3"})).is_equal("Fires %d flare%s for 3 damage that %s enemies on fire." % [amount, s, "sets" if amount == 1 else "set"])
+		assert_str(Loc.t("gen.weapon.shot.dart", {"amount": a, "range": "8", "damage": "2"})).is_equal("Fires %d poison dart%s for 2 damage at enemies not yet poisoned." % [amount, s])
+		assert_str(Loc.t("gen.weapon.shot.priority", {"amount": a, "range": "14", "who": "the strongest enemy nearby", "damage": "20"})).is_equal(
+			"Fires %d shot%s at an enemy within %.0f m for 20 damage." % [amount, s, 14.0])
+		assert_str(Loc.t("gen.weapon.shot.nearest", {"amount": a, "range": "8", "damage": "20"})).is_equal("Fires %d shot%s at an enemy within %.0f m for 20 damage." % [amount, s, 8.0])
 		assert_str(Loc.t("gen.weapon.ricochet", {"count": a, "pct": "50"})).is_equal("Every round ricochets %d time%s at %d%%." % [amount, s, 50])
 	assert_str(Loc.t("gen.weapon.blast.lane", {"width": "2.6", "length": "10"})).is_equal(
 		"Blasts a %.1f m wide lane %.0f m long where you face: everything in it is hit at once and shoved along it." % [2.6, 10.0])

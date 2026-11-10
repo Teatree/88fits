@@ -249,7 +249,7 @@ func test_old_picks_hidden_new_picks_in_their_slots_evolutions_repointed() -> vo
 
 func test_flurry_doubles_the_slices_without_touching_the_cut() -> void:
 	var f: MutationDef = Registry.mutation("flurry")
-	assert_str(f.text).is_equal("Twice as many slashes a swing.")
+	assert_str(f.text).is_equal("×2 slashes a swing.")  # pass 140 (lane TEXTS): digits (docs/texts/text_rules.md)
 	assert_int(f.effects.size()).is_equal(1)
 	assert_str((f.effects[0] as Effect).stat).is_equal("amount")
 	assert_str((f.effects[0] as Effect).op).is_equal("mul")
@@ -264,7 +264,7 @@ func test_flurry_doubles_the_slices_without_touching_the_cut() -> void:
 
 func test_critical_thinking_lifts_every_weapons_crit_chance() -> void:
 	var m: MutationDef = Registry.mutation("critical_thinking")
-	assert_str(m.text).is_equal("+10% critical hit chance for every weapon.")
+	assert_str(m.text).is_equal("+10% crit chance for every weapon.")
 	assert_int(m.player_effects().size()).is_equal(1)
 	assert_int(m.weapon_effects().size()).is_equal(0)
 	# the real base crit (the suites leave it out), like pass52_test
@@ -424,7 +424,7 @@ func test_stunning_thrust_stuns_when_the_roll_says_so() -> void:
 
 func test_long_spear_reaches_further_and_strokes_slower() -> void:
 	var ls: MutationDef = Registry.mutation("long_spear")
-	assert_str(ls.text).is_equal("+40% reach, strokes 15% slower.")
+	assert_str(ls.text).is_equal("+40% range, but thrusts 15% slower.")
 	var plain := _inst("pike")
 	var long := _inst("pike", ["long_spear"])
 	assert_float(long.stat("range", 0.0)).is_equal_approx(plain.stat("range", 0.0) * 1.4, 0.001)
@@ -540,7 +540,7 @@ func test_thorny_weed_dust_wake_and_the_dust_devil_carry_their_numbers() -> void
 	assert_float(th.stat("damage", 0.0)).is_equal_approx(plain.stat("damage", 0.0) * 1.35, 0.001)
 	assert_float(float(th.params.get("out_speed_mult", 0.0))).is_equal_approx(0.7, 0.0001)
 	assert_float(float(th.params.get("back_speed_mult", 0.0))).is_equal_approx(1.4, 0.0001)
-	assert_str(Registry.mutation("thorns").text).is_equal("Heavier and thornier: +35% damage.")
+	assert_str(Registry.mutation("thorns").text).is_equal("Heavier, thornier tumbleweeds deal +35% damage.")
 	var dw := _inst("tumbleweed", ["dust_wake"])
 	var aura: Dictionary = dw.params["aura"]
 	assert_float(float(aura["radius"])).is_equal_approx(1.6, 0.0001)
@@ -548,7 +548,7 @@ func test_thorny_weed_dust_wake_and_the_dust_devil_carry_their_numbers() -> void
 	assert_float(float(aura["seconds"])).is_equal_approx(0.4, 0.0001)
 	assert_float(float(aura["every"])).is_equal_approx(0.2, 0.0001)
 	assert_str(str(aura["tint"])).is_equal("#1A5A1E")
-	assert_str(Registry.mutation("dust_wake").text).is_equal("Leaves a dust wake that slows enemies a little.")
+	assert_str(Registry.mutation("dust_wake").text).is_equal("Leaves a dust wake that slows enemies by 20%.")
 	# the Dust Devil over the whole path: its own speed, wake and return win (final), the second pass and x2 home
 	var dd := _inst("dust_devil", ["thorns", "dust_wake", "boomerang"])
 	assert_bool(bool(dd.params.get("return", false))).is_true()

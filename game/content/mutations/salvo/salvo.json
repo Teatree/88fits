@@ -9,7 +9,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "+3 rockets a volley, −35% damage.",
+  "text": "Launch 3 more rockets, but deal −35% damage.",
   "vfx": "six smoke trails at once",
   "effects": [
     {

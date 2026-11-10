@@ -512,3 +512,9 @@ const DESC_WEIGHT := 600
 const DESC_INK := Color("ffffff")
 const DESC_LH := 1.24
 const DESC_GROW := 1.25
+## Pass 140 (lane TEXTS; Garry: "'All your mutations still apply' - should be written in a different cursive, less visible
+## font"): an evolution's mutations note under its description (W.desc_text -> WText.note_size, W.note_text) in Rubik
+## Italic NOTE_WEIGHT at NOTE_FRAC of the description's size, in NOTE_INK (SECONDARY's blue, faded).
+const NOTE_FRAC := 0.78
+const NOTE_WEIGHT := 400
+const NOTE_INK := Color(0.812, 0.89, 1.0, 0.62)

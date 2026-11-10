@@ -9,7 +9,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Three smaller weeds, −30% damage.",
+  "text": "Roll 2 more smaller tumbleweeds, but deal −30% damage.",
   "vfx": "three weeds, three dust trails",
   "effects": [
     {

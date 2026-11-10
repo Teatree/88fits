@@ -13,7 +13,7 @@
     "damage": 30,
     "cooldown": 2.1176,
     "amount": 1,
-    "range": 4.6,
+    "range": 5.0,
     "area": 1.0,
     "knockback": 15.0
   },

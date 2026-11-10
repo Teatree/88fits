@@ -559,8 +559,10 @@ func hero_state(c: CharacterDef) -> String:
 		return "owned" if Trail.has("outlaw", c.id) else "locked"
 	var q := quest_for("character", c.id)
 	var met := q == null or Save.quest_done(q.id)
+	# pass 140 (lane QUESTS): a free outlaw whose task waits (May: Trigger Happy) is his too once the save owns him
+	# (the developer menu's gift, a save that bought him before), as a Trail outlaw is (Trail reads heroes_owned)
 	if c.availability != "purchase":
-		return "owned" if met else "locked"
+		return "owned" if met or Save.owns_hero(c.id) else "locked"
 	if Save.owns_hero(c.id):
 		return "owned"
 	return "buyable" if met else "locked"
@@ -577,7 +579,8 @@ func hero_requirement_text(c: CharacterDef) -> String:
 	if c and Trail.gated("outlaw", c.id):
 		return Trail.requirement_text("outlaw", c.id)
 	var q := quest_for("character", c.id) if c else null
-	return TextGen.quest_text(q) if q else ""
+	# pass 140 (lane QUESTS): a task waiting for another says what it waits for
+	return QuestTracker.requirement_text(q) if q else ""
 
 
 ## Every hero the title's drawer shows (pass 69): the ones not hidden, owned first, then those on sale, then the locked
@@ -586,13 +589,41 @@ func heroes_for_drawer() -> Array:
 	var rank := {"owned": 0, "buyable": 1, "locked": 2}
 	var out: Array = sorted_characters()
 	var pos := {}
+	var grp := {}
 	for i in out.size():
-		pos[(out[i] as CharacterDef).id] = i
+		var c: CharacterDef = out[i]
+		pos[c.id] = i
+		grp[c.id] = int(rank.get(hero_state(c), 3))
 	out.sort_custom(func(a: CharacterDef, b: CharacterDef) -> bool:
-		var ra: int = rank.get(hero_state(a), 3)
-		var rb: int = rank.get(hero_state(b), 3)
+		var ra: int = grp[a.id]
+		var rb: int = grp[b.id]
 		return int(pos[a.id]) < int(pos[b.id]) if ra == rb else ra < rb)
 	return out
+
+
+## Pass 140 (lane HEROLIST, Garry: "When unlocking a hero that is in the middle of the list, we will make sure to rearrange
+## the list such that the unlocked ones are bunched together and the locked ones are bunched together as well ... This
+## effect should be visible in both the main menu and the outlaw screen bottom ui element"): the one order the title's
+## carousel and the Outlaws screen's picker list the outlaws in: heroes_for_drawer (owned, then on sale, then locked, each
+## group in `order`), then, while the developer previews them (`with_hidden`: Settings.preview_locked_heroes), the hidden
+## ones by id. A screen builds it again whenever it builds its list, so an outlaw unlocked since stands with the owned ones.
+func heroes_in_menu_order(with_hidden: bool = false) -> Array:
+	var out: Array = heroes_for_drawer()
+	if with_hidden:
+		var hidden: Array = characters.values().filter(func(c: CharacterDef) -> bool: return c.hidden)
+		hidden.sort_custom(func(a: CharacterDef, b: CharacterDef) -> bool: return a.id < b.id)
+		out.append_array(hidden)
+	return out
+
+
+## Where outlaw `id` stands in `list` (CharacterDefs), -1 when he is not in it: a screen keeps its pick by id when its list
+## is built again in another order (pass 140).
+static func hero_index(list: Array, id: String) -> int:
+	for i in list.size():
+		var c := list[i] as CharacterDef
+		if c and c.id == id:
+			return i
+	return -1
 
 
 # ---------------------------------------------------------------- looks sold as skins (pass 111, lane SKINS)
@@ -670,7 +701,15 @@ func skin_requirement_text(c: CharacterDef, code: String) -> String:
 	if c and Trail.gated("skin", skin_key(c.id, code)):
 		return Trail.requirement_text("skin", skin_key(c.id, code))
 	var q := skin_quest(c, code)
-	return TextGen.quest_text(q) if q else ""
+	# pass 140 (lane QUESTS): a task waiting for another says what it waits for
+	return QuestTracker.requirement_text(q) if q else ""
+
+
+## Pass 140 (lane QUESTS): whether a quest is open now: shown and tracked (quest_visible) and not waiting for another
+## (its `requires` done: QuestTracker.prereqs_done). One that waits is not checked, counted on the Results or shown with
+## progress; the Collection and the Outlaws screen say what it waits for (QuestTracker.requirement_text).
+func quest_open(q: QuestDef) -> bool:
+	return q != null and quest_visible(q) and QuestTracker.prereqs_done(q)
 
 
 ## Whether a quest is shown and tracked: not when what it unlocks is hidden (a hero, a weapon, a passive).

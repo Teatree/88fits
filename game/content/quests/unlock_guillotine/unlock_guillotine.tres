@@ -6,16 +6,17 @@
 [resource]
 script = ExtResource("2_07q6q")
 condition = {
-"map": "red_canyon",
-"stage": 2.0,
-"type": "kill_boss"
+"count": 5.0,
+"holding": "big_game_hunter",
+"type": "bosses_total"
 }
 unlocks = {
 "id": "guillotine",
 "type": "passive"
 }
+requires = ["unlock_big_game_hunter"]
 id = "unlock_guillotine"
-display_name = "Guillotine"
+display_name = "Big Game"
 icon = ExtResource("1_fp7gy")
 icon_file = "unlock_guillotine_icon.png"
 placeholder = {

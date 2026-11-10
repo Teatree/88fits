@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "+2 snakes, −25% damage.",
+  "text": "2 more snakes, but deal −25% damage.",
   "vfx": "three snakes on the ring",
   "effects": [
     {

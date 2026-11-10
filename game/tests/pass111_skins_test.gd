@@ -114,7 +114,13 @@ func test_every_sold_look_is_painted_named_and_gated_by_a_real_goal() -> void:
 			assert_str(str(c.skin_of(str(code)).get("name", ""))).override_failure_message(msg + ": no name").is_not_empty()
 			assert_bool(Currency.known(c.skin_currency(str(code)))).override_failure_message(msg + ": currency").is_true()
 			var q := Registry.skin_quest(c, str(code))
-			assert_object(q).override_failure_message(msg + ": no goal").is_not_null()
+			# pass 140 (lane QUESTS, re-pinned; plan v2): a skin may come with no goal: on sale from the start (Dust
+			# Walker, Thunderbird, Mission Control) or a Trail node's (Event Horizon)
+			if q == null:
+				var key := Registry.skin_key(c.id, str(code))
+				var allowed: bool = Trail.gated("skin", key) or ["drifter:DRI-C", "ironwood:IRN-C", "astro:AST-C"].has(key)
+				assert_bool(allowed).override_failure_message(msg + ": no goal").is_true()
+				continue
 			assert_bool(Registry.quest_visible(q)).override_failure_message(msg).is_true()
 			assert_str(TextGen.quest_text(q)).override_failure_message(msg).is_not_equal("Complete a challenge.")
 	# (pass 111 pinned at least two on sale; pass 115: Garry takes looks off sale in the editor (Solenne's Canyon Red,

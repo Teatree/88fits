@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Three flares a shot, −35% damage.",
+  "text": "Fire 2 more flares, but deal −35% damage.",
   "vfx": "three red trails fanning out",
   "effects": [
     {

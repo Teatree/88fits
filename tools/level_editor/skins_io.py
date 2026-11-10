@@ -147,6 +147,11 @@ def clean_condition(srv, cond):
     for k in VOCAB.QUEST_TYPES[ctype]:
         if k in cond and cond[k] is not None:
             out[k] = cond[k]
+    # pass 140 (lane QUESTS): the gates (hero, holding) stay on the types that read them
+    if ctype in VOCAB.QUEST_GATED_TYPES or (ctype in VOCAB.QUEST_TASK_TYPES and cond.get("in_one_run")):
+        for k in VOCAB.QUEST_GATE_KEYS:
+            if cond.get(k):
+                out[k] = cond[k]
     if ctype == "beat_stage":
         mid = str(out.get("map") or "red_canyon")
         if not srv.ID_RE.match(mid) or not os.path.isfile(srv.map_path(mid)):
@@ -164,7 +169,8 @@ def clean_condition(srv, cond):
         if hero and srv.content_path("hero", hero)[1] is None:
             return None, "beat_stage: no hero %s" % hero
         out["hero"] = hero
-        out = {"type": ctype, "map": out["map"], "stage": out["stage"], "hero": out["hero"]}
+        out = {"type": ctype, "map": out["map"], "stage": out["stage"], "hero": out["hero"],
+               **({"holding": out["holding"]} if out.get("holding") else {})}
     # pass 113 (lane TASKS): the values the game reads (the task types' keys, an item_level inside the item's own levels)
     prob = VOCAB.condition_problem(out, getattr(srv, "item_top_level", None))
     if prob:

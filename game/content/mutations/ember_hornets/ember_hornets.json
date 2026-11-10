@@ -9,7 +9,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "Stings burn.",
+  "text": "Stings set enemies on fire.",
   "vfx": "orange bees, burning creatures",
   "effects": [
     {

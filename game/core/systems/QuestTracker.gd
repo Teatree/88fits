@@ -16,24 +16,85 @@ static func check_all(in_run: bool) -> Array:
 	if Run.arena:
 		return done
 	var marked := false
-	for q in Registry.quests.values():
-		if Save.quest_done(q.id) or not Registry.quest_visible(q):
-			continue
-		if _satisfied(q, in_run):
-			# pass 76 (Garry: "Result Screen unlocks are showing heroes that I already unlocked"): a hero already owned
-			# (bought, or given by the developer menu) has his quest marked done quietly; asked before the mark, since a
-			# free hero is owned once his quest is done
-			var quiet := owned_reward(q) or skin_of_a_hero_not_owned(q)
-			Save.mark_quest(q.id)
-			marked = true
-			if quiet:
+	# pass 140 (lane QUESTS): a quest whose prerequisite this check completes is checked in the same check (a few rounds)
+	for _round in range(4):
+		var marked_now := false
+		for q in Registry.quests.values():
+			if Save.quest_done(q.id) or not Registry.quest_open(q):
 				continue
-			done.append(q.id)
-			if in_run:
-				just_completed.append(q.id)
+			if _satisfied(q, in_run):
+				# pass 76 (Garry: "Result Screen unlocks are showing heroes that I already unlocked"): a hero already owned
+				# (bought, or given by the developer menu) has his quest marked done quietly; asked before the mark, since a
+				# free hero is owned once his quest is done
+				var quiet := owned_reward(q) or skin_of_a_hero_not_owned(q)
+				Save.mark_quest(q.id)
+				marked = true
+				marked_now = true
+				if quiet:
+					continue
+				done.append(q.id)
+				if in_run:
+					just_completed.append(q.id)
+		if not marked_now:
+			break
 	if marked:
 		Save.request_save()
 	return done
+
+
+# ---------------------------------------------------------------- pass 140 (lane QUESTS): tasks behind tasks, gates
+
+## Whether every quest `q` requires (QuestDef.requires) is done; a prerequisite no quest file has counts as done (a
+## retired id never locks a task for good).
+static func prereqs_done(q: QuestDef) -> bool:
+	return waiting_on(q) == null
+
+
+## The first quest `q` waits for (its `requires` not done yet), or null when it waits for none.
+static func waiting_on(q: QuestDef) -> QuestDef:
+	if q == null:
+		return null
+	for rid in q.requires:
+		var r: QuestDef = Registry.quests.get(str(rid))
+		if r != null and not Save.quest_done(r.id):
+			return r
+	return null
+
+
+## What it takes to do quest `q` in the player's words (pass 140): the quest's own (TextGen.quest_text), or, while it
+## waits for another, "After <that task's name>." (the Collection's tile, the Outlaws screen's skin and outlaw lines).
+static func requirement_text(q: QuestDef) -> String:
+	if q == null:
+		return ""
+	var r := waiting_on(q)
+	return Loc.t("gen.quest.after", {"task": r.display_name}) if r else TextGen.quest_text(q)
+
+
+## The condition types done in one run (checked while a run is on, their progress shown only then): these read the
+## gates `hero` and `holding` (run_gates). The task types (TaskTally) are done in one run with `in_one_run`.
+const IN_RUN_TYPES := ["reach_level", "survive_minutes", "survive_minutes_no_lift", "kills_in_run_of_enemy", "reach_stage",
+	"beat_stage", "hero_level", "item_level", "evolve_item", "weapon_paths", "items_maxed"]
+## The types TaskTally counts (across runs, or in one run with `in_one_run`); bosses_total (pass 140) is one.
+const TALLY_TYPES := ["damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total",
+	"totems_total", "bosses_total"]
+
+
+## Whether condition `c` is done inside one run (so the gates apply while the run is on).
+static func in_one_run(c: Dictionary) -> bool:
+	var t := str(c.get("type", ""))
+	return IN_RUN_TYPES.has(t) or (TALLY_TYPES.has(t) and bool(c.get("in_one_run", false)))
+
+
+## Whether the run going on meets condition `c`'s gates (pass 140): `hero` (the outlaw it is played with) and `holding`
+## (an item id the run holds: a weapon, a card or a passive item, or its evolved form). A condition without them: true.
+static func run_gates(c: Dictionary) -> bool:
+	var hero := str(c.get("hero", ""))
+	if hero != "" and (Run.character == null or Run.character.id != hero):
+		return false
+	var item := str(c.get("holding", ""))
+	if item != "" and held_items("any", item).is_empty():
+		return false
+	return true
 
 
 ## Whether quest `q` hands over a hero the player owns already (pass 76): a hero on sale (availability "purchase") he has
@@ -43,7 +104,8 @@ static func owned_reward(q: QuestDef) -> bool:
 	if q == null or str(q.unlocks.get("type", "")) != "character":
 		return false
 	var c: CharacterDef = Registry.character(str(q.unlocks.get("id", "")))
-	return c != null and c.availability == "purchase" and Save.owns_hero(c.id)
+	# pass 140 (lane QUESTS): a free outlaw the save owns already (May given by the developer menu) is never announced
+	return c != null and Save.owns_hero(c.id)
 
 
 ## Pass 126 (lane SKINS; Garry: skins' goals "based on ... some run activity"): a career goal counts with any hero, so it can be
@@ -62,6 +124,9 @@ static func check_run_events() -> Array:
 
 static func _satisfied(q: QuestDef, in_run: bool) -> bool:
 	var c := q.condition
+	# pass 140 (lane QUESTS): a condition done in one run counts only while the run meets its gates (hero, holding)
+	if in_one_run(c) and not (in_run and run_gates(c)):
+		return false
 	match str(c.get("type", "")):
 		"kills_with_weapon":
 			return Save.keyed_total("kills_with_weapon", str(c.get("weapon", ""))) >= int(c.get("count", 0))
@@ -106,7 +171,8 @@ static func _satisfied(q: QuestDef, in_run: bool) -> bool:
 			return rp.y > 0 and rp.x >= rp.y
 		# pass 113 (lane TASKS): damage, healing, barrels, Totem gifts, fire and poison (TaskTally): the save's banked part
 		# and the run's part not banked yet, or the run's alone with `in_one_run`
-		"damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total", "totems_total":
+		# pass 140 (lane QUESTS): bosses_total, stage bosses beaten across runs (TaskTally.note_boss)
+		"damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total", "totems_total", "bosses_total":
 			if bool(c.get("in_one_run", false)) and not in_run:
 				return false
 			return TaskTally.amount(c) >= float(int(c.get("count", 0)))
@@ -121,6 +187,12 @@ static func progress_text(q: QuestDef) -> String:
 ## How far a counted quest has come: (so far, needed); (0, 0) for one that is done in a single run or has no count.
 static func progress(q: QuestDef) -> Vector2i:
 	var c := q.condition
+	# pass 140 (lane QUESTS): a quest waiting for another shows nothing; one done in one run only for the run that meets
+	# its gates
+	if not prereqs_done(q):
+		return Vector2i.ZERO
+	if in_one_run(c) and not (Run.active and run_gates(c)):
+		return Vector2i.ZERO
 	match str(c.get("type", "")):
 		"kills_with_weapon":
 			return Vector2i(Save.keyed_total("kills_with_weapon", str(c.get("weapon", ""))), int(c.get("count", 0)))
@@ -143,7 +215,7 @@ static func progress(q: QuestDef) -> Vector2i:
 		"hero_level", "item_level", "evolve_item", "weapon_paths", "items_maxed":
 			return run_progress(q) if Run.active else Vector2i.ZERO
 		# pass 113 (lane TASKS): across runs (the run going on adds its part), or only while a run is on with `in_one_run`
-		"damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total", "totems_total":
+		"damage_with_weapon", "heal_with_item", "heal_with_source", "element_damage", "barrels_total", "totems_total", "bosses_total":
 			if bool(c.get("in_one_run", false)) and not Run.active:
 				return Vector2i.ZERO
 			return Vector2i(int(floor(TaskTally.amount(c))), int(c.get("count", 0)))
@@ -198,6 +270,9 @@ static func stage_hint(q: QuestDef) -> int:
 			var p: PassiveDef = Registry.passive(str(c.get("item", "")))
 			return maxi(p.from_stage, 1) if p else 1
 		"heal_with_source", "element_damage", "barrels_total", "totems_total":
+			return 1
+		# pass 140 (lane QUESTS): any stage's boss counts (the first falls at the end of stage 1)
+		"bosses_total":
 			return 1
 	return 0
 
@@ -404,6 +479,12 @@ static func picture_of(c: Dictionary) -> Dictionary:
 			return {"kind": "structure", "id": "totem_pole"}
 		"open_chests":
 			return {"kind": "art", "id": "chest"}
+		# pass 140 (lane QUESTS): the item it must be held with, else the first stage's picture
+		"bosses_total":
+			var hid0 := str(c.get("holding", ""))
+			if hid0 != "":
+				return {"kind": item_kind_of(hid0, "passive"), "id": hid0}
+			return {"kind": "stage", "id": str(c.get("map", "red_canyon")), "stage": 0}
 		"gold_total":
 			return {"kind": "art", "id": "coin"}
 		"hero_level":

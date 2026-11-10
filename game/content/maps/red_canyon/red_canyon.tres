@@ -43,8 +43,8 @@ hp_curve = {
 "b": 1.35,
 "kind": "power"
 },
-"mode": "formula",
-"points": [[0.0, 1.0], [430.0, 1.9414], [1030.0, 3.4245], [1810.0, 5.5638], [2770.0, 8.4428]]
+"mode": "points",
+"points": [[0.0, 1.0], [90.0, 1.18], [180.0, 1.4], [300.0, 1.8], [430.0, 2.3], [430.0, 2.0455], [580.0, 2.4623], [730.0, 2.9641], [880.0, 3.5682], [1030.0, 4.2955], [1030.0, 4.5366], [1225.0, 5.1793], [1420.0, 5.9131], [1615.0, 6.7509], [1810.0, 7.7073], [1810.0, 8.2927], [2050.0, 9.7361], [2290.0, 11.4307], [2530.0, 13.4202], [2770.0, 15.7561]]
 }
 damage_curve = {
 "formula": {
@@ -52,7 +52,7 @@ damage_curve = {
 "kind": "linear"
 },
 "mode": "points",
-"points": [[0.0, 1.21], [430.0, 1.21], [430.0, 0.36], [900.0, 0.95], [1030.0, 1.09], [1030.0, 0.4], [1700.0, 1.08], [1810.0, 1.1], [1810.0, 0.456], [2635.0, 1.173], [2770.0, 0.912]]
+"points": [[0.0, 0.95], [180.0, 1.0], [430.0, 1.45], [430.0, 0.36], [900.0, 1.0234], [1030.0, 1.1818], [1030.0, 0.478], [1700.0, 1.222], [1810.0, 1.2439], [1810.0, 0.5902], [2635.0, 1.6585], [2770.0, 1.2895]]
 }
 level_hp_per_level = 0.05
 level_damage_per_level = 0.03
@@ -196,7 +196,7 @@ roster = [{
 "pattern": "ring",
 "role": "fodder",
 "stats": {
-"hp_mult": 1.2,
+"hp_mult": 0.96,
 "speed": 1.725
 },
 "t": 47.0,
@@ -212,7 +212,7 @@ roster = [{
 "pattern": "scatter",
 "role": "fodder",
 "stats": {
-"hp_mult": 1.2,
+"hp_mult": 0.96,
 "speed": 2.012
 },
 "t": 0.0,
@@ -2203,7 +2203,7 @@ boss_hp_scaling = {
 },
 "seconds": {
 "black_sunday": 70.0,
-"brander": 80.0,
+"brander": 65.0,
 "gila_grande": 60.0,
 "tumbleweed_king": 40.0
 },
@@ -2496,6 +2496,8 @@ stage_list = [{
 "weights": [[0.0, 1.0], [120.0, 1.0]]
 }]
 },
+"boss_purse": 325.0,
+"coin_mult": 1.0,
 "description": "The canyon at sundown. Learn the ropes.",
 "difficulty": "Easy",
 "filter": {
@@ -2506,7 +2508,8 @@ stage_list = [{
 "id": "s1",
 "length": 430.0,
 "name": "Sundown",
-"shot": "res://art/ui/stages/red_canyon_s1.jpg"
+"shot": "res://art/ui/stages/red_canyon_s1.jpg",
+"wage": 30.0
 }, {
 "boss": "gila_grande",
 "boss_fight": {
@@ -2612,6 +2615,8 @@ stage_list = [{
 "weights": [[0.0, 1.0], [120.0, 1.0]]
 }]
 },
+"boss_purse": 750.0,
+"coin_mult": 2.66,
 "description": "Night falls on the canyon. Tougher, and longer.",
 "difficulty": "Medium",
 "filter": {
@@ -2623,6 +2628,7 @@ stage_list = [{
 "length": 600.0,
 "name": "Nightfall",
 "shot": "res://art/ui/stages/red_canyon_s2.jpg",
+"wage": 80.0,
 "xp_mult": 0.7
 }, {
 "boss": "black_sunday",
@@ -2719,6 +2725,8 @@ stage_list = [{
 "weights": [[0.0, 1.0], [120.0, 1.0]]
 }]
 },
+"boss_purse": 1350.0,
+"coin_mult": 6.0,
 "description": "The wind took the farms. Now it wants you.",
 "difficulty": "Hard",
 "dust_devils": {
@@ -2746,6 +2754,7 @@ stage_list = [{
 "reward_mult": 2.75,
 "shot": "res://art/ui/stages/red_canyon_dust.jpg",
 "speed_mult": 1.1371,
+"wage": 150.0,
 "weather": {
 "fog": {
 "color": "#A67F52",
@@ -2867,6 +2876,8 @@ stage_list = [{
 "weights": [[0.0, 1.0], [120.0, 1.0]]
 }]
 },
+"boss_purse": 1700.0,
+"coin_mult": 8.55,
 "description": "Hell opens under a blood moon. Few come back.",
 "difficulty": "Brutal",
 "filter": {
@@ -2880,6 +2891,7 @@ stage_list = [{
 "reward_mult": 3.34,
 "shot": "res://art/ui/stages/red_canyon_s3.jpg",
 "speed_mult": 1.1825,
+"wage": 240.0,
 "xp_mult": 0.8
 }]
 endless = {

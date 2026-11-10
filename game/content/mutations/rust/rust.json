@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "poison",
   "hero": "",
-  "text": "Cuts poison.",
+  "text": "Saws poison every enemy they cut.",
   "vfx": "oxidised blades, rust flakes shed while they spin",
   "effects": [
     {

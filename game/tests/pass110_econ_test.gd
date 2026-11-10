@@ -285,7 +285,8 @@ func test_the_elite_and_boss_gold_is_half_of_pass_70s() -> void:
 	# again, a quarter of pass 70's, the purse's half coin dropped)
 	for s in 4:
 		assert_int(Game.elite_purse(s)).is_equal((450 + 300 * s) / 4)
-		assert_int(Game.boss_purse(s)).is_equal((1300 + 700 * s) / 4)
+		# pass 140 (lane ECON): the line is the fallback now; the map's stages name their own purse (pass140_econ_test)
+		assert_int(Game.boss_purse_line(s)).is_equal((1300 + 700 * s) / 4)
 	assert_int(Game.BOSS_COINS).is_equal(15)
 	assert_float(PickupManager.BIG_COIN_MULT).is_equal(1.25)
 	assert_float(PickupManager.SPECIAL_COIN_MULT).is_equal(0.25)
@@ -346,7 +347,9 @@ func test_every_hero_on_sale_costs_500_a_place_in_the_title_order() -> void:
 		assert_int(c.price).override_failure_message("%s (place %d)" % [c.id, c.order]).is_equal(HERO_STEP * c.order)
 		assert_str(c.currency_type).is_equal("gold")
 		on_sale += 1
-	assert_int(on_sale).is_equal(7)
+	# pass 140 (lane FIX, re-pinned): Astro and May are free now (BALANCING 81.TRAIL, 81.QUESTS): on sale the four Trail
+	# outlaws and Ironwood, whom this suite puts on sale for its time
+	assert_int(on_sale).is_equal(5)
 	# the Drifter free, Mira and Dad out of sale as before
 	assert_int(Registry.character("drifter").price).is_equal(0)
 	assert_str(Registry.character("drifter").availability).is_equal("available")

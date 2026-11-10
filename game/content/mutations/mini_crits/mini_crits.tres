@@ -7,7 +7,7 @@
 script = ExtResource("2_anjcu")
 weapon = "tommy_gun"
 mutation_kind = "element"
-text = "A quarter of the rounds are mini crits."
+text = "25% of rounds are mini crits."
 vfx = "paler gold crit numbers off the rounds that land them"
 params = {
 "mini_crit": 0.25

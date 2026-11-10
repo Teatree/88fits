@@ -327,6 +327,8 @@ func test_unlocked_this_run_is_never_stale() -> void:
 	assert_array(QT.just_completed).is_empty()
 	# the title's quiet check completes a quest the save's totals meet, but it is no run's unlock
 	Run.end()
+	# pass 140 (lane QUESTS, re-pinned): Killing Spree waits for Dust Yourself Off
+	Save.mark_quest("unlock_tommy_gun")
 	(Save.data["totals"] as Dictionary)["kills"] = 999999
 	var quiet: Array = QT.check_all(false)
 	assert_bool(Save.quest_done(q.id)).is_true()

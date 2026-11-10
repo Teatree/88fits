@@ -310,14 +310,15 @@ func test_buy_asks_in_green_and_buys_him_once() -> void:
 	var amount: WText = s.find_child("Amount", true, false)
 	assert_str(amount.text).is_equal("50")
 	# short of a price nothing asks
-	var astro := _hero("astro")
-	s.call("show_hero", astro)
+	var locked := _hero("solenne")
+	s.call("show_hero", locked)
 	await get_tree().process_frame
 	(s.find_child("Select", true, false) as WButton).pressed.emit()
 	await get_tree().process_frame
 	assert_bool(WConfirm.is_open(s)).is_false()
-	# pass 129 (re-pinned): Astro is a Trail node now: locked, and a locked outlaw asks nothing either
-	assert_str(Registry.hero_state(astro)).is_equal("locked")
+	# pass 129 (re-pinned): a Trail outlaw is locked, and a locked outlaw asks nothing either (pass 140: Solenne, Astro
+	# is free from the start)
+	assert_str(Registry.hero_state(locked)).is_equal("locked")
 
 
 func test_the_looks_pop_up_follows_the_sheets_rules() -> void:

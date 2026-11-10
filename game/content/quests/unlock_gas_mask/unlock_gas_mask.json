@@ -1,0 +1,14 @@
+{
+  "id": "unlock_gas_mask",
+  "name": "Snakebite",
+  "condition": {
+    "type": "element_damage",
+    "element": "poison",
+    "count": 50000
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "gas_mask"
+  },
+  "icon": "res://content/passives/gas_mask/gas_mask_icon.png"
+}

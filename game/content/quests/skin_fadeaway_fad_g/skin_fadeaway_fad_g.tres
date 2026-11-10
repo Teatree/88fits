@@ -14,6 +14,7 @@ unlocks = {
 "id": "fadeaway:FAD-G",
 "type": "skin"
 }
+requires = ["skin_fadeaway_fad_b"]
 id = "skin_fadeaway_fad_g"
 display_name = "Fadeaway · Streetball"
 icon = ExtResource("1_ucgid")

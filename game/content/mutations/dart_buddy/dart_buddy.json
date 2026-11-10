@@ -9,7 +9,7 @@
   "kind": "element",
   "element": "poison",
   "hero": "",
-  "text": "It spits poison.",
+  "text": "Turrets spit poison.",
   "vfx": "green darts from the buddy",
   "effects": [
     {

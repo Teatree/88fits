@@ -535,8 +535,10 @@ func test_an_area_that_is_a_radius_reads_in_metres() -> void:
 		var ar := TextGen.area_radius(w, one.sheet, one.params)
 		assert_int(ar.size()).override_failure_message(id).is_equal(2)
 		assert_str(TextGen._sentence(str(ar[0]))).override_failure_message(id).is_equal(str(RADII[id]))
-		# the number the weapon's own description gives ("a 2.4 m blast", "a 2.0 m pool of flames")
-		assert_str(one.description()).override_failure_message(id).contains("%.1f m" % float(ar[1]))
+		# the number the weapon's own description gives, in whole metres (pass 140, lane TEXTS: "a 2 m pool of flames";
+		# the Hammer's, the rockets', the Land Mine's and the Salt's left to these rows)
+		if not ["hammer", "rocket_pod", "land_mine", "salt"].has(id):
+			assert_str(one.description()).override_failure_message(id).contains("%.0f m" % float(ar[1]))
 		for k in range(1, w.max_level):
 			for r: Dictionary in TextGen.weapon_changes(w, k, k + 1):
 				if str(r["stat"]) != "area":
@@ -571,10 +573,10 @@ func test_an_area_that_is_a_radius_reads_in_metres() -> void:
 	var inst := Run.weapon_instance("gravity_gun")
 	var grav: Dictionary = gg.params.get("gravity", {})
 	var throw_mult := float((Registry.mutation("repulsor").params["gravity"] as Dictionary).get("throw_mult", 1.0))
-	var want_r := float(grav.get("blast", 1.9)) * inst.sheet.get_stat("area", 1.0) * throw_mult
+	var want_r := float(grav.get("blast", 2.0)) * inst.sheet.get_stat("area", 1.0) * throw_mult
 	assert_float(throw_mult).is_greater(1.0)
 	assert_float(float(TextGen.area_radius(gg, inst.sheet, inst.params)[1])).is_equal_approx(want_r, 0.001)
-	assert_str(inst.description()).contains("a %.1f m blast" % want_r)
+	assert_str(inst.description()).contains("a %.0f m blast" % want_r)
 
 
 func test_a_ceiling_keeps_its_up_to() -> void:

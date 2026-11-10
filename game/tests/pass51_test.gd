@@ -267,7 +267,9 @@ func test_calaveras_crit_is_five_percent() -> void:
 
 func test_wide_reach_springs_from_two_point_eight_metres() -> void:
 	var wr: MutationDef = Registry.mutation("wide_reach")
-	assert_float(float((wr.params["spring"] as Dictionary)["sense"])).is_equal_approx(2.8, 0.001)
+	# pass 140 (lead, 81.LEAD; Garry: "explosion range is one of those stats that doesn't care about .1. So just round it,
+	# in both balancing and text"): 2.8 -> 3.0
+	assert_float(float((wr.params["spring"] as Dictionary)["sense"])).is_equal_approx(3.0, 0.001)
 	# pass 138 (lane TEXTS; Garry's "close by" for "within N m")
 	assert_str(wr.text).contains("close by")
 	# the Jackrabbit's own spring is as it was

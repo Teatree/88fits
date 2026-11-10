@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "",
   "hero": "",
-  "text": "A quarter of the rounds are mini crits.",
+  "text": "25% of rounds are mini crits.",
   "vfx": "paler gold crit numbers off the rounds that land them",
   "effects": [],
   "params": {

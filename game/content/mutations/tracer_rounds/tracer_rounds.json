@@ -9,7 +9,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "The rounds ignite.",
+  "text": "Rounds set enemies on fire.",
   "vfx": "hot orange rounds, burning creatures",
   "effects": [
     {

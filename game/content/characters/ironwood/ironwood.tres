@@ -167,7 +167,7 @@ variants = {
 "name": "Thunderbird",
 "price": 1500.0,
 "purchasable": true,
-"unlock_quest": "skin_ironwood_irn_c"
+"unlock_quest": ""
 },
 "sprite": "res://content/characters/ironwood/ironwood_sprite_c.png",
 "sprite_file": "ironwood_sprite_c.png",

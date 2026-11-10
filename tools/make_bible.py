@@ -825,6 +825,39 @@ def quest_text(q):
     if q.get("quest_text"):
         return q["quest_text"]
     c = q.get("condition", {})
+    return _quest_gates_text(c, _quest_base_text(q))
+
+
+def _quest_gates_text(c, text):
+    """Pass 140 (lane QUESTS): TextGen.quest_gates_text: "... with Ironwood." (`hero`, where the type does not name its
+    outlaw: hero_level and beat_stage do), "... holding Big Game Hunter." (`holding`), or both."""
+    t = c.get("type", "")
+    hero = "" if t in ("hero_level", "beat_stage") else str(c.get("hero", "") or "")
+    item = str(c.get("holding", "") or "")
+    if not hero and not item:
+        return text
+    base = text.strip()
+    base = base[:-1] if base.endswith(".") else base
+    who = _items()["characters"].get(hero, {}).get("name", hero.title()) if hero else ""
+    if item:
+        w = _items()["weapons"].get(item)
+        what = "the " + w.get("name", item) if w else _items()["passives"].get(item, {}).get("name", item.replace("_", " ").title())
+    if hero and item:
+        return "%s with %s, holding %s." % (base, who, what)
+    return "%s with %s." % (base, who) if hero else "%s holding %s." % (base, what)
+
+
+def _stage_word(c):
+    """TextGen.stage_word: a stage's name from the map's stage_list, else "stage N"."""
+    k = int(c.get("stage", 1))
+    sl = ((_items()["maps"].get(c.get("map") or "red_canyon", {}).get("timeline_data") or {}).get("stage_list") or [])
+    if 0 < k <= len(sl) and isinstance(sl[k - 1], dict) and sl[k - 1].get("name"):
+        return str(sl[k - 1]["name"])
+    return "stage %d" % k
+
+
+def _quest_base_text(q):
+    c = q.get("condition", {})
     t = c.get("type", "")
     n = int(c.get("count", 0))
     mp = _items()["maps"].get(c.get("map", "red_canyon"), {}).get("name", "Red Canyon")
@@ -849,7 +882,10 @@ def quest_text(q):
     if t == "extract_after_stage":
         return "Extract after stage %d on %s." % (int(c.get("stage", 1)), mp)
     if t == "kill_boss":
-        return "Kill the stage %d boss on %s." % (int(c.get("stage", 1)), mp)
+        # pass 140 (lane QUESTS): "Beat the Sundown boss."
+        return "Beat the %s boss." % _stage_word(c)
+    if t == "bosses_total":
+        return "Beat a boss." if n == 1 else "Beat {:,} bosses.".format(n)
     if t == "kills_total":
         return "Kill %d creatures, all time." % n
     if t == "runs_total":
@@ -857,7 +893,7 @@ def quest_text(q):
     if t == "pickups_total":
         return "Pick up %d power-ups." % n
     if t == "gold_total":
-        return "Earn %d gold, all time." % n
+        return "Earn {:,} gold, all time.".format(n)
     if t == "reach_stage":
         return "Reach stage %d." % int(c.get("stage", 1))
     if t == "beat_stage":
@@ -983,7 +1019,7 @@ def quest_stage(q):
     if t in ("kills_of_enemy", "kills_in_run_of_enemy"):
         a = _first_arrival(c.get("enemy", ""))
         return stage_index(a, _timeline()) + 1 if a >= 0 else 0
-    if t in ("kill_boss", "reach_stage", "extract_after_stage"):
+    if t in ("kill_boss", "reach_stage", "extract_after_stage", "beat_stage"):
         return int(c.get("stage", 1))
     if t in ("survive_minutes", "survive_minutes_no_lift"):
         # pass 87 (QuestTracker.stage_hint): the first stage at least that long (a run plays one stage), else the last
@@ -1014,6 +1050,9 @@ def quest_stage(q):
         p = _items()["passives"].get(c.get("item", "")) or {}
         return max(int(p.get("from_stage", 0) or 0), 1)
     if t in ("heal_with_source", "element_damage", "barrels_total", "totems_total"):
+        return 1
+    # pass 140 (lane QUESTS): any stage's boss counts
+    if t == "bosses_total":
         return 1
     return 0
 

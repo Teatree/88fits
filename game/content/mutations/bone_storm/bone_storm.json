@@ -9,7 +9,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "+3 skulls, −30% damage.",
+  "text": "Lob 3 more skulls, but deal −30% damage.",
   "vfx": "four skulls raining",
   "effects": [
     {

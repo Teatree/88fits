@@ -76,7 +76,9 @@ const AFIELDS = (() => {
       opt('heal_with_source', 'HP restored by a power-up or structure', '{source, count}: "pickup:heart" the Heart, "structure:healing_well" the Healing Well ("pickup:" any power-up)'),
       opt('element_damage', 'fire or poison damage', '{element, count}: burns (fire) or poison ticks the outlaw\'s side deals (empty = both)'),
       opt('barrels_total', 'barrels broken', '{count}'),
-      opt('totems_total', 'Totem gifts taken', '{count}: a gift taken at a Totem Pole')],
+      opt('totems_total', 'Totem gifts taken', '{count}: a gift taken at a Totem Pole'),
+      // pass 140 (lane QUESTS): stage bosses beaten across runs (Endless bosses never count), each under the gates below
+      opt('bosses_total', 'bosses beaten', '{count, holding?, hero?}: stage bosses beaten across runs while the run held that item / was played as that outlaw')],
     // pass 113 (lane TASKS): the elements the fire / poison quests take
     questElements: [opt('fire', 'fire', 'burns'), opt('poison', 'poison', 'poison ticks'), opt('', 'both', 'fire and poison together')],
     questItemKinds: [opt('any', 'any item'), opt('weapon'), opt('card', 'card', 'a line (its Risen form counts it maxed)'), opt('passive', 'passive item', 'climbs the rarity ladder')],
@@ -1011,6 +1013,8 @@ const AFIELDS = (() => {
 
   // pass 113 (lane TASKS): the task quests (they take "In one run")
   const TASK_TYPES = ['damage_with_weapon', 'heal_with_item', 'heal_with_source', 'element_damage', 'barrels_total', 'totems_total'];
+  // pass 140 (lane QUESTS): the types the gates (Outlaw, Holding) apply to (vocab.QUEST_GATED_TYPES)
+  const GATED_TYPES = ['reach_level', 'survive_minutes', 'survive_minutes_no_lift', 'kills_in_run_of_enemy', 'reach_stage', 'beat_stage', 'hero_level', 'item_level', 'evolve_item', 'weapon_paths', 'items_maxed', 'bosses_total'];
   /** Pass 113 (Garry: "Upgrade Item to N Level (any item, only available levels)"): an item_level quest that names an item
    *  asks only for its own levels, 1 .. its top (a weapon's max level, a card's, a passive item's rarity ladder); {} when
    *  it names none or a rung (the rung list stays as it is). Read by Forms.control (`limits`). */
@@ -1030,7 +1034,7 @@ const AFIELDS = (() => {
   const QUEST_ROWS = [
     { key: 'name', label: 'Name', type: 'text', help: 'the quest\'s title' },
     { key: 'condition.type', label: 'Condition', type: 'select', options: (v) => v.questTypes, def: 'kills_total', help: 'QuestTracker._satisfied; a new type needs code: ask Claude' },
-    { key: 'condition.count', label: 'Count', type: 'int', min: 1, only: (q) => ['kills_with_weapon', 'kills_of_enemy', 'open_chests', 'evolve_any', 'kills_in_run_of_enemy', 'kills_total', 'runs_total', 'pickups_total', 'gold_total', 'items_maxed'].concat(TASK_TYPES).includes((q.condition || {}).type), help: 'pass 113: damage and HP are points (50000 = "Deal 50,000 damage")' },
+    { key: 'condition.count', label: 'Count', type: 'int', min: 1, only: (q) => ['kills_with_weapon', 'kills_of_enemy', 'open_chests', 'evolve_any', 'kills_in_run_of_enemy', 'kills_total', 'runs_total', 'pickups_total', 'gold_total', 'items_maxed', 'bosses_total'].concat(TASK_TYPES).includes((q.condition || {}).type), help: 'pass 113: damage and HP are points (50000 = "Deal 50,000 damage")' },
     { key: 'condition.enemy', label: 'Creature', type: 'enemy', only: (q) => ['kills_of_enemy', 'kills_in_run_of_enemy'].includes((q.condition || {}).type) },
     { key: 'condition.weapon', label: 'Weapon', type: 'id_select', kind: 'weapon', only: (q) => ['kills_with_weapon', 'weapon_paths', 'damage_with_weapon'].includes((q.condition || {}).type), help: 'weapon_paths: empty = any weapon; damage_with_weapon: the weapon and its evolution count together' },
     { key: 'condition.map', label: 'Map', type: 'select', options: (v) => v.maps, def: 'red_canyon', only: (q) => ['extract_after_stage', 'kill_boss', 'beat_stage'].includes((q.condition || {}).type), help: 'the map (pass 111: a select of the map folders)' },
@@ -1040,7 +1044,9 @@ const AFIELDS = (() => {
       limits: (q) => itemLevelLimits(q) },
     { key: 'condition.minutes', label: 'Minutes', type: 'number', min: 0, only: (q) => ['survive_minutes', 'survive_minutes_no_lift'].includes((q.condition || {}).type) },
     // pass 100 (lane QUESTS): the build quests' fields
-    { key: 'condition.hero', label: 'Outlaw', type: 'id_select', kind: 'hero', only: (q) => ['hero_level', 'beat_stage'].includes((q.condition || {}).type), help: 'the outlaw the level is reached (or the stage beaten) with (pick one the player can own: a chain on a later quest dead-ends); beat_stage: empty = any outlaw' },
+    { key: 'condition.hero', label: 'Outlaw', type: 'id_select', kind: 'hero', only: (q) => GATED_TYPES.includes((q.condition || {}).type) || (TASK_TYPES.includes((q.condition || {}).type) && (q.condition || {}).in_one_run), help: 'the outlaw the level is reached (or the stage beaten) with (pick one the player can own: a chain on a later quest dead-ends); beat_stage and the others: empty = any outlaw (pass 140: "as the Drifter" on any condition done in one run)' },
+    // pass 140 (lane QUESTS): "holding Big Game Hunter": counts only while the run holds that item
+    { key: 'condition.holding', label: 'Holding', type: 'id_select', kind: 'any_item', only: (q) => GATED_TYPES.includes((q.condition || {}).type) || (TASK_TYPES.includes((q.condition || {}).type) && (q.condition || {}).in_one_run), help: 'pass 140: empty = any; else the condition counts only while the run holds this weapon, card or passive item (its evolved form counts)' },
     { key: 'condition.kind', label: 'Item kind', type: 'select', options: (v) => v.questItemKinds, def: 'any', only: (q) => ['item_level', 'evolve_item', 'items_maxed'].includes((q.condition || {}).type), help: 'which items count; an Item below wins over it' },
     { key: 'condition.id', label: 'Item', type: 'id_select', kind: 'any_item', only: (q) => ['item_level', 'evolve_item'].includes((q.condition || {}).type), help: 'empty = any item of the kind; a weapon, a card or a passive item (an evolved form\'s id works too)' },
     { key: 'condition.rung', label: 'Rung', type: 'select', options: (v) => v.questRungs, def: '', only: (q) => (q.condition || {}).type === 'item_level', help: 'passive items only: the rarity rung to reach (their level count differs by rarity: common 6 .. epic 3); set, it replaces Level' },

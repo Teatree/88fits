@@ -5,7 +5,7 @@
   "weight": 8,
   "max_level": 5,
   "flavour": "Feeds on a good shot.",
-  "text": "Critical hits have a 6% chance of healing you for 2% of your max health.",
+  "text": "Critical hits have a 6% chance of healing you for 2% of your max HP.",
   "levels": [
     [
       {

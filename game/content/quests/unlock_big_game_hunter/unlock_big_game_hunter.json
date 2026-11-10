@@ -1,0 +1,14 @@
+{
+  "id": "unlock_big_game_hunter",
+  "name": "Gila Hunter",
+  "condition": {
+    "type": "kill_boss",
+    "map": "red_canyon",
+    "stage": 2
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "big_game_hunter"
+  },
+  "icon": "res://content/passives/big_game_hunter/big_game_hunter_icon.png"
+}

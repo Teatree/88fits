@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "Chords slap enemies aside for 60% more damage, but strum 40% slower.",
+  "text": "Chords knock back enemies and deal +60% damage, but strum 40% slower.",
   "vfx": "what the chord lifts comes down thrown to one side or the other",
   "effects": [
     {

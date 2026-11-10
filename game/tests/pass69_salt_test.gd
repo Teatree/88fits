@@ -413,9 +413,10 @@ func test_the_words_say_what_the_salt_does() -> void:
 	var text := b.inst.description()
 	# (pass 109: level 1 pours every 1.6 / 0.85 = 1.88 s, the attack-speed ramp, BALANCING.md 52.ATKSPD)
 	# pass 138 (lane TEXTS): Garry's style, two short sentences
-	assert_str(text).is_equal("Pours a patch of salt (1.4 m) behind you every 1.9 s. Enemies in the salt take 6 damage every 0.5 s.")
+	# pass 140 (lane TEXTS): the count in digits, the patch's size left to the upgrade rows (a whole metre would be far off)
+	assert_str(text).is_equal("Pours 1 patch of salt behind you every 1.9 s. Enemies in the salt take 6 damage every 0.5 s.")
 	var lvl5 := _inst("salt", [], 5)
-	assert_str(lvl5.description()).contains("Pours 3 patches of salt (1.8 m)")
+	assert_str(lvl5.description()).contains("Pours 3 patches of salt behind you")
 	assert_str(TextGen.amount_noun(Registry.weapon("salt"))).is_equal("patches")
 	var hk := _inst("hiwa_kai", ["sea_salt", "salt_spill", "thing_about_luck"])
 	var ht := hk.description()

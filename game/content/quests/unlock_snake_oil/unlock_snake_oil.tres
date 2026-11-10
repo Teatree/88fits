@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/snake_oil/snake_oil_icon.png" id="1_2bmll"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_wdyyy"]
+
+[resource]
+script = ExtResource("2_wdyyy")
+condition = {
+"count": 5000.0,
+"item": "cake",
+"type": "heal_with_item"
+}
+unlocks = {
+"id": "snake_oil",
+"type": "passive"
+}
+id = "unlock_snake_oil"
+display_name = "Sweet Tooth"
+icon = ExtResource("1_2bmll")
+icon_file = "res://content/passives/snake_oil/snake_oil_icon.png"

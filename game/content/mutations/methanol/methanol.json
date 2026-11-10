@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "The fire burns blue: 50% bigger pools and longer burns, for 20% less burn damage.",
+  "text": "The fire burns blue: 50% bigger pools and 75% longer burns, but −20% burn damage.",
   "vfx": "blue flames in the pools, on burning creatures and dripping from the bottle",
   "effects": [
     {

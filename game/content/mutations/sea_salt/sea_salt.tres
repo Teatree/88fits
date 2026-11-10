@@ -7,7 +7,7 @@
 script = ExtResource("2_kihcv")
 weapon = "salt"
 mutation_kind = "element"
-text = "The salt turns pink and lasts 75% longer, for 5% less damage."
+text = "The salt turns pink and lasts 75% longer, but deals −5% damage."
 vfx = "pink patches; the shaker fills with pink salt"
 params = {
 "salt": {

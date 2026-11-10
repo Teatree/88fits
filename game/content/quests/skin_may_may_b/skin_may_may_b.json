@@ -11,5 +11,6 @@
     "type": "skin",
     "id": "may:MAY-B"
   },
+  "requires": "skin_may_may_s",
   "icon": "res://content/characters/may/may_icon_g.png"
 }

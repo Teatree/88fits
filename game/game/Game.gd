@@ -2350,7 +2350,19 @@ static func elite_purse(stage: int) -> int:
 
 
 ## A boss's purse on stage index `stage`, before Motherlode (its coins on the sand come on top).
-static func boss_purse(stage: int) -> int:
+## Pass 140 (lane ECON; BALANCING 81.ECON): the stage's own `boss_purse` in timeline `tl` (null: this run's map's;
+## WaveTimeline.stage_boss_purse: Red Canyon 325, 750, 1350, 1700 = x1, x1.5, x2, x2 of the line), else BOSS_PURSE's line.
+static func boss_purse(stage: int, tl = null) -> int:
+	var t = tl if tl != null else (Run.map.timeline if Run.map else null)
+	if t != null and t.has_method("stage_boss_purse"):
+		var own := int(t.stage_boss_purse(stage))
+		if own >= 0:
+			return own
+	return boss_purse_line(stage)
+
+
+## BOSS_PURSE's line: [base, per stage] by stage index (the purse before pass 140; a map stage without `boss_purse`).
+static func boss_purse_line(stage: int) -> int:
 	return int(BOSS_PURSE[0]) + int(BOSS_PURSE[1]) * maxi(stage, 0)
 
 
@@ -2396,7 +2408,8 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 	var pays := def.brain != "dummy"
 	if (elite != null or def.archetype == "elite") and pays:
 		# pass 88 (lane MIRROR): x the Stakes' bounty on its kind (MirrorDanger)
-		var purse := int(elite_purse(Run.stage) * lode * MirrorDanger.factor_of(def, "bounty"))
+		# pass 140 (lead, 81.ECON): x the stage's coin factor against the old pay (StagePay.purse_factor)
+		var purse := int(elite_purse(Run.stage) * lode * MirrorDanger.factor_of(def, "bounty") * StagePay.purse_factor())
 		Run.add_gold(purse, "elite_purse")
 		hud.toast(Loc.t("toast.gold_gain", {"gold": "%d" % purse}), Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
@@ -3415,9 +3428,12 @@ func arena_swap_hero(id: String) -> bool:
 ## "run_bank" for every end (run_end's result says which). Writes Run.last_result for the Results screen ("lost" stays
 ## in it for older readers and is 0 now); returns what was banked. end_run calls it once (_ended).
 static func bank_run_end(map_id: String) -> int:
+	# pass 140 (lane ECON): the stage's Wages into the purse first, so they bank with it (StagePay.pay_wages; BALANCING 81.ECON)
+	var wages := StagePay.pay_wages()
 	var gold := Run.run_gold
 	Run.last_result = {"gold_before": Save.gold(), "banked": gold, "lost": 0,
-		"strongbox": Run.banked_gold, "prev_best": Save.best_run(map_id).duplicate()}
+		"strongbox": Run.banked_gold, "prev_best": Save.best_run(map_id).duplicate(),
+		"wages": wages, "wage_seconds": StagePay.wage_seconds()}
 	if gold > 0:
 		Save.add_gold(gold, "run_bank")
 	return gold
