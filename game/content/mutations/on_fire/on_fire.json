@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "He's on fire: everything the ball touches catches fire.",
+  "text": "Enemies catch on fire when hit.",
   "vfx": "the ball glows red-orange with a short flame tracer; burning creatures as every fire weapon's",
   "effects": [
     {

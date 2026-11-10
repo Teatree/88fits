@@ -132,7 +132,7 @@ variants = {
 },
 "attack_throw": false,
 "attack_views": "",
-"back_faces": "right",
+"back_faces": "left",
 "fps": {
 "die": 8.0,
 "run": 15.0

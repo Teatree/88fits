@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "Whatever the beam touches catches fire for 3 s.",
+  "text": "Beams lights enemies on fire for 3 s.",
   "vfx": "the beam turns orange and leaves burning creatures behind it",
   "effects": [
     {

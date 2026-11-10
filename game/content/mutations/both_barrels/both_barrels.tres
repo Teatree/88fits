@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("2_xjc14")
 weapon = "boomstick"
-text = "Every third shot fires twice: a second blast right after the first."
+text = "Every third shot fires twice"
 vfx = "a double muzzle bloom every third shot"
 params = {
 "double_every": 3.0,

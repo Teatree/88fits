@@ -8,7 +8,7 @@
   "kind": "hero",
   "element": "",
   "hero": "fadeaway",
-  "text": "Every hit he evades throws a free ball at once, no cooldown. At most one every 0.8 s.",
+  "text": "Every hit evade throw a ball.",
   "vfx": "a white-glowing ball leaves his hand the instant the hit misses, beside the dodge's pale flash",
   "effects": [],
   "params": {

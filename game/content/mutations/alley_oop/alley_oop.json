@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Each hit has a 15% chance to throw the creature into the air. It can't attack up there and takes the hit again when it lands.",
+  "text": "Each hit has a 15% chance to throw the creature into the air.",
   "vfx": "the ball turns dark blue with a faint blue glow; a creature it throws shoots straight up, hangs, drops and lands with a thud and a puff of dust",
   "effects": [],
   "params": {
@@ -35,5 +35,24 @@
   "placeholder": {
     "color": "#1B2E7A",
     "glyph": "star"
-  }
+  },
+  "icon": "alley_oop_icon_38f3_c1.png",
+  "icon_history": [
+    {
+      "icon": "",
+      "shown": "alley_oop_icon.png",
+      "backup": "tools/level_editor/backups/alley_oop/alley_oop_icon_20261110-014906.png",
+      "to": "alley_oop_icon_38f3_c2.png",
+      "at": "2026-11-10 01:49:07",
+      "why": "install c2 of #38f3"
+    },
+    {
+      "icon": "alley_oop_icon_38f3_c2.png",
+      "shown": "alley_oop_icon_38f3_c2.png",
+      "backup": "tools/level_editor/backups/alley_oop/alley_oop_icon_38f3_c2_20261110-014926.png",
+      "to": "alley_oop_icon_38f3_c1.png",
+      "at": "2026-11-10 01:49:27",
+      "why": "install c1 of #38f3"
+    }
+  ]
 }

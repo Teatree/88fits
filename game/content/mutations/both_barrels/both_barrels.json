@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "Every third shot fires twice: a second blast right after the first.",
+  "text": "Every third shot fires twice",
   "vfx": "a double muzzle bloom every third shot",
   "effects": [],
   "params": {

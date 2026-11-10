@@ -8,7 +8,7 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "The first touch of the beam throws a creature back hard, and the beam is half again as wide.",
+  "text": "Beam knocks the first creature hard.",
   "vfx": "a green-yellow beam that wobbles like a breath; a gust puffs off everything it first meets and flings it back",
   "effects": [
     {

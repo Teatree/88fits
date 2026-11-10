@@ -227,7 +227,8 @@
         "run": 15,
         "die": 8
       },
-      "head": 1.0
+      "head": 1.0,
+      "back_faces": "left"
     },
     "KN-L": {
       "note": "KN-D with a white shield (pass 132d: made again from KN-D's painted fall; the death pass covers every die cell)",

@@ -8,7 +8,7 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "The ball hits everything on its way back to his hand, at full damage and faster.",
+  "text": "The ball hits everything on its way back.",
   "vfx": "the way home leaves a bright streak; a thud on each creature it crosses",
   "effects": [],
   "params": {
