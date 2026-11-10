@@ -30,6 +30,11 @@
 ## change rows across the card), SKIP slate with the stage's count in a navy pill, BANISH slate (grey when locked), TAKE
 ## IT gold; the chest's light and the shine in the kit's gold and cream. The reel, its timings, the chest's beats and the
 ## buttons' rects are the same under both themes (a replay's taps land where they were).
+## Pass 139 (lane CHEST; Garry: "Mutation chest should show which weapon a mutation is for, because no one remembers them
+## like that"): a landed mutation's card ends on the weapon it is for (WWeaponBadge: the weapon's plate as the HUD's slot
+## draws it, FOR over its name, its path's rivets with the one this chest gives pulsing, and the count "2/3"), under its
+## name and text; the card grows downwards into the room over the buttons, whose rects stay as they were. Nothing else
+## lands with it (an evolution, an item, gold).
 class_name ChestScreen
 extends WModal
 
@@ -74,6 +79,10 @@ const TAIL := 4
 const WChestScript := preload("res://ui/wanted/WChest.gd")
 ## The turning shine behind the chest (pass 58, lane UIA's piece), by path for the same reason.
 const WShineScript := preload("res://ui/wanted/WShine.gd")
+## The weapon a landed mutation is for (pass 139), by path for the same reason.
+const WeaponBadgeScript := preload("res://ui/wanted/WWeaponBadge.gd")
+## The room between the mutation's text and its weapon badge (the card's own 14 px separation adds to it).
+const BADGE_TOP := 8
 ## The shine (pass 58, Garry: "can you add a kind of animated shine effect behind the Level N header part? ... Do the
 ## Same for the loot Chest visual of the Chest Opening Screen"): its reach behind the chest and, once the light has
 ## carried it up, behind the reel's landing cell and the landed plate; how bright it stays while the plates run past it
@@ -107,6 +116,9 @@ var _marks: WMarks
 ## An upgrade's change rows in place of the effect line (pass 58), centred CHANGES_W wide.
 var _changes_host: CenterContainer
 var _changes: VBoxContainer
+## The landed mutation's weapon badge (pass 139) in its holder at the card's foot; null for anything else.
+var _badge_host: MarginContainer
+var _badge: WeaponBadgeScript
 var _skip_btn: WButton
 var _banish_btn: WButton
 var _take_btn: WButton
@@ -210,6 +222,13 @@ func _ready() -> void:
 	_changes_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_changes_host.visible = false
 	col.add_child(_changes_host)
+	# pass 139 (lane CHEST): the weapon a landed mutation is for, at the card's foot
+	_badge_host = MarginContainer.new()
+	_badge_host.name = "BadgeHost"
+	_badge_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_badge_host.add_theme_constant_override("margin_top", BADGE_TOP)
+	_badge_host.visible = false
+	col.add_child(_badge_host)
 	build_buttons(114.0)
 	# pass 122: the same three buttons under Royale wear the kit's roles by their variants (SKIP and BANISH slate, TAKE IT
 	# gold); their padding keeps their rects the Wanted ones (button_pad_v)
@@ -671,6 +690,11 @@ func _show_result(kind: String, def: ContentDef) -> void:
 		_changes.queue_free()
 		_changes = null
 	_changes_host.visible = false
+	if _badge:
+		_badge_host.remove_child(_badge)
+		_badge.queue_free()
+		_badge = null
+	_badge_host.visible = false
 	_effect.visible = true
 	# pass 122: the card laid out for the theme (the mock's left-aligned slate card under Royale; centred paper under Wanted)
 	_lay_card()
@@ -701,6 +725,12 @@ func _show_result(kind: String, def: ContentDef) -> void:
 		if Loc.has(tag_key):
 			(_tag.get_node("Word") as WText).text = Loc.t(tag_key).to_upper()
 		_word_row.add_child(_tag)
+	# pass 139 (lane CHEST): a mutation says which weapon it is for
+	if kind == "mutation" and def is MutationDef:
+		_badge = WeaponBadgeScript.for_mutation(def as MutationDef)
+		if _badge:
+			_badge_host.add_child(_badge)
+			_badge_host.visible = true
 	if kind == "evolution":
 		var tmp := WeaponInstance.new(def, 1)
 		tmp.rebuild(Run.player_sheet, Run.weapons)
@@ -894,6 +924,11 @@ func _notification(what: int) -> void:
 
 func result() -> Dictionary:
 	return _result
+
+
+## The landed mutation's weapon badge (pass 139; tests and tools), null when none shows.
+func weapon_badge() -> WeaponBadgeScript:
+	return _badge if _badge_host.visible else null
 
 
 ## What the gate flies to the HUD: the landed item and where its plate was (nothing for gold or a sale).

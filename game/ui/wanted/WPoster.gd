@@ -105,7 +105,7 @@ func _build() -> void:
 		ci.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		ci.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		rr.add_child(ci)
-	var amt := W.wanted_text(W.num(int(contract.get("reward", 0))), int(52 * k), W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 54.0 * k)
+	var amt := W.wanted_text(W.num(WantedBoard.reward_of(contract)), int(52 * k), W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 54.0 * k)
 	amt.name = "Amount"
 	amt.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	rr.add_child(amt)

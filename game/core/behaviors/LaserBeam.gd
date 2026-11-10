@@ -51,13 +51,30 @@
 ## has spent on it: `ramp_start` of full at first touch to `ramp_full` after `ramp_seconds` in the beam; time out of the
 ## beam takes exposure off at `ramp_decay` s a second; a fresh pour starts every ramp again. Sweeping across a far crowd
 ## does little; holding it on one creature pays. Fire and poison are laid at the old tick's rate. Off: as before.
+## Pass 139 (lane AIM; Garry: "For big mouth also go ahead and make the mouth do a nice wind up before and attack. Should be
+## a visible animation ... you need to consider the attack speed of the big mouth now that you can control its direction.
+## It becomes a little bit more overpowered so we need to make it a slow attack similar to how we dealt with the dragon's
+## breath. So more damage but slower"): the wind-up is a visible inhale (`params.beam.windup`, every new key's default
+## plays pass 88's wind-up): over its first `build` share the mouth draws back `pull` m along its aim and rises `lift` m,
+## its lips rear up `rear` rad, its jaws gape `gape` degrees and it swells by `swell`, its throat glow builds from
+## `glow_from` (dark) to full, `inhale` motes of the beam's colour are drawn in from ahead into the lips; the last half
+## trembles (`tremble`); then the punch and the beam, the wind-up's pose let go over `release` s under the punch. The
+## aim wedge shows the next attack (tell_state, tell_charge, tell_line: AimWedge's line down the beam). Slower and
+## harder: the numbers are the JSON's (BALANCING 80.AIM).
 class_name LaserBeam
 extends WeaponBehavior
 
 ## the wind-up's default length (pass 87: 0.24 s, the breath; it was a 0.12 s clamp)
 const WINDUP := 0.24
 ## Pass 87: the wind-up, the punch and the throat glow when params.beam.windup / punch / throat leave a key out.
-const WINDUP_DEFAULTS := {"seconds": WINDUP, "rear": 0.35, "gape": 36.0, "swell": 0.1, "tremble": 0.03}
+const WINDUP_DEFAULTS := {"seconds": WINDUP, "rear": 0.35, "gape": 36.0, "swell": 0.1, "tremble": 0.03, "pull": 0.0,
+	"lift": 0.0, "glow_from": 0.7, "build": 1.0, "inhale": 0.0, "release": 0.0}
+## Pass 139 (lane AIM): the inhale's motes: drawn in from this far ahead (m) over this long (s), this big (m), over the
+## first INHALE_SHARE of the wind-up.
+const INHALE_FROM := Vector2(1.0, 2.2)
+const INHALE_LIFE := Vector2(0.24, 0.36)
+const INHALE_SIZE := Vector2(0.26, 0.36)
+const INHALE_SHARE := 0.85
 ## (pass 88: `pulse` 0, the punch comes once as the beam starts; the throat is the white Glow, `rim` its edge in the beam's
 ## colour, `walls` the floor's glow, `gain` its brightness)
 const PUNCH_DEFAULTS := {"back": 0.36, "climb": 0.2, "pop": 0.2, "hz": 2.8, "decay": 7.5, "pulse": 0.0}
@@ -83,6 +100,8 @@ const BOB_RATE := 2.4
 ## the jaw's spring (stiffness, damping): it snaps open past JAW_OPEN_DEG by about a sixth and settles
 const JAW_K := 900.0
 const JAW_D := 30.0
+## pass 139 (lane AIM): the longest frame the jaw's spring steps through (s)
+const JAW_MAX_STEP := 0.25
 const PULSE := 0.28
 const BOIL_STEP := 0.5
 const BOIL_EVERY := 0.07
@@ -143,6 +162,13 @@ var _pour_clock := 0.0
 var _expo: Dictionary = {}
 var _burns := 0
 var ramp_dealt := 0.0
+## pass 139 (lane AIM): the tell (the cooldown left as the last beam ended, this beam's length), the wind-up's release
+## clock (-1 at rest) and its inhale (motes owed, motes drawn so far: tests)
+var _recover_len := 0.0
+var _beam_len := 0.0
+var _release_t := -1.0
+var _inhale_acc := 0.0
+var inhaled := 0
 
 
 func _beam_param(key: String, default: float) -> float:
@@ -324,6 +350,64 @@ func windup_f() -> float:
 	return clampf(1.0 - _windup_t / _windup_len, 0.0, 1.0)
 
 
+## Pass 139 (lane AIM): the wind-up's pose share now, 0 to 1: it eases in over the first `build` share of the wind-up and
+## holds (pass 87's sin(f pi/2) with `build` 1).
+func windup_ease() -> float:
+	if _windup_t <= 0.0:
+		return 0.0
+	return sin(clampf(windup_f() / maxf(windup_value("build"), 0.05), 0.0, 1.0) * PI * 0.5)
+
+
+## Pass 139 (lane AIM): the wind-up's pose still held as the beam leaves, 1 to 0 over `release` s (0 at rest).
+func release_k() -> float:
+	if _release_t < 0.0:
+		return 0.0
+	var r := windup_value("release")
+	if r <= 0.0:
+		return 0.0
+	var k := clampf(1.0 - _release_t / r, 0.0, 1.0)
+	return k * k
+
+
+## Pass 139 (lane AIM): the wind-up's offset at pose share `k`: drawn back along the aim and up.
+func _windup_offset(k: float) -> Vector3:
+	if k <= 0.0:
+		return Vector3.ZERO
+	return (-_dir() * windup_value("pull") + Vector3.UP * windup_value("lift")) * k
+
+
+# ---------------------------------------------------------------- the tell (pass 139)
+
+## Pass 139 (lane AIM): the aim wedge's tell (AimWedge reads it every frame): pouring, winding up, ready (the clock up
+## and waiting for something in its cone, `aim.hold`), else charging.
+func tell_state() -> int:
+	if _beam_t > 0.0:
+		return AimWedge.TELL_FIRING
+	if _windup_t > 0.0:
+		return AimWedge.TELL_WINDUP
+	if cooldown_left <= 0.0 or _armed:
+		return AimWedge.TELL_READY
+	return AimWedge.TELL_CHARGE
+
+
+## Pass 139 (lane AIM): the tell's charge, 0 to 1: charging, the cooldown's progress since the last beam ended (0 as it
+## ends); 1 ready and through the wind-up; pouring, the share of the pour left.
+func tell_charge() -> float:
+	match tell_state():
+		AimWedge.TELL_FIRING:
+			return clampf(_beam_t / maxf(_beam_len, 0.001), 0.0, 1.0)
+		AimWedge.TELL_WINDUP, AimWedge.TELL_READY:
+			return 1.0
+	var span := _recover_len if _recover_len > 0.0 else maxf(stat("cooldown", 1.0), 0.05)
+	return clampf(1.0 - cooldown_left / span, 0.0, 1.0)
+
+
+## Pass 139 (lane AIM): the line the next beam pours down: from the mouth along its own aim (it turns after the facing
+## at `aim.turn_deg`, laid through `aim.converge`), its reach and colour.
+func tell_line() -> Dictionary:
+	return {"from": muzzle(), "dir": _dir(), "reach": stat("range", 12.0), "color": _beam_colour()}
+
+
 ## Pass 87: how far into its punch the mouth is now: 1 as the beam leaves, then a spring back past rest (it swings
 ## forward of its place for a moment) to 0: amp x e^(-decay t) x cos(2 pi hz t). 0 at rest.
 func punch() -> float:
@@ -368,6 +452,10 @@ func _pose_offset(t: float) -> Vector3:
 		var k := smoothstep(0.5, 1.0, windup_f()) * windup_value("tremble")
 		if k > 0.0:
 			off += Vector3(sin(t * 191.0), 0.5 * sin(t * 157.0 + 1.3), cos(t * 173.0)) * k
+		# pass 139 (lane AIM): drawn back and up through the inhale
+		off += _windup_offset(windup_ease())
+	elif _release_t >= 0.0:
+		off += _windup_offset(release_k())
 	return off
 
 
@@ -380,7 +468,9 @@ func _tick_glow(delta: float, t: float, firing: bool, winding: bool) -> void:
 	if firing:
 		want = 1.0
 	elif winding:
-		want = 0.7 + 0.3 * windup_f()
+		# pass 139 (lane AIM): from `glow_from` (pass 88: 0.7) to full through the wind-up
+		var g0 := clampf(windup_value("glow_from"), 0.0, 1.0)
+		want = g0 + (1.0 - g0) * windup_f()
 	if delta <= 0.0:
 		_glow = want
 	else:
@@ -460,8 +550,8 @@ func _place(delta: float) -> void:
 ## punches (the lips climb, it swells, then springs past rest), shaking while it roars. The throat's glow: _tick_glow.
 func _place_model(delta: float, t: float, firing: bool, winding: bool) -> void:
 	var target: float
-	var wf := windup_f()
-	var ease_w := sin(wf * PI * 0.5)
+	# pass 139 (lane AIM): the pose's ease over the wind-up's `build` share (pass 87: sin(f pi/2))
+	var ease_w := windup_ease()
 	if winding:
 		target = -deg_to_rad(windup_value("gape")) * ease_w
 	elif firing:
@@ -472,9 +562,11 @@ func _place_model(delta: float, t: float, firing: bool, winding: bool) -> void:
 		_jaw_a = target
 		_jaw_v = 0.0
 	else:
-		# small steps, so a long frame cannot shake the spring loose
-		var n: int = clampi(int(ceil(delta * 60.0)), 1, 6)
-		var hstep: float = delta / float(n)
+		# small steps, so a long frame cannot shake the spring loose (pass 139, lane AIM: at most a 60th of a second each,
+		# a long frame counted as JAW_MAX_STEP at most: six steps of a 0.42 s frame had thrown the jaw round and round)
+		var sd := minf(delta, JAW_MAX_STEP)
+		var n: int = clampi(int(ceil(sd * 60.0)), 1, 15)
+		var hstep: float = sd / float(n)
 		for k in range(n):
 			_jaw_v += ((target - _jaw_a) * JAW_K - _jaw_v * JAW_D) * hstep
 			_jaw_a += _jaw_v * hstep
@@ -495,13 +587,15 @@ func _place_model(delta: float, t: float, firing: bool, winding: bool) -> void:
 	_face_yaw = lerp_angle(_face_yaw, atan2(-face.x, -face.z), clampf(delta * 9.0, 0.0, 1.0)) if delta > 0.0 else atan2(-face.x, -face.z)
 	# pass 87: the lips rear up through the wind-up and climb with the punch
 	var p := punch()
-	var pitch := deg_to_rad(REST_PITCH_DEG) + windup_value("rear") * ease_w + punch_value("climb") * p
+	# pass 139 (lane AIM): the wind-up's pose let go over `release` s as the beam leaves
+	var rel := release_k()
+	var pitch := deg_to_rad(REST_PITCH_DEG) + windup_value("rear") * maxf(ease_w, rel) + punch_value("climb") * p
 	_model.rotation = Vector3(pitch, _face_yaw, 0.0)
 	var sc := Vector3.ONE * _model_scale
 	if winding:
 		sc *= 1.0 + windup_value("swell") * ease_w
 	elif firing:
-		sc *= 1.0 + 0.04 * sin(t * 38.0)
+		sc *= 1.0 + 0.04 * sin(t * 38.0) + windup_value("swell") * rel
 	_model.scale = sc * maxf(1.0 + punch_value("pop") * p, 0.5)
 
 
@@ -540,6 +634,7 @@ func _fire() -> bool:
 	# the wind-up first: the beam pours when it is over
 	_windup_len = windup_seconds()
 	_windup_t = _windup_len
+	_inhale_acc = 0.0
 	if _windup_t <= 0.0:
 		_start_beam()
 	return true
@@ -563,6 +658,7 @@ func _fire_aimed() -> bool:
 		return true
 	_windup_len = windup_seconds()
 	_windup_t = _windup_len
+	_inhale_acc = 0.0
 	if _windup_t <= 0.0:
 		_start_beam()
 	StrikeMarks.wedge_pulse()
@@ -620,6 +716,8 @@ func ramp_of(e: int, tick: float) -> float:
 ## when it starts from a shut mouth, `kick`).
 func _start_beam(kick := true) -> void:
 	_beam_t = maxf(stat("duration", 2.0), 0.2)
+	# pass 139 (lane AIM): the tell's drain
+	_beam_len = _beam_t
 	_tick_t = 0.0
 	_pulse_t = PULSE
 	_boil_t = 0.0
@@ -642,13 +740,23 @@ func _tick(delta: float) -> void:
 	var aimed := Aim.covers(inst)
 	if aimed:
 		_tick_aim(delta)
+	# pass 139 (lane AIM): the wind-up's pose let go after the beam leaves
+	if _release_t >= 0.0:
+		_release_t += delta
+		if _release_t >= windup_value("release"):
+			_release_t = -1.0
 	if _windup_t > 0.0:
+		_inhale(delta)
 		_windup_t -= delta
 		if _windup_t <= 0.0:
 			_windup_t = 0.0
+			_release_t = 0.0 if windup_value("release") > 0.0 else -1.0
 			_start_beam()
 	if _beam_t > 0.0:
 		_beam_t -= delta
+		# pass 139 (lane AIM): the tell charges from here (a pull while it pours never lets it end)
+		if _beam_t <= 0.0:
+			_recover_len = maxf(cooldown_left, 0.0)
 		# Sweep: the line pans across while it burns, so it cuts through a crowd instead of one file
 		var arch := deg_to_rad(_beam_param("arch_deg", 0.0))
 		if arch > 0.0:
@@ -676,6 +784,28 @@ func _tick(delta: float) -> void:
 
 func _dir() -> Vector3:
 	return Vector3(-sin(_aim_yaw), 0, -cos(_aim_yaw))
+
+
+## Pass 139 (lane AIM): the inhale: through the first INHALE_SHARE of the wind-up, `windup.inhale` motes in the beam's
+## colour drawn in from ahead of the lips into them (Fx.mote, constant speed; random looks only, never in a run sim).
+func _inhale(delta: float) -> void:
+	var n := windup_value("inhale")
+	if n <= 0.0 or Run.sim_mode or _windup_len <= 0.0 or windup_f() > INHALE_SHARE or game == null:
+		return
+	var fx = game.get("fx")
+	if fx == null or not fx.has_method("mote"):
+		return
+	_inhale_acc += delta * n / (_windup_len * INHALE_SHARE)
+	var lips := muzzle()
+	var d := _dir()
+	var side := Vector3(-d.z, 0.0, d.x)
+	var hot := _beam_colour().lightened(0.5)
+	while _inhale_acc >= 1.0:
+		_inhale_acc -= 1.0
+		var life := randf_range(INHALE_LIFE.x, INHALE_LIFE.y)
+		var at: Vector3 = lips + d * randf_range(INHALE_FROM.x, INHALE_FROM.y) + side * randf_range(-0.8, 0.8) + Vector3(0, randf_range(-0.35, 0.45), 0)
+		fx.mote(at, (lips - at) / life, life, randf_range(INHALE_SIZE.x, INHALE_SIZE.y), Color(hot.r, hot.g, hot.b, 0.95))
+		inhaled += 1
 
 
 ## Everything standing in the line takes a tick of damage, the element it carries, and (Bad Breath) a shove the first

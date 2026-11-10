@@ -3678,7 +3678,8 @@ func _survey_pick() -> void:
 ## again its deed buys it and closes the sibling; BUY on a plain node buys at once; a swipe scrolls the track and a
 ## swipe that starts on a tile chooses nothing; a drag on the dock moves nothing; the back square goes to the title.
 ## Then the way back: the Outlaws screen on a Trail-locked outlaw, a tap on "Reach Trail Level N" opens the Trail on
-## his node (ringed), and the Trail's back square returns to the Outlaws screen with him shown.
+## his node (ringed), and the Trail's back square returns to the Outlaws screen with him shown. Pass 139 (lane POP): BUY on
+## an unlock shows the unlock pop-up and a real tap hurries it away without choosing or buying anything.
 func _trail_audit() -> void:
 	var save = root.get_node("Save")
 	var trail = load("res://core/systems/Trail.gd")
@@ -3767,13 +3768,34 @@ func _trail_audit() -> void:
 		await _wait(0.5)
 		check.call(str(s.selected) == chosen and int(s.scroll.scroll_vertical) != sv, "a swipe from a tile",
 			"it chose '%s' (was '%s'), scroll %d -> %d" % [str(s.selected), chosen, sv, int(s.scroll.scroll_vertical)])
-	# a drag on the dock moves nothing
+	# a drag on the dock moves nothing (pass 139: once the swipe's fling has died down; its tail ran into this check)
+	for k in 90:
+		var was := int(s.scroll.scroll_vertical)
+		await _frames(2)
+		if int(s.scroll.scroll_vertical) == was:
+			break
 	sv = int(s.scroll.scroll_vertical)
 	var dock: Control = s.get("_dock")
 	var dc: Vector2 = dock.get_global_rect().get_center()
 	await _swipe(dc + Vector2(-200, 40), dc + Vector2(-200, -60))
 	await _wait(0.3)
 	check.call(int(s.scroll.scroll_vertical) == sv, "the dock", "a drag on it scrolled the track (%d -> %d)" % [sv, int(s.scroll.scroll_vertical)])
+	# pass 139 (lane POP): BUY on an unlock (Astro's node) shows the unlock pop-up; a real tap anywhere hurries it out,
+	# choosing and buying nothing; it is gone well inside 2 s
+	save.data["gold"] = 5000
+	s.select("n05")
+	await _wait(0.4)
+	var pop: Control = s.unlock_pop()
+	await tap_node.call(s.get("_dock").get_node_or_null("Buy"))
+	var pop_up: bool = pop != null and bool(pop.call("is_up"))
+	check.call(str(trail.state("n05")) == "bought" and pop_up, "BUY on an unlock", "n05 is %s, the pop-up %s" % [str(trail.state("n05")), "up" if pop_up else "not up"])
+	if pop_up:
+		var chosen_was := str(s.selected)
+		var gold_was3 := int(save.data["gold"])
+		await _tap(s.scroll.get_global_rect().get_center())
+		await _wait(0.4)
+		check.call(not bool(pop.call("is_up")) and int(save.data["gold"]) == gold_was3 and str(s.selected) == chosen_was, "the unlock pop-up",
+			"a real tap left it %s, chosen '%s' (was '%s'), gold %d (was %d)" % ["up" if bool(pop.call("is_up")) else "gone", str(s.selected), chosen_was, int(save.data["gold"]), gold_was3])
 	# the back square: the title (the Trail was opened by its tab)
 	await _tap(s.header.back_button.get_global_rect().get_center())
 	await _wait(1.2)

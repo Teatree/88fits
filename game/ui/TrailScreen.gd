@@ -22,6 +22,9 @@
 ## chosen and ringed in gold, and Back returns to the screen the player came from (Nav.back). A tap on a tile chooses
 ## it. BUY buys it (Trail.buy); a choice and a node whose upgrade warns ask once more (WConfirm). A purchase pops the
 ## tile, lights its rails and names the gift in a toast; a level done slides the line up and shows "TRAIL LEVEL n".
+## Pass 139 (lane POP): an unlock (an outlaw, a skin, an item, a stage, a structure, a power-up, a feature) shows the
+## unlock pop-up instead of its toast (ui/wanted/WUnlockPop.gd, at most 1.85 s, a tap hurries it); a level it finishes
+## rides in the pop-up as its gold pill (no banner then); two in a row queue.
 ## Only what is near the view exists: tiles are pooled (about thirty), the canvas draws the visible rows, so a track of
 ## 500 levels costs what one of 40 does. Nodes for tools: "Track", "Canvas", "Dock" ("Buy", "DockName", "DockGives",
 ## "DockState"), the tiles "Node_<id>" (metas "node", "state").
@@ -32,6 +35,7 @@ const SELF_SCENE := "res://ui/TrailScreen.tscn"
 const MOTIF_ART := "res://art/ui/trail/motifs/%s.png"
 const STAGE_ART := "res://art/ui/stages/%s_%s.jpg"
 const FEATURE_ART := {"wanted": "res://art/ui/wanted/barrel.png"}
+const WUnlockPopScript := preload("res://ui/wanted/WUnlockPop.gd")
 
 ## The schema's layout numbers (design width 1080).
 const ROW := 236.0
@@ -93,6 +97,7 @@ var _wallet: PanelContainer
 var _level_pill: Control
 var _toasts: WToasts
 var _banner: WBanner
+var _pop: WUnlockPopScript
 var _tiles: Dictionary = {}
 var _spare: Array = []
 var _lay: Dictionary = {}
@@ -198,6 +203,9 @@ func build() -> void:
 	add_child(_toasts)
 	_banner = WBanner.new()
 	add_child(_banner)
+	_pop = WUnlockPopScript.new()
+	_pop.name = "UnlockPop"
+	add_child(_pop)
 	# what the screen opens on: the thing asked for, else the node bought last, else level 1
 	var want := ""
 	if _want_type != "":
@@ -580,6 +588,24 @@ static func thing_of(n: Dictionary) -> String:
 	return words
 
 
+## The unlock pop-up's entry for node `n` (pass 139, lane POP): the thing, its picture by kind, its name; `level_done`
+## adds the Trail level the buy finished as the pop-up's gold pill.
+static func unlock_entry(n: Dictionary, level_done: bool = false) -> Dictionary:
+	var g: Dictionary = n.get("gives", {})
+	var type := str(g.get("type", ""))
+	var id := str(g.get("id", ""))
+	var art: Texture2D = gift_art(n) if type in ["stage", "map", "feature"] else null
+	var e := WUnlockPopScript.entry_for(type, id, thing_of(n), art)
+	if level_done:
+		e["foot"] = Loc.t("ui.trail.level_banner", {"level": str(Trail.level())})
+	return e
+
+
+## The unlock pop-up (tests, tools).
+func unlock_pop() -> Control:
+	return _pop
+
+
 ## The toast a purchase shows ("Astro rides with you").
 static func gift_words(n: Dictionary) -> String:
 	var g: Dictionary = n.get("gives", {})
@@ -712,10 +738,13 @@ func buy_selected() -> bool:
 		W.sfx("ui_locked")
 		return false
 	var g: Dictionary = n["gives"]
-	W.sfx("ui_buy" if str(g.get("type", "")) == "upgrade" else "ui_unlock")
+	# pass 139 (lane POP): an unlock is shown by the pop-up (its own ui_unlock), an upgrade by today's toast
+	var unlock := str(g.get("type", "")) != "upgrade"
+	if not unlock:
+		W.sfx("ui_buy")
+		_toasts.push(gift_words(n), W.PAPER, gift_art(n))
 	_links_of.clear()
 	Crumbs.upgrade_mark_seen()
-	_toasts.push(gift_words(n), W.PAPER, gift_art(n) if str(g.get("type", "")) == "upgrade" else null)
 	_fill_head()
 	if tab_bar_node and tab_bar_node.has_method("refresh"):
 		tab_bar_node.call("refresh")
@@ -729,8 +758,11 @@ func buy_selected() -> bool:
 		_line_tw.tween_method(func(v: float) -> void:
 			_line_shift = v
 			_canvas.queue_redraw(), _line_shift, 0.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		_banner.play(Loc.t("ui.trail.level_banner", {"level": str(Trail.level())}), false, null, HEAD_H + W.safe_top() + 150.0)
-		W.sfx("ui_levelup")
+		if not unlock:
+			_banner.play(Loc.t("ui.trail.level_banner", {"level": str(Trail.level())}), false, null, HEAD_H + W.safe_top() + 150.0)
+			W.sfx("ui_levelup")
+	if unlock:
+		_pop.play(unlock_entry(n, Trail.level() > level_was))
 	_sync(true)
 	var t: Tile = _tiles.get(id)
 	if t:

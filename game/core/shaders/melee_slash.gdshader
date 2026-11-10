@@ -12,7 +12,10 @@
 // over the fade; `fade` the strength left. `crackle` jags the rim (the Thunder Lance), `tipped` a sharp bright point at
 // the head (the Spear's Wide Sweep). Blend mix (added light washed pale on the sand, pass 62's lesson).
 shader_type spatial;
-render_mode unshaded, cull_disabled, depth_draw_never, blend_mix, fog_disabled, shadows_disabled;
+// Pass 139 (lane SWING; core/systems/MeleeFx.gd): MeleeFx lays the quad on the plane of the ground under it; `pull`
+// draws it that many metres nearer the camera along the eye's ray (the quad scaled about the eye: the same pixels, only
+// the depth test sees it nearer), so a bump of sand between the samples does not cut it.
+render_mode unshaded, cull_disabled, depth_draw_never, blend_mix, fog_disabled, shadows_disabled, skip_vertex_transform;
 
 uniform int style = 1;
 uniform float half_w = 1.3;
@@ -28,6 +31,7 @@ uniform float smear_a = 0.35;
 uniform float crackle = 0.0;
 uniform float tipped = 0.0;
 uniform float seed = 0.0;
+uniform float pull = 0.0;
 uniform vec4 edge_col : source_color = vec4(0.38, 0.66, 1.0, 1.0);
 uniform vec4 smear_col : source_color = vec4(0.72, 0.86, 1.0, 1.0);
 uniform vec4 core_col : source_color = vec4(1.0);
@@ -38,6 +42,15 @@ varying vec2 v_p;
 
 void vertex() {
 	v_p = VERTEX.xz;
+	vec3 c = (MODELVIEW_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	vec3 v = (MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	if (PROJECTION_MATRIX[3][3] == 0.0) {
+		v *= max(1.0 - pull / max(length(c), 0.001), 0.05);
+	} else {
+		v.z += pull;
+	}
+	VERTEX = v;
+	NORMAL = normalize((MODELVIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
 float hash(float n) {

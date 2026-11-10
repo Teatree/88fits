@@ -11,7 +11,9 @@ var _keep := {}
 
 
 func before_test() -> void:
-	_keep = {"debug_mode": Settings.debug_mode, "top_inset": Settings.top_inset}
+	_keep = {"debug_mode": Settings.debug_mode, "top_inset": Settings.top_inset, "coins_x25": Settings.coins_x25}
+	# pass 139: a boss chest's gold is x25 under the temporary Coins x25 switch (pass139_coins_test); these pin it plain
+	Settings.coins_x25 = false
 	Settings.debug_mode = false
 	Settings.top_inset = -1
 	Save.data = Save._default()
@@ -23,6 +25,7 @@ func after_test() -> void:
 	get_tree().paused = false
 	Settings.debug_mode = bool(_keep["debug_mode"])
 	Settings.top_inset = int(_keep["top_inset"])
+	Settings.coins_x25 = bool(_keep["coins_x25"])
 	Run.forced_map_seed = 0
 	Run.arena = false
 	Run.sim_mode = false

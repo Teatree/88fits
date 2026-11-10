@@ -1135,7 +1135,7 @@ func _bounty_panel(rec: Dictionary) -> Control:
 	coins.name = "BountyReward"
 	coins.add_theme_constant_override("separation", 12)
 	coins.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var reward_n := paid_n if paid_n > 0 else int(rec.get("reward", 0))
+	var reward_n := paid_n if paid_n > 0 else WantedBoard.reward_of(rec)
 	var say := W.serif_text(Loc.t("ui.results.bounty_paid") if paid_n > 0 else Loc.t("ui.results.bounty_would_pay"), 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	say.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	coins.add_child(say)

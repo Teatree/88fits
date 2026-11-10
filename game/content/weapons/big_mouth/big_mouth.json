@@ -7,8 +7,8 @@
   "behavior": "LaserBeam",
   "targeting": "nearest",
   "base": {
-    "damage": 9,
-    "cooldown": 3.7647,
+    "damage": 15.6,
+    "cooldown": 7.5294,
     "duration": 2.0,
     "range": 13,
     "amount": 1,
@@ -34,11 +34,17 @@
       "tick": 0.18,
       "arch_deg": 0.0,
       "windup": {
-        "seconds": 0.24,
-        "rear": 0.35,
-        "gape": 36.0,
-        "swell": 0.1,
-        "tremble": 0.03
+        "seconds": 0.7,
+        "rear": 0.6,
+        "gape": 58.0,
+        "swell": 0.28,
+        "tremble": 0.06,
+        "pull": 0.35,
+        "lift": 0.35,
+        "glow_from": 0.0,
+        "build": 0.75,
+        "inhale": 22,
+        "release": 0.1
       },
       "punch": {
         "back": 0.36,
@@ -103,7 +109,7 @@
       {
         "stat": "damage",
         "op": "mul",
-        "value": 0.25
+        "value": 0.36
       }
     ]
   ],

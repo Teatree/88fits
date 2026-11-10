@@ -45,6 +45,8 @@ const PULSE_SCALE := 0.26
 ## How far the fill warms towards brass at the swell, and the glow's reach (a share of the star's size) and its strength
 ## in the middle (it fades to nothing at the reach, drawn as a fan of soft triangles: stacked discs showed rings).
 const PULSE_WARM := 0.7
+## A pulsing rivet (pass 139) warms only this far, so it never reads as one of the gold held ones beside it.
+const PULSE_WARM_RIVET := 0.2
 const PULSE_GLOW := 1.05
 const PULSE_GLOW_ALPHA := 0.5
 const GLOW_SEGMENTS := 28
@@ -129,6 +131,10 @@ func _draw() -> void:
 		# the new stars' glow first (pass 58), under every star, so it never veils a neighbour
 		for i in range(maxi(held, 0), mini(upto, total)):
 			glow(self, Vector2(_step() * (i + 0.5), h * 0.52), mark * PULSE_GLOW * (0.8 + 0.2 * k), Color(c_warm, PULSE_GLOW_ALPHA * k))
+	elif mode == "rivets" and pulse and k > 0.0:
+		# pass 139 (lane CHEST): the mutation chest's weapon badge pulses the rivet the mutation gives, as the new stars do
+		for i in range(maxi(held, 0), mini(upto, total)):
+			glow(self, Vector2(i * _step() + mark * 0.5, h * 0.5), mark * PULSE_GLOW * (0.8 + 0.2 * k), Color(c_warm, PULSE_GLOW_ALPHA * k))
 	for i in total:
 		var is_held := i < held
 		var is_next := not is_held and upto > 0 and i < upto
@@ -142,8 +148,13 @@ func _draw() -> void:
 				var c := Vector2(i * _step() + mark * 0.5, h * 0.5)
 				var rf := rivet_fill if is_held else (next_fill if is_next else rivet_empty)
 				rf = c_held if is_held else (c_next if is_next else c_empty)
-				draw_circle(c, mark * 0.5, ink, true, -1.0, true)
-				draw_circle(c, mark * 0.5 - rivet_border, rf, true, -1.0, true)
+				var rr := mark * 0.5
+				if is_next and pulse:
+					# pass 139 (lane CHEST): swollen at the swell, its cream barely warmed (the held ones are gold)
+					rr *= pulse_scale()
+					rf = c_next.lerp(c_warm, PULSE_WARM_RIVET * k)
+				draw_circle(c, rr, ink, true, -1.0, true)
+				draw_circle(c, rr - rivet_border, rf, true, -1.0, true)
 			_:
 				var r := Rect2(Vector2(i * _step(), 0), notch)
 				draw_rect(r, ink)

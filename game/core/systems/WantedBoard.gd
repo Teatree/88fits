@@ -589,6 +589,12 @@ static func skulls_of(d: float) -> int:
 
 ## The coins a poster of difficulty `d` pays on stage `stage` at progression `p` (BALANCING 54.WANTED): (base + per_point
 ## x d) x (1 + progress_growth x p) x the stage's stage_mult, rounded to `round` (at least one `round`).
+## Pass 139 (lead, BALANCING 80.COINS): what a poster (a contract or its record: its `reward`) pays and shows now: its
+## reward x PickupManager.coins_x() (25 while the temporary Coins x25 switch is on). The contract keeps the plain reward.
+static func reward_of(contract: Dictionary) -> int:
+	return maxi(int(contract.get("reward", 0)), 0) * PickupManager.coins_x()
+
+
 static func reward_for(cfg: Dictionary, d: float, p: int, stage: int) -> int:
 	var rw: Dictionary = cfg.get("reward", {})
 	var sm: Array = rw.get("stage_mult", [1.0]) if rw.get("stage_mult") is Array else [1.0]

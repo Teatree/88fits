@@ -17,7 +17,13 @@ extends GdUnitTestSuite
 const MAP := "red_canyon"
 
 
+var _x25 := true
+
+
 func before_test() -> void:
+	# pass 139: the posters pay x25 under the temporary Coins x25 switch (pass139_coins_test); these pin the plain reward
+	_x25 = Settings.coins_x25
+	Settings.coins_x25 = false
 	Save.data = Save._default()
 	Save._dirty = false
 	Run.arena = false
@@ -25,6 +31,7 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	Settings.coins_x25 = _x25
 	WantedBoard.set_config({})
 	WantedRun.current = null
 	Run.arena = false

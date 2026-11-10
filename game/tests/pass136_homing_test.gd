@@ -370,7 +370,8 @@ func test_the_big_mouth_has_no_assist_and_pours_down_the_facing() -> void:
 	var lb: LaserBeam = _behaviour(w, LaserBeam.new(), _inst("big_mouth"))
 	lb._yaw0 = 0.0
 	lb.cooldown_left = 0.0
-	_pour(lb, 0.6)
+	# pass 139 (re-pinned on purpose, lane AIM): past the wind-up (0.24 s then, the JSON's now) and as long again as before
+	_pour(lb, lb.windup_seconds() + 0.36)
 	assert_int(lb.beams).is_equal(1)
 	# its line runs through the spot `converge` m down the facing (the mouth floats beside him), never at the creature
 	var goal := Vector3.FORWARD * float(Aim.cfg(lb.inst).get("converge", 6.0))

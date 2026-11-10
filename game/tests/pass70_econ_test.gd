@@ -19,7 +19,9 @@ var _keep: Dictionary = {}
 
 
 func before_test() -> void:
-	_keep = {"preview": Settings.preview_locked_heroes, "inset": Settings.top_inset}
+	_keep = {"preview": Settings.preview_locked_heroes, "inset": Settings.top_inset, "x25": Settings.coins_x25}
+	# pass 139: a boss's purse is x25 under the temporary Coins x25 switch (pass139_coins_test); these pin it plain
+	Settings.coins_x25 = false
 	Settings.preview_locked_heroes = false
 	Settings.top_inset = -1
 	Save.data = Save._default()
@@ -31,6 +33,7 @@ func after_test() -> void:
 	Stage.forget()
 	Settings.preview_locked_heroes = bool(_keep["preview"])
 	Settings.top_inset = int(_keep["inset"])
+	Settings.coins_x25 = bool(_keep["x25"])
 	get_tree().paused = false
 	Run.arena = false
 	Run.end()

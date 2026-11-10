@@ -167,11 +167,13 @@ func test_the_mouth_has_no_tongue_and_a_dark_throat_with_a_core() -> void:
 func test_the_wind_up_punch_and_glow_numbers_come_from_params() -> void:
 	var w := _world()
 	var lb := _mouth(w)
-	# the brief: a short wind-up, 0.15 to 0.3 s
-	assert_float(lb.windup_seconds()).is_equal_approx(0.24, 0.0001)
-	assert_float(lb.windup_seconds()).is_between(0.15, 0.3)
-	assert_float(lb.windup_value("gape")).is_equal_approx(36.0, 0.0001)
-	assert_float(lb.windup_value("rear")).is_equal_approx(0.35, 0.0001)
+	# pass 139 (re-pinned on purpose, lane AIM: Garry asked for a visible wind-up, about 0.6-0.8 s): the wind-up's numbers are
+	# the JSON's (tests/pass139_aim_test.gd pins every key from the file)
+	var wind: Dictionary = lb.inst.def.params["beam"]["windup"]
+	assert_float(lb.windup_seconds()).is_equal_approx(float(wind["seconds"]), 0.0001)
+	assert_float(lb.windup_seconds()).is_between(0.5, 1.0)
+	assert_float(lb.windup_value("gape")).is_equal_approx(float(wind["gape"]), 0.0001)
+	assert_float(lb.windup_value("rear")).is_equal_approx(float(wind["rear"]), 0.0001)
 	assert_float(lb.punch_value("back")).is_equal_approx(0.36, 0.0001)
 	assert_float(lb.punch_value("climb")).is_equal_approx(0.2, 0.0001)
 	assert_float(lb.punch_value("pop")).is_equal_approx(0.2, 0.0001)
@@ -183,7 +185,7 @@ func test_the_wind_up_punch_and_glow_numbers_come_from_params() -> void:
 	# the Loudmouth's bigger mouth kicks further; a mutation's beam params leave the blocks alone
 	var loud := _mouth(w, "loudmouth", ["mouth_burn", "mouth_knock", "mouth_arch"])
 	assert_float(loud.punch_value("back")).is_equal_approx(0.45, 0.0001)
-	assert_float(loud.windup_seconds()).is_equal_approx(0.24, 0.0001)
+	assert_float(loud.windup_seconds()).is_equal_approx(float(loud.inst.def.params["beam"]["windup"]["seconds"]), 0.0001)
 	# a key left out takes the default
 	lb.inst.params["beam"]["punch"] = {}
 	assert_float(lb.punch_value("back")).is_equal_approx(LaserBeam.PUNCH_DEFAULTS["back"], 0.0001)
@@ -208,8 +210,10 @@ func test_the_wind_up_gathers_the_glow_then_the_beam_pours() -> void:
 	var first_half := frames
 	assert_int(lb.beams).is_equal(0)
 	var mid := lb.glow_level()
-	# pass 88 (re-pinned on purpose, lane MOUTH): mostly lit as the wind-up starts, full by its end (no flare)
-	assert_float(mid).is_between(0.7, 0.95)
+	# pass 88 (re-pinned on purpose, lane MOUTH): mostly lit as the wind-up starts, full by its end (no flare); pass 139
+	# (re-pinned on purpose, lane AIM): it builds from `glow_from` (the JSON's: dark) to full, so halfway it is about half way
+	var g0 := lb.windup_value("glow_from")
+	assert_float(mid).is_between(g0 + (1.0 - g0) * 0.4, g0 + (1.0 - g0) * 0.75)
 	assert_bool(lb._glow_core.visible).is_true()
 	assert_float(lb._jaw.rotation.x).is_less(-deg_to_rad(10.0))
 	assert_float(lb._model.rotation.x).is_greater(deg_to_rad(32.0) + 0.1)
@@ -268,10 +272,13 @@ func test_the_beam_punches_the_mouth_back_along_its_aim_and_it_springs_to_rest()
 	# the frame the beam leaves: kicked back along the aim by `back`, the lips climbed by `climb`, swollen by `pop`
 	assert_float(lb.punch()).is_equal_approx(1.0, 0.0001)
 	assert_int(lb.punches).is_equal(1)
-	var off: Vector3 = lb._familiar.global_position - lb._fam_base
+	# pass 139 (re-pinned on purpose, lane AIM): the wind-up's pose (drawn back and up, the lips reared) is let go over
+	# `windup.release` s under the punch, so on this frame it is still held whole (LaserBeam.release_k)
+	var rk := lb.release_k()
+	var off: Vector3 = lb._familiar.global_position - lb._fam_base - lb._windup_offset(rk)
 	assert_float(off.length()).is_equal_approx(lb.punch_value("back"), 0.01)
 	assert_float(off.normalized().dot(lb._dir())).is_less(-0.99)
-	assert_float(lb._model.rotation.x).is_equal_approx(deg_to_rad(32.0) + lb.punch_value("climb"), 0.01)
+	assert_float(lb._model.rotation.x).is_equal_approx(deg_to_rad(32.0) + lb.punch_value("climb") + lb.windup_value("rear") * rk, 0.01)
 	assert_float(lb._model.scale.x).is_greater(lb._model_scale * 1.08)
 	# the beam starts at the lips where they are now
 	assert_float(lb.muzzle().distance_to(lb._familiar.global_position)).is_less(0.0001)

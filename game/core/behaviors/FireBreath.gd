@@ -31,6 +31,9 @@
 ## the liquid to spit flame with'"): pass 116's spiky ring (BreathReady) is gone. MOUTHFUL_LEAD s before the cooldown
 ## runs out, two quick splashes of liquid burst at his face (Fx.water_splash, MOUTHFUL_GAP s apart: pieces of the blood
 ## pool, no node of their own), once a cooldown; `params.breath.mouthful: false` turns them off. Only a look.
+## Pass 139 (lane AIM; Garry: "Now that we have a kind of a attack direction indicator, let's go ahead and try to use that
+## to indicate when dragon's breath and big mouth will attack next"): tell_state / tell_charge / tell_color / tell_reach /
+## tell_deg feed the aim wedge's band over the cone (core/systems/AimWedge.gd). Looks only: no rule changed.
 class_name FireBreath
 extends WeaponBehavior
 
@@ -84,6 +87,8 @@ var ticks := 0
 var knocks := 0
 var last_hits := PackedInt32Array()
 var last_len := 0.0
+## Pass 139 (lane AIM): the cooldown left as the last breath ended (the tell charges over it).
+var _recover_len := 0.0
 
 
 func _uses_projectiles() -> bool:
@@ -147,6 +152,43 @@ func burning() -> bool:
 
 func is_ring() -> bool:
 	return burning() and _ring
+
+
+# ---------------------------------------------------------------- the tell (pass 139)
+
+## Pass 139 (lane AIM): the aim wedge's tell (AimWedge reads it every frame): breathing, ready (the clock up, waiting for
+## a creature in the cone, `breath.wait`), else charging.
+func tell_state() -> int:
+	if burning():
+		return AimWedge.TELL_FIRING
+	if cooldown_left <= 0.0 or _ready_for > 0.0:
+		return AimWedge.TELL_READY
+	return AimWedge.TELL_CHARGE
+
+
+## Pass 139 (lane AIM): the tell's charge, 0 to 1: charging, the cooldown's progress since the last breath ended (0 as it
+## ends); 1 ready; breathing, the share of the breath left.
+func tell_charge() -> float:
+	match tell_state():
+		AimWedge.TELL_FIRING:
+			return clampf(_breath_t / maxf(_breath_len, 0.001), 0.0, 1.0)
+		AimWedge.TELL_READY:
+			return 1.0
+	var span := _recover_len if _recover_len > 0.0 else maxf(stat("cooldown", 1.0), 0.05)
+	return clampf(1.0 - cooldown_left / span, 0.0, 1.0)
+
+
+## Pass 139 (lane AIM): the band's colour, reach (m from his feet) and width (full degrees): the fire's own.
+func tell_color() -> Color:
+	return BLUE if blue() else ORANGE
+
+
+func tell_reach() -> float:
+	return stat("range", 5.0) if inst else 0.0
+
+
+func tell_deg() -> float:
+	return cone_deg() if inst else 0.0
 
 
 # ---------------------------------------------------------------- where
@@ -285,6 +327,8 @@ func _tick(delta: float) -> void:
 ## The breath is over: the whoosh stops, a scorch is left on the sand where it burnt.
 func _end() -> void:
 	_breath_t = 0.0
+	# pass 139 (lane AIM): the tell charges from here
+	_recover_len = maxf(cooldown_left, 0.0)
 	_next_tick.clear()
 	_loop_stop()
 	if _flames:

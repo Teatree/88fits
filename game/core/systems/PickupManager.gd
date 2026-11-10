@@ -2141,7 +2141,15 @@ const COIN_X25 := 25
 
 
 static func coin_pay(v: float) -> int:
-	return int(v) * maxi(int(round(Run.reward_mult())), 1) * (COIN_X25 if bool(Settings.coins_x25) else 1)
+	return int(v) * maxi(int(round(Run.reward_mult())), 1) * coins_x()
+
+
+## Pass 139 (lead; Garry: "Make it so the x25 coins setting actually increases the rewards from posters and the boss reward
+## as well. It should, of course, also switch on and off with the toggle"): COIN_X25 while Settings.coins_x25 is on, else 1.
+## Read at the moment of paying or showing (a coin, a poster's reward: WantedBoard.reward_of, a boss chest's gold:
+## Game._pack_boss_chest), so the switch takes effect at once. BALANCING 80.COINS.
+static func coins_x() -> int:
+	return COIN_X25 if bool(Settings.coins_x25) else 1
 
 
 ## A glint where a pickup went in (pass 46): one mote in its colour, at most one every SPARK_GAP seconds.

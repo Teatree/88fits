@@ -269,7 +269,7 @@ func _finish(ok: bool) -> void:
 	if hud and not Run.sim_mode:
 		if ok:
 			hud.banner(Loc.t("banner.bounty_done"), W.SAGE, WPoster.thumb_texture(contract.get("still", {})))
-			hud.toast(Loc.t("toast.bounty_paid", {"gold": W.num(int(contract.get("reward", 0)))}), W.TOAST_GREEN)
+			hud.toast(Loc.t("toast.bounty_paid", {"gold": W.num(WantedBoard.reward_of(contract))}), W.TOAST_GREEN)
 			Audio.play("ui_fanfare")
 		else:
 			hud.toast(Loc.t("toast.bounty_failed"), W.ROCK)
@@ -290,7 +290,7 @@ static func settle() -> Dictionary:
 func _settle() -> Dictionary:
 	check()
 	if done and paid == 0:
-		paid = maxi(int(contract.get("reward", 0)), 0)
+		paid = WantedBoard.reward_of(contract)
 		if paid > 0:
 			# in the posters' currency (the config's reward.currency, gold by default: Save.add_gold through Currency)
 			Currency.add(WantedBoard.currency(), paid, WantedBoard.GOLD_SOURCE, {"type": str(contract.get("type", "")),

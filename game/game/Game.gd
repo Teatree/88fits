@@ -2401,11 +2401,14 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 		hud.toast(Loc.t("toast.gold_gain", {"gold": "%d" % purse}), Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
 		var chest_gold := int(boss_purse(Run.stage) * lode * MirrorDanger.factor_of(def, "bounty"))
+		# pass 139 (lead, 80.COINS): the boss's purse x the temporary Coins x25 switch, in the chest (packed: the whole
+		# catch is multiplied in _pack_boss_chest) or paid straight when no catch took it
 		# pass 118 (lane BOSSCHEST): the purse goes into the boss's chest (the kill's catch), no longer straight in
 		var c = pickups.get("_capture") if pickups else null
 		if c is Dictionary:
 			c["gold"] = float(c.get("gold", 0.0)) + float(chest_gold)
 		else:
+			chest_gold *= PickupManager.coins_x()
 			Run.add_gold(chest_gold, "boss_purse")
 			hud.toast(Loc.t("toast.gold_gain", {"gold": "%d" % chest_gold}), Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
@@ -2976,7 +2979,10 @@ func _pack_boss_chest(def: EnemyDef, at: Vector3, caught) -> void:
 	var tl = Run.map.timeline if Run.map else null
 	var fight: float = float(director.boss_fight_seconds()) if director and director.has_method("boss_fight_seconds") else -1.0
 	var secs: float = float(tl.boss_seconds(def.id)) if tl != null else 0.0
-	_boss_pack = BossChest.make_pack(def.id, float(c.get("gold", 0.0)), float(c.get("xp", 0.0)), fight, secs, BossChest.config(tl), Run.stage)
+	# pass 139 (lead, 80.COINS): the catch's gold (the purse, the boss's coins and its own coin, each at its plain value) x
+	# the temporary Coins x25 switch, so the chest's counters and CLAIM pay what loose coins would have
+	var gold := float(c.get("gold", 0.0)) * float(PickupManager.coins_x())
+	_boss_pack = BossChest.make_pack(def.id, gold, float(c.get("xp", 0.0)), fight, secs, BossChest.config(tl), Run.stage)
 	_boss_pack_at = at
 	call_deferred("_boss_pack_left")
 

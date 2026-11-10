@@ -9,8 +9,8 @@ script = ExtResource("2_6m2w6")
 behavior = "LaserBeam"
 base = {
 "amount": 1.0,
-"cooldown": 2.6,
-"damage": 16.0,
+"cooldown": 5.2,
+"damage": 28.1,
 "duration": 2.6,
 "knockback": 0.0,
 "pierce": 99.0,
@@ -58,11 +58,17 @@ params = {
 "tick": 0.14,
 "width": 0.55,
 "windup": {
-"gape": 36.0,
-"rear": 0.35,
-"seconds": 0.24,
-"swell": 0.1,
-"tremble": 0.03
+"build": 0.75,
+"gape": 58.0,
+"glow_from": 0.0,
+"inhale": 22.0,
+"lift": 0.35,
+"pull": 0.35,
+"rear": 0.6,
+"release": 0.1,
+"seconds": 0.7,
+"swell": 0.28,
+"tremble": 0.06
 }
 },
 "familiar": {

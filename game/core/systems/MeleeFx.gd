@@ -20,6 +20,16 @@
 ##            style 2), "spearhead" (pass 137's drawn head, melee_thrust.gdshader).
 ## Looks only: no dice (randf only for each effect's own seed), nothing that changes a hit. Ticked by its Thruster
 ## (WeaponBehavior._process: the replay's delta, paused with the game), so a capture can step it by hand.
+## Pass 139 (lane SWING; Garry: "The sword swings are constantly clipping through the ground. Either just give them a
+## rendering prio or handle the surface topology in some way"): a swing's arc is laid on the ground under it, not on a
+## flat plane at his feet. The map's height_at is sampled under the crescent (his feet and GROUND_SPOKES spokes across
+## the arc's angle at the GROUND_RADII shares of its reach), a plane fitted to the samples (least squares, its slope at
+## most GROUND_SLOPE_MAX), raised by the most any sample stands above it (a crest under the middle) and ARC_LIFT over
+## that; refitted whenever he has moved GROUND_REFIT metres. Its shaders then draw it GROUND_PULL metres nearer the
+## camera along the eye's ray (the same pixels, only the depth test sees it nearer: the `pull` uniform), so a bump
+## between the samples does not cut it either, while a creature or a prop standing in front of it still hides it. The
+## thrust and the star have no depth test already (pass 137), so they never sank. `ground_follow` off (a tool comparing)
+## lays it flat at his feet as before.
 class_name MeleeFx
 extends Node3D
 
@@ -50,6 +60,16 @@ const LANCE_W := 0.62
 const LANCE_W_MIN := 0.1
 const LANCE_W_MAX := 0.32
 const NEEDLE := 0.55
+## pass 139 (lane SWING): the arc laid on the ground (see the top): its samples, how often it is refitted, its steepest
+## tilt (rise per metre), how far nearer the camera its shaders draw it (metres)
+const GROUND_SPOKES := 7
+const GROUND_RADII := [0.4, 0.75, 1.1]
+const GROUND_REFIT := 0.25
+const GROUND_SLOPE_MAX := 1.0
+const GROUND_PULL := 0.45
+
+## pass 139: off lays every arc flat at his feet as before (tools comparing the two)
+static var ground_follow := true
 
 static var _arc_shader: Shader
 static var _thrust_shader: Shader
@@ -73,6 +93,10 @@ var last_thrust: Dictionary = {}
 var impacts_made := 0
 var glints_made := 0
 var last_flash_at := Vector3.ZERO
+## pass 139: the ground the arcs are laid on (anything with height_at(x, z)); null asks its Thruster's game for its map
+var map: Object = null
+## pass 139 (tests): ground fits made
+var fits_made := 0
 
 
 func _init() -> void:
@@ -182,10 +206,14 @@ func arc(anchor: Node3D, yaw: float, half_w: float, reach: float, sweep: float, 
 	e["style"] = style
 	e["cos"] = str(look.get("ease", "cos")) == "cos"
 	e["R"] = R
+	# pass 139: the shape the ground is sampled under, a fresh fit, the shaders' pull
+	e["yaw"] = yaw
+	e["half_w"] = clampf(half_w, 0.05, PI)
+	e["reach"] = maxf(reach, 0.2)
+	e.erase("fit")
+	m.set_shader_parameter("pull", GROUND_PULL if ground_follow else 0.0)
 	var mi: MeshInstance3D = e["mi"]
 	mi.visible = true
-	mi.scale = Vector3(R, 1.0, R)
-	mi.rotation = Vector3(0, yaw, 0)
 	_place(e)
 	_arc_frame(e)
 	arcs_made += 1
@@ -349,10 +377,100 @@ func _place(e: Dictionary) -> void:
 	if a == null or not is_instance_valid(a):
 		return
 	var mi: MeshInstance3D = e["mi"]
+	if e.has("R"):
+		_lay_arc(e, a.global_position)
+		return
 	var p := a.global_position + Vector3(0, float(e["lift"]), 0)
 	if e.has("dir"):
 		p += (e["dir"] as Vector3) * float(e["base"])
 	mi.global_position = p
+
+
+## Pass 139 (lane SWING): an arc's quad laid on the ground under it at `at` (his feet): the fitted plane (refitted once
+## he has moved GROUND_REFIT metres), never under his feet (a jump carries it up with him), ARC_LIFT over it; flat at
+## his feet + ARC_LIFT with ground_follow off or no map.
+func _lay_arc(e: Dictionary, at: Vector3) -> void:
+	var mi: MeshInstance3D = e["mi"]
+	var rr := float(e["R"])
+	var b3 := Basis(Vector3.UP, float(e["yaw"])) * Basis.from_scale(Vector3(rr, 1.0, rr))
+	var y := at.y
+	var m := _ground() if ground_follow else null
+	if m != null:
+		var o: Vector2 = e.get("fit_o", Vector2.INF)
+		if not e.has("fit") or Vector2(at.x, at.z).distance_to(o) > GROUND_REFIT:
+			e["fit"] = ground_fit(m, at, float(e["yaw"]), float(e["half_w"]), float(e["reach"]))
+			e["fit_o"] = Vector2(at.x, at.z)
+			o = e["fit_o"]
+		var f: Vector3 = e["fit"]
+		y = maxf(f.x + f.y * (at.x - o.x) + f.z * (at.z - o.y), at.y)
+		b3 = MapBase.ground_basis(Vector3(-f.y, 1.0, -f.z)) * b3
+	mi.global_transform = Transform3D(b3, Vector3(at.x, y + float(e["lift"]), at.z))
+
+
+## The map the arcs lie on: `map` when set, else its Thruster's game's.
+func _ground() -> Object:
+	if map != null and is_instance_valid(map):
+		return map if map.has_method("height_at") else null
+	var b := get_parent()
+	var g = b.get("game") if b != null else null
+	var gm = g.get("map") if g is Object and is_instance_valid(g) else null
+	if gm is Object and is_instance_valid(gm) and gm.has_method("height_at"):
+		map = gm
+		return gm
+	return null
+
+
+## Pass 139: the plane under a crescent centred on `yaw` (the arc's -Z turned by it), `half_w` each side, `reach` deep,
+## round `at`: x = its height at `at` raised by the most any sample stands above it, y and z its rise per metre along x
+## and z (each at most GROUND_SLOPE_MAX). The samples: `at` and GROUND_SPOKES spokes across the angle (round the whole
+## circle when it is one) at each of the GROUND_RADII shares of the reach.
+func ground_fit(m: Object, at: Vector3, yaw: float, half_w: float, reach: float) -> Vector3:
+	fits_made += 1
+	var pts: Array[Vector3] = [Vector3(0.0, float(m.height_at(at.x, at.z)), 0.0)]
+	var full := half_w >= PI - 0.01
+	for r: float in GROUND_RADII:
+		for k in range(GROUND_SPOKES):
+			var u := float(k) / float(GROUND_SPOKES) if full else float(k) / float(GROUND_SPOKES - 1)
+			var a := yaw + (TAU * u if full else half_w * (2.0 * u - 1.0))
+			var dx := -sin(a) * reach * r
+			var dz := -cos(a) * reach * r
+			pts.append(Vector3(dx, float(m.height_at(at.x + dx, at.z + dz)), dz))
+	# least squares h = h0 + gx dx + gz dz
+	var n := float(pts.size())
+	var sx := 0.0
+	var sz := 0.0
+	var sxx := 0.0
+	var szz := 0.0
+	var sxz := 0.0
+	var sh := 0.0
+	var shx := 0.0
+	var shz := 0.0
+	for p: Vector3 in pts:
+		sx += p.x
+		sz += p.z
+		sxx += p.x * p.x
+		szz += p.z * p.z
+		sxz += p.x * p.z
+		sh += p.y
+		shx += p.y * p.x
+		shz += p.y * p.z
+	var mat := Basis(Vector3(n, sx, sz), Vector3(sx, sxx, sxz), Vector3(sz, sxz, szz))
+	var sol := Vector3(sh / n, 0.0, 0.0)
+	if absf(mat.determinant()) > 0.0001:
+		sol = mat.inverse() * Vector3(sh, shx, shz)
+	var gx := clampf(sol.y, -GROUND_SLOPE_MAX, GROUND_SLOPE_MAX)
+	var gz := clampf(sol.z, -GROUND_SLOPE_MAX, GROUND_SLOPE_MAX)
+	var h0 := sol.x
+	if gx != sol.y or gz != sol.z:
+		# a clamped slope: the height refitted to it
+		h0 = 0.0
+		for p: Vector3 in pts:
+			h0 += p.y - gx * p.x - gz * p.z
+		h0 /= n
+	var over := 0.0
+	for p: Vector3 in pts:
+		over = maxf(over, p.y - (h0 + gx * p.x + gz * p.z))
+	return Vector3(h0 + over, gx, gz)
 
 
 ## Every live effect a frame on.

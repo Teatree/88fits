@@ -10749,3 +10749,104 @@ Golden Pineapple, Golden Revolver, Grave Hail, Hellfire Battery, Hive Queen, Hiw
 Cannon, Slam Dunk, Storm Cloud, Thunder Lance) say "All your mutations still apply and get stronger." No number or rule
 of play changed. Texts of 124 rows and 91 content texts rewritten in Garry's style (docs/texts/pass138_text_changes.md);
 his four families' texts untouched.
+
+## 80. Pass 139: the mutation chest names its weapon, the swing on the sand, the Breath's and the Mouth's tell, the Mouth slower and harder, Coins x25 on posters and bosses, the unlock pop-up, a progression proposal
+
+Garry (2026-11-10): "Mutation chest should show which weapon a mutation is for"; "The sword swings are constantly clipping
+through the ground"; "Dragon's Breath, Big Mouth. Now that we have a kind of a attack direction indicator, let's go ahead and
+try to use that to indicate when dragon's breath and big mouth will attack next ... make the mouth do a nice wind up ... make
+it a slow attack similar to how we dealt with the dragon's breath. So more damage but slower"; "Make it so the x25 coins
+setting actually increases the rewards from posters and the boss reward as well"; "Progression - this is a suggestion task";
+"Trials unlocking new items, heroes, etc should be accompanied by a quick pop-up ... shouldn't take more than 2 seconds."
+
+**80.COINS. Coins x25 reaches the posters and the boss chest** (lead). Garry: "Make it so the x25 coins setting actually
+increases the rewards from posters and the boss reward as well. It should, of course, also switch on and off with the
+toggle." `PickupManager.coins_x()` is 25 while the temporary developer switch `Settings.coins_x25` is on, else 1, read at
+the moment of paying or showing. A Wanted poster shows and pays `reward x coins_x()` (`WantedBoard.reward_of`: the poster's
+amount, the run's "bounty paid" toast, the save's payment at the run's end, the Results' "would have paid"); the contract
+and the run record keep the plain `reward`, the record's `paid` is what was paid. A boss chest's gold (its purse, the boss's
+coins and its own coin as the kill caught them) is x `coins_x()` when the kill packs it (`Game._pack_boss_chest`), so the
+chest's counters and CLAIM carry it; a purse no catch took is paid x `coins_x()` straight; the arena's sample chest
+(`BossChest.sample_pack`) the same. XP is unchanged. Not touched: an Elite's purse, the Trail's prices, the starting gold
+(Garry named posters and the boss).
+
+80.CHEST. The mutation chest says which weapon a mutation is for (Garry: "Mutation chest should show which weapon a
+mutation is for, because no one remembers them like that. I think maybe the weapon icon at it's direct rarity it's
+mutation count appearing under the selected mutation and it's text could be good."). A landed mutation's card ends on one
+row (ui/wanted/WWeaponBadge.gd): the weapon's plate as its HUD slot draws it (its held level's frame, the plain level
+number, EVO when evolved; the run's copy of the mutation's family, Run.family_instance), "FOR" over the weapon's name,
+and its path's rivets (held gold, the one this chest gives cream and pulsing, WMarks `PULSE_WARM_RIVET` 0.2, the rest
+slate) with the count "n/3" counting the one the chest gives (Run.path_progress + 1). A hero's own mutation lights no rivet
+(it is outside the path). No badge on an evolution, an item or gold. The card grows downwards; SKIP, BANISH and TAKE IT
+keep their rects. The mutation level-up already shows its weapon (plate, name, rivets) and is unchanged. No rule changed.
+
+80.SWING. The sword's swing lies on the sand (pass 139, lane SWING; Garry: "The sword swings are constantly clipping
+through the ground. Either just give them a rendering prio or handle the surface topology in some way"). Looks only:
+no hit, reach or timing changed. A swing's arc (the Sabre, its evolutions, the Whirlwind, the Spear's Wide Sweep, Riposte's
+flick; styles crescent, cel, classic) is laid on the plane fitted to the ground under its crescent (`MeleeFx.ground_fit`:
+his feet and GROUND_SPOKES 7 spokes across the arc at GROUND_RADII 0.4 / 0.75 / 1.1 of the reach, a slope of at most
+GROUND_SLOPE_MAX 1.0 rise a metre), raised by the most any sample stands above that plane, ARC_LIFT 0.3 m over it and
+never under his feet; refitted each GROUND_REFIT 0.25 m he moves. Its shaders draw it GROUND_PULL 0.45 m nearer the
+camera on the same pixels (the `pull` uniform), with the depth test kept, so a creature, a prop or the Outlaw himself in
+front still hides it. The thrust and the impact star were already drawn over everything (pass 137) and are unchanged.
+
+**80.AIM. The Dragon's Breath's and the Big Mouth's next attack on the aim wedge; the Mouth's wind-up; the Mouth slower
+and harder** (Garry, 2026-11-10: "Dragon's Breath, Big Mouth. Now that we have a kind of a attack direction indicator, let's
+go ahead and try to use that to indicate when dragon's breath and big mouth will attack next. For big mouth also go ahead
+and make the mouth do a nice wind up before and attack. Should be a visible animation. You should consider how this attack
+indicator will work for both of these attacks as well. Also, you need to consider the attack speed of the big mouth now that
+you can control its direction. It becomes a little bit more overpowered so we need to make it a slow attack similar to how
+we dealt with the dragon's breath. So more damage but slower.")
+- **The tell** (core/systems/AimWedge.gd, core/shaders/aim_wedge.gdshader; looks only). The wedge shows each held,
+  aimed Dragon's Breath / Fire Eater and Big Mouth / Loudmouth's next attack. Its **charge** is the cooldown's progress
+  from the end of the last attack (0 as it ends, 1 when the clock is up); **ready** is the clock up and the weapon waiting
+  for a creature in its cone (the Breath's `breath.wait` 2 s, the Mouth's `aim.hold` 0.5 s; the Breath counts as ready from
+  0.2 s before its clock runs out, its existing wait clock); **firing** shows the share of the attack left. The Breath: a band
+  over its own cone (its range from 0.45 m, its width), deep orange (Blue Flame deep blue), outlined, filling from his
+  feet with a bright front line, full and breathing at 1.6 Hz while ready, a white flash for 0.25 s as it breathes,
+  draining while it burns; drawn in the wedge's own mesh (the fan reaches out to cover it). The Mouth: a line 0.9 m wide
+  down the beam's own line (from the floating mouth along its aim, which turns after his facing at `aim.turn_deg`), to
+  its reach, in the beam's colour (Slow Roast orange, Bad Breath green): dashed to the full reach, solid up to the charge
+  with a bright tick, solid and pulsing while ready, brighter and wider with dashes racing out through the wind-up, a
+  flash as the beam leaves, draining while it pours; one more draw call only while a Mouth is held. Other aimed weapons'
+  pulses brighten the wedge, never the bands. Off with "Show aim"; none without the aim rule. Held Breath's ring is drawn
+  as the cone.
+- **The Big Mouth's wind-up** (LaserBeam, `params.beam.windup` on the Big Mouth and the Loudmouth): **0.7 s** (was 0.24),
+  inside the cooldown as before (the next wind-up a cooldown after the last). Over its first `build` 75% the mouth draws
+  back `pull` 0.35 m along its aim and rises `lift` 0.35 m, rears its lips `rear` 0.6 rad, gapes `gape` 58 degrees, swells
+  `swell` 28%; its throat glow builds from `glow_from` 0 (dark; pass 88 started it at 0.7) to full; `inhale` 22 motes of the
+  beam's colour are drawn into the lips from 1.0-2.2 m ahead over the first 85% of it; the last half trembles `tremble`
+  0.06 m; then the punch and the beam, the wind-up's pose let go over `release` 0.1 s under the punch. A key left out plays
+  pass 88's wind-up. The jaw's spring steps through at most 0.25 s of a long frame in at most 15 steps.
+- **Slower and harder**: the Big Mouth's cooldown **3.7647 -> 7.5294 s** (x2, the wind-up inside it), damage **9 -> 15.6**
+  a tick (x1.733), its level 5 damage step **0.25 -> 0.36** (lead); the Loudmouth's cooldown **2.6 -> 5.2 s**, damage
+  **16 -> 28.1** (lead). The rest of the ladder and the mutations unchanged; the Dragon's Breath stays the slowest weapon
+  (10.59 s) and the Fire Eater the slowest evolution (6.5 s). Measured (tests/pass139_aim_test.gd, fixed 1/60 s steps, aim
+  on, 60 s of the whole cycle on one tough creature 6 m ahead): level 1 25.48 -> 22.09 damage a second (-13.3%), level 3
+  62.67 -> 54.46 (-13.1%), level 5 106.42 -> 92.25 (-13.3%), the Loudmouth 117.48 -> 102.18 (-13.0%; x1.11 over level 5).
+  With the lane's x1.6 alone level 5 and the Loudmouth fell 20% (their old cooldown, 2.72 s and 2.6 s, was shorter than
+  the wind-up and the pour, so they had poured without a break): the lead raised level 5's step and the Loudmouth's damage
+  so every level lands at Garry's "a little" (about -13%). The estimate (WeaponInstance.dps_estimate, HeroPower, the
+  bosses' HP scaling) falls by the same: 53.1 -> 46.0 at level 1.
+
+80.POP. The unlock pop-up (Garry: "Trials unlocking new items, heroes, etc should be accompanied by a quick pop-up that
+notifies Player of the Unlock and goes away. The whole sequence shouldn't take more than 2 seconds. Showing the unlock
+clearly."). A Trail node whose gift is an **unlock** (an outlaw, a skin, a weapon, a Card or item, a stage or map, a
+structure, a power-up, a feature such as the Bounty Board) shows `ui/wanted/WUnlockPop.gd` over the Trail screen when it
+is bought, in place of its toast; an upgrade keeps today's toast and no pop-up. The sequence: in `IN` 0.18 s (the picture
+punches in from `POP_FROM` 35% of its size with an ease-out-back overshoot, the dim to `DIM` alpha 0.82, a turning shine
+`SHINE_R` 560 px at `SHINE_STRENGTH` 0.8 and a WCelebrate burst behind it, `ui_unlock` plays), a hold `HOLD` 1.37 s, out
+`OUT` 0.3 s (rises `OUT_RISE` 46 px, shrinks `OUT_SHRINK` 8%, fades): `TOTAL` 1.85 s, its own clock (a frame-rate dip never
+stretches it). A tap anywhere while it comes in or holds hurries it out in `OUT_HURRY` 0.14 s and is eaten (it never chooses
+or buys the node under the finger); on its way out taps pass through to the screen. Two unlocks in quick succession queue
+(the second starts when the first is gone; each plays its sound). A buy that finishes a Trail level and is an unlock
+**combines** the two: the pop-up carries "TRAIL LEVEL n" as a gold pill under the name, and the "Trail Level n" banner and
+its `ui_levelup` are not played (an upgrade that finishes a level keeps the banner). What it shows: a gold header by kind
+("NEW OUTLAW", "NEW SKIN", "NEW WEAPON", "NEW CARD", "NEW ITEM", "NEW STAGE", "NEW MAP", "NEW STRUCTURE", "NEW POWER-UP",
+else "UNLOCKED"; `ui.unlock_pop.head.*`), the picture (an outlaw his full-body cut-out in the look he is played in, a
+skin its own cut-out and "For <outlaw>" under the name, else the badge on a round plate; an item, Card, structure or
+power-up on its Royale item frame with its kind glyph; a stage or map its wide picture in a navy frame with a gold rim;
+the Bounty Board its barrel on a brass plate), `PLATE_PX` 340, `FIGURE_H` 640, `PICTURE_W` 880, and the name in cream
+Ultra 84 px (shrunk to 960 px wide, never under 44).
+
+80.PROG. A proposal, no rule changed. Garry: "Progression - this is a suggestion task ... what would happen if we changed it to 50 runs instead." The plan is `docs/progression/progression_plan.html` (scripts in `tools/dl/p139/PROG/`): a 20-item first run, 20 quests (two met by a 20-second death), 44 new Trail nodes, price {20, 9.17, 1.55, 10}, Wages 30/60/90/120 a stage-minute (a new rule if taken), the Trail done by run 50 at today's end power; nothing of it is in the game until Garry answers its six questions.

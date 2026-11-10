@@ -167,7 +167,8 @@ func test_the_glow_is_hidden_at_rest_white_while_it_pours_and_hidden_again_once_
 	# lit from the wind-up's first frames
 	_ticks(lb, 0.05)
 	assert_bool(lb._glow_core.visible).is_true()
-	assert_float(lb.glow_level()).is_greater(0.45)
+	# pass 139 (re-pinned on purpose, lane AIM): the glow builds from `windup.glow_from` (dark now; pass 88's 0.7)
+	assert_float(lb.glow_level()).is_greater(lb.windup_value("glow_from") * 0.6 + 0.02)
 	_ticks(lb, lb.windup_seconds() + 0.2)
 	assert_int(lb.beams).is_equal(1)
 	assert_bool(lb._floor_mesh.visible).is_true()

@@ -162,6 +162,8 @@ static func sample_pack(boss_id: String, stage: int = 0, fight_s: float = 30.0, 
 	var coin_k := float(maxi(int(round(Run.reward_mult())), 1))
 	var gold := float(Game.boss_purse(stage)) + float(def.drops.get("coins", Game.BOSS_COINS)) * 5.0 * coin_k
 	gold += 2.0 * PickupManager.BIG_COIN_MULT * coin_k * float(def.drops.get("gold", 0.0))
+	# pass 139 (80.COINS): x the temporary Coins x25 switch, as a real kill's chest (Game._pack_boss_chest)
+	gold *= float(PickupManager.coins_x())
 	var xp := 25.0 * def.xp_mult * float(def.drops.get("large", 0.0))
 	var t = tl if tl != null else (Run.map.timeline if Run.map else null)
 	if t != null and t.has_method("stage_xp_mult"):
