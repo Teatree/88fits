@@ -84,3 +84,14 @@ func test_the_gameplay_is_unchanged() -> void:
 	var c := _buck()
 	assert_str(c.start_weapon).is_equal("frisbee")
 	assert_str(c.id).is_equal("buck")
+
+
+## Pass 143 follow-up (Garry on BUC-H: "no need for that Naruto run, do a normal run"): the look runs on the plain run drivers
+## the other outlaws use (arms swinging at his sides under the poncho), never on the dash with both arms swept back.
+func test_the_run_is_a_normal_run() -> void:
+	var rec: Dictionary = ((_json()["variants"] as Dictionary)[CODE] as Dictionary).get("recipe", {})
+	var drivers: Dictionary = rec.get("pose_drivers", {})
+	for view in ["front", "fd", "side", "bd", "back"]:
+		assert_bool(drivers.has(view)).override_failure_message("no driver for " + view).is_true()
+		assert_bool(str(drivers.get(view, "")).begins_with("run_dash")).override_failure_message(view + " still runs the dash").is_false()
+	assert_bool(str(rec.get("pose_motion", "")).contains("swept")).override_failure_message("the motion words still sweep the arms back").is_false()

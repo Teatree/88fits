@@ -11255,7 +11255,11 @@ played look. Their new paintings: see 84.ART.
 every older look of theirs is shelved, so the chips, the Skins pop-up and the menus show only these). Both were painted as
 Klein edits of the looks they replace, so the build, the height, the pose and the walk stay: BUC-H over BUC-F (a chestnut
 horse's head with a white blaze and a dark mane, no hat; an indigo serape with cream, red and mustard bands, a cream shirt,
-a red bandana, brown gloves, trousers and boots; BUC-F's dash), FAD-H over FAD-E (a dark gunmetal robot with a robot
+a red bandana, brown gloves, trousers and boots; at first BUC-F's dash, then (Garry: "no need for that Naruto run, do a normal run";
+"Head should be bigger when running to the side") a normal run: drivers `run_arms50` (the plain run, arms swinging half as far so
+the poncho hangs) front and bd, `run` fd and side, `run_spread_lvl` back; side `run_scale` 0.93 and the side run's head
+enlarged 1.25x about the throat, each frame evened to the row's median (tools/dl/p143/HORSE/scripts/head_grow.py, recipe key
+`head_grow`, applied after the walk by the lane's polish.py: a fresh gen_art walk of BUC-H would drop it)), FAD-H over FAD-E (a dark gunmetal robot with a robot
 bull's head, two off-white horns, amber eyes and a nose ring; a red basketball jersey and shorts with black and white trim
 and a white 88, no team mark; FAD-E's puppet walk). Their badges, title cut-outs and sheet stills are new; FAD-H's title
 cut-out had its shoes redrawn without the swoosh Klein had painted on them. No skin is sold for either outlaw.

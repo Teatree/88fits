@@ -341,7 +341,7 @@ variants = {
 },
 "frame_px": 256,
 "icon": "res://content/characters/buck/buck_icon_h.png",
-"note": "pass 143 (lane HORSE): the Horseman, a lean man with a chestnut horse head in an indigo serape poncho; his stills are Klein edits of BUC-F's (the pose, build and size kept, the head and the clothes swapped; tools/dl/p143/HORSE)",
+"note": "pass 143 (lane HORSE): the Horseman, a lean man with a chestnut horse head in an indigo serape poncho; his stills are Klein edits of BUC-F's (the pose, build and size kept, the head and the clothes swapped). Follow-up (Garry: \"Head should be bigger when running to the side. And no need for that Naruto run, do a normal run\"): a normal run (front and bd on run_arms50, the Running clip with the arms swinging half as far so the poncho hangs; fd and side on run; back on run_spread_lvl), the side body at run_scale 0.93 and its head enlarged 1.25x about the neck (tools/dl/p143/HORSE/scripts/head_grow.py, recipe head_grow), the polish (green specks brown, the pale lining dark) and loose specks cleared (scripts/polish.py, specks.py)",
 "shelved": false,
 "sprite": "res://content/characters/buck/buck_sprite_h.png",
 "sprite_file": "buck_sprite_h.png",

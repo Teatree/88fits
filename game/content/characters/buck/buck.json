@@ -478,17 +478,17 @@
       "shelved": true
     },
     "BUC-H": {
-      "note": "pass 143 (lane HORSE): the Horseman, a lean man with a chestnut horse head in an indigo serape poncho; his stills are Klein edits of BUC-F's (the pose, build and size kept, the head and the clothes swapped; tools/dl/p143/HORSE)",
+      "note": "pass 143 (lane HORSE): the Horseman, a lean man with a chestnut horse head in an indigo serape poncho; his stills are Klein edits of BUC-F's (the pose, build and size kept, the head and the clothes swapped). Follow-up (Garry: \"Head should be bigger when running to the side. And no need for that Naruto run, do a normal run\"): a normal run (front and bd on run_arms50, the Running clip with the arms swinging half as far so the poncho hangs; fd and side on run; back on run_spread_lvl), the side body at run_scale 0.93 and its head enlarged 1.25x about the neck (tools/dl/p143/HORSE/scripts/head_grow.py, recipe head_grow), the polish (green specks brown, the pale lining dark) and loose specks cleared (scripts/polish.py, specks.py)",
       "recipe": {
         "stills": "h",
         "pose_drivers": {
-          "front": "run_dash_f_low",
-          "fd": "run_dash_f",
-          "side": "run_dash_lvl",
-          "bd": "run_dash_lvl",
-          "back": "run_dash_lvl"
+          "front": "run_arms50",
+          "fd": "run",
+          "side": "run",
+          "bd": "run_arms50",
+          "back": "run_spread_lvl"
         },
-        "pose_motion": "dashing in place on the spot like on a treadmill, leaning forward with both arms swept straight back behind him",
+        "pose_motion": "running in place on the spot like on a treadmill at a steady natural run, upright, his arms swinging only a little, close to his sides under the heavy poncho, the thick wool poncho hanging straight down over his shoulders and arms to his thighs and never flying open",
         "method": "hero_pose5",
         "painter": {
           "model": "klein",
@@ -497,13 +497,13 @@
         },
         "seed_offset": 1430,
         "screen": "green",
-        "anim_seed": 2,
+        "anim_seed": 7,
         "run_scale": {
-          "back": 1.04,
-          "bd": 1.06,
-          "side": 0.9,
-          "fd": 0.91,
-          "front": 0.9
+          "back": 1.0,
+          "bd": 1.0,
+          "side": 0.93,
+          "fd": 1.0,
+          "front": 1.0
         },
         "polish": [
           {
@@ -517,8 +517,38 @@
             "to": 30,
             "sat": 0.6,
             "min_sat": 0.1
+          },
+          {
+            "mode": "tint",
+            "ranges": [
+              [
+                190,
+                240
+              ]
+            ],
+            "to": 232,
+            "set_sat": 0.6,
+            "value": 0.45,
+            "min_sat": 0.06,
+            "max_sat": 0.4,
+            "min_val": 0.5
           }
-        ]
+        ],
+        "anim_hint": "a man with a long chestnut-brown horse head (a white blaze, two upright ears, a short dark mane) in a heavy indigo-blue serape poncho with cream, red and mustard bands that hangs straight down over his shoulders and arms like a blanket, a cream shirt, a red bandana, dark brown trousers, brown cowboy boots and brown gloves, a normal upright run",
+        "anim_negative": "a human face, human ears, hair, a hat, a centaur, a horse body, four legs, hooves, a tail, extra arms, extra legs, extra hands, a second head, a face on the back of the head, a cape, a cloak flying open, the poncho flying up, the poncho's lining, text, logos",
+        "head_grow": {
+          "rows": [
+            "run_s"
+          ],
+          "scale": 1.25,
+          "feather": 4,
+          "below": 6,
+          "tool": "tools/dl/p143/HORSE/scripts/head_grow.py (after the polish; run again after any new walk)",
+          "norm": [
+            1.15,
+            1.4
+          ]
+        }
       },
       "fresh": true,
       "sprite": "buck_sprite_h.png",

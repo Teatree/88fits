@@ -4812,5 +4812,5 @@ pellet and each blast, the Dragon's Breath's damage a second (TextGen.POISON_TIC
 shelved and their three quests gone; two art lanes (HORSE, ROBOT) painted BUC-H and FAD-H as Klein edits of BUC-F / FAD-E
 (the build, the size and the walk kept), checked by Gemini (one call each) and the local model and at full size by eye,
 installed by their install.py; every older look of the two shelved. The lead redrew The Robot's title shoes (Klein had
-painted a swoosh). New capture game/tools/_p143_TITLE_shots.gd (the menu with each
+painted a swoosh). Garry on the first BUC-H: "Head should be bigger when running to the side. And no need for that Naruto run, do a normal run": lane HORSE walked it again on a normal run (run_arms50 front and bd, run fd and side, run_spread_lvl back; the poncho held down by its words) and grew the side run's head 1.25x about the throat (its scripts/head_grow.py; side heads 33 -> 44 px of 256, the front's 44). New capture game/tools/_p143_TITLE_shots.gd (the menu with each
 outlaw). Dev build shipped.
