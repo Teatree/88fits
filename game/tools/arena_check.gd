@@ -234,6 +234,12 @@ func _tick() -> void:
 							diff.append("%s: removed" % k)
 					for k in b.keys():
 						if not a.has(k) or JSON.stringify(a[k], "", true) != JSON.stringify(b[k], "", true):
+							# pass 141 (lead): a dictionary names the keys inside it that changed (a long block was cut at 120)
+							if a.get(k) is Dictionary and b[k] is Dictionary:
+								for sk in (b[k] as Dictionary).keys():
+									if JSON.stringify((a[k] as Dictionary).get(sk, null)) != JSON.stringify(b[k][sk]):
+										diff.append("%s.%s: %s -> %s" % [k, sk, JSON.stringify((a[k] as Dictionary).get(sk, null)).left(120), JSON.stringify(b[k][sk]).left(120)])
+								continue
 							diff.append("%s: %s -> %s" % [k, JSON.stringify(a.get(k, null)).left(120), JSON.stringify(b[k]).left(120)])
 					_fail("the save changed in the arena: " + "; ".join(diff))
 				if root.get_node("Run").arena:

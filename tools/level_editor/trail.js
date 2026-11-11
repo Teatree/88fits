@@ -321,14 +321,17 @@ const Trail = (() => {
       const iss = by.get(n.id) || [];
       const u = n.gives && n.gives.type === 'upgrade' ? S.doc.upgrades[n.gives.upgrade] : null;
       const cap = n.name || (u ? M.fmtValue(u.kind, n.gives.value) || u.name : gift.name);
+      // pass 141: an unlock stands out as the game draws it (TrailScreen.Tile: a gold frame and glow, an UNLOCK tab)
+      const unlock = !!(n.gives && n.gives.type && n.gives.type !== 'upgrade');
       const t = el('div', {
-        class: `trl-tile ${state} k-${n.kind}` + (n.name ? ' named' : '') + (S.sel === n.id ? ' sel' : '') + (S.marked.has(n.id) ? ' marked' : '') + (S.link === n.id ? ' linking' : ''),
+        class: `trl-tile ${state} k-${n.kind}` + (n.name ? ' named' : '') + (unlock ? ' unlock' : '') + (S.sel === n.id ? ' sel' : '') + (S.marked.has(n.id) ? ' marked' : '') + (S.link === n.id ? ' linking' : ''),
         style: `left:${p.x - p.size / 2}px;top:${p.y - p.size / 2}px;width:${p.size}px;height:${p.size}px`,
         title: `${n.id} · level ${l} · ${M.giveText(S.doc, n, S.picks)} · ${fmtGold(M.priceOf(S.doc, n))} ${S.doc.currency} · ${state}${n.kind === 'choice' ? '\nAlt+click: show this member as the one taken' : ''}${iss.length ? '\n' + iss.map((x) => x.text).join('\n') : ''}`,
         onclick: (e) => tileClick(n, e),
       }, icon(gift.url, Math.round(p.size * 0.74), gift.label),
       iss.length ? el('span', { class: 'trl-badge ' + (iss.some((x) => x.sev === 'error') ? 'err' : 'warn'), text: '!' }) : null,
       state === 'closed' ? el('span', { class: 'trl-strike' }) : null,
+      unlock ? el('span', { class: 'trl-unl', text: state === 'bought' ? 'UNLOCKED' : 'UNLOCK' }) : null,
       el('span', { class: 'trl-cap' }, el('b', { text: cap }), S.showPrices ? el('i', { text: fmtGold(M.priceOf(S.doc, n)) }) : null));
       tile.appendChild(t);
     }

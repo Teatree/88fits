@@ -143,6 +143,19 @@ void vertex() {
 	// wind: the top of a plant leans a few degrees back and forth, the base stays put
 	float lean = sin(TIME * wind_speed + phase) * sway * ly * ly * wind_mult * (1.0 + wind_gust * sin(TIME * 0.61 + phase * 0.5));
 	vec3 world = origin + right * (VERTEX.x * sx + lean * sy) + up * ly * sy;
+#ifdef HIT_FLASH
+	// Pass 141 (lane GRAV): a barrel in the Gravity Gun's grip tumbles: INSTANCE_CUSTOM.w is its roll in radians (a
+	// barrel has no tint, so w was always 0), the painting turned about its middle in the picture's plane.
+	float roll = INSTANCE_CUSTOM.w;
+	v_roll = vec4(0.0);
+	if (roll != 0.0) {
+		vec2 q = vec2(VERTEX.x * sx, (ly - 0.5) * sy);
+		float cr = cos(roll);
+		float sr = sin(roll);
+		q = vec2(q.x * cr - q.y * sr, q.x * sr + q.y * cr);
+		world = origin + up * (0.5 * sy) + right * q.x + up * q.y;
+	}
+#endif
 	VERTEX = (VIEW_MATRIX * vec4(world, 1.0)).xyz;
 	NORMAL = normalize((VIEW_MATRIX * vec4(cam_back, 0.0)).xyz);
 }

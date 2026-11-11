@@ -92,13 +92,6 @@
         "anim_hint": "a slim woman astronaut in a glossy black and gold spacesuit, her round helmet visor is a completely dark opaque black mirror with no face behind it"
       },
       "fresh": true,
-      "skin": {
-        "purchasable": true,
-        "name": "Event Horizon",
-        "price": 3000,
-        "currency_type": "gold",
-        "unlock_quest": ""
-      },
       "sprite": "astro_sprite_b.png",
       "anims": {
         "idle": 4,
@@ -126,7 +119,8 @@
         "die": 8
       },
       "title": "hero_astro_b.png",
-      "icon": "astro_icon_b.png"
+      "icon": "astro_icon_b.png",
+      "shelved": true
     },
     "AST-C": {
       "note": "pass 126: her orange turned blue: a recolour of her strip, badge and cut-out (tools/skin_recolour.py)",
@@ -155,11 +149,82 @@
         "name": "Mission Control",
         "price": 1500,
         "currency_type": "gold",
-        "unlock_quest": ""
+        "unlock_quest": "skin_astro_ast_c"
       },
       "sprite": "astro_sprite_c.png",
       "icon": "astro_icon_c.png",
       "title": "hero_astro_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
+    },
+    "AST-D": {
+      "note": "pass 141: Splashdown, Astro at the beach: a plain orange V-neck one-piece swimsuit, bare arms, legs and feet, and still her space helmet (Garry: \"the funny twist\"); Klein edits of her own paintings view by view (tools/gen_skin_views.py from AST-A; the back, fd and hurts as two-reference edits, tools/dl/p141/ART/scripts/edit_cands.py), walked on her run driver, the front on run_legs70 (the legs' swing x0.7, so the kicked-back foot stays behind the planted knee: Garry's third foot on AST-B); key_cut_shadow off (the shadow cut ate her pale bare feet and the outline drew shoes round the holes)",
+      "recipe": {
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "stills": "d",
+        "art_prompt": "a slim young woman in a simple bright orange V-neck one-piece swimsuit, bare arms, bare legs and bare feet, no gloves and no shoes, still wearing a round white space helmet whose visor is a completely dark opaque mirror that shows no face at all, standing straight with hands relaxed at the sides",
+        "anim_hint": "a slim woman in a bright orange V-neck one-piece swimsuit, barefoot: bare feet with toes, bare arms and bare legs, wearing a round white space helmet whose visor is a completely dark opaque black mirror with no face behind it",
+        "anim_negative": "face, eyes, mouth, hair, a visible face inside the helmet, transparent visor, gloves, shoes, sneakers, trainers, sandals, socks, boots, footwear, shoe soles, a spacesuit, a backpack, a third leg, a third foot, an extra foot",
+        "pose_drivers": {
+          "front": "run_legs70"
+        },
+        "key_cut_shadow": false,
+        "hurt_hint": "her round helmet visor stays a completely dark opaque black mirror with no face behind it, the whole body tensing",
+        "back_hint": "She runs away from the viewer the whole time and never turns round: the plain white back of the round helmet, her bare back and the swimsuit's low V back, the backs of her legs and her heels.",
+        "anim_seed": 13,
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                60,
+                175
+              ]
+            ],
+            "to": 25,
+            "sat": 0.5,
+            "min_sat": 0.2
+          }
+        ]
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Splashdown",
+        "price": 3000,
+        "currency_type": "gold",
+        "unlock_quest": ""
+      },
+      "sprite": "astro_sprite_d.png",
+      "icon": "astro_icon_d.png",
+      "title": "hero_astro_d.png",
       "anims": {
         "idle": 4,
         "run": 24,

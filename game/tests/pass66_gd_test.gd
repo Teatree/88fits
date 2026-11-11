@@ -177,6 +177,9 @@ func test_a_shelved_hero_look_is_out_of_the_codes_but_still_worn() -> void:
 	var d: Dictionary = JsonContent.load_json(SOL + "solenne.json")
 	var all: Array = (d["variants"] as Dictionary).keys()
 	all.sort()
+	# pass 141: SOL-H (the white suit) is shelved in the content now; `live` is what the file shows unshelved
+	var live: Array = all.filter(func(k): return not bool((d["variants"][k] as Dictionary).get("shelved", false)))
+	var shelved_now: Array = all.filter(func(k): return not live.has(k))
 	assert_bool(all.has("SOL-C")).is_true()
 	(d["variants"]["SOL-C"] as Dictionary)["shelved"] = true
 	var c := JsonContent.build("characters", d, SOL) as CharacterDef
@@ -184,7 +187,7 @@ func test_a_shelved_hero_look_is_out_of_the_codes_but_still_worn() -> void:
 	assert_bool(c.variant_shelved("SOL-C")).is_true()
 	assert_bool(c.variant_shelved("SOL-B")).is_false()
 	assert_array(c.variant_codes()).not_contains(["SOL-C"])
-	assert_int(c.variant_codes().size()).is_equal(all.size() - 1)
+	assert_int(c.variant_codes().size()).is_equal(live.size() - 1)
 	assert_array(c.variant_codes(true)).is_equal(all)
 	var v := c.variant_def("SOL-C")
 	assert_object(v).is_not_same(c)
@@ -215,10 +218,12 @@ func test_a_shelved_hero_look_is_out_of_the_codes_but_still_worn() -> void:
 	assert_object(t.variant_def("SOL-A").sprite).is_not_null()
 	# the content as it is: nothing read as shelved by accident
 	var plain := JsonContent.build("characters", JsonContent.load_json(SOL + "solenne.json"), SOL) as CharacterDef
-	assert_array(plain.variant_codes()).is_equal(all)
-	for code in all:
+	assert_array(plain.variant_codes()).is_equal(live)
+	for code in live:
 		assert_bool(plain.variant_shelved(str(code))).is_false()
-	assert_bool(ArenaPanel.hero_has_shelved(plain)).is_false()
+	for code in shelved_now:
+		assert_bool(plain.variant_shelved(str(code))).is_true()
+	assert_bool(ArenaPanel.hero_has_shelved(plain)).is_equal(not shelved_now.is_empty())
 	assert_bool(ArenaPanel.hero_has_shelved(c)).is_true()
 	assert_bool(ArenaPanel.hero_has_shelved(null)).is_false()
 

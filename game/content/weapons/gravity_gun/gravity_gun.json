@@ -93,7 +93,23 @@
       "throw": 0.5,
       "height": 1.8,
       "arc": 2.2,
-      "self_frac": 1.5
+      "self_frac": 1.5,
+      "search": {
+        "every": 3.0,
+        "seconds": 1.0,
+        "sweep_deg": 50,
+        "reach": 3.4,
+        "wander": 0.5,
+        "glow": 1.2
+      },
+      "barrel": {
+        "reach_frac": 0.75,
+        "lift": 1.3,
+        "pull": 0.3,
+        "ahead": 1.3,
+        "lead": 1.0,
+        "spin": 1.25
+      }
     },
     "familiar": {
       "radius": 1.3,

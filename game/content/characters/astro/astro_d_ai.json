@@ -1,0 +1,390 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a slim young woman in a simple bright orange V-neck one-piece swimsuit, bare arms, bare legs and bare feet, no gloves and no shoes, still wearing a round white space helmet whose visor is a completely dark opaque mirror that shows no face at all, standing straight with hands relaxed at the sides",
+ "renders": {
+  "front": {
+   "seed": 3006313,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of the same slim young woman astronaut in a new outfit for a day at the beach: a simple bright orange V-neck one-piece swimsuit and nothing else, her arms, legs and feet bare with smooth light skin, bare hands, bare feet, no gloves, no boots, no socks, no backpack, no spacesuit; but she still wears her round white space helmet in the same size and shape, its visor a completely dark opaque black mirror that shows no face at all, only faint reflections; the helmet's round collar ring rests on her bare shoulders. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep her exact slim feminine build, her height and proportions, the same big round bubble helmet in the same size, her straight standing pose with both arms relaxed at her sides. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/astro_d_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 376,
+     "right": 380,
+     "top": 56,
+     "bottom": 51,
+     "height": 916,
+     "width": 267
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 22063,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose, the framing and the view. One single figure alone in the frame: redraw the second reference image in exactly the same pose, the same framing, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple bright orange one-piece swimsuit seen from behind, its back scooped low and its straps over the shoulder blades, her arms, legs and feet bare with smooth light skin, no gloves, no boots, no backpack; the round white space helmet seen from behind, its round collar ring on her bare shoulders. Seen directly from behind exactly as in the second reference image: the plain white back of the helmet, her bare back and shoulder blades, the back of the swimsuit over her bottom, the backs of her legs and her bare heels; no face, no chest, no front of the swimsuit; both arms hanging relaxed at her sides Keep her slim feminine build, her height and proportions, the round bubble helmet in exactly the same size and shape. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_d_backfix_outfit.png",
+    "88fits/astro_d_backfix_pose.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 373,
+     "right": 373,
+     "top": 57,
+     "bottom": 65,
+     "height": 901,
+     "width": 277
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 14683,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple bright orange V-neck one-piece swimsuit and nothing else, her arms, legs and feet bare with smooth light skin, bare hands, bare feet, no gloves, no boots, no socks, no backpack, no spacesuit, no air tank; she still wears her round white space helmet whose visor is a completely dark opaque black mirror that shows no face, its round collar ring resting on her bare shoulders. In strict side profile facing right. Keep her slim feminine build, her height and proportions, the round bubble helmet in exactly the same size and shape. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_d_front_ref.png",
+    "88fits/astro_d_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 423,
+     "right": 426,
+     "top": 56,
+     "bottom": 56,
+     "height": 911,
+     "width": 174
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 2017914,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose, the framing and the view. One single figure alone in the frame: redraw the second reference image in exactly the same pose, the same framing, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple bright orange V-neck one-piece swimsuit and nothing else, her arms, legs and feet bare with smooth light skin, no gloves, no boots, no backpack, no air tank; she still wears her round white space helmet whose visor is a completely dark opaque black mirror with no face. In three-quarter front view exactly as in the second reference image: her whole body, chest, hips and feet turned 45 degrees to face the lower right of the frame, the helmet turned the same way; standing straight with both arms relaxed at her sides Keep her slim feminine build, her height and proportions, the round bubble helmet in exactly the same size and shape. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_d_fdfix_outfit.png",
+    "88fits/astro_d_fdfix_pose.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 391,
+     "right": 382,
+     "top": 47,
+     "bottom": 51,
+     "height": 925,
+     "width": 250
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 14685,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple bright orange V-neck one-piece swimsuit and nothing else, her arms, legs and feet bare with smooth light skin, bare hands, bare feet, no gloves, no boots, no socks, no backpack, no spacesuit, no air tank; she still wears her round white space helmet whose visor is a completely dark opaque black mirror that shows no face, its round collar ring resting on her bare shoulders. In three-quarter back view, turned away from the viewer, no face visible. Keep her slim feminine build, her height and proportions, the round bubble helmet in exactly the same size and shape. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_d_front_ref.png",
+    "88fits/astro_d_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 405,
+     "right": 382,
+     "top": 52,
+     "bottom": 58,
+     "height": 913,
+     "width": 236
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 14686,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple bright orange V-neck one-piece swimsuit and nothing else, her arms, legs and feet bare with smooth light skin, bare hands, bare feet, no gloves, no boots, no socks, no backpack, no spacesuit, no air tank; she still wears her round white space helmet whose visor is a completely dark opaque black mirror that shows no face, its round collar ring resting on her bare shoulders. Seen directly from behind, no face visible, jumping for joy with both arms raised high, feet together. Keep her slim feminine build, her height and proportions, the round bubble helmet in exactly the same size and shape. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_d_front_ref.png",
+    "88fits/astro_d_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 269,
+     "right": 268,
+     "top": 72,
+     "bottom": 64,
+     "height": 887,
+     "width": 486
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 2032291,
+   "prompt": "One single figure alone in the frame: redraw this exact character in exactly the same pose, the same view, the same framing, the same size and the same place in the frame, changing only the clothes: nothing: the same orange swimsuit, the same bare skin and the same round white helmet seen from behind. Seen directly from behind, she flinches from a hit: her shoulders hunched up, her elbows bent and both hands pulled in to her chest in front of her (out of sight), her head and helmet pulled down a little; still standing on both bare feet, feet fully visible; no face Keep the helmet in exactly the same size and shape, her slim build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_d_hurtbackone_pose.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 387,
+     "right": 387,
+     "top": 57,
+     "bottom": 68,
+     "height": 898,
+     "width": 249
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 36162,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose, the framing and the view. One single figure alone in the frame: redraw the second reference image in exactly the same pose, the same framing, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple bright orange V-neck one-piece swimsuit and nothing else, her arms, legs and feet bare with smooth light skin, no gloves, no boots, no backpack, no air tank; she still wears her round white space helmet whose visor is a completely dark opaque black mirror with no face. Facing the viewer exactly as in the second reference image, flinching from a hit: both bare hands pressed to her chest, shoulders hunched, still standing on both bare feet, feet fully visible Keep her slim feminine build, her height and proportions, the round bubble helmet in exactly the same size and shape. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_d_hurtfrontfix_outfit.png",
+    "88fits/astro_d_hurtfrontfix_pose.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 360,
+     "right": 336,
+     "top": 56,
+     "bottom": 52,
+     "height": 915,
+     "width": 327
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 14689,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple bright orange V-neck one-piece swimsuit and nothing else, her arms, legs and feet bare with smooth light skin, bare hands, bare feet, no gloves, no boots, no socks, no backpack, no spacesuit, no air tank; she still wears her round white space helmet whose visor is a completely dark opaque black mirror that shows no face, its round collar ring resting on her bare shoulders. In strict side profile facing right, flinching in pain, feet fully visible. Keep her slim feminine build, her height and proportions, the round bubble helmet in exactly the same size and shape. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_d_front_ref.png",
+    "88fits/astro_d_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 396,
+     "right": 368,
+     "top": 59,
+     "bottom": 53,
+     "height": 911,
+     "width": 259
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 14691,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple bright orange V-neck one-piece swimsuit and nothing else, her arms, legs and feet bare with smooth light skin, bare hands, bare feet, no gloves, no boots, no socks, no backpack, no spacesuit, no air tank; she still wears her round white space helmet whose visor is a completely dark opaque black mirror that shows no face, its round collar ring resting on her bare shoulders. In three-quarter back view, no face visible, flinching from a hit, feet fully visible. Keep her slim feminine build, her height and proportions, the round bubble helmet in exactly the same size and shape. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_d_front_ref.png",
+    "88fits/astro_d_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 382,
+     "right": 394,
+     "top": 68,
+     "bottom": 64,
+     "height": 891,
+     "width": 247
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 1027485,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose, the framing and the view. One single figure alone in the frame: redraw the second reference image in exactly the same pose, the same framing, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple bright orange V-neck one-piece swimsuit and nothing else, her arms, legs and feet bare with smooth light skin, no gloves, no boots, no backpack, no air tank; she still wears her round white space helmet whose visor is a completely dark opaque black mirror with no face. In three-quarter front view exactly as in the second reference image: her whole body, chest, hips and feet turned 45 degrees to face the lower right of the frame, flinching from a hit with both bare hands pressed to her chest, feet fully visible Keep her slim feminine build, her height and proportions, the round bubble helmet in exactly the same size and shape. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_d_hurtfdfix_outfit.png",
+    "88fits/astro_d_hurtfdfix_pose.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 364,
+     "right": 367,
+     "top": 48,
+     "bottom": 52,
+     "height": 923,
+     "width": 292
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 14692,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple bright orange V-neck one-piece swimsuit and nothing else, her arms, legs and feet bare with smooth light skin, bare hands, bare feet, no gloves, no boots, no socks, no backpack, no spacesuit, no air tank; she still wears her round white space helmet whose visor is a completely dark opaque black mirror that shows no face, its round collar ring resting on her bare shoulders. Lying flat on the ground on the back, knocked out, limbs sprawled, the whole body visible. Keep her slim feminine build, her height and proportions, the round bubble helmet in exactly the same size and shape. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/astro_d_front_ref.png",
+    "88fits/astro_d_dead_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 101,
+     "right": 89,
+     "top": 224,
+     "bottom": 164,
+     "height": 635,
+     "width": 833
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "method": "hero_pose5",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "stills": "d",
+  "art_prompt": "a slim young woman in a simple bright orange V-neck one-piece swimsuit, bare arms, bare legs and bare feet, no gloves and no shoes, still wearing a round white space helmet whose visor is a completely dark opaque mirror that shows no face at all, standing straight with hands relaxed at the sides",
+  "anim_hint": "a slim woman in a bright orange V-neck one-piece swimsuit, barefoot: bare feet with toes, bare arms and bare legs, wearing a round white space helmet whose visor is a completely dark opaque black mirror with no face behind it",
+  "anim_negative": "face, eyes, mouth, hair, a visible face inside the helmet, transparent visor, gloves, shoes, sneakers, trainers, sandals, socks, boots, footwear, shoe soles, a spacesuit, a backpack, a third leg, a third foot, an extra foot",
+  "pose_drivers": {
+   "front": "run_legs70"
+  },
+  "key_cut_shadow": false,
+  "hurt_hint": "her round helmet visor stays a completely dark opaque black mirror with no face behind it, the whole body tensing",
+  "back_hint": "She runs away from the viewer the whole time and never turns round: the plain white back of the round helmet, her bare back and the swimsuit's low V back, the backs of her legs and her heels.",
+  "anim_seed": 13,
+  "polish": [
+   {
+    "mode": "hue",
+    "ranges": [
+     [
+      60,
+      175
+     ]
+    ],
+    "to": 25,
+    "sat": 0.5,
+    "min_sat": 0.2
+   }
+  ]
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

@@ -405,18 +405,19 @@ func test_a_basketball_that_hits_still_comes_home() -> void:
 	assert_int(pm.drops).is_equal(0)
 
 
-func test_the_gravity_gun_fires_at_the_sand_with_nobody_near() -> void:
+## Pass 141 (lane GRAV): the dry shot at the sand is gone: with nobody near the pull is not spent (the gun searches the sand
+## on its own clock instead, pass141_grav_test).
+func test_the_gravity_gun_spends_no_pull_with_nobody_near() -> void:
 	var w := _world()
 	var g: Node = w["g"]
 	var em: EnemyManager = w["em"]
 	var gun := _behaviour(w, GravityGun.new(), _inst("gravity_gun")) as GravityGun
-	assert_bool(gun._fire()).is_true()
-	assert_int(gun.dry_shots).is_equal(1)
-	assert_int(int(g.get("sands"))).is_equal(1)
+	assert_bool(gun._fire()).is_false()
+	assert_int(int(g.get("sands"))).is_equal(0)
 	assert_int(gun._grips.size()).is_equal(0)
 	# a creature behind him is never grabbed; one ahead in the cone is
 	var back := _creature(em, _at(3.0, 170.0))
-	assert_bool(gun._fire()).is_true()
+	assert_bool(gun._fire()).is_false()
 	assert_int(gun._grips.size()).is_equal(0)
 	var ahead := _creature(em, _at(4.0, 20.0))
 	assert_bool(gun._fire()).is_true()

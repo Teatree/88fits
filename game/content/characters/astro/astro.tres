@@ -121,14 +121,7 @@ variants = {
 "frame_px": 256,
 "icon": "res://content/characters/astro/astro_icon_b.png",
 "note": "pass 126: a black and gold spacesuit: Klein edits of her own paintings, view by view (tools/gen_skin_views.py), walked on her own driver",
-"shelved": false,
-"skin": {
-"currency_type": "gold",
-"name": "Event Horizon",
-"price": 3000.0,
-"purchasable": true,
-"unlock_quest": ""
-},
+"shelved": true,
 "sprite": "res://content/characters/astro/astro_sprite_b.png",
 "sprite_file": "astro_sprite_b.png",
 "strip_cols": 62,
@@ -168,12 +161,53 @@ variants = {
 "name": "Mission Control",
 "price": 1500.0,
 "purchasable": true,
-"unlock_quest": ""
+"unlock_quest": "skin_astro_ast_c"
 },
 "sprite": "res://content/characters/astro/astro_sprite_c.png",
 "sprite_file": "astro_sprite_c.png",
 "strip_cols": 62,
 "title": "hero_astro_c.png"
+},
+"AST-D": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": "res://content/characters/astro/astro_icon_d.png",
+"note": "pass 141: Splashdown, Astro at the beach: a plain orange V-neck one-piece swimsuit, bare arms, legs and feet, and still her space helmet (Garry: \"the funny twist\"); Klein edits of her own paintings view by view (tools/gen_skin_views.py from AST-A; the back, fd and hurts as two-reference edits, tools/dl/p141/ART/scripts/edit_cands.py), walked on her run driver, the front on run_legs70 (the legs' swing x0.7, so the kicked-back foot stays behind the planted knee: Garry's third foot on AST-B); key_cut_shadow off (the shadow cut ate her pale bare feet and the outline drew shoes round the holes)",
+"shelved": false,
+"skin": {
+"currency_type": "gold",
+"name": "Splashdown",
+"price": 3000.0,
+"purchasable": true,
+"unlock_quest": ""
+},
+"sprite": "res://content/characters/astro/astro_sprite_d.png",
+"sprite_file": "astro_sprite_d.png",
+"strip_cols": 62,
+"title": "hero_astro_d.png"
 }
 }
 variant = "AST-A"

@@ -23,7 +23,7 @@
     []
   ],
   "params": {
-    "fx_style": "lance",
+    "fx_style": "burst",
     "fire_forward": true,
     "pierce_falloff": {
       "step": 0.8,

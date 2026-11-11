@@ -5,13 +5,17 @@
 ## the last level (HeroPower). Pass 140 (lane TRAIL, re-pinned to plan v2): 130 nodes, the opening a power node every
 ## level with the first Cards and items beside them, four outlaws at twice their level's price (Astro open, May a task),
 ## the Trail's items without quests, no power-up node; the purse model's runs (pass 129's fit 2) moved to
-## tools/trail_setup.py (the progression plan's journey: `python tools/trail_setup.py --tables`).
+## tools/trail_setup.py (the progression plan's journey: `python tools/trail_setup.py --tables`). Pass 141 (lane TRAIL,
+## one lane): 109 nodes on 83 levels, one thing to buy a level, the opening plain with the first items from level 5, four
+## thin types off the Trail (RETIRED), the outlaws and items placed by share of the levels.
 extends GdUnitTestSuite
 
 const UNLOCKS := ["outlaw", "skin", "weapon", "passive", "stage", "map", "structure", "powerup", "feature"]
 const OUTLAWS := ["calavera", "solenne", "fadeaway", "buck"]
 const PLAIN_WEAPONS := [["revolver", 5], ["molotov", 4], ["orbit_saws", 4], ["boomstick", 3], ["tommy_gun", 3]]
 const PLAIN_PASSIVES := [["brawn", 3], ["vigour", 3], ["mend", 2], ["reach", 2], ["quickdraw", 2]]
+## Pass 141: the thin upgrade types that left the Trail (their blocks stay in the file for the Level Editor)
+const RETIRED := ["shot_speed", "care_package", "grip", "loose_coins"]
 
 var _nodes: Array = []
 var _top := 0
@@ -79,7 +83,8 @@ func _level_of(type: String, id: String) -> int:
 func test_the_set_is_100_nodes_or_more_under_to_be_continued() -> void:
 	# pass 140: 130 (plan v2); pass140_trail_test pins the mix
 	assert_bool(_nodes.size() >= 100).override_failure_message("%d nodes" % _nodes.size()).is_true()
-	assert_bool(_top >= 60 and _top <= 80).override_failure_message("%d levels" % _top).is_true()
+	# pass 141: one thing a level, 83 levels
+	assert_bool(_top >= 60 and _top <= 90).override_failure_message("%d levels" % _top).is_true()
 	assert_str(Trail.end_text()).is_equal("To be continued")
 	for l in range(1, _top + 1):
 		var required := Trail.nodes_on(l).filter(func(n: Dictionary) -> bool: return str(n["kind"]) != "optional")
@@ -93,21 +98,24 @@ func test_the_game_and_the_file_agree_the_trail_is_sound() -> void:
 
 
 func test_the_opening_is_plain_nodes_with_a_different_upgrade_on_every_level() -> void:
-	# pass 140 (plan v2): an upgrade on each of the first eight levels, the first Cards and items beside them from level 4
+	# pass 140 (plan v2): an upgrade on each of the first eight levels, the first Cards and items beside them from level 4;
+	# pass 141 (one lane): one plain node a level, the first three upgrades, the first items from level 5, no upgrade type
+	# twice in the opening
 	var seen := {}
 	var ups := 0
 	for l in range(1, 9):
 		var row := Trail.nodes_on(l)
-		var here := 0
+		assert_int(row.size()).override_failure_message("level %d" % l).is_equal(1)
 		for n: Dictionary in row:
 			assert_str(str(n["kind"])).override_failure_message("level %d" % l).is_equal("node")
 			if _is_up(n):
 				seen[_type(n)] = true
-				here += 1
+				ups += 1
 			else:
+				assert_bool(l >= 5).override_failure_message("an item at level %d" % l).is_true()
 				assert_str(str(n["gives"]["type"])).override_failure_message("level %d" % l).is_equal("passive")
-		assert_bool(here >= 1).override_failure_message("level %d has no upgrade" % l).is_true()
-		ups += here
+		if l <= 3:
+			assert_bool(_is_up(row[0])).override_failure_message("level %d has no upgrade" % l).is_true()
 	assert_int(seen.size()).override_failure_message("the opening repeats an upgrade type").is_equal(ups)
 	for n: Dictionary in _nodes:
 		if str(n["kind"]) == "choice":
@@ -156,9 +164,9 @@ func test_no_upgrade_type_comes_twice_within_five_levels() -> void:
 			var gap := int(n["level"]) - int(last[t])
 			assert_bool(gap >= 5).override_failure_message("%s at levels %d and %d" % [t, int(last[t]), int(n["level"])]).is_true()
 		last[t] = int(n["level"])
-	# every upgrade type the file defines is used
+	# every upgrade type the file defines is used, but the four that left the Trail in pass 141 (never)
 	for t: Variant in Trail.upgrade_types():
-		assert_bool(last.has(str(t))).override_failure_message("upgrade type %s is never used" % str(t)).is_true()
+		assert_bool(last.has(str(t)) != RETIRED.has(str(t))).override_failure_message("upgrade type %s" % str(t)).is_true()
 
 
 func test_a_choice_is_between_upgrades_never_an_unlock() -> void:
@@ -188,7 +196,8 @@ func test_the_outlaws_come_in_title_order_at_twice_their_levels_price() -> void:
 	var sorted := levels.duplicate()
 	sorted.sort()
 	assert_array(levels).is_equal(sorted)
-	assert_bool(int(levels[0]) <= 20 and int(levels[levels.size() - 1]) >= 34 and int(levels[levels.size() - 1]) <= 45).override_failure_message("outlaw levels %s" % [levels]).is_true()
+	# pass 141: by share of the levels (one lane, 83 levels): the first in the first third, the last past the middle
+	assert_bool(int(levels[0]) <= int(0.3 * _top) and int(levels[levels.size() - 1]) >= int(0.5 * _top) and int(levels[levels.size() - 1]) <= int(0.65 * _top)).override_failure_message("outlaw levels %s" % [levels]).is_true()
 	# the Drifter, (pass 132) Ironwood and (pass 140) Astro are free from the start: no node names them; May comes from a task
 	for id: String in ["drifter", "ironwood", "astro"]:
 		assert_bool(Trail.gated("outlaw", id)).override_failure_message(id).is_false()
@@ -223,7 +232,7 @@ func test_the_trails_items_have_no_quest_and_start_locked() -> void:
 		assert_object(Registry.weapon(id) if type == "weapon" else Registry.passive(id)).override_failure_message(id).is_not_null()
 		assert_object(Registry.quest_for(type, id)).override_failure_message("%s still has an unlock quest" % id).is_null()
 		assert_bool(Registry.is_unlocked(type, id)).override_failure_message(id).is_false()
-		assert_bool(int(n["level"]) >= 4 and int(n["level"]) <= 66).override_failure_message("%s at level %d" % [id, int(n["level"])]).is_true()
+		assert_bool(int(n["level"]) >= 4 and int(n["level"]) <= _top - 3).override_failure_message("%s at level %d" % [id, int(n["level"])]).is_true()
 	assert_bool(Trail.gated("weapon", "lob_grenade")).is_false()
 	# no structure, power-up, feature or map node (Garry, pass 140: "Remove Power-ups from the Trails, but keep Stage")
 	for n: Dictionary in _nodes:

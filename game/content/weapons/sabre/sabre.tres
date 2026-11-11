@@ -86,7 +86,7 @@ params = {
 "threat_reach": 3.0
 },
 "fire_forward": true,
-"fx_style": "crescent",
+"fx_style": "moon",
 "thrust": {
 "back": 0.12,
 "out": 0.06,

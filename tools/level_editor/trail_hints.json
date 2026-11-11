@@ -98,7 +98,7 @@
   },
   "care_package": {
     "what": "A chance on every kill to drop a cake slice that heals: 0.01 = one kill in a hundred.",
-    "note": "A chance per kill: keep the numbers small. No cake drops while the Cake power-up is a Trail node not yet bought."
+    "note": "A chance per kill: keep the numbers small. No cake drops while the Cake power-up is a Trail node not yet bought. Off the Trail since pass 141 (a thin type). Since pass 141 a cake slice heals x2.4 (BALANCING 82.SMALL): if you add a node back, half pass 140's 0.002 (0.001) lands near the Cake's own x1.2."
   },
   "long_buff": {
     "what": "A power-up picked up off the ground lasts this much longer (Berserk, Sprint, the Shield).",

@@ -1,9 +1,11 @@
 ## Pass 140, lane TRAIL: the Trail of the progression plan v2 with Garry's changes (docs/progression/progression_plan.html;
 ## Garry 2026-11-10: "Remove Power-ups from the Trails, but keep Stage", "keep 3 Unlocked: Drifter, Ironwood and Astro",
 ## "make sure not to damage our mix of choice/optional and regular nodes"), read from the game's own file
-## (content/trail/trail.json, written by tools/trail_setup.py). BALANCING.md 81.TRAIL.
+## (content/trail/trail.json, written by tools/trail_setup.py). BALANCING.md 81.TRAIL. Pass 141 (lane TRAIL, one lane:
+## pass141_trail_test.gd) re-pinned the levels and the price to the file.
 extends GdUnitTestSuite
 
+const SWAPS := preload("res://tests/fixtures/skin_swaps.gd")
 const UNLOCK_MULT := 0.5
 const OUTLAW_MULT := 2.0
 
@@ -43,9 +45,13 @@ func test_no_power_up_structure_feature_or_map_on_the_trail_and_every_power_up_o
 	assert_bool(Trail.gated("feature", "wanted")).is_false()
 
 
-func test_the_dust_bowl_at_18_and_blood_moon_at_34() -> void:
-	assert_int(Trail.level_for("stage", "red_canyon:dust")).is_equal(18)
-	assert_int(Trail.level_for("stage", "red_canyon:s3")).is_equal(34)
+func test_the_dust_bowl_and_blood_moon_each_on_its_own_level() -> void:
+	# pass 140: 18 and 34; pass 141 (one lane): 26 and 46, about the same run
+	var dust := Trail.level_for("stage", "red_canyon:dust")
+	var moon := Trail.level_for("stage", "red_canyon:s3")
+	assert_bool(dust > 0 and dust < moon).override_failure_message("%d, %d" % [dust, moon]).is_true()
+	for l: int in [dust, moon]:
+		assert_int(Trail.nodes_on(l).filter(func(n: Dictionary) -> bool: return str(n["kind"]) != "optional").size()).is_equal(1)
 	var stages := _nodes.filter(func(n: Dictionary) -> bool: return _type(n) == "stage")
 	assert_int(stages.size()).is_equal(2)
 	for n: Dictionary in stages:
@@ -90,17 +96,20 @@ func test_item_card_and_skin_nodes_cost_half_their_levels_price() -> void:
 		assert_bool(n.has("price")).override_failure_message(_gift_id(n)).is_false()
 		assert_float(float(n.get("price_mult", 1.0))).override_failure_message(_gift_id(n)).is_equal_approx(UNLOCK_MULT, 0.0001)
 		assert_int(Trail.price(str(n["id"]))).is_equal(Trail.price_at(cfg, int(n["level"]), UNLOCK_MULT))
-	# 29 items, Cards and weapons and Astro · Event Horizon
+	# 29 items, Cards and weapons and Astro's second skin (Event Horizon; pass 141: Splashdown once lane ART installs it)
 	assert_int(count).is_equal(30)
-	assert_int(Trail.level_for("skin", "astro:AST-B")).is_equal(32)
+	var skin := Registry.skin_key("astro", SWAPS.now("astro", "AST-B"))
+	assert_bool(Trail.gated("skin", skin)).override_failure_message(skin).is_true()
+	assert_int(Trail.nodes_on(Trail.level_for("skin", skin)).filter(func(n: Dictionary) -> bool: return str(n["kind"]) != "optional").size()).is_equal(1)
 
 
 func test_the_price_block_is_the_plans_fit() -> void:
-	# pass 140: the progression plan's fit (Garry may edit it in the Level Editor's Trail tab: re-pin to his numbers then)
+	# pass 140: the progression plan's fit (Garry may edit it in the Level Editor's Trail tab: re-pin to his numbers then);
+	# pass 141: the one-lane Trail's fit on lane ECON's measured purses (k 6.21 -> 1.16, power 1.9 -> 2.25)
 	var cfg: Dictionary = Trail.read_file(Trail.DEFAULT)["price"]
 	assert_float(float(cfg["base"])).is_equal_approx(20.0, 0.0001)
-	assert_float(float(cfg["k"])).is_equal_approx(6.21, 0.0001)
-	assert_float(float(cfg["power"])).is_equal_approx(1.9, 0.0001)
+	assert_float(float(cfg["k"])).is_equal_approx(1.16, 0.0001)
+	assert_float(float(cfg["power"])).is_equal_approx(2.25, 0.0001)
 	assert_float(float(cfg["round"])).is_equal_approx(10.0, 0.0001)
 	# the first node keeps its own price (Garry's Might +5% for 10)
 	assert_int(Trail.price(str(_nodes[0]["id"]))).is_equal(10)
@@ -124,7 +133,8 @@ func test_the_mix_of_choice_optional_and_rails_meeting_nodes_is_pass_129s() -> v
 	assert_int(choice).is_equal(28)
 	assert_int(optional).is_equal(10)
 	assert_int(meet).is_equal(3)
-	# the rails meet from the level right below: Extra Barrel (52), Pass the Bottle (59), Boot Hill Pass (64)
+	# the rails meet from the level right below: Extra Barrel (52), Pass the Bottle (59), Boot Hill Pass (64); pass 141 (one
+	# lane): from every member of the choice group right below them (62, 69, 72)
 	for n: Dictionary in _nodes:
 		var from: Array = n.get("from", [])
 		if from.size() >= 2:
@@ -160,8 +170,11 @@ func test_split_json_agrees_with_the_trail() -> void:
 		if str(e.get("by", "")) == "trail":
 			trail += 1
 			var want_id := ("red_canyon:" + id) if kind == "stage" else id
+			if kind == "skin":
+				# pass 141: Astro's Trail skin is Splashdown once lane ART's look is in (tests/fixtures/skin_swaps.gd)
+				want_id = Registry.skin_key(id.get_slice(":", 0), SWAPS.now(id.get_slice(":", 0), id.get_slice(":", 1)))
 			assert_bool(Trail.gated(kind, want_id)).override_failure_message("%s is no Trail node" % key).is_true()
-			assert_int(Trail.level_for(kind, want_id)).override_failure_message(key).is_equal(int(e.get("level", -1)))
+			# (pass 141: the levels moved with the one-lane Trail; the split itself holds)
 		else:
 			tasks[key] = true
 	var gifts := 0

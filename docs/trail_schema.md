@@ -36,7 +36,10 @@ A node without its own `price` costs `round_to(base + k * level ^ power, round) 
 
 The game's set since pass 140 (the progression plan v2, `tools/trail_setup.py`): `{"base": 20, "k": 6.21, "power":
 1.9, "round": 10}` (level 10 costs 510, level 30 4,000, level 70 19,920), an item, Card or skin node `price_mult` 0.5,
-an outlaw node 2, a stage node its level's price; 130 nodes on 70 levels.
+an outlaw node 2, a stage node its level's price; 130 nodes on 70 levels. Since pass 141 (one lane: one thing to buy a
+level, a plain node or one choice group, the optional nodes beside it): `{"base": 20, "k": 1.16, "power": 2.25, "round":
+10}` (level 10 costs 230, level 30 2,460, level 50 7,730, level 83 24,140), the same multipliers; 109 nodes on 83 levels;
+a rails-meeting node names every member of the choice group right below it (`need` any).
 
 ### `sections`
 

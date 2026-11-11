@@ -1,6 +1,6 @@
 {
-  "id": "skin_solenne_sol_h",
-  "name": "Solenne · Solar Flare",
+  "id": "skin_solenne_sol_i",
+  "name": "Solenne · Oasis",
   "condition": {
     "type": "element_damage",
     "element": "fire",
@@ -8,8 +8,8 @@
   },
   "unlocks": {
     "type": "skin",
-    "id": "solenne:SOL-H"
+    "id": "solenne:SOL-I"
   },
   "requires": "unlock_brimstone_brand",
-  "icon": "res://content/characters/solenne/solenne_icon_h.png"
+  "icon": "res://content/characters/solenne/solenne_icon_i.png"
 }

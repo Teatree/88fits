@@ -115,10 +115,11 @@ func test_every_sold_look_is_painted_named_and_gated_by_a_real_goal() -> void:
 			assert_bool(Currency.known(c.skin_currency(str(code)))).override_failure_message(msg + ": currency").is_true()
 			var q := Registry.skin_quest(c, str(code))
 			# pass 140 (lane QUESTS, re-pinned; plan v2): a skin may come with no goal: on sale from the start (Dust
-			# Walker, Thunderbird, Mission Control) or a Trail node's (Event Horizon)
+			# Walker, Thunderbird, Mission Control) or a Trail node's (Event Horizon); pass 141 (lane TRAIL; Garry: "All
+			# Skins should be locked behind either a task or in the Trail"): only a Trail node's
 			if q == null:
 				var key := Registry.skin_key(c.id, str(code))
-				var allowed: bool = Trail.gated("skin", key) or ["drifter:DRI-C", "ironwood:IRN-C", "astro:AST-C"].has(key)
+				var allowed: bool = Trail.gated("skin", key)
 				assert_bool(allowed).override_failure_message(msg + ": no goal").is_true()
 				continue
 			assert_bool(Registry.quest_visible(q)).override_failure_message(msg).is_true()

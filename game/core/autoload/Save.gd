@@ -69,7 +69,18 @@ func _ready() -> void:
 	if Array(OS.get_cmdline_args()).any(func(a) -> bool: return str(a).ends_with("GdUnitCmdTool.gd")):
 		dir = "user://test_saves"
 		epoch_check = false
+	# pass 141 (lead): a tool's run (a `--script` main loop: smoke_run, the arena check, the captures, the probes) never
+	# starts the new save: the new save is for a player's own launch. A tool run on the PC's real save had set it aside
+	# and left a fresh one behind whenever it ran outside tools/godot.sh's keep and restore.
+	if _tool_run():
+		epoch_check = false
 	load_save()
+
+
+## Whether this process is a tool's run: started with `--script` / `-s` (a SceneTree main loop), not the game's own scene.
+static func _tool_run() -> bool:
+	var args := Array(OS.get_cmdline_args())
+	return args.has("--script") or args.has("-s")
 
 
 func _process(_delta: float) -> void:

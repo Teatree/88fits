@@ -6,8 +6,10 @@ extends GdUnitTestSuite
 
 const RESULTS := preload("res://ui/ResultsScreen.gd")
 const LADDER := ["unlock_tommy_gun", "unlock_adrenaline", "unlock_phoenix_feather", "unlock_sinners_greed", "unlock_hot_streak"]
+## (pass 141, lane TRAIL: skin_drifter_dri_c, skin_ironwood_irn_c and skin_astro_ast_c are back: every skin behind a task
+## or the Trail; pass141_trail_test.gd)
 const RETIRED := ["unlock_lob_grenade", "unlock_quickdraw", "unlock_stride", "unlock_haste", "unlock_field_notes",
-	"unlock_zap_beam", "unlock_rocket_pod", "skin_drifter_dri_c", "skin_ironwood_irn_c", "skin_astro_ast_c", "skin_astro_ast_b"]
+	"unlock_zap_beam", "unlock_rocket_pod", "skin_astro_ast_b"]
 
 
 func before_test() -> void:
@@ -39,17 +41,19 @@ func _tasks() -> Array:
 # ---------------------------------------------------------------- the set
 
 func test_thirty_four_tasks_plus_dad_and_mira() -> void:
-	assert_int(_tasks().size()).is_equal(34)
+	# pass 141 (lane TRAIL): 37, the three skins pass 140 sold from the start have their tasks again
+	assert_int(_tasks().size()).is_equal(37)
 	assert_object(_q("unlock_dad")).is_not_null()
 	assert_object(_q("unlock_mira")).is_not_null()
 	for id in RETIRED:
 		assert_object(_q(id)).override_failure_message("retired %s" % id).is_null()
-	# ten skin tasks, five of them behind another task
+	# ten skin tasks, five of them behind another task (pass 141: thirteen, seven: Black Hat and Winter Pelt wait for the
+	# outlaw's first skin)
 	var skins: Array = _tasks().filter(func(q: QuestDef) -> bool: return str(q.unlocks.get("type", "")) == "skin")
-	assert_int(skins.size()).is_equal(10)
-	assert_int(skins.filter(func(q: QuestDef) -> bool: return not q.requires.is_empty()).size()).is_equal(5)
-	# twelve tasks behind another (the plan's count)
-	assert_int(_tasks().filter(func(q: QuestDef) -> bool: return not q.requires.is_empty()).size()).is_equal(12)
+	assert_int(skins.size()).is_equal(13)
+	assert_int(skins.filter(func(q: QuestDef) -> bool: return not q.requires.is_empty()).size()).is_equal(7)
+	# twelve tasks behind another (the plan's count; pass 141: fourteen)
+	assert_int(_tasks().filter(func(q: QuestDef) -> bool: return not q.requires.is_empty()).size()).is_equal(14)
 	# every prerequisite is a quest, none waits on itself or in a ring
 	for q: QuestDef in Registry.quests.values():
 		var seen := {q.id: true}
@@ -273,11 +277,14 @@ func test_every_unlock_exists_and_none_is_also_a_trail_node() -> void:
 
 
 func test_the_skins_for_sale_need_no_task_and_may_comes_from_hers() -> void:
+	# pass 141 (lane TRAIL; Garry: "All Skins should be locked behind either a task or in the Trail"): the three skins pass
+	# 140 sold from the start have their task again, the outlaw's weapon to level 5
 	for pair in [["drifter", "DRI-C"], ["ironwood", "IRN-C"], ["astro", "AST-C"]]:
 		var c: CharacterDef = Registry.character(str(pair[0]))
-		assert_object(Registry.skin_quest(c, str(pair[1]))).is_null()
-		if Registry.hero_state(c) == "owned":
-			assert_str(Registry.skin_state(c, str(pair[1]))).is_equal("buyable")
+		var q := Registry.skin_quest(c, str(pair[1]))
+		assert_object(q).is_not_null()
+		assert_str(str(q.condition.get("type", ""))).is_equal("item_level")
+		assert_str(Registry.skin_state(c, str(pair[1]))).is_equal("locked")
 	var may: CharacterDef = Registry.character("may")
 	assert_object(Registry.quest_for("character", "may")).is_equal(_q("unlock_may"))
 	assert_str(Registry.hero_state(may)).is_equal("locked")

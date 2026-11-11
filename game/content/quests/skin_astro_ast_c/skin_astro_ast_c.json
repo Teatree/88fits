@@ -1,0 +1,15 @@
+{
+  "id": "skin_astro_ast_c",
+  "name": "Astro · Mission Control",
+  "condition": {
+    "type": "item_level",
+    "kind": "weapon",
+    "id": "gravity_gun",
+    "level": 5
+  },
+  "unlocks": {
+    "type": "skin",
+    "id": "astro:AST-C"
+  },
+  "icon": "res://content/characters/astro/astro_icon_c.png"
+}

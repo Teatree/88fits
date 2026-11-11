@@ -8,37 +8,37 @@
 [sub_resource type="Resource" id="Resource_8m2bd"]
 script = ExtResource("3_m3dcs")
 stat = "heal_drop"
-value = 0.004
+value = 0.002
 target = "player"
 
 [sub_resource type="Resource" id="Resource_tatj6"]
 script = ExtResource("3_m3dcs")
 stat = "heal_drop"
-value = 0.0025
+value = 0.0013
 target = "player"
 
 [sub_resource type="Resource" id="Resource_m3dcs"]
 script = ExtResource("3_m3dcs")
 stat = "heal_drop"
-value = 0.0025
+value = 0.0013
 target = "player"
 
 [sub_resource type="Resource" id="Resource_bqw4k"]
 script = ExtResource("3_m3dcs")
 stat = "heal_drop"
-value = 0.0025
+value = 0.0013
 target = "player"
 
 [sub_resource type="Resource" id="Resource_w0txs"]
 script = ExtResource("3_m3dcs")
 stat = "heal_drop"
-value = 0.0025
+value = 0.0013
 target = "player"
 
 [sub_resource type="Resource" id="Resource_cxn2t"]
 script = ExtResource("3_m3dcs")
 stat = "heal_drop"
-value = 0.0035
+value = 0.0017
 target = "player"
 
 [resource]

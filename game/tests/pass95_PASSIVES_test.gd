@@ -144,7 +144,8 @@ func test_every_item_climbs_its_ladder_and_the_lines_keep_theirs() -> void:
 	assert_float(float((Registry.passive("desperado").effects_at_level(1)[0] as Effect).value)).is_equal_approx(0.16, 0.0001)
 	assert_float(float((Registry.passive("gas_mask").effects_at_level(1)[0] as Effect).value)).is_equal_approx(0.12, 0.0001)
 	assert_float(float((Registry.passive("magnet").effects_at_level(1)[0] as Effect).value)).is_equal_approx(6.0, 0.0001)
-	assert_float(float((Registry.passive("cake").effects_at_level(1)[0] as Effect).value)).is_equal_approx(0.004, 0.00001)
+	# pass 141 (lane SMALL, BALANCING 82.SMALL): the Cake drops half as often (each slice heals x2.4 and lies x2 as long)
+	assert_float(float((Registry.passive("cake").effects_at_level(1)[0] as Effect).value)).is_equal_approx(0.002, 0.00001)
 
 
 # ---------------------------------------------------------------- the plates
@@ -244,11 +245,12 @@ func test_the_cards_name_the_rung_and_the_top_says_evolved() -> void:
 	assert_str(TextGen.next_level_text(cake, 5)).starts_with("Next level (Evolved): ")
 	assert_str(TextGen.next_level_text(cake, 6)).is_equal("Maxed.")
 	assert_str(TextGen.next_level_text(brawn, 1)).starts_with("Next level: ")
-	assert_str(TextGen.passive_description(cake, 1)).is_equal("+0.4% cake drop chance.")
-	assert_str(TextGen.passive_description(cake, 3)).is_equal("Level 3 (Rare): +0.9% cake drop chance total.")
-	assert_str(TextGen.passive_description(cake, 6)).is_equal("Level 6 (Evolved): +1.75% cake drop chance total.")
+	# pass 141 (lane SMALL, 82.SMALL): the Cake's rungs about halved
+	assert_str(TextGen.passive_description(cake, 1)).is_equal("+0.2% cake drop chance.")
+	assert_str(TextGen.passive_description(cake, 3)).is_equal("Level 3 (Rare): +0.46% cake drop chance total.")
+	assert_str(TextGen.passive_description(cake, 6)).is_equal("Level 6 (Evolved): +0.89% cake drop chance total.")
 	assert_str(TextGen.passive_description(Registry.passive("magnet"), 3)).is_equal("Level 3 (Evolved): +8.5 m EXP pull radius total.")
-	assert_str(WItem.effect({"def": cake, "level_from": 5, "level_to": 6})).is_equal("Next: +0.35% cake drop chance.")
+	assert_str(WItem.effect({"def": cake, "level_from": 5, "level_to": 6})).is_equal("Next: +0.17% cake drop chance.")
 	# the Collection's kind line climbs to Evolved
 	var cs: CollectionScreen = auto_free(CollectionScreen.new())
 	assert_str(cs._kind_line(cake)).is_equal("Passive · Common → Evolved · 6 levels")

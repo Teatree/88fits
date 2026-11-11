@@ -55,7 +55,9 @@ LADDER = {
                    + [[E("barrel_speed", 0.12), E("barrel_seconds", 0.9)]],
     "beer": [[E("might", 0.15, "mul"), E("max_hp", -0.05, "mul")]] + [[E("might", 0.1, "mul"), E("max_hp", -0.04, "mul")]] * 4
             + [[E("might", 0.14, "mul"), E("max_hp", -0.05, "mul")]],
-    "cake": [[E("heal_drop", 0.004)]] + [[E("heal_drop", 0.0025)]] * 4 + [[E("heal_drop", 0.0035)]],
+    # pass 141 (lane SMALL; Garry: "Make the Cake item spawn cakes more rarely, but they heal more"): about half the
+    # chance (0.004 / 0.0025 / 0.0035 before), each slice heals 2.4x (content/pickups/cake_slice)
+    "cake": [[E("heal_drop", 0.002)]] + [[E("heal_drop", 0.0013)]] * 4 + [[E("heal_drop", 0.0017)]],
     "cold_snap": [[E("freeze_chance", 0.03)]] + [[E("freeze_chance", 0.015)]] * 4 + [[E("freeze_chance", 0.02)]],
     "pickpocket": [[E("coin_drop", 0.005)]] + [[E("coin_drop", 0.003)]] * 4 + [[E("coin_drop", 0.005)]],
     "quickdraw": [[E("projectile_speed", 0.2, "mul")]] + [[E("projectile_speed", 0.12, "mul")]] * 4 + [[E("projectile_speed", 0.18, "mul")]],

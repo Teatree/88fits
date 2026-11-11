@@ -3,9 +3,9 @@
   "name": "Cake Slice",
   "flavour": "A small slice of health.",
   "effect": "heal",
-  "value": 0.06,
+  "value": 0.144,
   "duration": 0,
-  "lifetime": 30,
+  "lifetime": 60,
   "color": "#F4A6B8",
   "weight": 0,
   "placeholder": {

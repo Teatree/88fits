@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_icon_i.png" id="1_poptv"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_pvdup"]
+
+[resource]
+script = ExtResource("2_pvdup")
+condition = {
+"count": 405000.0,
+"element": "fire",
+"type": "element_damage"
+}
+unlocks = {
+"id": "solenne:SOL-I",
+"type": "skin"
+}
+requires = ["unlock_brimstone_brand"]
+id = "skin_solenne_sol_i"
+display_name = "Solenne · Oasis"
+icon = ExtResource("1_poptv")
+icon_file = "res://content/characters/solenne/solenne_icon_i.png"

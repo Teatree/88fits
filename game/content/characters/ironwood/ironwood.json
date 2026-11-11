@@ -334,7 +334,7 @@
         "name": "Thunderbird",
         "price": 1500,
         "currency_type": "gold",
-        "unlock_quest": ""
+        "unlock_quest": "skin_ironwood_irn_c"
       },
       "sprite": "ironwood_sprite_c.png",
       "icon": "ironwood_icon_c.png",

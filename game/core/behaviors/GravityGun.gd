@@ -15,6 +15,26 @@
 ## Pass 48, Repulsor (params.gravity {knock_mult, throw_mult, purple}): a landing throws the crowd `knock_mult` times as
 ## hard over a blast `throw_mult` times as wide (the spot it picks counts the wider blast), and its flash ring, burst and
 ## dust are purple; on the Singularity it is the black hole's pop that throws harder and wider.
+## Pass 141 (lane GRAV; Garry, "Polish #4" item 6: the gun "seems to perform a very sad looking brief shot on the ground
+## when there are no targets ... make it do a kind of a 'search', it shoots its beam occasionally at the ground, so like a
+## 1 second. But it's a continuous beam 'feeling out' the ground (searching)", and "Throw barrels towards me ... grab,
+## pause, throw. But it throws at the hero and when it lands it automatically breaks ... this only works around 75% of
+## the distance that is required for the initial enemy reach. And this range never increases with Upgrades"; BALANCING
+## 82.GRAV):
+##   the search (params.gravity.search, SEARCH): pass 136's dry shot at the sand is gone. A pull that finds nothing to take
+##   spends nothing (the gun asks again every 0.15 s, as before pass 136); now and then (`every` s after its last search or
+##   grab) it feels out the sand instead: for `seconds` a thin beam from the Core sweeps an arc `sweep_deg` wide across his
+##   facing, `reach` m ahead of him and wandering `wander` m in and out, a soft glow `glow` m wide where it touches and a
+##   few specks left on the sand. Looks only: it grabs and hurts nothing; whatever comes into the gun's reach is taken by
+##   its own pull, which ends the search at once (the beam swings from the sand onto it). The Singularity never searches.
+##   the barrels (params.gravity.barrel, BARREL): a standing barrel within `reach_frac` x the family's level-1 `range` (the
+##   Gravity Gun's JSON base: 0.75 x 7 = 5.25 m; no level, mutation, item, evolution or Trail node changes it) is taken
+##   first, in place of one creature of the pull (the nearest such barrel, one at a time). It rises `lift` m off the sand,
+##   drawn `pull` of the way towards the gun, in the gun's own grab, hold and throw times and arc, then flies to land
+##   `ahead` m in front of the Outlaw (where his walk puts him by then, x `lead`), turning `spin` times, and breaks there
+##   as a round's last hit breaks one (BarrelField.land_carried: debris, gems, coins, a power-up). It never hurts him.
+##   While it is carried, walking into it, rounds and knocks pass it by (BarrelField.carried). The Singularity takes it
+##   the same way, in place of that pull's black hole. No text tells of it (Garry).
 class_name GravityGun
 extends WeaponBehavior
 
@@ -23,6 +43,13 @@ const PH_HOLD := 1
 const PH_THROW := 2
 ## Repulsor's blast
 const PURPLE := Color(0.62, 0.3, 0.95)
+## Pass 141 (lane GRAV): the search's and the barrel throw's numbers where the JSON names none (see the header).
+const SEARCH := {"every": 3.0, "seconds": 1.0, "sweep_deg": 50.0, "reach": 3.4, "wander": 0.5, "glow": 1.2}
+const BARREL := {"reach_frac": 0.75, "lift": 1.3, "pull": 0.3, "ahead": 1.3, "lead": 1.0, "spin": 1.25}
+## the search beam reaches the sand in this long and draws back in the last SEARCH_OUT seconds
+const SEARCH_IN := 0.12
+const SEARCH_OUT := 0.16
+const SEARCH_COLOR := Color(0.55, 0.95, 1.0)
 
 var _familiar: Node3D
 var _spin: Node3D
@@ -41,9 +68,23 @@ var _beam_mesh: ImmediateMesh
 # how the throws land, for the tests and tuning: blasts so far and the creatures they caught
 var blasts := 0
 var blast_hits := 0
+## pass 141 (lane GRAV): the barrel in the grip ({} for none: {i, phase, t, from, hold, p0, target, dur, roll, roll0}) and
+## the barrels thrown and broken at his feet so far (tests, the capture)
+var _bgrip: Dictionary = {}
+var barrel_throws := 0
+## the search: seconds before the next may start, the one running ({} for none: {t, yaw, dir, end}), searches so far,
+## how far the gun leans into it (0..1: claws, spin, glow, its nose down), its glow on the sand and the specks' clock
+var _search_wait := 0.0
+var _search: Dictionary = {}
+var searches := 0
+var _scan := 0.0
+var _glow: MeshInstance3D
+var _speck_t := 0.0
+static var _glow_tex: GradientTexture2D
 
 
 func _on_setup() -> void:
+	_search_wait = float(_block("search", SEARCH)["every"]) * 0.5
 	_familiar = visual.get_node_or_null("Familiar")
 	if _familiar:
 		_familiar.top_level = true
@@ -76,6 +117,37 @@ func _gdict(key: String) -> Dictionary:
 	return {}
 
 
+## Pass 141 (lane GRAV): params.gravity's `key` block over `defaults`: the weapon's own, else (the Singularity names none)
+## its family's, the Gravity Gun's.
+func _block(key: String, defaults: Dictionary) -> Dictionary:
+	var out: Dictionary = defaults.duplicate()
+	var own := _gdict(key)
+	if own.is_empty() and inst != null and inst.def != null and inst.def.is_evolution:
+		var fam: WeaponDef = Registry.weapon(inst.family_id())
+		var g = fam.params.get("gravity", {}) if fam != null else {}
+		if g is Dictionary and (g as Dictionary).get(key) is Dictionary:
+			own = g[key]
+	for k in own.keys():
+		out[k] = own[k]
+	return out
+
+
+## Pass 141 (lane GRAV): how near a barrel must stand to be taken: `reach_frac` x the family's level-1 range as its JSON's
+## base says, so no level, mutation, item, evolution or Trail node moves it (5.25 m today).
+func barrel_reach() -> float:
+	var d: WeaponDef = Registry.weapon(inst.family_id()) if inst != null else null
+	if d == null and inst != null:
+		d = inst.def
+	var base_r := float(d.base.get("range", 7.0)) if d != null else 7.0
+	return base_r * float(_block("barrel", BARREL)["reach_frac"])
+
+
+## The map's barrels (null in a game without them).
+func _barrels() -> BarrelField:
+	var b = game.get("barrels") if game != null and is_instance_valid(game) else null
+	return b if b is BarrelField else null
+
+
 func _blast_r() -> float:
 	return _g("blast", 1.9) * stat("area", 1.0) * maxf(_g("throw_mult", 1.0), 0.1)
 
@@ -104,13 +176,31 @@ func _hole() -> Dictionary:
 func _fire() -> bool:
 	if not _hole().is_empty():
 		return _fire_hole()
-	if not _grips.is_empty():
+	if not _grips.is_empty() or not _bgrip.is_empty():
 		return false
 	var em: EnemyManager = game.enemies
 	var reach := stat("range", 7.0)
 	var n: int = maxi(stat_int("amount", 1), 1)
-	if Aim.covers(inst):
-		return _fire_aimed(em, reach, n)
+	# pass 141 (lane GRAV): a barrel he came up to is taken first, in place of one creature of the pull
+	var barrel := _take_barrel()
+	if barrel:
+		n -= 1
+	var took := false
+	if n > 0:
+		took = _fire_aimed(em, reach, n) if Aim.covers(inst) else _fire_plain(em, reach, n)
+	if not took and not barrel:
+		# nothing to take: the pull is not spent (asked again in 0.15 s), and now and then the gun searches the sand
+		_maybe_search()
+		return false
+	_found()
+	if not took:
+		sfx("fire", _core_pos())
+	return true
+
+
+## The pull without "Aim where you face": the nearest creatures the gun may take, each thrown at a crowd of its own.
+## False when there is none.
+func _fire_plain(em: EnemyManager, reach: float, n: int) -> bool:
 	# the nearest creatures the gun may take
 	var cands: Array = []
 	for e in em.indices_in_radius(player.global_position, reach):
@@ -142,11 +232,8 @@ func _fire() -> bool:
 ## Pass 136 (lane GUNS; Garry: the Gravity Gun "is a weapon that fires at the ground, and nothing happens to it"): under
 ## "Aim where you face" (Aim.covers) it grabs the best grabbable creatures in its cone (`params.aim.cone`, 60), ranked by
 ## R4's score (Aim.cone_score), and throws each at a spot in the circle round him (Aim.circle_spots, R6; picked again as
-## the throw leaves, _retarget). With nothing to grab in the cone it still fires: a shot at the sand ahead, a puff of dust,
-## and nothing happens (no hold, the cooldown runs).
-var dry_shots := 0
-
-
+## the throw leaves, _retarget). Pass 141 (lane GRAV): with nothing to grab in the cone it returns false and spends
+## nothing (pass 136's dry shot at the sand is the search now, see the header).
 func _fire_aimed(em: EnemyManager, reach: float, n: int) -> bool:
 	var pp := player.global_position
 	var f := Aim.facing(player)
@@ -168,18 +255,7 @@ func _fire_aimed(em: EnemyManager, reach: float, n: int) -> bool:
 			ranked.push_front([0.0, int(s["i"])])
 			Aim.note_soft(inst, s)
 	if ranked.is_empty():
-		# the dry shot: at the sand ahead, and nothing happens
-		dry_shots += 1
-		Aim.note_dry(inst)
-		var at := pp + f * minf(reach * 0.6, 4.0)
-		at.y = _ground(at)
-		if game.has_method("fx_sand"):
-			game.fx_sand(at, 0.6)
-		_recoil = 1.0
-		_aim_yaw = atan2(-f.x, -f.z)
-		AimWedge.pulse_dir(f)
-		sfx("fire", _core_pos())
-		return true
+		return false
 	var taken := {}
 	for k in range(mini(n, ranked.size())):
 		taken[int(ranked[k][1])] = true
@@ -198,6 +274,10 @@ func _fire_aimed(em: EnemyManager, reach: float, n: int) -> bool:
 
 ## The Singularity: the claws open, the core swells, and a moment later the black hole goes.
 func _fire_hole() -> bool:
+	# pass 141 (lane GRAV): a barrel he came up to takes this pull, thrown as the gun throws one (no black hole this time)
+	if _take_barrel():
+		sfx("fire", _core_pos())
+		return true
 	var em: EnemyManager = game.enemies
 	var reach := stat("range", 9.0)
 	# a crowd no bomb is headed for or has just come down on (pass 36), else the thickest one
@@ -332,6 +412,10 @@ func _tick(delta: float) -> void:
 				if u >= 1.0:
 					if _land(g):
 						_grips.remove_at(k)
+	# pass 141 (lane GRAV): the barrel in the grip, and the search when the gun has nothing
+	if _tick_barrel(delta, grab_s, hold_s, throw_s):
+		holding = true
+	_tick_search(delta)
 	_open = move_toward(_open, 1.0 if (holding or _charge > 0.0) else 0.0, delta * (7.0 if holding else 4.0))
 	if _charge > 0.0:
 		_charge -= delta
@@ -502,6 +586,232 @@ func _purple_dust(at: Vector3, r: float) -> void:
 		fx.mote(at + out * 0.3 + Vector3(0, 0.25, 0), out * r * 2.4 + Vector3(0, 0.5, 0), 0.45, 0.55, Color(PURPLE.r, PURPLE.g, PURPLE.b, 0.8))
 
 
+# ---------------------------------------------------------------- the barrels (pass 141, lane GRAV)
+
+## The nearest standing barrel within barrel_reach() of him taken into the grip (one at a time): it will rise to a spot
+## `lift` m over the sand, `pull` of the way from where it stood towards the gun. False when there is none.
+func _take_barrel() -> bool:
+	if not _bgrip.is_empty():
+		return false
+	var bf := _barrels()
+	if bf == null:
+		return false
+	var i := bf.nearest_standing(player.global_position, barrel_reach())
+	if i < 0 or not bf.carry(i):
+		return false
+	var b := _block("barrel", BARREL)
+	var from: Vector3 = bf.pos[i]
+	var core := _core_pos()
+	var hold := from.lerp(Vector3(core.x, from.y, core.z), clampf(float(b["pull"]), 0.0, 0.9))
+	hold.y = _ground(hold) + float(b["lift"])
+	_bgrip = {"i": i, "phase": PH_GRAB, "t": 0.0, "from": from, "hold": hold, "p0": hold, "target": Vector3.INF, "dur": 0.0,
+			"roll": 0.0, "roll0": 0.0}
+	return true
+
+
+## The barrel in the grip, a tick: it rises (grab), hangs wobbling (hold), flies to his feet turning (throw) and breaks
+## where it lands. The gun's own grab, hold and throw times and arc. True while it is lifted or held.
+func _tick_barrel(delta: float, grab_s: float, hold_s: float, throw_s: float) -> bool:
+	if _bgrip.is_empty():
+		return false
+	var bf := _barrels()
+	var i: int = _bgrip["i"]
+	if bf == null or i >= bf.alive.size() or bf.alive[i] == 0 or not bf.is_carried(i):
+		# taken from the gun (the field laid out again)
+		_bgrip = {}
+		return false
+	var b := _block("barrel", BARREL)
+	var t: float = float(_bgrip["t"]) + delta
+	_bgrip["t"] = t
+	match int(_bgrip["phase"]):
+		PH_GRAB:
+			var u := clampf(t / grab_s, 0.0, 1.0)
+			var e := 1.0 - pow(1.0 - u, 3.0)
+			_bgrip["roll"] = 0.22 * sin(t * 26.0) * u
+			bf.carry_to(i, (_bgrip["from"] as Vector3).lerp(_bgrip["hold"], e), float(_bgrip["roll"]), 0.6 * sin(t * 30.0) * (1.0 - u))
+			if u >= 1.0:
+				_bgrip["phase"] = PH_HOLD
+				_bgrip["t"] = 0.0
+			return true
+		PH_HOLD:
+			var wob := Vector3(sin(t * 17.0), sin(t * 23.0) * 0.6, cos(t * 19.0)) * 0.06
+			_bgrip["roll"] = 0.2 * sin(t * 13.0)
+			bf.carry_to(i, (_bgrip["hold"] as Vector3) + wob, float(_bgrip["roll"]), 0.25 * sin(t * 21.0))
+			if t >= hold_s:
+				var p0: Vector3 = (_bgrip["hold"] as Vector3) + wob
+				var to := _barrel_target(p0, throw_s, b)
+				_bgrip["phase"] = PH_THROW
+				_bgrip["t"] = 0.0
+				_bgrip["p0"] = p0
+				_bgrip["target"] = to
+				_bgrip["dur"] = throw_s * clampf(Vector2(to.x - p0.x, to.z - p0.z).length() / 6.0, 0.6, 1.3)
+				_bgrip["roll0"] = float(_bgrip["roll"])
+				_recoil = 1.0
+				sfx("hit", p0)
+			return true
+		PH_THROW:
+			var p0: Vector3 = _bgrip["p0"]
+			var tgt: Vector3 = _bgrip["target"]
+			var u := clampf(t / maxf(float(_bgrip["dur"]), 0.05), 0.0, 1.0)
+			var flat := p0.lerp(tgt, u)
+			var h := lerpf(p0.y, tgt.y, u) + _g("arc", 2.2) * 4.0 * u * (1.0 - u)
+			# it turns `spin` times on the way, forwards the way it flies (thrown to the right it turns clockwise)
+			var side := 1.0 if tgt.x - p0.x >= -0.05 else -1.0
+			_bgrip["roll"] = float(_bgrip["roll0"]) - side * TAU * float(b["spin"]) * u
+			bf.carry_to(i, Vector3(flat.x, h, flat.z), float(_bgrip["roll"]), 0.0)
+			if u >= 1.0:
+				bf.land_carried(i, tgt, p0)
+				barrel_throws += 1
+				_bgrip = {}
+	return false
+
+
+## Where a thrown barrel comes down: `ahead` m in front of the Outlaw (his facing) from where his walk puts him by the time
+## it lands (x `lead`); at those feet, or his own, when that is past the arena's rim. On the sand.
+func _barrel_target(p0: Vector3, throw_s: float, b: Dictionary) -> Vector3:
+	var hero := player.global_position
+	var v = player.get("velocity")
+	var vel: Vector3 = v if v is Vector3 else Vector3.ZERO
+	vel.y = 0.0
+	var ahead := Aim.facing(player) * float(b["ahead"])
+	# the flight lasts as the throw's own rule says for its length (_tick_barrel), so the lead is found in two steps
+	var feet := hero
+	var at := hero + ahead
+	for _k in range(2):
+		var fly := throw_s * clampf(Vector2(at.x - p0.x, at.z - p0.z).length() / 6.0, 0.6, 1.3)
+		feet = hero + vel * fly * float(b["lead"])
+		at = feet + ahead
+	var ok := Aim.arena_ok(game)
+	if ok.is_valid() and not bool(ok.call(at)):
+		at = feet if bool(ok.call(feet)) else hero
+	at.y = _ground(at)
+	return at
+
+
+# ---------------------------------------------------------------- the search (pass 141, lane GRAV)
+
+## The gun has something: the search ends and the next waits `every` s from now.
+func _found() -> void:
+	_search = {}
+	_search_wait = float(_block("search", SEARCH)["every"])
+
+
+## The pull found nothing: a search starts when its clock is up (none running, nothing in the grip).
+func _maybe_search() -> void:
+	if not _search.is_empty() or _search_wait > 0.0 or not _grips.is_empty() or not _bgrip.is_empty() or _charge > 0.0:
+		return
+	if float(_block("search", SEARCH)["seconds"]) <= 0.0:
+		return
+	var f := Aim.facing(player)
+	searches += 1
+	# each sweep goes the other way from the last
+	_search = {"t": 0.0, "yaw": atan2(f.x, f.z), "dir": 1.0 if searches % 2 == 1 else -1.0, "end": Vector3.INF}
+
+
+## The search, a tick (looks only): the touch point sweeps across his facing (the arc turning with him, slowly) and
+## wanders in and out; done after `seconds` (or at once when the gun takes something: _found).
+func _tick_search(delta: float) -> void:
+	if _search.is_empty():
+		_search_wait = maxf(_search_wait - delta, 0.0)
+		_scan = move_toward(_scan, 0.0, delta * 4.0)
+		return
+	var s := _block("search", SEARCH)
+	var secs := maxf(float(s["seconds"]), 0.1)
+	var t := float(_search["t"]) + delta
+	_search["t"] = t
+	if t >= secs:
+		_search = {}
+		_search_wait = float(s["every"])
+		return
+	_scan = move_toward(_scan, 1.0, delta * 6.0)
+	var f := Aim.facing(player)
+	_search["yaw"] = lerp_angle(float(_search["yaw"]), atan2(f.x, f.z), clampf(delta * 3.0, 0.0, 1.0))
+	var u := t / secs
+	var half := deg_to_rad(float(s["sweep_deg"])) * 0.5
+	var a := float(_search["yaw"]) + float(_search["dir"]) * lerpf(-half, half, 0.5 - 0.5 * cos(u * PI))
+	var d := float(s["reach"]) + float(s["wander"]) * sin(u * TAU * 1.5 + float(searches)) + 0.06 * sin(t * 41.0)
+	var at := player.global_position + Vector3(sin(a), 0.0, cos(a)) * maxf(d, 0.5)
+	at.y = _ground(at)
+	_search["end"] = at
+	# a few specks left where it touches, and now and then a grain of sand
+	_speck_t -= delta
+	var fx = game.get("fx")
+	if _speck_t <= 0.0 and fx != null and fx.has_method("mote") and _search_reach() > 0.9:
+		_speck_t = 0.06
+		fx.mote(at + Vector3(0, 0.06, 0), Vector3(randf_range(-0.25, 0.25), randf_range(0.35, 0.7), randf_range(-0.25, 0.25)), 0.45, 0.11, Color(SEARCH_COLOR.r, SEARCH_COLOR.g, SEARCH_COLOR.b, 0.85))
+		if randf() < 0.25:
+			fx.mote(at + Vector3(0, 0.04, 0), Vector3(randf_range(-0.5, 0.5), randf_range(0.5, 0.9), randf_range(-0.5, 0.5)), 0.4, 0.09, Color(0.86, 0.74, 0.52, 0.7))
+
+
+## How far the search beam reaches from the Core to the sand now (0..1: out over SEARCH_IN, back over the last SEARCH_OUT).
+func _search_reach() -> float:
+	if _search.is_empty():
+		return 0.0
+	var secs := maxf(float(_block("search", SEARCH)["seconds"]), 0.1)
+	var t := float(_search["t"])
+	return clampf(t / SEARCH_IN, 0.0, 1.0) * clampf((secs - t) / SEARCH_OUT, 0.0, 1.0)
+
+
+## Whether a search is running (tests, the capture).
+func searching() -> bool:
+	return not _search.is_empty()
+
+
+## The search beam's tip: from the Core out to where it touches the sand, and back.
+func _search_tip() -> Vector3:
+	var k := _search_reach()
+	return _core_pos().lerp(_search["end"], 1.0 - pow(1.0 - k, 2.0))
+
+
+## The soft glow where the search beam touches the sand (looks only): a flat see-through quad of a radial gradient, `w` m
+## wide, `a` strong, tilted to the ground under it.
+func _draw_glow(at: Vector3, a: float, w: float) -> void:
+	if a <= 0.01 or at == Vector3.INF:
+		if _glow:
+			_glow.visible = false
+		return
+	if _glow == null:
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(1, 1)
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		m.set("disable_fog", true)
+		m.albedo_texture = _glow_texture()
+		_glow = MeshInstance3D.new()
+		_glow.mesh = pm
+		_glow.material_override = m
+		_glow.top_level = true
+		_glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_glow)
+	_glow.visible = true
+	(_glow.material_override as StandardMaterial3D).albedo_color = Color(1, 1, 1, clampf(a, 0.0, 1.0))
+	# the ground's slope under it
+	var e := 0.35
+	var n := Vector3(_ground(at - Vector3(e, 0, 0)) - _ground(at + Vector3(e, 0, 0)), 2.0 * e, _ground(at - Vector3(0, 0, e)) - _ground(at + Vector3(0, 0, e))).normalized()
+	var x := (Vector3.RIGHT - n * n.x).normalized()
+	var z := x.cross(n)
+	_glow.global_transform = Transform3D(Basis(x * w, n, z * w), at + n * 0.04)
+
+
+static func _glow_texture() -> Texture2D:
+	if _glow_tex == null:
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.16, 0.5, 1.0])
+		g.colors = PackedColorArray([Color(0.93, 1.0, 1.0, 0.95), Color(0.6, 0.96, 1.0, 0.85), Color(0.25, 0.78, 1.0, 0.38), Color(0.25, 0.78, 1.0, 0.0)])
+		var tex := GradientTexture2D.new()
+		tex.gradient = g
+		tex.fill = GradientTexture2D.FILL_RADIAL
+		tex.fill_from = Vector2(0.5, 0.5)
+		tex.fill_to = Vector2(1.0, 0.5)
+		tex.width = 64
+		tex.height = 64
+		_glow_tex = tex
+	return _glow_tex
+
+
 # ---------------------------------------------------------------- the gun
 
 func _aim(delta: float) -> void:
@@ -513,8 +823,18 @@ func _aim(delta: float) -> void:
 		var to: Vector3 = em.pos[int(g["i"])] if int(g["phase"]) == PH_GRAB else Vector3(g["target"])
 		want = to - from
 		break
+	# pass 141 (lane GRAV): at the barrel it lifts and holds, then at where it throws it; at the sand it searches
+	if want == Vector3.ZERO and not _bgrip.is_empty():
+		var bf := _barrels()
+		var bi: int = _bgrip["i"]
+		if int(_bgrip["phase"]) == PH_THROW:
+			want = Vector3(_bgrip["target"]) - from
+		elif bf != null and bi < bf.pos.size():
+			want = bf.pos[bi] - from
 	if want == Vector3.ZERO and _charge > 0.0 and _charge_to != Vector3.INF:
 		want = _charge_to - from
+	if want == Vector3.ZERO and not _search.is_empty() and Vector3(_search["end"]) != Vector3.INF:
+		want = Vector3(_search["end"]) - from
 	if want == Vector3.ZERO and Aim.covers(inst):
 		# pass 136 (lane GUNS): idle, it points where he faces
 		want = player.forward()
@@ -541,24 +861,28 @@ func _place(delta: float) -> void:
 	if _open > 0.3:
 		want += Vector3(Dice.r.randf_range(-1.0, 1.0), Dice.r.randf_range(-1.0, 1.0), Dice.r.randf_range(-1.0, 1.0)) * 0.025 * _open
 	_familiar.global_position = want if delta <= 0.0 else _familiar.global_position.lerp(want, clampf(delta * 9.0, 0.0, 1.0))
-	_familiar.rotation = Vector3(-0.3 * _recoil + 0.12 * _open, _aim_yaw, sin(t * 2.1) * 0.06)
+	# pass 141 (lane GRAV): the nose dips towards the sand while it searches
+	_familiar.rotation = Vector3(-0.3 * _recoil + 0.12 * _open - 0.3 * _scan, _aim_yaw, sin(t * 2.1) * 0.06)
 	_recoil = maxf(_recoil - delta * 5.0, 0.0)
 
 
 func _animate(delta: float) -> void:
 	var t := float(Time.get_ticks_msec()) * 0.001
+	# pass 141 (lane GRAV): a search half opens the claws, quickens the ring and lights the core a little (_scan)
 	if _spin:
-		_spin.rotate_object_local(Vector3.FORWARD, delta * lerpf(1.2, 11.0, _open))
+		_spin.rotate_object_local(Vector3.FORWARD, delta * (lerpf(1.2, 11.0, _open) + 4.0 * _scan))
 	for c: Node3D in _claws:
-		c.rotation.x = lerpf(0.0, 0.8, _open) + 0.04 * sin(t * 3.0)
+		c.rotation.x = lerpf(0.0, 0.8, maxf(_open, 0.4 * _scan)) + 0.04 * sin(t * 3.0)
 	if _core:
 		var pulse := 1.0 + 0.07 * sin(t * 7.0)
-		_core.scale = Vector3.ONE * (pulse + 0.45 * _open)
+		_core.scale = Vector3.ONE * (pulse + 0.45 * _open + 0.15 * _scan)
 	if _core_mat:
-		_core_mat.emission_energy_multiplier = 1.2 + 3.5 * _open + 0.4 * sin(t * 9.0)
+		_core_mat.emission_energy_multiplier = 1.2 + 3.5 * _open + 1.4 * _scan + 0.4 * sin(t * 9.0)
 
 
-## The beam: a wavering ribbon from the Core to each creature it lifts or holds, facing the camera.
+## The beam: a wavering ribbon from the Core to each creature it lifts or holds, facing the camera. Pass 141 (lane GRAV):
+## and to the barrel it lifts or holds; while it searches a thinner, fainter, slower ribbon reaching to the sand and back,
+## with the glow where it touches. Each end: [point, width x, strength x, waver (m), waver speed].
 func _draw_beam() -> void:
 	var em: EnemyManager = game.enemies
 	var ends: Array = []
@@ -566,7 +890,20 @@ func _draw_beam() -> void:
 		if int(g["phase"]) == PH_THROW:
 			continue
 		var i: int = g["i"]
-		ends.append(em.pos[i] + Vector3(0, em.lift_h[i] + em.size[i] * 0.45, 0))
+		ends.append([em.pos[i] + Vector3(0, em.lift_h[i] + em.size[i] * 0.45, 0), 1.0, 1.0, 0.12, 22.0])
+	if not _bgrip.is_empty() and int(_bgrip["phase"]) != PH_THROW:
+		var bf := _barrels()
+		var bi: int = _bgrip["i"]
+		if bf != null and bi < bf.pos.size():
+			ends.append([bf.pos[bi] + Vector3(0, 0.55, 0), 1.0, 1.0, 0.12, 22.0])
+	var reach := _search_reach()
+	if reach > 0.0 and Vector3(_search["end"]) != Vector3.INF:
+		var st := float(_search["t"])
+		var w := float(_block("search", SEARCH)["glow"])
+		ends.append([_search_tip(), 0.65, 0.95, 0.07, 8.0])
+		_draw_glow(_search["end"], smoothstep(0.7, 1.0, reach) * (0.85 + 0.15 * sin(st * 12.0)), w * (0.92 + 0.08 * sin(st * 9.0)))
+	else:
+		_draw_glow(Vector3.INF, 0.0, 0.0)
 	if ends.is_empty():
 		if _beam:
 			_beam.visible = false
@@ -588,7 +925,12 @@ func _draw_beam() -> void:
 	var col := Color(0.2, 0.8, 1.0)
 	_beam_mesh.clear_surfaces()
 	_beam_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-	for to: Vector3 in ends:
+	for end: Array in ends:
+		var to: Vector3 = end[0]
+		var wk: float = end[1]
+		var ak: float = end[2]
+		var amp: float = end[3]
+		var hz: float = end[4]
 		var seg := 14
 		var dir := to - from
 		var side0 := dir.cross(eye - from).normalized()
@@ -596,16 +938,16 @@ func _draw_beam() -> void:
 		var prev_b := Vector3.ZERO
 		for s in range(seg + 1):
 			var u := float(s) / float(seg)
-			var p := from.lerp(to, u) + side0 * sin(u * PI) * 0.12 * sin(t * 22.0 + u * 9.0)
-			var w := 0.09 + 0.06 * sin(u * PI)
+			var p := from.lerp(to, u) + side0 * sin(u * PI) * amp * sin(t * hz + u * 9.0)
+			var w := (0.09 + 0.06 * sin(u * PI)) * wk
 			var a := p + side0 * w
 			var b := p - side0 * w
 			if s > 0:
 				# the edges soft cyan, the middle near white
 				var mid_p := (prev_a + prev_b) * 0.5
 				var mid := (a + b) * 0.5
-				var edge := Color(col.r, col.g, col.b, 0.35)
-				var core := Color(0.85, 1.0, 1.0, 0.95)
+				var edge := Color(col.r, col.g, col.b, 0.35 * ak)
+				var core := Color(0.85, 1.0, 1.0, 0.95 * ak)
 				for side: Array in [[prev_a, a], [prev_b, b]]:
 					_beam_mesh.surface_set_color(core)
 					_beam_mesh.surface_add_vertex(mid_p)
@@ -622,8 +964,14 @@ func _draw_beam() -> void:
 	_beam_mesh.surface_end()
 
 
-## Whatever it still holds goes back to the crowd when the gun goes (a swap, the end of the run).
+## Whatever it still holds goes back to the crowd when the gun goes (a swap, the end of the run); a barrel it carries is
+## set down standing (pass 141).
 func _exit_tree() -> void:
+	if not _bgrip.is_empty():
+		var bf := _barrels()
+		if bf != null and is_instance_valid(bf):
+			bf.uncarry(int(_bgrip["i"]))
+		_bgrip = {}
 	var em = game.get("enemies") if game and is_instance_valid(game) else null
 	if em == null or not is_instance_valid(em):
 		return

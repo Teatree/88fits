@@ -95,10 +95,10 @@ const STYLE_W := {
 }
 ## Survival points for one unit of a player stat ("mul" values are fractions: +0.05 = +5%); max_hp's and shield_max's
 ## add count as their share of the hero's max HP, move_speed's add as its share of 3.6 m/s, regen's add as HP a second
-## in % of max HP.
+## in % of max HP. heal_drop: 60 x 2.4 since pass 141 (lane SMALL: a cake slice heals 14.4% of max HP, was 6%).
 const SURVIVAL_PTS := {"max_hp": 80.0, "damage_reduction": 150.0, "regen": 30.0, "move_speed": 60.0, "evade": 120.0,
 	"lifesteal": 300.0, "shield_max": 80.0, "revives": 25.0, "phoenix_revive": 25.0, "hit_invuln": 10.0, "heal_mult": 30.0,
-	"overheal": 20.0, "heal_pulse": 40.0, "last_stand": 15.0, "thorns": 20.0, "heal_drop": 60.0, "hurt_speed": 20.0,
+	"overheal": 20.0, "heal_pulse": 40.0, "last_stand": 15.0, "thorns": 20.0, "heal_drop": 144.0, "hurt_speed": 20.0,
 	"still_regen": 15.0, "crit_heal_chance": 40.0, "freeze_chance": 60.0}
 ## Greed points for one unit (XP, the gems' reach, luck, gold); magnet's add counts as its share of 1.5 m.
 const GREED_PTS := {"xp_gain": 60.0, "magnet": 20.0, "luck": 40.0, "greed": 40.0, "coin_drop": 30.0, "xp_drop_chance": 60.0,

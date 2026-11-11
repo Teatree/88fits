@@ -2,15 +2,14 @@
   "id": "skin_ironwood_irn_b",
   "name": "Ironwood · Winter Pelt",
   "condition": {
-    "type": "item_level",
-    "kind": "passive",
-    "id": "cold_snap",
-    "rung": "epic",
-    "hero": "ironwood"
+    "type": "damage_with_weapon",
+    "weapon": "pike",
+    "count": 320000
   },
   "unlocks": {
     "type": "skin",
     "id": "ironwood:IRN-B"
   },
+  "requires": "skin_ironwood_irn_c",
   "icon": "res://content/characters/ironwood/ironwood_icon_b.png"
 }

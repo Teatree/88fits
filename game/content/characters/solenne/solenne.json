@@ -538,13 +538,6 @@
         ]
       },
       "fresh": true,
-      "skin": {
-        "purchasable": true,
-        "name": "Solar Flare",
-        "price": 2500,
-        "currency_type": "gold",
-        "unlock_quest": "skin_solenne_sol_h"
-      },
       "sprite": "solenne_sprite_h.png",
       "anims": {
         "idle": 4,
@@ -572,7 +565,84 @@
         "die": 8
       },
       "icon": "solenne_icon_h.png",
-      "title": "hero_solenne_h.png"
+      "title": "hero_solenne_h.png",
+      "shelved": true
+    },
+    "SOL-I": {
+      "note": "pass 141: Oasis, Solenne at the beach: a black triangle bikini and high-cut bottoms, barefoot, her skin the sun's yellow as her neck always showed; Klein edits of SOL-B's paintings view by view, the side from SOL-H's profile (tools/gen_skin_views.py); walked on her own fitted walk (walk_sun_i_fit, tools/dl/p141/ART/drivers/solenne_i.json) whose side face is a profile like the side still, so she looks where she walks",
+      "recipe": {
+        "pose_drivers": {
+          "back": "walk_sun_i_fit_spread",
+          "bd": "walk_sun_i_fit_spread",
+          "side": "walk_sun_i_fit",
+          "fd": "walk_sun_i_fit",
+          "front": "walk_sun_i_fit"
+        },
+        "pose_motion": "walking in place on the spot like on a treadmill, a light confident stride",
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "stills": "i",
+        "art_prompt": "a slender woman in a simple black triangle bikini and high-cut black bikini bottoms, barefoot, her skin all over bright golden yellow; her head is a bright yellow cartoon sun: a smooth round yellow face with calm half-lidded eyes, thin brows and small red lips, ringed by eight long pointed golden-yellow rays; standing straight",
+        "anim_hint": "a slender woman with bright golden yellow skin in a black triangle bikini and black high-cut bikini bottoms, barefoot, whose head is a round yellow cartoon sun with long pointed rays all round it",
+        "anim_negative": "a human head, hair, a helmet, a face on the body, a second head, a weapon, a cape, boots, shoes, gloves, a catsuit, clothes covering the body",
+        "key_sat": 0.35,
+        "key_min_value": 0.2,
+        "key_cut_shadow": true,
+        "key_clamp_screen": false,
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                180,
+                320
+              ]
+            ],
+            "to": 42,
+            "sat": 0.75,
+            "min_sat": 0.22
+          }
+        ]
+      },
+      "fresh": true,
+      "skin": {
+        "purchasable": true,
+        "name": "Oasis",
+        "price": 4500,
+        "currency_type": "gold",
+        "unlock_quest": "skin_solenne_sol_i"
+      },
+      "sprite": "solenne_sprite_i.png",
+      "icon": "solenne_icon_i.png",
+      "title": "hero_solenne_i.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
     }
   },
   "badge": {

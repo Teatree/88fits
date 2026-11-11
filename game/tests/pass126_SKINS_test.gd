@@ -21,8 +21,21 @@ const RUN_BARRELS := 30.0
 const RUN_TOTEMS := 8.0
 const FIVE := 5.0
 ## Pass 140 (lane QUESTS; plan v2): the skins with no goal: on sale from the start (Dust Walker, Thunderbird, Mission
-## Control) or given by a Trail node (Event Horizon)
-const NO_GOAL := ["drifter:DRI-C", "ironwood:IRN-C", "astro:AST-C", "astro:AST-B"]
+## Control) or given by a Trail node (Event Horizon). Pass 141 (lane TRAIL; Garry: "All Skins should be locked behind
+## either a task or in the Trail"): only the Trail's (Event Horizon, Splashdown once lane ART's AST-D is in)
+const NO_GOAL := ["astro:AST-B"]
+## Pass 141: the two skins lane ART replaces (AST-B -> AST-D, SOL-H -> SOL-I); a code here stands for its new one once
+## the switch is made (tools/dl/p141/TRAIL/retarget_skins.py)
+const SWAPS := preload("res://tests/fixtures/skin_swaps.gd")
+
+
+## This pass's looks of hero `hid` as they stand now (pass 141's switch followed).
+func _looks(hid: String) -> Array:
+	return (LOOKS[hid] as Array).map(func(code: String) -> String: return SWAPS.now(hid, code))
+
+
+func _no_goal(hid: String, code: String) -> bool:
+	return NO_GOAL.map(func(k: String) -> String: return Registry.skin_key(k.get_slice(":", 0), SWAPS.now(k.get_slice(":", 0), k.get_slice(":", 1)))).has(Registry.skin_key(hid, code))
 
 
 func before_test() -> void:
@@ -48,7 +61,7 @@ func test_twelve_skins_each_with_its_art_goal_and_price() -> void:
 	for hid: String in LOOKS:
 		var c := _hero(hid)
 		assert_int((LOOKS[hid] as Array).size()).is_equal(int(COUNTS[hid]))
-		for code: String in LOOKS[hid]:
+		for code: String in _looks(hid):
 			total += 1
 			var m := "%s %s" % [hid, code]
 			assert_bool(c.variants.has(code)).override_failure_message(m + ": not painted").is_true()
@@ -79,11 +92,11 @@ func test_twelve_skins_each_with_its_art_goal_and_price() -> void:
 func test_every_goal_is_an_item_feat_or_at_least_five_of_his_very_good_runs() -> void:
 	for hid: String in LOOKS:
 		var c := _hero(hid)
-		for code: String in LOOKS[hid]:
+		for code: String in _looks(hid):
 			var m := "%s %s" % [hid, code]
 			var q: QuestDef = Registry.skin_quest(c, code)
-			# pass 140 (lane QUESTS, re-pinned): four skins have no goal now
-			if NO_GOAL.has(Registry.skin_key(hid, code)):
+			# pass 140 (lane QUESTS, re-pinned): four skins have no goal now (pass 141: one, the Trail's)
+			if _no_goal(hid, code):
 				assert_object(q).override_failure_message(m + ": a goal").is_null()
 				continue
 			assert_object(q).override_failure_message(m + ": no goal").is_not_null()
@@ -139,7 +152,7 @@ func test_every_goal_is_an_item_feat_or_at_least_five_of_his_very_good_runs() ->
 func test_the_goals_use_varied_tasks() -> void:
 	var types := {}
 	for hid: String in LOOKS:
-		for code: String in LOOKS[hid]:
+		for code: String in _looks(hid):
 			var q: QuestDef = Registry.skin_quest(_hero(hid), code)
 			if q:
 				types[str(q.condition.get("type", ""))] = true
@@ -153,6 +166,9 @@ func test_a_career_goal_earned_opens_the_shop_and_buying_wears_it() -> void:
 	Save.data["gold"] = c.skin_price("DRI-B")
 	assert_str(Registry.skin_state(c, "DRI-B")).is_equal("locked")
 	assert_bool(Save.buy_skin(c, "DRI-B")).is_false()
+	# pass 141 (lane TRAIL): Black Hat waits for Dust Walker's feat (the Revolver to level 5 in a run)
+	for r: Variant in q.requires:
+		Save.mark_quest(str(r))
 	Save.add_keyed_total(TaskTally.SAVE_DAMAGE, "revolver", int(q.condition.get("count", 0)))
 	assert_array(QuestTracker.check_all(false)).contains([q.id])
 	assert_str(Registry.skin_state(c, "DRI-B")).is_equal("buyable")
@@ -197,16 +213,17 @@ func test_the_look_every_player_owns_still_plays() -> void:
 		assert_str(c.title_path()).is_equal("res://art/ui/wanted/hero_%s.png" % c.id)
 		assert_str(Registry.played_look(c).look_code()).is_equal(str(pair[1]))
 		assert_str(Registry.skin_state(c, str(pair[1]))).is_equal("owned")
-		assert_array(Registry.skins_of(c)).contains([str(pair[1])] + (LOOKS[c.id] as Array))
+		assert_array(Registry.skins_of(c)).contains([str(pair[1])] + _looks(c.id))
 	# and every skin's goal is not done on a fresh save, so a fresh hero wears the look he always wore
 	for hid: String in LOOKS:
 		var c := _hero(hid)
 		assert_str(Registry.worn_skin(c)).is_equal("")
 		assert_str(Registry.played_look(c).look_code()).is_equal(c.home_look())
-		for code: String in LOOKS[hid]:
+		for code: String in _looks(hid):
 			# pass 140 (lane QUESTS, re-pinned): a skin with no goal and no Trail node is on sale to his owner at once
+			# (pass 141: none; the one with no goal is the Trail's)
 			var key := Registry.skin_key(hid, code)
-			var on_sale := NO_GOAL.has(key) and not Trail.gated("skin", key) and Registry.hero_state(c) == "owned"
+			var on_sale := _no_goal(hid, code) and not Trail.gated("skin", key) and Registry.hero_state(c) == "owned"
 			assert_str(Registry.skin_state(c, code)).override_failure_message(key).is_equal("buyable" if on_sale else "locked")
 
 
@@ -215,6 +232,6 @@ func test_the_production_build_keeps_every_skin() -> void:
 	var plan: Dictionary = reach.plan(Registry)
 	for hid: String in LOOKS:
 		var look: Dictionary = (plan["looks"] as Dictionary).get("characters/" + hid, {})
-		for code: String in LOOKS[hid]:
+		for code: String in _looks(hid):
 			assert_array(look.get("keep", [])).override_failure_message("%s %s" % [hid, code]).contains([code])
 			assert_array(look.get("drop", [])).not_contains([code])

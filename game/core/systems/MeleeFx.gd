@@ -30,6 +30,17 @@
 ## between the samples does not cut it either, while a creature or a prop standing in front of it still hides it. The
 ## thrust and the star have no depth test already (pass 137), so they never sank. `ground_follow` off (a tool comparing)
 ## lays it flat at his feet as before.
+## Pass 141 (lane MELEE; Garry: "Still look bad. (Sword looks ok maybe actually, it's the spear that's the real problem)",
+## with his 2D pack _REFERENCES/2d/Everything and godotshaders.com's "Procedural Cyclic Slash"): new styles drawn from
+## them (the frames' sources in tools/dl/p141/MELEE/make_melee_fx.py):
+##   a thrust "burst" (the default): the pack's Classic row 4 as a flipbook (art/fx/melee/thrust_burst.png,
+##            core/shaders/melee_burst.gdshader), tinted by the stroke's colours: its head darts out to the reach in `ext`
+##            (the big frame arrives with the hit), the flames stream back from it, the embers go over the fade
+##            (burst_frame); laid flat at his waist, or turned to the camera round its own line (`burst_face`).
+##   a swing  "moon": the pack's Classic row 1, each frame unwrapped along its crescent (art/fx/melee/slash_moon.png),
+##            painted on today's crescent's arc (core/shaders/melee_swing_fx.gdshader style 1); "cyclic": the CC0
+##            procedural cyclic slash ported to the arc (a cellular noise scrolled along it, art/fx/melee/slash_noise.png,
+##            style 2).
 class_name MeleeFx
 extends Node3D
 
@@ -52,8 +63,8 @@ const THRUST_SNAP := 0.09
 const THRUST_GHOST := 0.16
 ## pass 138: the styles (the first of each list the default), a new-style swing's dissolve (at least this long), a
 ## lance's light running on through the point on a hit, its width (x the lane's half width, clamped), its needle
-const SLASH_STYLES := ["crescent", "cel", "classic"]
-const STAB_STYLES := ["lance", "wind", "spearhead"]
+const SLASH_STYLES := ["crescent", "cel", "classic", "moon", "cyclic"]
+const STAB_STYLES := ["burst", "lance", "wind", "spearhead"]
 const SLASH_FADE := 0.22
 const PIERCE_T := 0.14
 const LANCE_W := 0.62
@@ -68,14 +79,36 @@ const GROUND_REFIT := 0.25
 const GROUND_SLOPE_MAX := 1.0
 const GROUND_PULL := 0.45
 
+## pass 141: the burst's texture (thrust_burst.png: where its tail and its head at the hit lie along it, 0..1), its half
+## width (x the lane's half width, clamped, metres), how far past the hit's reach its last big frame grows (a share of
+## the stroke), the share of the fade its big frames keep before the embers
+const BURST_TEX := "res://art/fx/melee/thrust_burst.png"
+const BURST_TAIL_U := 0.035
+const BURST_HEAD_U := 0.895
+const BURST_W := 3.4
+const BURST_W_MIN := 0.5
+const BURST_W_MAX := 1.4
+const BURST_BODY := 0.4
+const BURST_START := 0.12
+## pass 141: the swing's painted frames (slash_moon.png) and noise (slash_noise.png)
+const MOON_TEX := "res://art/fx/melee/slash_moon.png"
+const NOISE_TEX := "res://art/fx/melee/slash_noise.png"
+
 ## pass 139: off lays every arc flat at his feet as before (tools comparing the two)
 static var ground_follow := true
+## pass 141: the burst laid flat at his waist (0) or turned to the camera round its own line (1)
+static var burst_face := 1.0
 
 static var _arc_shader: Shader
 static var _thrust_shader: Shader
 static var _flash_shader: Shader
 static var _slash_shader: Shader
 static var _lance_shader: Shader
+static var _burst_shader: Shader
+static var _swing_shader: Shader
+static var _burst_tex: Texture2D
+static var _moon_tex: Texture2D
+static var _noise_tex: Texture2D
 static var _quad_xz: ArrayMesh
 static var _quad_strip: ArrayMesh
 static var _quad_xy: ArrayMesh
@@ -110,6 +143,12 @@ static func _shaders() -> void:
 		_flash_shader = load("res://core/shaders/melee_flash.gdshader")
 		_slash_shader = load("res://core/shaders/melee_slash.gdshader")
 		_lance_shader = load("res://core/shaders/melee_lance.gdshader")
+	if _burst_shader == null:
+		_burst_shader = load("res://core/shaders/melee_burst.gdshader")
+		_swing_shader = load("res://core/shaders/melee_swing_fx.gdshader")
+		_burst_tex = load(BURST_TEX)
+		_moon_tex = load(MOON_TEX)
+		_noise_tex = load(NOISE_TEX)
 	if _quad_xz == null:
 		# x -1..1, z -1..1 on the ground plane (the arc)
 		_quad_xz = _quad([Vector3(-1, 0, -1), Vector3(1, 0, -1), Vector3(1, 0, 1), Vector3(-1, 0, 1)])
@@ -117,6 +156,11 @@ static func _shaders() -> void:
 		_quad_strip = _quad([Vector3(-1, 0, -1), Vector3(1, 0, -1), Vector3(1, 0, 0), Vector3(-1, 0, 0)])
 		# x, y -1..1 (the flash, faced to the camera in its shader)
 		_quad_xy = _quad([Vector3(-1, 1, 0), Vector3(1, 1, 0), Vector3(1, -1, 0), Vector3(-1, -1, 0)])
+
+
+## Pass 141: the shaders, meshes and textures loaded now (Warmup, under the spawn beam), not at the first stroke.
+static func warm() -> void:
+	_shaders()
 
 
 static func _quad(v: Array) -> ArrayMesh:
@@ -176,10 +220,18 @@ func arc(anchor: Node3D, yaw: float, half_w: float, reach: float, sweep: float, 
 	var m: ShaderMaterial = e["mat"]
 	var style := style_of("slash", str(look.get("style", "")))
 	var bold := style != "classic"
-	var want: Shader = _slash_shader if bold else _arc_shader
+	# pass 141: the pack's painted crescent ("moon") and the procedural cyclic slash ("cyclic") on one shader
+	var painted := style == "moon" or style == "cyclic"
+	var want: Shader = _swing_shader if painted else (_slash_shader if bold else _arc_shader)
 	if m.shader != want:
 		m.shader = want
-	if bold:
+	if painted:
+		m.set_shader_parameter("style", 2 if style == "cyclic" else 1)
+		m.set_shader_parameter("frames", _moon_tex)
+		m.set_shader_parameter("noise", _noise_tex)
+		m.set_shader_parameter("diss", 0.0)
+		m.set_shader_parameter("fr", 0.0)
+	elif bold:
 		m.set_shader_parameter("style", 2 if style == "cel" else 1)
 		m.set_shader_parameter("diss", 0.0)
 	m.set_shader_parameter("half_w", clampf(half_w, 0.05, PI))
@@ -203,6 +255,7 @@ func arc(anchor: Node3D, yaw: float, half_w: float, reach: float, sweep: float, 
 	e["sweep"] = maxf(sweep, 0.01)
 	e["fade"] = maxf(fade, SLASH_FADE if bold else 0.01)
 	e["bold"] = bold
+	e["painted"] = painted
 	e["style"] = style
 	e["cos"] = str(look.get("ease", "cos")) == "cos"
 	e["R"] = R
@@ -233,9 +286,10 @@ func thrust(anchor: Node3D, dir: Vector3, length: float, lane_half: float, delay
 	_shaders()
 	var e := _entry(_thrusts, THRUST_MAX, _quad_strip, _thrust_shader)
 	var style := style_of("stab", str(look.get("style", "")))
-	var lance := style != "spearhead"
+	var burst := style == "burst"
+	var lance := style == "lance" or style == "wind"
 	var m: ShaderMaterial = e["mat"]
-	var want: Shader = _lance_shader if lance else _thrust_shader
+	var want: Shader = _burst_shader if burst else (_lance_shader if lance else _thrust_shader)
 	if m.shader != want:
 		m.shader = want
 	var d := Vector3(dir.x, 0.0, dir.z)
@@ -251,7 +305,28 @@ func thrust(anchor: Node3D, dir: Vector3, length: float, lane_half: float, delay
 	var tip_len := TIP_LEN * tip
 	var back := tip_len * 1.6
 	var qlen := back + full + 0.6
-	if lance:
+	if burst:
+		# pass 141: the pack's thrust; behind the hand room for the gathering glint, past the reach room for its last big
+		# frame growing on (the texture past its head at the hit)
+		back = 0.3
+		tip_len = NEEDLE * tip
+		var bw := clampf(hw * BURST_W, BURST_W_MIN, BURST_W_MAX)
+		qlen = back + full * (1.0 + (1.0 - BURST_HEAD_U) / (BURST_HEAD_U - BURST_TAIL_U)) + 0.3
+		qw = maxf(bw, 0.45)
+		m.set_shader_parameter("frames", _burst_tex)
+		m.set_shader_parameter("half_w", bw)
+		m.set_shader_parameter("tail_u", BURST_TAIL_U)
+		m.set_shader_parameter("head_u", BURST_HEAD_U)
+		m.set_shader_parameter("tail_s", BURST_START)
+		m.set_shader_parameter("pt", BURST_START + 0.05)
+		m.set_shader_parameter("pt_a", 1.0)
+		m.set_shader_parameter("glint_s", BURST_START)
+		m.set_shader_parameter("face_cam", burst_face)
+		m.set_shader_parameter("fr", -1.0)
+		m.set_shader_parameter("pierce", 0.0)
+		m.set_shader_parameter("shade_a", float(look.get("shade_a", 0.75)))
+		e["burst_w"] = bw
+	elif lance:
 		# pass 138: a thrust of light; behind the hand only room for the gathering glint, past the point room for the
 		# overshoot and the pierce
 		back = 0.3
@@ -282,6 +357,7 @@ func thrust(anchor: Node3D, dir: Vector3, length: float, lane_half: float, delay
 	m.set_shader_parameter("crackle", float(look.get("crackle", 0.0)))
 	m.set_shader_parameter("seed", randf() * 100.0)
 	e["lance"] = lance
+	e["burst"] = burst
 	e["style"] = style
 	e["pierce_at"] = -1.0
 	e["live"] = true
@@ -504,6 +580,8 @@ func _arc_frame(e: Dictionary) -> void:
 	var f := 1.0 - clampf((t - sw) / float(e["fade"]), 0.0, 1.0)
 	var m: ShaderMaterial = e["mat"]
 	m.set_shader_parameter("head", head)
+	if bool(e.get("painted", false)):
+		m.set_shader_parameter("fr", moon_frame(t, sw, float(e["fade"])))
 	if bool(e.get("bold", false)):
 		# pass 138: the crescent erodes over the fade (`diss`), its strength going only in the second half
 		m.set_shader_parameter("diss", 1.0 - f)
@@ -516,6 +594,9 @@ func _arc_frame(e: Dictionary) -> void:
 
 
 func _thrust_frame(e: Dictionary) -> void:
+	if bool(e.get("burst", false)):
+		_burst_frame(e)
+		return
 	if bool(e.get("lance", false)):
 		_lance_frame(e)
 		return
@@ -662,6 +743,74 @@ func _lance_frame(e: Dictionary) -> void:
 	if t >= ext + hold + fd:
 		e["live"] = false
 		mi.visible = false
+
+
+## Pass 141: the burst's frame (0..5.999; -1 before the dart, when only the hand's glint shows) `t` seconds after the
+## dart began (`ext` the dart, `hold`, `fade` the stroke's): the first two frames grow while the head darts out, the
+## third (the big burst) arrives with the hit, the fourth over the hold and BURST_BODY of the fade, the last two (the
+## embers) over the rest.
+static func burst_frame(t: float, ext: float, hold: float, fade: float) -> float:
+	if t < 0.0:
+		return -1.0
+	if t < ext:
+		return 2.0 * t / maxf(ext, 0.001)
+	var body := hold + fade * BURST_BODY
+	if t < ext + body:
+		return 2.0 + (t - ext) / maxf(body, 0.001)
+	return minf(3.0 + 2.999 * (t - ext - body) / maxf(fade * (1.0 - BURST_BODY), 0.001), 5.999)
+
+
+## Pass 141: a burst (see the top). A glint gathers at his hand for the last THRUST_ANTI of the delay, the head darts out
+## from the hand to the reach in `ext` with a hard stop (the texture stretched from the hand to the head), the frames run
+## by burst_frame (the big one with the hit: land(), the impact star and a flare at the head on a hit, else a glint), the
+## strength goes over the second half of the fade.
+func _burst_frame(e: Dictionary) -> void:
+	var t := float(e["t"]) - float(e["delay"])
+	var mi: MeshInstance3D = e["mi"]
+	var anti := minf(THRUST_ANTI, float(e["delay"]))
+	if t < -anti:
+		mi.visible = false
+		return
+	mi.visible = true
+	var ext := float(e["ext"])
+	var hold := float(e["hold"])
+	var fd := float(e["fade"])
+	var full := float(e["full"])
+	var m: ShaderMaterial = e["mat"]
+	var head := full
+	var glint := 0.0
+	var fade := 1.0
+	if t < 0.0:
+		glint = (1.0 + t / maxf(anti, 0.001)) * 0.8
+		head = BURST_START
+	elif t < ext:
+		head = lerpf(BURST_START, full, 1.0 - pow(1.0 - t / ext, 4.0))
+	else:
+		fade = 1.0 - smoothstep(0.55, 1.0, clampf((t - ext - hold) / fd, 0.0, 1.0))
+	if not bool(e["flashed"]) and t >= ext + 0.02:
+		_land(e, false)
+	var pierce := 0.0
+	var pa := float(e.get("pierce_at", -1.0))
+	if pa >= 0.0:
+		pierce = 1.0 - clampf((float(e["t"]) - pa) / PIERCE_T, 0.0, 1.0)
+	var fr := burst_frame(t, ext, hold, fd)
+	e["fr"] = fr
+	m.set_shader_parameter("fr", fr)
+	m.set_shader_parameter("pt", maxf(head, BURST_START + 0.05))
+	m.set_shader_parameter("glint", glint)
+	m.set_shader_parameter("fade", fade)
+	m.set_shader_parameter("pierce", pierce)
+	if t >= ext + hold + fd:
+		e["live"] = false
+		mi.visible = false
+
+
+## Pass 141: the painted swing's frame (0..5.999): the first four over the sweep, the fifth (the pack's fullest) as it
+## ends, the last over the fade.
+static func moon_frame(t: float, sweep: float, fade: float) -> float:
+	if t < sweep:
+		return 4.0 * clampf(t / maxf(sweep, 0.001), 0.0, 1.0)
+	return minf(4.0 + 1.999 * (t - sweep) / maxf(fade, 0.001), 5.999)
 
 
 ## How many arcs, thrusts and flashes are showing (tests).

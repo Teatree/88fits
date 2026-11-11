@@ -6,16 +6,15 @@
 [resource]
 script = ExtResource("1_vc38g")
 condition = {
-"hero": "ironwood",
-"id": "cold_snap",
-"kind": "passive",
-"rung": "epic",
-"type": "item_level"
+"count": 320000.0,
+"type": "damage_with_weapon",
+"weapon": "pike"
 }
 unlocks = {
 "id": "ironwood:IRN-B",
 "type": "skin"
 }
+requires = ["skin_ironwood_irn_c"]
 id = "skin_ironwood_irn_b"
 display_name = "Ironwood · Winter Pelt"
 icon = ExtResource("1_6jvjd")

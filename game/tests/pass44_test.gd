@@ -163,7 +163,8 @@ func test_cake_replaced_the_cheese_that_replaced_the_jerky() -> void:
 	assert_object(slice).is_not_null()
 	assert_str(slice.display_name).is_equal("Cake Slice")
 	assert_str(slice.effect_kind).is_equal("heal")
-	assert_float(slice.value).is_equal_approx(0.06, 0.0001)
+	# pass 141 (lane SMALL, re-pinned): a slice heals 0.06 x 2.4 (Garry: "spawn cakes more rarely, but they heal more")
+	assert_float(slice.value).is_equal_approx(0.144, 0.0001)
 	assert_object(Registry.pickup("cheese_bite")).is_null()
 	assert_object(Registry.pickup("jerky")).is_null()
 

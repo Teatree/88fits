@@ -282,9 +282,13 @@ func _process(delta: float) -> void:
 		_last_sv = scroll.scroll_vertical
 		_sync(false)
 	var p := 0.5 + 0.5 * sin(_clock * 4.2)
+	var turn := _clock * TAU / R.RAYS_TURN_S
 	for t: Tile in _tiles.values():
 		if t.state == "open" or t.ring:
 			t.set_pulse(p)
+		# pass 141: the rays behind an unlock turn
+		if t.unlock:
+			t.set_spin(turn)
 
 
 # ---------------------------------------------------------------- where things stand
@@ -509,6 +513,10 @@ func _set_tile(t: Tile, n: Dictionary, side: float) -> void:
 	t.short = t.state == "open" and not Trail.can_buy(id)
 	var g: Dictionary = n["gives"]
 	t.picture = str(g.get("type", "")) == "stage" or str(g.get("type", "")) == "map"
+	# pass 141 (lane TRAIL): an unlock stands out (Tile's rays, gold frame, rarity face, UNLOCK tab)
+	t.unlock = is_unlock(n)
+	t.rarity = unlock_rarity(n) if t.unlock else "legendary"
+	t.spin = _clock * TAU / R.RAYS_TURN_S
 	t.set_art(gift_art(n))
 
 
@@ -520,6 +528,30 @@ func tile_of(id: String) -> Control:
 ## The level whose row lies in the middle of the view.
 func centre_level() -> int:
 	return _level_at(float(scroll.scroll_vertical) + _view_h() * 0.5)
+
+
+## Whether node `n` unlocks a thing (an outlaw, a skin, an item, a Card, a weapon, a stage, ...) rather than giving an
+## upgrade (pass 141: its tile stands out).
+static func is_unlock(n: Dictionary) -> bool:
+	var t := str((n.get("gives", {}) as Dictionary).get("type", ""))
+	return t != "" and t != "upgrade"
+
+
+## The rarity an unlock's face is drawn in (R.RARITY's key): an item's or a weapon's own, as the unlock pop-up frames it;
+## gold (legendary) for an outlaw, a skin, a stage and anything else.
+static func unlock_rarity(n: Dictionary) -> String:
+	var g: Dictionary = n.get("gives", {})
+	var id := str(g.get("id", ""))
+	var def: ContentDef = null
+	match str(g.get("type", "")):
+		"weapon":
+			def = Registry.weapon(id)
+		"passive":
+			def = Registry.passive(id)
+	if def == null:
+		return "legendary"
+	var r := W.rarity_of(def)
+	return r if R.RARITY.has(r) else "common"
 
 
 ## What a node's tile shows: an upgrade's icon, else the thing's own picture (an outlaw's badge, a skin's still, an
@@ -1263,8 +1295,21 @@ func buy_highlighted() -> bool:
 
 ## One node on the track (and, inert, in the dock): the frame by its state, the picture, the tick, the strike, the
 ## price under an open one, the name under a named one, the ring while it is chosen.
+## Pass 141 (lane TRAIL; Garry: "Highlight the Unlock item nodes"): a node that unlocks a thing (an item, a Card, a weapon,
+## an outlaw, a skin, a stage) stands out from the power nodes in every state: the kit's rays turning slowly behind it and
+## a soft gold glow, a gold outer frame, its face in the thing's rarity colours (as the unlock pop-up frames it; an outlaw,
+## a skin and a stage in gold), and a tab over its top edge, UNLOCK on gold until it is bought, UNLOCKED on green after.
+## The state still reads as on any tile: the rim (green bought, breathing gold open, slate locked), the tick, the grey
+## picture of a locked one. In the dock (inert) only the frame and the face.
 class Tile extends WTap:
 	const BASE := 8.0
+	## The rays behind an unlock: RAY_COUNT wedges of RAY_DEG each, from RAY_IN to RAY_OUT of the side from the centre,
+	## the kit's colour (R.RAYS_COLOR) fading outward; one turn in R.RAYS_TURN_S seconds.
+	const RAY_COUNT := 18
+	const RAY_DEG := 8.0
+	const RAY_IN := 0.40
+	const RAY_OUT := 1.02
+	const UNLOCK_GOLD := Color("ffd24d")
 	var id := ""
 	var side := 148.0
 	var state := "locked"
@@ -1277,6 +1322,10 @@ class Tile extends WTap:
 	## A wide picture (a stage's) fills the face; an icon keeps its room.
 	var picture := false
 	var inert := false
+	## Pass 141: the node unlocks a thing; its face's rarity (R.RARITY's key); the rays' turn (radians).
+	var unlock := false
+	var rarity := "legendary"
+	var spin := 0.0
 	var _pulse := 0.0
 	var _face: Control
 	var _pad: MarginContainer
@@ -1318,6 +1367,63 @@ class Tile extends WTap:
 		if ring:
 			_over.queue_redraw()
 
+	## Pass 141: the rays' turn of an unlock tile (TrailScreen._process).
+	func set_spin(a: float) -> void:
+		spin = a
+		_face.queue_redraw()
+
+	## The face's colours [rim, top, bottom] by state, an unlock's in its rarity (dimmed while locked).
+	func _look() -> Array:
+		var look: Array = TrailScreen.LOOK.get(state, TrailScreen.LOOK["locked"])
+		if not unlock:
+			return look
+		var rr: Dictionary = R.RARITY.get(rarity, R.RARITY["legendary"])
+		var top: Color = rr["light"]
+		var bottom: Color = rr["dark"]
+		if state == "locked" or state == "closed":
+			top = top.lerp(look[1], 0.55)
+			bottom = bottom.lerp(look[2], 0.55)
+		return [look[0], top, bottom]
+
+	## The kit's rays and a soft gold glow behind an unlock tile.
+	func _draw_rays(f: Control, s: float) -> void:
+		var c := Vector2(s, s) * 0.5
+		var lit := 0.5 if state == "bought" else (0.75 if state == "locked" else 1.0)
+		var glow := R.RAYS_COLOR
+		var rad := int(round(s * 0.16))
+		f.draw_style_box(TrailScreen.box(Color(1.0, 0.84, 0.36, 0.13 * lit), rad + 26), Rect2(Vector2.ZERO, Vector2(s, s)).grow(22.0))
+		f.draw_style_box(TrailScreen.box(Color(1.0, 0.84, 0.36, 0.13 * lit), rad + 16), Rect2(Vector2.ZERO, Vector2(s, s)).grow(12.0))
+		var r0 := s * RAY_IN
+		var r1 := s * RAY_OUT
+		var inner := Color(glow, glow.a * lit)
+		var outer := Color(glow, 0.0)
+		for i in RAY_COUNT:
+			var a0 := spin + TAU * float(i) / float(RAY_COUNT)
+			var a1 := a0 + deg_to_rad(RAY_DEG)
+			var d0 := Vector2(cos(a0), sin(a0))
+			var d1 := Vector2(cos(a1), sin(a1))
+			f.draw_polygon(PackedVector2Array([c + d0 * r0, c + d0 * r1, c + d1 * r1, c + d1 * r0]),
+				PackedColorArray([inner, outer, outer, inner]))
+
+	## The UNLOCK tab over an unlock tile's top edge; once bought, UNLOCKED hangs from its foot (the top-right corner
+	## holds the tick, and the price of the open node above hangs into the gap over it).
+	func _draw_tab(o: Control, s: float) -> void:
+		var f := R.body(R.BOLD_WEIGHT)
+		var px := 20 if not optional else 18
+		var words := Loc.t("ui.trail.tag.unlocked" if state == "bought" else "ui.trail.tag.unlock")
+		var tw := f.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x
+		var w := tw + 26.0
+		var h := float(px) + 14.0
+		var r := Rect2((s - w) * 0.5, -h * 0.55, w, h)
+		if state == "bought":
+			r.position.y = s + BASE - h * 0.45
+		var fill := TrailScreen.TICK if state == "bought" else Color("ffdc73")
+		o.draw_style_box(TrailScreen.box(R.NAVY, 11), r.grow(4.0))
+		o.draw_style_box(TrailScreen.box(fill, 8), r)
+		o.draw_rect(Rect2(r.position + Vector2(8.0, 3.0), Vector2(r.size.x - 16.0, 2.0)), Color(1, 1, 1, 0.45))
+		o.draw_string(f, Vector2(r.position.x, r.position.y + 7.0 + f.get_ascent(px) - px * 0.12), words, HORIZONTAL_ALIGNMENT_CENTER, w, px,
+			R.WHITE if state == "bought" else R.NAVY)
+
 	## The tile again after its fields changed.
 	func refresh() -> void:
 		var m := int(round(side * (0.13 if picture else 0.17)))
@@ -1336,10 +1442,12 @@ class Tile extends WTap:
 		var f := _face
 		var s := side
 		var r := Rect2(Vector2.ZERO, Vector2(s, s))
-		var look: Array = TrailScreen.LOOK.get(state, TrailScreen.LOOK["locked"])
+		var look: Array = _look()
 		var rim: Color = look[0]
 		var rad := int(round(s * 0.16))
 		var rim_w := 6.0 if optional else 8.0
+		if unlock and not inert:
+			_draw_rays(f, s)
 		if state == "open":
 			# the next to buy: a gold rim that breathes, a soft glow round it
 			var q := snappedf(_pulse, 0.125)
@@ -1349,6 +1457,11 @@ class Tile extends WTap:
 			# a milestone: a second frame outside the first
 			f.draw_style_box(TrailScreen.box(R.NAVY, rad + 10), r.grow(13.0))
 			f.draw_style_box(TrailScreen.box(rim.darkened(0.25) if state != "open" else Color("c98a14"), rad + 7), r.grow(9.0))
+		elif unlock:
+			# pass 141: an unlock's gold frame outside the first
+			f.draw_style_box(TrailScreen.box(R.NAVY, rad + 10), r.grow(13.0))
+			f.draw_style_box(TrailScreen.box(UNLOCK_GOLD.darkened(0.18) if state == "locked" else UNLOCK_GOLD, rad + 7), r.grow(9.0))
+			f.draw_rect(Rect2(r.position + Vector2(rad * 0.4, -7.0), Vector2(s - rad * 0.8, 2.0)), Color(1, 1, 1, 0.35))
 		f.draw_style_box(TrailScreen.box(R.NAVY, rad), Rect2(0.0, BASE, s, s))
 		f.draw_style_box(TrailScreen.box(R.NAVY, rad), r)
 		f.draw_style_box(TrailScreen.box(rim, rad - 3), r.grow(-4.0))
@@ -1385,6 +1498,8 @@ class Tile extends WTap:
 		if ring:
 			var k := 0.55 + 0.45 * _pulse
 			o.draw_style_box(TrailScreen.ring_box(Color(1.0, 0.86, 0.45, k), rad + 22, 7), r.grow(24.0 + 4.0 * _pulse))
+		if unlock and not inert:
+			_draw_tab(o, s)
 
 	## A small plate of words under the tile at `y`; returns its foot.
 	func _label(words: String, y: float, px: int, ink: Color, fill: Color) -> float:

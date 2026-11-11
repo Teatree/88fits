@@ -154,6 +154,11 @@ const FLASH_DECAY := 6.0
 var _flash: Dictionary = {}
 var _knock_ctx_cache: Dictionary = {}
 var _shots := PackedInt32Array()
+## Pass 141 (lane GRAV; Garry: the Gravity Gun "will actually grab and throw barrels at the hero ... grab, pause, throw. But
+## it throws at the hero and when it lands it automatically breaks"): the barrels in the gun's grip (index -> true). A
+## carried barrel stays alive (its slot is not reused) but walking into it, rounds (shot_through, the grid) and knocks pass
+## it by; the gun moves it (carry_to) and lands it (land_carried: BarrelField's own break where it comes down).
+var carried: Dictionary = {}
 
 
 func setup(p_game: Node, p_map: MapBase) -> void:
@@ -457,7 +462,7 @@ func _physics_process(delta: float) -> void:
 	_tick_spawns(delta)
 	var pp: Vector3 = game.player.global_position
 	for i in pos.size():
-		if alive[i] == 0:
+		if alive[i] == 0 or carried.has(i):
 			continue
 		var d := Vector2(pp.x - pos[i].x, pp.z - pos[i].z).length()
 		if d < RADIUS + BREAK_REACH:
@@ -470,6 +475,7 @@ func _break(i: int, from: Vector3 = Vector3.INF) -> void:
 	var shot := from != Vector3.INF
 	alive[i] = 0
 	broken += 1
+	carried.erase(i)
 	shot_hits.erase(i)
 	_anims.erase(i)
 	if _flash.has(i):
@@ -601,7 +607,7 @@ func _build_grid() -> void:
 	var lo := Vector2(INF, INF)
 	var hi := Vector2(-INF, -INF)
 	for i in pos.size():
-		if i < alive.size() and alive[i] == 1:
+		if i < alive.size() and alive[i] == 1 and not carried.has(i):
 			lo = Vector2(minf(lo.x, pos[i].x), minf(lo.y, pos[i].z))
 			hi = Vector2(maxf(hi.x, pos[i].x), maxf(hi.y, pos[i].z))
 	if lo.x == INF:
@@ -615,7 +621,7 @@ func _build_grid() -> void:
 	grid.resize(grid_w * grid_h)
 	grid.fill(0)
 	for i in pos.size():
-		if i >= alive.size() or alive[i] == 0:
+		if i >= alive.size() or alive[i] == 0 or carried.has(i):
 			continue
 		var x0 := int((pos[i].x - GRID_PAD - grid_o.x) / GRID_CELL)
 		var x1 := int((pos[i].x + GRID_PAD - grid_o.x) / GRID_CELL)
@@ -661,7 +667,7 @@ func shot_through(p0: Vector3, p1: Vector3, r: float, seen: Dictionary, cell: in
 
 
 func _shot_one(i: int, p0: Vector3, p1: Vector3, reach: float, seen: Dictionary) -> int:
-	if i < 0 or i >= pos.size() or i >= alive.size() or alive[i] == 0:
+	if i < 0 or i >= pos.size() or i >= alive.size() or alive[i] == 0 or carried.has(i):
 		return 0
 	var c := pos[i]
 	var up := p1.y - c.y
@@ -685,7 +691,7 @@ func _shot_one(i: int, p0: Vector3, p1: Vector3, reach: float, seen: Dictionary)
 ## Barrel `i` takes one of the Outlaw's rounds flying along `dir` (flat) from `from`: knocked back, or broken by the last
 ## of its kind's `shots`.
 func shot_hit(i: int, dir: Vector3, from: Vector3) -> void:
-	if i < 0 or i >= alive.size() or alive[i] == 0:
+	if i < 0 or i >= alive.size() or alive[i] == 0 or carried.has(i):
 		return
 	var need := shots_to_break(light[i] if i < light.size() else 0)
 	var n := int(shot_hits.get(i, 0)) + 1
@@ -833,6 +839,90 @@ func _process(delta: float) -> void:
 		var at: Vector3 = (a["from"] as Vector3).lerp(a["to"], e)
 		at.y += KNOCK_HOP * sin(PI * f)
 		_draw_barrel(i, at, exp(-t * 9.0) * cos(t * 30.0))
+
+
+# ---------------------------------------------------------------- the Gravity Gun's barrels (pass 141, lane GRAV)
+
+## The standing barrel nearest `at` within `reach` (flat distance to its foot) and not in a grip; a tie goes to the lower
+## index. -1 for none.
+func nearest_standing(at: Vector3, reach: float) -> int:
+	var best := -1
+	var best_d := reach * reach
+	for i in pos.size():
+		if i >= alive.size() or alive[i] == 0 or carried.has(i):
+			continue
+		var d := Vector2(pos[i].x - at.x, pos[i].z - at.z).length_squared()
+		if d <= best_d and (best < 0 or d < best_d):
+			best = i
+			best_d = d
+	return best
+
+
+## Barrel `i` taken into the Gravity Gun's grip (see `carried`): its knock and its hit flash end. False when it is not
+## standing or is held already.
+func carry(i: int) -> bool:
+	if i < 0 or i >= alive.size() or alive[i] == 0 or carried.has(i):
+		return false
+	carried[i] = true
+	shot_hits.erase(i)
+	_anims.erase(i)
+	if _flash.has(i):
+		_flash.erase(i)
+		_set_flash(i, 0.0)
+	_grid_dirty = true
+	return true
+
+
+func is_carried(i: int) -> bool:
+	return carried.has(i)
+
+
+## Carried barrel `i` drawn with its foot at `at` (its rule place moves with it), turned `roll` radians in the picture's
+## plane (the barrel shader's roll, INSTANCE_CUSTOM.w) and squashed by `w` as a knock's wobble; its shadow on the ground
+## under it, smaller the higher it flies.
+func carry_to(i: int, at: Vector3, roll: float = 0.0, w: float = 0.0) -> void:
+	if not carried.has(i) or i >= pos.size():
+		return
+	pos[i] = at
+	var t: int = light[i] if i < light.size() else 0
+	var m := float(QUAD_M[clampi(t, 0, 2)])
+	var mm := _mm_of(t)
+	if mm != null and i < _index_in.size():
+		var k: int = _index_in[i]
+		mm.set_instance_transform(k, Transform3D(Basis().scaled(Vector3(m * (1.0 + 0.16 * w), m * (1.0 - 0.14 * w), m)), at))
+		if mm.use_custom_data:
+			mm.set_instance_custom_data(k, Color(0.0, 0.0, float(k) * 1.618 + float(t) * 7.31, roll))
+	if i < shadows.size() and shadows[i] >= 0 and map != null and map.get("props") is PropField:
+		var gy := map.height_at(at.x, at.z)
+		(map.get("props") as PropField).move_shadow(shadows[i], Vector3(at.x, gy, at.z), clampf(1.0 - (at.y - gy) * 0.22, 0.4, 1.0))
+
+
+## Carried barrel `i` comes down at `at` and breaks there as a round's last hit breaks one (_break: its debris flying on
+## from `from`, where the throw left; its gems, coins and power-up; the sound, the kick, Barrel Rush).
+func land_carried(i: int, at: Vector3, from: Vector3) -> void:
+	if not carried.has(i) or i >= alive.size() or alive[i] == 0:
+		carried.erase(i)
+		return
+	pos[i] = Vector3(at.x, map.height_at(at.x, at.z) if map != null else at.y, at.z)
+	# the roll back to 0 in its instance (a barrel laid again in this slot stands upright)
+	_set_flash(i, 0.0)
+	_break(i, from)
+
+
+## Carried barrel `i` set down standing where it is (the gun went mid-throw: a swap, the run's end).
+func uncarry(i: int) -> void:
+	if not carried.has(i):
+		return
+	carried.erase(i)
+	if i >= alive.size() or alive[i] == 0:
+		return
+	var at := pos[i]
+	if map != null:
+		at.y = map.height_at(at.x, at.z)
+	pos[i] = at
+	_grid_dirty = true
+	_set_flash(i, 0.0)
+	_draw_barrel(i, at, 0.0)
 
 
 # ---------------------------------------------------------------- respawns, contents, power-ups (pass 112, lane BARREL)

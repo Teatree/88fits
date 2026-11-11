@@ -96,13 +96,15 @@ def content_checks(check):
     check(not lf_bad, "PASSIVES95 content: the LF files kept theirs: %s" % lf_bad)
     card_bad = [d for d, j in cards if int(j.get("max_level", 0)) != (1 if j.get("evolves_from") else 4) or os.path.isfile(os.path.join(PASSIVES, d, d + "_icon_evolved.png"))]
     check(len(cards) == 42 and not card_bad, "PASSIVES95 content: the 21 cards (4 levels) and their Risen forms (1) are untouched, none has an Evolved icon: %s" % card_bad)
-    # the first level is higher than the committed one for every item (Garry: "stats on the 1st level will be higher")
+    # the first level is higher than the committed one for every item (Garry: "stats on the 1st level will be higher"),
+    # but where Garry later asked for less (pass 141: the Cake's cakes rarer, each healing 2.4x)
+    lower_ok = {"cake"}
     old_dir = os.path.join(TOOLS, "dl", "p95", "PASSIVES", "old")
     if os.path.isdir(old_dir):
         lower = []
         for d, j in items:
             o = os.path.join(old_dir, d + ".json")
-            if not os.path.isfile(o):
+            if not os.path.isfile(o) or d in lower_ok:
                 continue
             old = json.loads(_read(o))
             e_old = (old.get("levels") or [[]])[0]

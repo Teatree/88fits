@@ -50,6 +50,12 @@
 .trl-tile.closed { background: linear-gradient(#242b3f 0 46%, #191e2e 46%); border-color: #3b4359; } .trl-tile.closed .trl-ic { filter: grayscale(1) brightness(0.42); opacity: 0.6; }
 .trl-tile.k-optional { border-width: 6px; }
 .trl-tile.named { box-shadow: 0 12px 0 #0e1f4a, inset 0 0 0 3px #0e1f4a, 0 0 0 9px #c98a14, 0 0 0 13px #0e1f4a; }
+/* pass 141: an unlock (an item, a Card, a weapon, an outlaw, a skin, a stage) as the game draws it: a gold frame, a soft
+   glow, an UNLOCK tab over its top edge (green UNLOCKED once bought) */
+.trl-tile.unlock { box-shadow: 0 12px 0 #0e1f4a, inset 0 0 0 3px #0e1f4a, 0 0 0 9px #ffd24d, 0 0 0 13px #0e1f4a, 0 0 36px 18px rgba(255, 214, 92, 0.38); }
+.trl-tile.unlock.locked { box-shadow: 0 12px 0 #0e1f4a, inset 0 0 0 3px #0e1f4a, 0 0 0 9px #ca9622, 0 0 0 13px #0e1f4a, 0 0 30px 14px rgba(255, 214, 92, 0.26); }
+.trl-unl { position: absolute; top: -24px; left: 50%; transform: translateX(-50%); padding: 3px 12px; border-radius: 10px; background: #ffdc73; color: #0e1f4a; border: 4px solid #0e1f4a; font: 800 18px system-ui, sans-serif; letter-spacing: 0.04em; white-space: nowrap; pointer-events: none; z-index: 2; }
+.trl-tile.bought .trl-unl { background: #4fc43a; color: #fff; top: auto; bottom: -30px; }
 .trl-tile.sel { outline: 8px solid var(--sel); outline-offset: 10px; z-index: 3; }
 .trl-tile.marked::after { content: ''; position: absolute; inset: -6px; border-radius: inherit; background: rgba(57, 135, 229, 0.3); pointer-events: none; }
 .trl-tile.linking { outline: 8px dashed var(--sel); outline-offset: 10px; }

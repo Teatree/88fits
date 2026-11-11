@@ -10,5 +10,6 @@
     "type": "skin",
     "id": "drifter:DRI-B"
   },
+  "requires": "skin_drifter_dri_c",
   "icon": "res://content/characters/drifter/drifter_icon_b.png"
 }

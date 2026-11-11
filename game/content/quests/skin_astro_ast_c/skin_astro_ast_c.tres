@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/characters/astro/astro_icon_c.png" id="1_11wc4"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_u7wb7"]
+
+[resource]
+script = ExtResource("2_u7wb7")
+condition = {
+"id": "gravity_gun",
+"kind": "weapon",
+"level": 5.0,
+"type": "item_level"
+}
+unlocks = {
+"id": "astro:AST-C",
+"type": "skin"
+}
+id = "skin_astro_ast_c"
+display_name = "Astro · Mission Control"
+icon = ExtResource("1_11wc4")
+icon_file = "res://content/characters/astro/astro_icon_c.png"

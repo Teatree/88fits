@@ -160,7 +160,7 @@ variants = {
 "name": "Dust Walker",
 "price": 1500.0,
 "purchasable": true,
-"unlock_quest": ""
+"unlock_quest": "skin_drifter_dri_c"
 },
 "sprite": "res://content/characters/drifter/drifter_sprite_c.png",
 "sprite_file": "drifter_sprite_c.png",

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """The Trail's nodes, as readable data, and the two fits behind them (pass 129, lane TRAIL-SETUP; pass 140, lane TRAIL:
-plan v2 of docs/progression/progression_plan.html with Garry's changes, 130 nodes on 70 levels).
+plan v2 of docs/progression/progression_plan.html with Garry's changes, 130 nodes on 70 levels; pass 141, lane TRAIL:
+one lane, Garry: "The 2 lanes seem redundant, I can't progress unless I buy both ... I'd rather have fewer variety and
+higher value increase to the power nodes. Also it's ok to just increase the total number of levels": one thing to buy a
+level (a plain node or one choice group), 109 nodes on 83 levels).
 
   python tools/trail_setup.py --check              the design's own rules (counts, the mix, no type twice within five
                                                    levels, no unlock in a choice, the unlock set, ...); exit 1 on a fault
@@ -42,7 +45,9 @@ OUTLAW_MULT = 2.0   # pass 140: an outlaw twice his level's price (pass 129: his
 
 def up(kind, value, **kw):
     """An upgrade node: type and its own amount. kw: name (a milestone's own name), mult (price multiplier),
-    price (its own price), meet (it names every required node of the level below in `from`: rails meeting)."""
+    price (its own price), meet (rails meeting: it names every member of the choice group right below it in `from`,
+    `need` any, so the rails of the road taken and of the roads not taken meet on it; pass 129 and 140 named the two
+    lanes' nodes of the level below)."""
     return dict(kw, give={"type": "upgrade", "upgrade": kind, "value": value})
 
 
@@ -78,88 +83,103 @@ def opt(node, **kw):
 # hidden +5% XP and coins). A challenge, not power: a quarter of the curve's price.
 STAKES = dict(mult=0.25)
 
-# level: the nodes on it, left to right (required first, optional after). Pass 140 (plan v2, Garry 2026-11-10): pass
-# 129's 100 nodes with their choice / optional / rails-meeting mix kept; the unlocks of the plan's TRAIL_UNLOCKS less
-# Berserk and the Nuke ("Remove Power-ups from the Trails, but keep Stage"); Astro's and May's nodes became Grit +5% and
-# Aegis +15, Death's and The Ghost's The Miner and The Ember; power nodes (marked "power") where round 1 had structures,
-# the Bounty Board and the two power-ups, each the first of the plan's POWER_PREF not within five levels of its type;
-# the Dust Bowl 20 -> 18, Blood Moon 36 -> 34, Aegis 18 -> 20, Turret Buddy 34 -> 36, Extra Barrel and Boot Hill Pass
-# swapped (52 / 64), Kill Shot +20% 58 -> 40; the plan's slot-56 power node stands at 58 so Pass the Bottle still meets
-# two rails.
+# level: the nodes on it, left to right (required first, optional after). Pass 141 (Garry, Polish #4: "The 2 lanes seem
+# redundant, I can't progress unless I buy both, what's the point of having 2 at a time? ... I'd rather have fewer variety
+# and higher value increase to the power nodes. Also it's ok to just increase the total number of levels"): ONE thing to
+# buy a level, a plain node or one choice group, the optional nodes beside as before. Pass 140's 56 plain power nodes
+# became 35: neighbouring nodes of a type merged into one of their summed amount (each stands at its members' middle in
+# pass 140's order, "a + b" below), four thin types left the Trail (Hot Lead, Care Package, Tight Grip, Loose Coins: one
+# node each); every unlock keeps its own level in pass 140's order, the twelve choice groups and the ten optional nodes are
+# pass 140's; the three rails-meeting milestones each stand right after a choice group and name its members (`need` any).
+# The modelled power of the last level is pass 140's to the digit (the same sums: might 0.30, Grit 0.51, Dead Eye 0.07
+# plain, Tempo 0.24, Poultice 1.5, Aegis 85, Plate 0.22, Kill Shot 0.35, ...).
 DESIGN = [
-    # ---- the opening: a power node every level, the first Cards and items from level 4
-    (1, [up("might", 0.05, price=10)]),   # Garry's 0.05 (the design had 0.06)
-    (2, [up("health", 0.1)]),
-    (3, [up("boots", 0.019), up("crit_chance", 0.02)]),   # power
-    (4, [up("magnet", 0.12), passive("haste")]),
-    (5, [up("tempo", 0.04), passive("pocket_watch")]),
-    (6, [up("study", 0.05), passive("clover")]),
-    (7, [up("regen", 0.4), passive("powder_keg")]),
-    (8, [up("greed", 0.06), up("shield", 10)]),   # power (Berserk's slot)
-    (9, [up("health", 0.05), passive("field_notes")]),   # Astro's slot
-    (10, [choice(up("area", 0.08), up("tempo", 0.04)), passive("lightning_in_a_bottle")]),
-    (11, [weapon("tumbleweed")]),
-    (12, [up("crit_chance", 0.03), passive("magnet"), opt(up("grubstake", 25))]),
-    (13, [up("plate", 0.04), passive("mule_kick"), up("shield", 10)]),   # power
-    (14, [up("luck", 0.06), passive("assayers_scale"), opt(up("stakes", 0.1), **STAKES)]),
-    (15, [up("might", 0.07), weapon("rocket_pod")]),
-    (16, [outlaw("calavera")]),
-    (17, [choice(up("health", 0.1), up("evade", 0.05)), passive("jade_key")]),
-    (18, [stage("dust")]),
-    (19, [up("tempo", 0.04), passive("pocket_bible")]),
-    (20, [up("shield", 15), opt(up("boss_stakes", 0.1), **STAKES)]),
-    (21, [weapon("hornet_nest")]),
-    (22, [up("shot_speed", 0.1), passive("tin_star")]),
-    (23, [outlaw("solenne")]),
-    # ---- the middle third: a choice about one level in six
-    (24, [up("crit_damage", 0.15), passive("grindstone")]),
-    (25, [choice(up("might", 0.08), up("crit_chance", 0.05)), up("plate", 0.02)]),   # power (the Nuke's slot)
-    (26, [up("care_package", 0.002), passive("ruby_key"), opt(up("stakes", 0.1), **STAKES)]),
-    (27, [up("regen", 0.5), weapon("zap_beam"), up("shield", 10), opt(up("spirit", 0.1))]),   # power
-    (28, [passive("prospector")]),   # Death's slot
-    (29, [up("reroll", 1, name="A Second Look", mult=2)]),
-    (30, [outlaw("fadeaway")]),
-    (31, [choice(up("boots", 0.025), up("magnet", 0.2)), passive("undertakers_shovel")]),
-    (32, [up("plate", 0.04), skin("astro", "AST-B"), opt(up("boss_stakes", 0.1), **STAKES)]),
-    (33, [up("might", 0.08)]),
-    (34, [stage("s3")]),
-    (35, [up("health", 0.1)]),
-    (36, [weapon("turret_buddy")]),
-    (37, [up("tempo", 0.05), passive("hot_sauce")]),
-    (38, [outlaw("buck"), opt(up("stakes", 0.1), **STAKES)]),
-    (39, [choice(up("shield", 25), up("regen", 0.6))]),
-    (40, [up("study", 0.06), up("crit_damage", 0.2)]),
-    (41, [passive("slow_burn")]),   # The Ghost's slot
-    (42, [up("big_game", 0.1), up("plate", 0.02)]),   # power
-    (43, [up("banish", 1, name="Not This One", mult=2), passive("fools_gold")]),
-    (44, [up("grip", 0.1), up("luck", 0.04), opt(up("boss_stakes", 0.1), **STAKES)]),   # power
-    (45, [up("shield", 15)]),   # May's slot
-    (46, [choice(up("crit_chance", 0.05), up("crit_damage", 0.25))]),
-    (47, [up("bounty", 0.15)]),
+    # ---- the opening: plain nodes only, the first three power, no type twice; the first items from level 5
+    (1, [up("might", 0.05, price=10)]),   # Garry's 0.05 (pass 130), its own price
+    (2, [up("health", 0.15)]),   # 2 + 9
+    (3, [up("boots", 0.019)]),
+    (4, [up("magnet", 0.12)]),
+    (5, [passive("haste")]),
+    (6, [passive("pocket_watch")]),
+    (7, [up("study", 0.11)]),   # 6 + 40
+    (8, [passive("clover")]),
+    (9, [passive("powder_keg")]),
+    (10, [up("crit_chance", 0.07)]),   # 3 + 12 + 58
+    (11, [up("greed", 0.06)]),
+    (12, [passive("field_notes")]),
+    (13, [choice(up("area", 0.08), up("tempo", 0.04))]),
+    (14, [passive("lightning_in_a_bottle")]),
+    (15, [up("shield", 20)]),   # 8 + 13
+    (16, [weapon("tumbleweed")]),
+    (17, [passive("magnet"), opt(up("grubstake", 25))]),
+    (18, [passive("mule_kick")]),
+    (19, [up("tempo", 0.08), opt(up("stakes", 0.1), **STAKES)]),   # 5 + 19
+    (20, [passive("assayers_scale")]),
+    (21, [weapon("rocket_pod")]),
+    (22, [outlaw("calavera")]),
+    (23, [up("regen", 0.9)]),   # 7 + 27
+    (24, [choice(up("health", 0.1), up("evade", 0.05))]),
+    (25, [passive("jade_key")]),
+    (26, [stage("dust")]),
+    (27, [up("plate", 0.06)]),   # 13 + 25
+    (28, [passive("pocket_bible"), opt(up("boss_stakes", 0.1), **STAKES)]),
+    # ---- the middle: a choice about one level in eight
+    (29, [up("might", 0.15)]),   # 15 + 33
+    (30, [weapon("hornet_nest")]),
+    (31, [passive("tin_star")]),
+    (32, [outlaw("solenne")]),
+    (33, [up("shield", 25)]),   # 20 + 27
+    (34, [passive("grindstone")]),
+    (35, [choice(up("might", 0.08), up("crit_chance", 0.05))]),
+    (36, [passive("ruby_key"), opt(up("stakes", 0.1), **STAKES)]),
+    (37, [weapon("zap_beam"), opt(up("spirit", 0.1))]),
+    (38, [passive("prospector")]),
+    (39, [up("luck", 0.1)]),   # 14 + 44
+    (40, [up("reroll", 1, name="A Second Look", mult=2)]),
+    (41, [outlaw("fadeaway")]),
+    (42, [choice(up("boots", 0.025), up("magnet", 0.2))]),
+    (43, [passive("undertakers_shovel")]),
+    (44, [up("crit_damage", 0.35), opt(up("boss_stakes", 0.1), **STAKES)]),   # 24 + 40
+    (45, [skin("astro", "AST-D")]),   # Astro's second skin (AST-D Splashdown once lane ART installs it: tools/dl/p141/TRAIL/retarget_skins.py)
+    (46, [stage("s3")]),
+    (47, [weapon("turret_buddy")]),
+    (48, [up("plate", 0.06)]),   # 32 + 42
+    (49, [passive("hot_sauce")]),
+    (50, [outlaw("buck"), opt(up("stakes", 0.1), **STAKES)]),
+    (51, [choice(up("shield", 25), up("regen", 0.6))]),
+    (52, [passive("slow_burn")]),
+    (53, [up("big_game", 0.1)]),
+    (54, [up("health", 0.22)]),   # 35 + 50
+    (55, [up("banish", 1, name="Not This One", mult=2)]),
     # ---- the last third: a choice about one level in four, three-way and four-way ones, rails meeting
-    (48, [weapon("land_mine")]),
-    (49, [choice(up("area", 0.1), up("duration", 0.12))]),
-    (50, [up("health", 0.12), opt(up("stakes", 0.1), **STAKES)]),
-    (51, [up("plate", 0.04), up("tempo", 0.05)]),
-    (52, [up("amount", 1, name="Extra Barrel", mult=3, meet=True)]),
-    (53, [choice(up("might", 0.1), up("crit_chance", 0.05), up("big_game", 0.15))]),
-    (54, [passive("ricochet")]),
-    (55, [up("regen", 0.6), passive("iron_horse")]),
-    (56, [up("loose_coins", 0.003), opt(up("boss_stakes", 0.1), **STAKES)]),
-    (57, [choice(up("boots", 0.031), up("evade", 0.05))]),
-    (58, [up("shield", 25), up("crit_chance", 0.02)]),   # power
-    (59, [up("skip", 1, name="Pass the Bottle", mult=2, meet=True)]),
-    (60, [passive("overkill")]),
-    (61, [choice(up("health", 0.14), up("plate", 0.05), up("regen", 0.8))]),
-    (62, [up("tonic", 0.15)]),
-    (63, [up("might", 0.1), up("tempo", 0.06), up("area", 0.1)]),
-    (64, [up("extra_life", 1, name="Boot Hill Pass", mult=2.5, meet=True)]),
-    (65, [choice(up("greed", 0.1), up("luck", 0.1), up("power_drop", 0.2), up("long_buff", 0.2))]),
-    (66, [up("evade", 0.05), passive("personal_storm")]),
-    (67, [up("health", 0.14)]),
-    (68, [up("second_wind", 0.15)]),
-    (69, [choice(up("might", 0.12), up("tempo", 0.07))]),
-    (70, [up("plate", 0.06, name="Iron Hide", mult=2)]),
+    (56, [passive("fools_gold")]),
+    (57, [up("tempo", 0.1), opt(up("boss_stakes", 0.1), **STAKES)]),   # 37 + 51
+    (58, [choice(up("crit_chance", 0.05), up("crit_damage", 0.25))]),
+    (59, [up("bounty", 0.15)]),
+    (60, [weapon("land_mine")]),
+    (61, [choice(up("area", 0.1), up("duration", 0.12))]),
+    (62, [up("amount", 1, name="Extra Barrel", mult=3, meet=True), opt(up("stakes", 0.1), **STAKES)]),
+    (63, [up("shield", 40)]),   # 45 + 58
+    (64, [choice(up("might", 0.1), up("crit_chance", 0.05), up("big_game", 0.15))]),
+    (65, [passive("ricochet")]),
+    (66, [up("regen", 0.6)]),
+    (67, [passive("iron_horse"), opt(up("boss_stakes", 0.1), **STAKES)]),
+    (68, [choice(up("boots", 0.031), up("evade", 0.05))]),
+    (69, [up("skip", 1, name="Pass the Bottle", mult=2, meet=True)]),
+    (70, [passive("overkill")]),
+    (71, [choice(up("health", 0.14), up("plate", 0.05), up("regen", 0.8))]),
+    (72, [up("extra_life", 1, name="Boot Hill Pass", mult=2.5, meet=True)]),
+    (73, [up("tonic", 0.15)]),
+    (74, [up("might", 0.1)]),
+    (75, [up("tempo", 0.06)]),
+    (76, [up("area", 0.1)]),
+    (77, [choice(up("greed", 0.1), up("luck", 0.1), up("power_drop", 0.2), up("long_buff", 0.2))]),
+    (78, [up("evade", 0.05)]),
+    (79, [passive("personal_storm")]),
+    (80, [up("health", 0.14)]),
+    (81, [up("second_wind", 0.15)]),
+    (82, [choice(up("might", 0.12), up("tempo", 0.07))]),
+    (83, [up("plate", 0.1, name="Iron Hide", mult=2)]),   # pass 140's Iron Hide 0.06 + its 51's 0.04
 ]
 
 # The items, Cards and skin on the Trail (pass 140), gift type by id: pass 129's eight less Death (thirst) and The
@@ -177,15 +197,19 @@ ITEMS = {
     # Death's and The Ghost's old slots
     "prospector": "passive", "slow_burn": "passive",
 }
-SKINS = ["astro:AST-B"]
+SKINS = ["astro:AST-D"]
 OUTLAWS = ["calavera", "solenne", "fadeaway", "buck"]   # title order; the Drifter, Ironwood and (pass 140) Astro start open, May comes from a task
-STAGE_LEVELS = {"dust": 18, "s3": 34}
-# Garry: "make sure not to damage our mix of choice/optional and regular nodes" (pass 129's set, kept in pass 140)
+STAGE_LEVELS = {"dust": 26, "s3": 46}
+# Garry: "make sure not to damage our mix of choice/optional and regular nodes" (pass 129's set, kept in pass 140 and 141)
 MIX = {"choice_groups": 12, "choice_nodes": 28, "optional": 10, "meet": 3}
-NODE_COUNT = 130
+NODE_COUNT = 109
+LEVELS = 83
 UNLOCK_TYPES = ("outlaw", "skin", "weapon", "passive", "stage", "map", "structure", "powerup", "feature")
 NOT_ON_TRAIL = ("structure", "powerup", "feature", "map")   # Garry (pass 140): "Remove Power-ups from the Trails, but keep Stage"
 COUNT_TYPES = ("amount", "extra_life", "reroll", "skip", "banish")
+# Pass 141: the thin types that left the Trail (one node each in pass 140; "fewer variety"); their upgrade blocks stay in
+# the file for the Level Editor
+RETIRED_TYPES = ("shot_speed", "care_package", "grip", "loose_coins")
 GAP = 5   # never the same upgrade type twice within five levels
 
 
@@ -211,8 +235,9 @@ def build_nodes():
             if e["kind"] == "choice":
                 n["group"] = e["group"]
             if e.get("meet"):
+                # pass 141: the members of the choice group right below (one lane: the level below holds one thing)
                 n["from"] = list(prev_required)
-                n["need"] = "all"
+                n["need"] = "any" if len(prev_required) > 1 else "all"
             n["gives"] = dict(e["give"])
             if "price" in e:
                 n["price"] = e["price"]
@@ -287,19 +312,27 @@ def check_design(nodes):
     top = max(n["level"] for n in nodes)
     if len(nodes) != NODE_COUNT:
         probs.append("%d nodes, not %d" % (len(nodes), NODE_COUNT))
-    if not 66 <= top <= 74:
-        probs.append("%d levels, not about 70" % top)
+    if top != LEVELS:
+        probs.append("%d levels, not %d" % (top, LEVELS))
     by_level = {}
     for n in nodes:
         by_level.setdefault(n["level"], []).append(n)
     for l in range(1, top + 1):
         row = by_level.get(l, [])
-        if not [n for n in row if n["kind"] != "optional"]:
+        req = [n for n in row if n["kind"] != "optional"]
+        # pass 141 (Garry: "The 2 lanes seem redundant"): one thing to buy a level, a plain node or one choice group
+        plain = [n for n in req if n["kind"] == "node"]
+        groups = {n.get("group", "") for n in req if n["kind"] == "choice"}
+        if not req:
             probs.append("level %d has no required node" % l)
+        elif not ((len(plain) == 1 and not groups) or (not plain and len(groups) == 1)):
+            probs.append("level %d has %d plain nodes and %d choice groups (one thing a level)" % (l, len(plain), len(groups)))
         if len(row) > 4:
             probs.append("level %d has %d nodes (4 at most)" % (l, len(row)))
-        if l <= 8 and (any(n["kind"] != "node" for n in row) or not any(is_up(n) for n in row)):
-            probs.append("level %d: the opening is plain nodes with an upgrade on every level" % l)
+        if l <= 8 and any(n["kind"] != "node" for n in row):
+            probs.append("level %d: the opening is plain nodes only" % l)
+        if l <= 3 and not all(is_up(n) for n in row):
+            probs.append("level %d: the first three levels are power nodes" % l)
         if len([n for n in row if is_up(n) and n["gives"]["upgrade"] in ("stakes", "boss_stakes")]) > 1:
             probs.append("level %d: two Stakes nodes" % l)
     opening = [n["gives"]["upgrade"] for l in range(1, 9) for n in by_level[l] if is_up(n)]
@@ -321,16 +354,18 @@ def check_design(nodes):
             if t in last and n["level"] == last[t]:
                 probs.append("%s twice on level %d" % (t, n["level"]))
             last[t] = n["level"]
-    # every upgrade type of the file used
+    # every upgrade type of the file used but the retired ones (pass 141), and those never
     with open(TRAIL, encoding="utf-8") as f:
         types = list(json.load(f)["upgrades"].keys())
     used = {n["gives"]["upgrade"] for n in nodes if is_up(n)}
     for t in types:
-        if t not in used:
+        if t not in used and t not in RETIRED_TYPES:
             probs.append("upgrade type %s is never used" % t)
     for t in used:
         if t not in types:
             probs.append("unknown upgrade type %s" % t)
+        if t in RETIRED_TYPES:
+            probs.append("upgrade type %s left the Trail in pass 141" % t)
     # unlocks: never in a choice, never optional; no power-up, structure, feature or map (Garry, pass 140); the
     # outlaws in title order at twice their level's price; both stages at their levels; the items and the skin at half
     for n in nodes:
@@ -347,7 +382,7 @@ def check_design(nodes):
     if got != OUTLAWS:
         probs.append("outlaws %s, not %s" % (got, OUTLAWS))
     lv = [n["level"] for n in nodes if n["gives"]["type"] == "outlaw"]
-    if lv and not (12 <= lv[0] <= 20 and 34 <= lv[-1] <= 42):
+    if lv and not (0.2 * top <= lv[0] <= 0.3 * top and 0.55 * top <= lv[-1] <= 0.65 * top):
         probs.append("outlaws from level %d to %d" % (lv[0], lv[-1]))
     stages = {n["gives"]["stage"]: n["level"] for n in nodes if n["gives"]["type"] == "stage"}
     if stages != STAGE_LEVELS:
@@ -359,7 +394,7 @@ def check_design(nodes):
         if n["gives"]["type"] in ("weapon", "passive"):
             if ITEMS.get(n["gives"]["id"], "") != n["gives"]["type"]:
                 probs.append("%s: %s is not a %s" % (n["id"], n["gives"]["id"], n["gives"]["type"]))
-            if not 4 <= n["level"] <= 66:
+            if not 4 <= n["level"] <= top - 3:
                 probs.append("%s: an item at level %d" % (n["id"], n["level"]))
     skins = [n["gives"]["id"] for n in nodes if n["gives"]["type"] == "skin"]
     if skins != SKINS:
@@ -388,6 +423,12 @@ def check_design(nodes):
     for k, v in MIX.items():
         if mix[k] != v:
             probs.append("mix: %s %d, not %d" % (k, mix[k], v))
+    # pass 141: a rails-meeting node names every member of the choice group right below it, `need` any
+    for n in nodes:
+        if len(n.get("from", [])) >= 2:
+            below = [m for m in by_level.get(n["level"] - 1, []) if m["kind"] == "choice"]
+            if sorted(n["from"]) != sorted(m["id"] for m in below) or n.get("need") != "any":
+                probs.append("%s: rails meet from the choice group right below it, need any" % n["id"])
     # count types: rare, named, with a price multiplier
     for n in nodes:
         if is_up(n) and n["gives"]["upgrade"] in COUNT_TYPES and (not n.get("name") or n.get("price_mult", 1) <= 1):
@@ -421,6 +462,7 @@ BASE = {
 }
 BOARD_POWER = {"l1": 2.327, "l30": 2.195}   # the full board over a fresh save (power ratio), from the probe while the board existed (it left in pass 129: this is its last measurement)
 TRAIL129_END = {"l1": 4.124, "l30": 2.905}   # pass 129's 100 nodes at their last level, by this model (Garry, pass 140: "110% is fine, bigger is fine too")
+TRAIL140_END = {"l1": 4.729, "l30": 3.267}   # pass 140's 130 nodes at their last level, by this model (the probe: x3.28 at level 30); pass 141 keeps at least this
 SUSTAIN = 30.0   # HeroPower.SUSTAIN_SECONDS
 
 
@@ -463,6 +505,8 @@ def power_table(nodes):
     out.append("")
     out.append("The last level over pass 129's last level: x%.3f at level 1, x%.3f at level 30 (Garry: 110%% or more is fine)." % (
         power_at(nodes, top, "l1") / TRAIL129_END["l1"], power_at(nodes, top, "l30") / TRAIL129_END["l30"]))
+    out.append("The last level over pass 140's last level: x%.3f at level 1, x%.3f at level 30 (pass 141: at least x1)." % (
+        power_at(nodes, top, "l1") / TRAIL140_END["l1"], power_at(nodes, top, "l30") / TRAIL140_END["l30"]))
     return "\n".join(out)
 
 
@@ -480,6 +524,13 @@ STAGE_LEN = [430 / 60.0, 600 / 60.0, 780 / 60.0, 960 / 60.0]
 # coins (x1, 1.5, 2, 2); wage: Wages a stage-minute survived; bounty: a poster's pay (x1, x3, x7, x14), half the runs
 # finish one. Coins x25 is a cheat and never in here.
 ECON = {"c": [10, 40, 60, 100], "boss": [505, 1500, 3000, 6000], "wage": [30, 80, 150, 240], "bounty": [150, 450, 1050, 2100]}
+# Pass 141: lane ECON's measured purses (tools/dl/p140/ECON/status.md, the sim's runs of pass 140): the coins and Elite
+# purses before the boss came to Sundown 100%, Nightfall 78%, the Dust Bowl 46%, Blood Moon 87% of the plan's (`c`); the
+# boss chests, Wages and posters as the plan. The lead since made an Elite's purse follow the stage's coin factor (BALANCING
+# 81.LEAD), which lifts the measured ones, so the measured set is the slow end. The price is fitted on it.
+MEASURED_SHARE = [1.0, 0.78, 0.46, 0.87]
+PURSES = {"plan": ECON, "measured": dict(ECON, c=[c * m for c, m in zip(ECON["c"], MEASURED_SHARE)])}
+FIT_ON = "measured"
 OVERHEAD = 1.5   # minutes a run spends outside the stage clock (the descent, the boss's intro, the Results, menus)
 # The demand band of each stage on HeroPower (level-30 build, x a fresh save): below p0 the boss is out of reach, at p1
 # a middling player clears it cmax of the time.
@@ -497,9 +548,10 @@ def skill(run):
     return 1.0 - 0.85 * math.exp(-(run - 1) / 3.0)
 
 
-def outcome(si, power, run, board_open, greed):
+def outcome(si, power, run, board_open, greed, econ=None):
     """Expected (purse, clear chance, minutes when they fall) for stage si at this power on this run (the plan's
-    round-2 Sundown: run 1 falls at about 3:00)."""
+    round-2 Sundown: run 1 falls at about 3:00); `econ` one of PURSES (default the plan's ECON)."""
+    ECON = econ or PURSES["plan"]
     b = STAGE_BAND[si]
     x = max(0.0, min(1.0, (power - b["p0"]) / (b["p1"] - b["p0"])))
     sk = skill(run)
@@ -532,8 +584,10 @@ def required_order(nodes):
     return [n for n in nodes if n["kind"] == "node" or n["id"] in pick]
 
 
-def simulate(nodes, cfg, runs=400):
-    """The journey played. -> rows, one a run: {run, stage, si, clear, minutes, play_min, purse, level, nodes, bought}."""
+def simulate(nodes, cfg, runs=400, purses=None):
+    """The journey played on purse set `purses` (PURSES' key, default FIT_ON). -> rows, one a run: {run, stage, si, clear,
+    minutes, play_min, purse, level, nodes, bought}."""
+    econ = PURSES[purses or FIT_ON]
     order = required_order(nodes)
     last_of = {}
     for i, n in enumerate(order):
@@ -550,13 +604,13 @@ def simulate(nodes, cfg, runs=400):
         for si in range(4):
             if si > 0 and (cleared[si - 1] < 0.7 or level < gates.get(si, 0)):
                 continue
-            purse, c, md = outcome(si, p30, run, board, greed)
+            purse, c, md = outcome(si, p30, run, board, greed, econ)
             if best is None or purse > best[0]:
                 best = (purse, si, c, md)
         purse, si, c, md = best
         for sj in range(si + 1, 4):   # a stage never cleared and now in reach: tried once the chance is a quarter
             if cleared[sj - 1] >= 0.7 and level >= gates.get(sj, 0):
-                pj, cj, mj = outcome(sj, p30, run, board, greed)
+                pj, cj, mj = outcome(sj, p30, run, board, greed, econ)
                 if cleared[sj] < 0.7 and cj >= 0.25:
                     purse, si, c, md = pj, sj, cj, mj
         cleared[si] += c
@@ -587,11 +641,40 @@ def done_run(rows, level):
     return None
 
 
+# Pass 141: the run each unlock came at in pass 140 (its Trail on the plan's purses, tools/dl/p141/TRAIL/work/baseline.py):
+# the one-lane Trail keeps them near these while its last level moves to run TARGET_RUNS on the measured purses.
+PASS140_RUNS = {"haste": 2, "pocket_watch": 2, "clover": 3, "powder_keg": 3, "field_notes": 5, "lightning_in_a_bottle": 5,
+                "tumbleweed": 6, "magnet": 6, "mule_kick": 7, "assayers_scale": 8, "rocket_pod": 8, "calavera": 9, "jade_key": 9,
+                "dust": 10, "pocket_bible": 10, "hornet_nest": 11, "tin_star": 11, "solenne": 12, "grindstone": 13, "ruby_key": 14,
+                "zap_beam": 15, "prospector": 16, "fadeaway": 18, "undertakers_shovel": 19, "astro:AST-B": 19, "s3": 20,
+                "turret_buddy": 21, "hot_sauce": 22, "buck": 23, "slow_burn": 25, "fools_gold": 27, "land_mine": 30, "ricochet": 35,
+                "iron_horse": 35, "overkill": 38, "personal_storm": 43}
+
+
+def unlock_key(n):
+    g = n["gives"]
+    return str(g.get("id", g.get("stage", "")))
+
+
+def unlock_runs(rows):
+    """The run each unlock is bought in: {thing id: run}."""
+    out = {}
+    for r in rows:
+        for n in r["bought"]:
+            if not is_up(n):
+                out[unlock_key(n)] = r["run"]
+    return out
+
+
 def fit(nodes, base=20, step=10, say=False):
-    """k and power: the last level bought by run TARGET_RUNS, Trail Level about 2 after run 1, 6 by run 3, 9 by run 5,
-    17 by run 10 and 40 by run 25 (the plan's checkpoints)."""
+    """k and power: the last level bought by run TARGET_RUNS on the FIT_ON purses, every unlock near the run it came at
+    in pass 140 (PASS140_RUNS; a skin node retargeted keeps its slot's run)."""
     best = None
     top = max(n["level"] for n in nodes)
+    slot = {unlock_key(n): unlock_key(n) for n in nodes if not is_up(n)}
+    for n in nodes:
+        if n["gives"]["type"] == "skin":
+            slot[unlock_key(n)] = "astro:AST-B"
     for p in [x / 20.0 for x in range(24, 46)]:
         lo, hi = 0.01, 2000.0
         for _ in range(36):
@@ -603,12 +686,14 @@ def fit(nodes, base=20, step=10, say=False):
                 hi = mid
         cfg = {"base": base, "k": float("%.3g" % lo), "power": p, "round": step}
         rows = simulate(nodes, cfg, runs=TARGET_RUNS + 5)
-        lv = [rows[min(r, len(rows)) - 1]["level"] for r in (1, 3, 5, 10, 25)]
-        err = 3 * (lv[0] - 2) ** 2 + (lv[1] - 6) ** 2 + (lv[2] - 9) ** 2 + 0.5 * (lv[3] - 17) ** 2 + 0.25 * (lv[4] - 40) ** 2
+        got = unlock_runs(rows)
+        diffs = [got.get(u, TARGET_RUNS + 5) - PASS140_RUNS[slot[u]] for u in slot]
+        err = sum(d * d for d in diffs) / float(len(diffs))
         if done_run(rows, top) != TARGET_RUNS:
             err += 50
         if say:
-            print("power %.2f k %-7g -> levels at runs 1/3/5/10/25 %s, the top at run %s (err %.1f)" % (p, cfg["k"], lv, done_run(rows, top), err))
+            print("power %.2f k %-7g -> unlocks off pass 140's runs by %+.1f on average (rms %.1f), the top at run %s" % (
+                p, cfg["k"], sum(diffs) / float(len(diffs)), math.sqrt(sum(d * d for d in diffs) / float(len(diffs))), done_run(rows, top)))
         if best is None or err < best[0]:
             best = (err, cfg)
     return best[1]
@@ -616,9 +701,10 @@ def fit(nodes, base=20, step=10, say=False):
 
 def price_table(nodes, cfg):
     rows = simulate(nodes, cfg)
+    plan_rows = simulate(nodes, cfg, purses="plan")
     pick = even_pick(nodes)
     top = max(n["level"] for n in nodes)
-    out = ["| level | nodes | what | price | cumulative (required) | done after run | stage farmed, purse |", "|---|---|---|---|---|---|---|"]
+    out = ["| level | nodes | what | price | cumulative (required) | done after run (measured) | stage farmed, purse | done after run (plan) |", "|---|---|---|---|---|---|---|---|"]
     cum, count = 0, 0
     for l in range(1, top + 1):
         row = [n for n in nodes if n["level"] == l]
@@ -635,29 +721,35 @@ def price_table(nodes, cfg):
         opt = [price_of(n, cfg) for n in row if n["kind"] == "optional"]
         ptxt = " / ".join("{:,}".format(p) for p in prices) + ("".join(" ({:,})".format(p) for p in opt))
         r = done_run(rows, l)
-        out.append("| %d | %d | %s | %s | %s | %s | %s |" % (l, count, sep.join(what), ptxt, "{:,}".format(cum), r if r else "-",
-                                                             ("%s, %s" % (rows[r - 1]["stage"], "{:,}".format(rows[r - 1]["purse"]))) if r else ""))
+        rp = done_run(plan_rows, l)
+        out.append("| %d | %d | %s | %s | %s | %s | %s | %s |" % (l, count, sep.join(what), ptxt, "{:,}".format(cum), r if r else "-",
+                                                                  ("%s, %s" % (rows[r - 1]["stage"], "{:,}".format(rows[r - 1]["purse"]))) if r else "", rp if rp else "-"))
     return "\n".join(out)
 
 
 def summary(nodes, cfg):
-    rows = simulate(nodes, cfg)
     top = max(n["level"] for n in nodes)
     pick = even_pick(nodes)
     req = sum(price_of(n, cfg) for n in nodes if n["kind"] == "node" or n["id"] in pick)
     opt = sum(price_of(n, cfg) for n in nodes if n["kind"] == "optional")
     outl = sum(price_of(n, cfg) for n in nodes if n["gives"]["type"] == "outlaw")
     lines = ["price: base %g, k %g, power %g, round %g" % (cfg["base"], cfg["k"], cfg["power"], cfg["round"])]
-    for r in (1, 2, 3, 5, 10, 20, 30, 40, 50):
-        if r <= len(rows):
-            x = rows[r - 1]
-            lines.append("after run %d: Trail Level %d, %d required nodes bought (that run: %s, purse %s)" % (
-                r, x["level"], x["nodes"], x["stage"], "{:,}".format(x["purse"])))
-    lines.append("every required node: %s coins (the outlaws %s of it), the last level after run %s; the %d optional nodes %s more" % (
-        "{:,}".format(req), "{:,}".format(outl), done_run(rows, top), len([n for n in nodes if n["kind"] == "optional"]), "{:,}".format(opt)))
-    lines.append("play time to the last level: %.1f hours" % (sum(x["play_min"] for x in rows) / 60.0))
-    lines.append("power at the last level: x%.3f (level 1), x%.3f (level 30) of a fresh save; x%.3f / x%.3f of pass 129's last level" % (
-        power_at(nodes, top, "l1"), power_at(nodes, top, "l30"), power_at(nodes, top, "l1") / TRAIL129_END["l1"], power_at(nodes, top, "l30") / TRAIL129_END["l30"]))
+    for name in ("measured", "plan"):
+        rows = simulate(nodes, cfg, purses=name)
+        lines.append("on the %s purses:" % name)
+        for r in (1, 2, 3, 5, 10, 20, 30, 40, 50):
+            if r <= len(rows):
+                x = rows[r - 1]
+                lines.append("  after run %d: Trail Level %d, %d required nodes bought (that run: %s, purse %s)" % (
+                    r, x["level"], x["nodes"], x["stage"], "{:,}".format(x["purse"])))
+        lines.append("  the last level after run %s; play time to it %.1f hours" % (done_run(rows, top), sum(x["play_min"] for x in rows) / 60.0))
+        got = unlock_runs(rows)
+        lines.append("  unlocks (run; pass 140's on the plan's purses): " + ", ".join(
+            "%s %d (%s)" % (k, v, PASS140_RUNS.get(k, PASS140_RUNS["astro:AST-B"] if ":" in k else "-")) for k, v in sorted(got.items(), key=lambda kv: kv[1])))
+    lines.append("every required node: %s coins (the outlaws %s of it); the %d optional nodes %s more" % (
+        "{:,}".format(req), "{:,}".format(outl), len([n for n in nodes if n["kind"] == "optional"]), "{:,}".format(opt)))
+    lines.append("power at the last level: x%.3f (level 1), x%.3f (level 30) of a fresh save; x%.3f / x%.3f of pass 140's last level" % (
+        power_at(nodes, top, "l1"), power_at(nodes, top, "l30"), power_at(nodes, top, "l1") / TRAIL140_END["l1"], power_at(nodes, top, "l30") / TRAIL140_END["l30"]))
     return "\n".join(lines)
 
 
@@ -722,9 +814,10 @@ def probe_plan(nodes, cfg, out_dir):
     return 0
 
 
-# the fitted curve (pass 140: the plan's fit, {base 20, k 6.21, power 1.9, round 10}; --fit prints the search, --write
-# writes this)
-PRICE = {"base": 20, "k": 6.21, "power": 1.9, "round": 10}
+# the fitted curve (pass 140: the plan's fit, {base 20, k 6.21, power 1.9, round 10}; pass 141: --fit on the one-lane
+# Trail and lane ECON's measured purses, the last level after run 50, the unlocks near pass 140's runs; --fit prints the
+# search, --write writes this)
+PRICE = {"base": 20, "k": 1.16, "power": 2.25, "round": 10}
 
 
 def main():

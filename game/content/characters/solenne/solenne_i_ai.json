@@ -1,0 +1,381 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a slender woman in a simple black triangle bikini and high-cut black bikini bottoms, barefoot, her skin all over bright golden yellow; her head is a bright yellow cartoon sun: a smooth round yellow face with calm half-lidded eyes, thin brows and small red lips, ringed by eight long pointed golden-yellow rays; standing straight",
+ "renders": {
+  "front": {
+   "seed": 1009091,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of the same slender woman whose head is a bright yellow cartoon sun (a smooth round yellow face with calm half-lidded eyes, thin brows and small red lips, ringed by eight long pointed golden-yellow rays), in a new outfit for a day at the beach: a simple black triangle bikini top and high-cut black bikini bottoms and nothing else, her skin all over the same warm golden yellow as her sun head, her arms, legs and feet bare, no gloves, no boots, no shoes, no collar. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep her exact sun head and face, her slender build, height and proportions, her standing pose with one hand on her hip. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/solenne_i_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 368,
+     "right": 369,
+     "top": 103,
+     "bottom": 65,
+     "height": 855,
+     "width": 286
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 18582,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple black triangle bikini top and high-cut black bikini bottoms and nothing else, her skin all over the same bright golden yellow as her sun head, her arms, legs and feet bare, no gloves, no boots, no shoes, no catsuit, no collar. Seen directly from behind, no face visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_i_front_ref.png",
+    "88fits/solenne_i_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 371,
+     "right": 378,
+     "top": 100,
+     "bottom": 73,
+     "height": 850,
+     "width": 274
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 18583,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple black triangle bikini top and high-cut black bikini bottoms and nothing else, her skin all over the same bright golden yellow as her sun head, her arms, legs and feet bare, no gloves, no boots, no shoes, no catsuit, no collar. In strict side profile facing right. Keep her sun head turned exactly as in the second reference image, her face in profile looking to the right with the long pointed rays all round the round head, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_i_front_ref.png",
+    "88fits/solenne_i_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 367,
+     "right": 385,
+     "top": 100,
+     "bottom": 81,
+     "height": 842,
+     "width": 271
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 22007,
+   "prompt": "One single figure alone in the frame: redraw this exact character in exactly the same pose, the same view, the same framing, the same size and the same place in the frame, changing only the clothes: the glossy black catsuit, the gloves and the boots replaced by a simple black triangle bikini top and high-cut black bikini bottoms and nothing else: her skin all over the same bright golden yellow as her sun head, her arms, legs and feet bare, barefoot. Three-quarter front view: exactly the pose and the turn of the reference image, her whole body, chest, hips and feet turned 45 degrees to face the lower right of the frame, her sun face turned the same way, feet fully visible Keep her exact sun head and face, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_i_fdone_pose.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 373,
+     "right": 376,
+     "top": 94,
+     "bottom": 63,
+     "height": 866,
+     "width": 274
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 18585,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple black triangle bikini top and high-cut black bikini bottoms and nothing else, her skin all over the same bright golden yellow as her sun head, her arms, legs and feet bare, no gloves, no boots, no shoes, no catsuit, no collar. In three-quarter back view, turned away from the viewer, no face visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_i_front_ref.png",
+    "88fits/solenne_i_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 389,
+     "right": 388,
+     "top": 79,
+     "bottom": 80,
+     "height": 864,
+     "width": 246
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 18586,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple black triangle bikini top and high-cut black bikini bottoms and nothing else, her skin all over the same bright golden yellow as her sun head, her arms, legs and feet bare, no gloves, no boots, no shoes, no catsuit, no collar. Seen directly from behind, no face visible, jumping for joy with both arms raised high, feet together. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_i_front_ref.png",
+    "88fits/solenne_i_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 280,
+     "right": 278,
+     "top": 94,
+     "bottom": 76,
+     "height": 853,
+     "width": 465
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 18588,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple black triangle bikini top and high-cut black bikini bottoms and nothing else, her skin all over the same bright golden yellow as her sun head, her arms, legs and feet bare, no gloves, no boots, no shoes, no catsuit, no collar. Seen directly from behind, no face visible, flinching from a hit, feet fully visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_i_front_ref.png",
+    "88fits/solenne_i_hurt_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 353,
+     "right": 360,
+     "top": 104,
+     "bottom": 69,
+     "height": 850,
+     "width": 310
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 18587,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple black triangle bikini top and high-cut black bikini bottoms and nothing else, her skin all over the same bright golden yellow as her sun head, her arms, legs and feet bare, no gloves, no boots, no shoes, no catsuit, no collar. Facing the viewer, flinching in pain, feet fully visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_i_front_ref.png",
+    "88fits/solenne_i_hurt_front_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 369,
+     "right": 370,
+     "top": 103,
+     "bottom": 65,
+     "height": 855,
+     "width": 284
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 18589,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple black triangle bikini top and high-cut black bikini bottoms and nothing else, her skin all over the same bright golden yellow as her sun head, her arms, legs and feet bare, no gloves, no boots, no shoes, no catsuit, no collar. In strict side profile facing right, flinching in pain, feet fully visible. Keep her sun head turned exactly as in the second reference image, her face in profile looking to the right with the long pointed rays all round the round head, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_i_front_ref.png",
+    "88fits/solenne_i_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 378,
+     "right": 427,
+     "top": 108,
+     "bottom": 86,
+     "height": 829,
+     "width": 218
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 18591,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple black triangle bikini top and high-cut black bikini bottoms and nothing else, her skin all over the same bright golden yellow as her sun head, her arms, legs and feet bare, no gloves, no boots, no shoes, no catsuit, no collar. In three-quarter back view, no face visible, flinching from a hit, feet fully visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_i_front_ref.png",
+    "88fits/solenne_i_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 370,
+     "right": 376,
+     "top": 78,
+     "bottom": 71,
+     "height": 874,
+     "width": 277
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 32611,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose, the framing and the view. One single figure alone in the frame: redraw the second reference image in exactly the same pose, the same framing, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple black triangle bikini top and high-cut black bikini bottoms and nothing else, her skin all over the same bright golden yellow as her sun head, her arms, legs and feet bare, no gloves, no boots, no shoes, no catsuit, no collar. In three-quarter front view exactly as in the second reference image: her whole body, chest, hips and feet turned 45 degrees to face the lower right of the frame, her sun face turned the same way; flinching in pain from a hit, both hands pressed to her chest, her sun face wincing, feet fully visible Keep her exact sun head and face, turned as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_i_hurtfdfix_outfit.png",
+    "88fits/solenne_i_hurtfdfix_pose.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 366,
+     "right": 362,
+     "top": 77,
+     "bottom": 50,
+     "height": 896,
+     "width": 295
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 18592,
+   "prompt": "The first reference image shows this character's new outfit. The second reference image shows the pose and the view. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same size and the same place in the frame, changing only the clothes to the outfit of the first reference image: a simple black triangle bikini top and high-cut black bikini bottoms and nothing else, her skin all over the same bright golden yellow as her sun head, her arms, legs and feet bare, no gloves, no boots, no shoes, no catsuit, no collar. Lying flat on the ground on the back, knocked out, limbs sprawled, the whole body visible. Keep her exact sun head and face, seen as in the second reference image, her slender build, height and proportions. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_i_front_ref.png",
+    "88fits/solenne_i_dead_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 92,
+     "right": 74,
+     "top": 254,
+     "bottom": 269,
+     "height": 500,
+     "width": 857
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "pose_drivers": {
+   "back": "walk_sun_i_fit_spread",
+   "bd": "walk_sun_i_fit_spread",
+   "side": "walk_sun_i_fit",
+   "fd": "walk_sun_i_fit",
+   "front": "walk_sun_i_fit"
+  },
+  "pose_motion": "walking in place on the spot like on a treadmill, a light confident stride",
+  "method": "hero_pose5",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "stills": "i",
+  "art_prompt": "a slender woman in a simple black triangle bikini and high-cut black bikini bottoms, barefoot, her skin all over bright golden yellow; her head is a bright yellow cartoon sun: a smooth round yellow face with calm half-lidded eyes, thin brows and small red lips, ringed by eight long pointed golden-yellow rays; standing straight",
+  "anim_hint": "a slender woman with bright golden yellow skin in a black triangle bikini and black high-cut bikini bottoms, barefoot, whose head is a round yellow cartoon sun with long pointed rays all round it",
+  "anim_negative": "a human head, hair, a helmet, a face on the body, a second head, a weapon, a cape, boots, shoes, gloves, a catsuit, clothes covering the body",
+  "key_sat": 0.35,
+  "key_min_value": 0.2,
+  "key_cut_shadow": true,
+  "key_clamp_screen": false
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

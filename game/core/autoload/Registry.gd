@@ -671,7 +671,9 @@ func skin_state(c: CharacterDef, code: String) -> String:
 
 
 ## The looks hero `c`'s sheet shows (pass 111): the one every player owns first, then every other one not hidden
-## (skin_state), by code; [] when he has nothing to choose between.
+## (skin_state), cheaper first, by code on a tie (pass 141, lane TRAIL; Garry: "They are the 2nd skin, so they should be at
+## least x3 times harder to get than the first one": the second shown is the harder one, its price never lower); [] when
+## he has nothing to choose between.
 func skins_of(c: CharacterDef) -> Array:
 	if c == null or c.hidden or c.home_look() == "":
 		return []
@@ -680,7 +682,10 @@ func skins_of(c: CharacterDef) -> Array:
 	for code in c.variants.keys():
 		if str(code) != c.home_look() and skin_state(c, str(code)) != "hidden":
 			rest.append(str(code))
-	rest.sort()
+	rest.sort_custom(func(a: String, b: String) -> bool:
+		var pa := c.skin_price(a)
+		var pb := c.skin_price(b)
+		return a < b if pa == pb else pa < pb)
 	out.append_array(rest)
 	return out if out.size() > 1 else []
 

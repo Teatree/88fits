@@ -154,7 +154,8 @@ func test_a_choice_asks_first_and_closes_its_siblings_on_screen() -> void:
 	assert_object(s._dock.get_node_or_null("Buy")).is_null()
 	assert_str((s._dock.get_node("DockState") as WText).text).is_equal("Closed by your choice")
 	s.select("n03a")
-	assert_str((s._dock.get_node("DockState") as WText).text).is_equal("Yours")
+	# pass 141 (lane SMALL, re-pinned; Garry: "For owned item write 'owned' not 'yours'")
+	assert_str((s._dock.get_node("DockState") as WText).text).is_equal("Owned")
 
 
 func test_a_warned_node_asks_and_not_now_keeps_the_gold() -> void:

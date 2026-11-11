@@ -156,10 +156,11 @@ func test_the_style_key_and_its_defaults() -> void:
 	assert_str(MeleeFx.style_of("slash", "cel")).is_equal("cel")
 	assert_str(MeleeFx.style_of("slash", "classic")).is_equal("classic")
 	assert_str(MeleeFx.style_of("slash", "lance")).is_equal("crescent")
-	assert_str(MeleeFx.style_of("stab", "")).is_equal("lance")
+	# pass 141: the default thrust is the pack's burst (pass141_melee_test)
+	assert_str(MeleeFx.style_of("stab", "")).is_equal("burst")
 	assert_str(MeleeFx.style_of("stab", "wind")).is_equal("wind")
 	assert_str(MeleeFx.style_of("stab", "spearhead")).is_equal("spearhead")
-	assert_str(MeleeFx.style_of("stab", "cel")).is_equal("lance")
+	assert_str(MeleeFx.style_of("stab", "cel")).is_equal("burst")
 	var w := _world()
 	var sb := _thruster(w, "sabre")
 	assert_str(str(sb._fx_arc_look()["style"])).is_equal(MeleeFx.style_of("slash", str(sb.inst.params.get("fx_style", ""))))
@@ -199,6 +200,9 @@ func test_a_swing_reveals_over_its_sweep_and_dissolves_in_its_time() -> void:
 		var path := m.shader.resource_path
 		if st == "classic":
 			assert_str(path).ends_with("melee_arc.gdshader")
+		elif st == "moon" or st == "cyclic":
+			# pass 141: the pack's painted crescent and the cyclic slash share their own shader
+			assert_str(path).ends_with("melee_swing_fx.gdshader")
 		else:
 			assert_str(path).ends_with("melee_slash.gdshader")
 			assert_int(int(m.get_shader_parameter("style"))).is_equal(2 if st == "cel" else 1)

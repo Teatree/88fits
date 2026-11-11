@@ -11013,3 +11013,163 @@ ECON measured Elite purses at about 60% of Nightfall's and the Dust Bowl's gold,
 46% of the plan's pay. (3) **The Trail's price stays `k` 6.21**: lane TRAIL's model finished it in 45 runs on the plan's
 purses, but lane ECON's measured purses are under the plan's on Nightfall, the Dust Bowl and Blood Moon, so the real count
 sits nearer 50; the one number to refit from real runs.
+
+## 82. Pass 141: one lane a level on the Trail, every skin locked, Splashdown and Oasis, the Gravity Gun's search and barrel throws, the Spear and Sabre from Garry's pack, the Cake, the tutorial hand
+
+Garry's "Polish #4" (2026-11-11): "All Skins should be locked behind either a task or in the Trail ... at least x3 times harder
+to get than the first one"; "Make the Cake item spawn cakes more rarely, but they heal more ... x2 as long to despawn"; the
+Trail: "write 'owned' not 'yours'", "The 2 lanes seem redundant ... I'd rather have fewer variety and higher value increase to
+the power nodes. Also it's ok to just increase the total number of levels", "Highlight the Unlock item nodes"; "get a normal
+looking finger"; "Unlocked with Jezyk"; the Gravity Gun's search beam and barrel throws ("only works around 75% of the
+distance ... never increases with Upgrades"); Astro's AST-B out, a beach Astro with her helmet on; Solenne's white suit out,
+a triangle bikini, the most expensive look; "Sword and Spear ... Still look bad" with his references (godotshaders' Procedural
+Cyclic Slash, his Everything.zip).
+
+82.TRAIL. **The one-lane Trail, its unlock nodes highlighted, every skin locked** (pass 141, lane TRAIL). Garry (Polish #4):
+"The 2 lanes seem redundant, I can't progress unless I buy both, what's the point of having 2 at a time? ... I'd rather have
+fewer variety and higher value increase to the power nodes. Also it's ok to just increase the total number of levels";
+"Highlight the Unlock item nodes"; "For owned item write 'owned' not 'yours'"; "All Skins should be locked behind either a
+task or in the Trail ... They are the 2nd skin, so they should be at least x3 times harder to get than the first one".
+- **One thing to buy a level** (tools/trail_setup.py DESIGN, `--write`): a plain node or one choice group, the optional
+  nodes beside it as before; 109 nodes on 83 levels (pass 140: 130 on 70). Pass 140's 56 plain power nodes are 35:
+  neighbouring nodes of a type merged into one of their summed amount, standing at their members' middle in pass 140's
+  order (Grit +15% at 2, Field Notes +11% at 7, Dead Eye +7% at 10, Aegis +20 at 15, Tempo +8% at 19, Poultice +0.9 at 23,
+  Plate +6% at 27, Might +15% at 29, Aegis +25 at 33, Omen +10% at 39, Kill Shot +35% at 44, Plate +6% at 48, Grit +22% at
+  54, Tempo +10% at 57, Aegis +40 at 63; Iron Hide +10% at 83 took pass 140's Plate +4% of level 51); four thin types left
+  the Trail (Hot Lead, Care Package, Tight Grip, Loose Coins: one node each in pass 140; their upgrade blocks stay in the
+  file for the Level Editor). Every modelled type sums as in pass 140, so the last level's power is pass 140's (HeroPower
+  probe, game/tools/_p129_SETUP_power.gd on both files: x3.276 at level 30, x4.729 at level 1 of a fresh save); the Dust
+  Bowl opens at x1.339 (pass 140: x1.334), Blood Moon at x1.675 (x1.655). Garry's level 1 (Might +5% for 10) kept.
+- The 36 unlocks keep pass 140's order, each on its own level (the unlock pop-up shows one at a time): Calavera 22, the
+  Dust Bowl 26, Solenne 32, Fadeaway 41, Astro's skin 45, Blood Moon 46, Jeżyk 50, the last item (Personal Storm) 79. The
+  twelve choice groups and the ten optional nodes are pass 140's (each optional node beside the level of the thing it stood
+  beside). The three rails-meeting milestones (Extra Barrel 62, Pass the Bottle 69, Boot Hill Pass 72) each stand right
+  after a choice group and name every member of it in `from` with `need` any: whichever road was taken, the rails meet on
+  it (pass 140: the required nodes of both lanes below, `need` all).
+- **Price** `{base 20, k 1.16, power 2.25, round 10}` (pass 140: 20, 6.21, 1.9), `--fit` on the one-lane Trail against
+  lane ECON's measured purses (`MEASURED_SHARE`: Sundown 100%, Nightfall 78%, the Dust Bowl 46%, Blood Moon 87% of the plan's
+  coins before the boss; boss chests, Wages and posters as the plan): the last level after **run 50 on the measured purses,
+  run 41 on the plan's**; Trail Level 6 after run 1, 17 after run 5, 28 after run 10, 43 after run 20 (measured). The
+  unlocks stay near pass 140's runs (measured purses, pass 140's run on the plan's in brackets): The Tower 1 (2), Calavera
+  8 (9), the Dust Bowl 10 (10), Solenne 12 (12), Fadeaway 19 (18), Blood Moon 22 (20), Jeżyk 26 (23), Personal Storm 47 (43).
+  Level 10 costs 230, level 30 2,460, level 50 7,730, level 83 24,140; every required node 676,140 coins (pass 140:
+  695,225), the optional ones 19,157 more. The lead's Elite purse rule (81.LEAD) lifts the measured purses: the real count
+  sits under 50.
+- **Care Package and the Cake** (82.SMALL): with Care Package off the Trail, the Cake's x2.4 slices get no Trail boost; a
+  node added back in the Level Editor would want 0.001 (half pass 140's 0.002) to land near the Cake's x1.2 (its hint says
+  so).
+- **Unlock nodes stand out** (TrailScreen.Tile; the Level Editor's Trail preview the same mark): the kit's rays turning
+  slowly behind it (R.RAYS_COLOR, one turn in R.RAYS_TURN_S) and a soft gold glow, a gold outer frame, the face in the
+  thing's rarity colours (an item's or a weapon's own, as the unlock pop-up frames it; an outlaw, a skin and a stage gold),
+  and a tab: UNLOCK on gold over its top edge until bought, UNLOCKED on green under its foot after (the top-right corner
+  keeps the tick; the price of the open node above hangs into the gap over it). An owned node's line reads "Owned"
+  (lane SMALL's row).
+- **Every skin locked; an outlaw's skins show cheaper first** (Registry.skins_of: by price, then by code; one rule for all
+  outlaws: the second shown is the harder one, its price never lower). The rule: the first skin is a feat of one run with
+  the outlaw's own weapon or as him (his weapon to level 5, his level 20; one run or so), the second a total across runs of
+  at least five of Garry's very good runs (his pass 126 rule for run activity) that waits for the first (`requires`): at
+  least x3 the runs. Dust Walker: the Revolver to level 5 (1,500) -> Black Hat: 320,000 Revolver damage, 5.2 very good
+  runs (3,000); Thunderbird: the Spear to level 5 (1,500) -> Winter Pelt: 320,000 Spear damage, 5.3 (3,000; pass 140: Cold
+  Snap to its Epic rung as Ironwood, a feat of one run); Mission Control: the Gravity Gun to level 5 (1,500) -> Astro's
+  second skin is the Trail's node at level 45, bought after run 21 (18 on the plan's purses) against a feat of his first
+  runs (he is open from the start); Sangre -> Marigold and Purple Reign -> Streetball are pass 140's pairs, already of this
+  shape (5.1 and 5.0 very good runs). Solenne's one skin is the dearest of all, 4,500 (every other 1,500-3,000). Once lane
+  ART's looks are in (tools/dl/p141/TRAIL/retarget_skins.py): Astro's Trail skin is AST-D Splashdown, Solenne's SOL-I Oasis
+  behind SOL-H's task chain renamed "Solenne · Oasis" (`skin_solenne_sol_i`); AST-B and SOL-H are no longer skins (shelved,
+  files kept).
+
+### 82.ART Two new skins: Astro's Splashdown and Solenne's Oasis (pass 141, lane ART)
+Garry (Polish #4, 7.3): "I don't like AST-B in general. Let's remove this one, set the AST-C to be the second 'easier to get
+Look' and make a new 'harder to get' look which will be like a beach version of Astro. But there is a funny twist that she is
+wearing her helmet still." (8): "Solenne, I hate the white suit look. Let's replace it with a look where she is wearing a
+bathing suit as well. She is wearing a simple triangle bikini and high-cut bikini bottoms. No shoes or gloves as well.
+Consider her head position when walking to the side ... this should be the more expensive look".
+- 82.ART.1 AST-D "Splashdown" (an orange V-neck one-piece, bare arms, legs and feet, her helmet on) costs 3,000 gold; SOL-I
+  "Oasis" (a black triangle bikini and high-cut bottoms, barefoot) costs 4,500 gold, the most expensive skin of all. Both
+  fresh until Garry approves them; their tasks / Trail node are lane TRAIL's (82.TRAIL).
+- 82.ART.2 Oasis looks where she walks: her side idle and side walk show her sun face in profile (her own fitted walk
+  walk_sun_i_fit, template tools/dl/p141/ART/drivers/solenne_i.json: SOL-B's with a profile face on the side). Her other looks
+  keep looking at the viewer when they walk sideways.
+- 82.ART.3 Splashdown's front run swings her legs 30% less than her other views (driver run_legs70), so the foot kicked back
+  stays behind the planted knee (Garry on AST-B: "a 3rd foot appears around the knees"); same 24 frames at 36 fps.
+- 82.ART.4 Both badges are framed at the base look's distance (Garry on AST-B: "the face is too close to the camera"): the
+  helmet spans 206 of 256 px from y 10 as on AST-A's; Oasis with SOL-B's head_width 0.8, top_pad 0.03.
+No gameplay number changed.
+
+82.GRAV. The Gravity Gun searches, and throws barrels at the Outlaw (pass 141, lane GRAV; Garry, "Polish #4" item 6: the
+gun "seems to perform a very sad looking brief shot on the ground when there are no targets ... make it do a kind of a
+'search', it shoots it's beam occasionally at the ground, so like a 1 second. But it's a continuous beam 'feeling out'
+the ground (searching)"; "Throw barrels towards me ... grab, pause, throw. But it throws at the hero and when it lands it
+automatically breaks, obviously ... this only works around 75% of the distance that is required for the initial enemy
+reach. And this range never increases with Upgrades ... No need to mention this in any text descriptions of the weapon").
+- **No dry shot.** Pass 136's R5 dry shot is gone for this gun. A pull that finds nothing to take spends nothing (asked
+  again every 0.15 s), so a creature that comes into reach is taken at once. This is a small buff in thin moments
+  compared with passes 136 to 140. The run record's `weapon_dry` no longer counts the gun.
+- **The search** (`params.gravity.search`). Looks only: it grabs nothing and hurts nothing.
+  - It starts when the pull finds nothing, `every` **3.0 s** after the last search or take. The first comes
+    **1.5 s** after the gun arrives.
+  - It lasts `seconds` **1.0**, sweeping `sweep_deg` **50** across his facing, `reach` **3.4 m** ahead, wandering
+    `wander` **0.5 m** in and out.
+  - The glow where it touches is `glow` **1.2 m** wide.
+  - It ends at once when the gun takes something. The Singularity never searches.
+- **Barrels** (`params.gravity.barrel`).
+  - **Reach:** a standing barrel within `reach_frac` **0.75** x the family's level-1 `range` (the Gravity Gun JSON's
+    base 7 m, so **5.25 m**) is taken. That is flat distance from him to the barrel's foot, with no screen check. No
+    level, mutation, item, evolution or Trail node moves it.
+  - **The pull:** the barrel is taken first, in place of one creature of the pull: the nearest such barrel, one at a
+    time.
+  - **Lift and hold:** it rises to `lift` **1.3 m** over the sand, drawn `pull` **0.3** of the way towards the gun. It
+    uses the gun's own grab **0.32 s** and hold **0.28 s**.
+  - **The throw:** the gun's throw time **0.5 x clamp(d / 6, 0.6, 1.3) s** and arc **2.2 m**, turning `spin`
+    **1.25** times.
+  - **The landing:** `ahead` **1.3 m** in front of the Outlaw along his facing, from where his walk puts him by the
+    landing (`lead` **1.0** x his velocity x the flight). If that is past the arena rim (1.5 m in), it lands at those
+    feet, else at his own.
+  - **The break:** it breaks where it lands as a round's last hit breaks one (BarrelField.land_carried, then _break):
+    white-flashed debris, the same gems, coins and power-up chance as walking into it. It counts for the barrel tasks
+    and runs Barrel Rush. It never hurts him, and it does not depend on the "shoot barrels" switch.
+  - **In the air:** walking into it, rounds, knocks and the shot grid pass it by.
+  - **The Singularity:** the same reach and throw, the barrel taking that pull in place of its black hole.
+  - **A swap or the run's end mid-carry:** the barrel is set down standing where it is.
+- **Texts:** no text mentions any of it.
+
+**82.MELEE - the Spear's thrust and the Sabre's swing from Garry's pack (looks only).** Garry: "Sword and Spear - Still
+look bad. (Sword looks ok maybe actually, it's the spear that's the real problem), but still put some real effort into
+making this look good. After a search I found the following references: godotshaders.com procedural-cyclic-slash, a 2d
+reference called Everything.zip ... Choose whichever is more efficient for what we are trying to achieve." **The thrust**
+(`fx_style` "burst", the Spear's and the Thunder Lance's, the default; MeleeFx, core/shaders/melee_burst.gdshader) is the
+pack's Classic row 4 (frames Classic_19-24) as a six-frame flipbook (art/fx/melee/thrust_burst.png: coverage, heat and a
+soft sheath, tinted by the stroke's colours: the plain Spear steel blue, Heartseeker's warm-up and red crit, fire orange,
+Venom Tip green, the Thunder Lance pale blue with its zigzag). It is turned to the camera round its own line
+(`MeleeFx.burst_face` 1; 0 lays it flat at the waist), starts 0.12 m in front of the hand (`BURST_START`) and its head
+darts out to **the hit's own reach in the dart's time** (`ext`, as before), so the head and the pack's big frame arrive
+**as the hit lands** (`burst_frame`: frames 1-3 over the dart, the 4th over the hold and 40% of the fade, `BURST_BODY`,
+the embers after; strength gone over the fade's second half); its last big frame runs on about 7% of the stroke past the
+reach. Half width 3.4 x the lane's half width (`BURST_W`), 0.5-1.4 m. A hit flares the head (0.14 s, `PIERCE_T`) under
+the impact star and ring as before; a miss a glint. **The swing** (`fx_style` "moon", the Sabre's and the Whirlwind's;
+core/shaders/melee_swing_fx.gdshader) is the pack's Classic row 1 (frames Classic_01-06) unwrapped along its crescent
+(art/fx/melee/slash_moon.png) and painted on the same arc (reach, sweep, ground fit and pull as pass 139), its leading end
+at the swing's head, frames 1-5 over the sweep and the 6th over the fade (`moon_frame`), eaten by noise on the way out
+(at least 0.22 s, `SLASH_FADE`). "cyclic" is godotshaders.com's Procedural Cyclic Slash (Alkaliii, CC0) ported to the arc;
+"crescent" stays the code default (a stab weapon's sweep keeps it with its tipped point and crackle). Every older style is
+one `params.fx_style` away (crescent, cel, classic; lance, wind, spearhead). No dice, no change to any hit, its timing,
+reach, knockback or damage; one quad a stroke, pools ARC_MAX 8, THRUST_MAX 6, FLASH_MAX 6; the textures load once under
+the spawn beam (`MeleeFx.warm`).
+
+82.SMALL. **The Cake, the tutorial hand, two words** (Garry, Polish #4: "Make the Cake item spawn cakes more rarely, but
+they heal more. Also, they take x2 as long to despawn"; "Tutorial Finger - get a normal looking finger please, this looks
+bad."; "For owned item write 'owned' not 'yours'"; "Collections Weapon Items should say "Unlocked with Jezyk" not "Comes
+with Jezyk""). The Cake's chance a kill is about half at every level: its rungs +0.2, +0.13 x4, +0.17% (were +0.4, +0.25 x4,
++0.35%), so 0.2 / 0.33 / 0.46 / 0.59 / 0.72 / 0.89% held at levels 1-6 (were 0.4 / 0.65 / 0.9 / 1.15 / 1.4 / 1.75%). A Cake
+Slice heals 14.4% of max HP (was 6%, x2.4) and lies 60 s on the sand (was 30, x2; its last 4 s blink). A minute's healing
+from the Cake (chance x heal, the same kills) is x1.20-1.23 of pass 140's. The slice is shared with the Trail's
+`care_package` upgrade (the same stat, `heal_drop`): its slices heal and last the same; its amount (0.002 in pass 140's
+node n050) should halve to 0.001 for the same x1.2 (lane TRAIL / the lead). The run bot values a point of `heal_drop` at
+144 (was 60). The tutorial's pointing hand (WHighlight, the Results' UPGRADE and the Trail's BUY) is a painted hand
+(art/ui/tutorial/hand.png, tools/gen_tutorial_hand.py: Klein on the style anchor, picked by eye), 200 px tall on the
+1080 canvas, its fingertip on the button, with pass 137's motion and ripple. The Trail calls a bought node "Owned"
+(the dock's pill "OWNED"); the Collection's weapon that waits for its outlaw reads "Unlocked with <outlaw>".
+
+82.LEAD. The lead's merge: lane TRAIL's `tools/dl/p141/TRAIL/retarget_skins.py --apply` run after lane ART's install (the
+Trail's skin node on AST-D Splashdown, 3,000 gold; SOL-I Oasis behind `skin_solenne_sol_i`, 4,500 gold; AST-B and SOL-H
+shelved, their files kept); the Cake's first-rung pin in pass95_PASSIVES re-pinned to 0.002 (82.SMALL).

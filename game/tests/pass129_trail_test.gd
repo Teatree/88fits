@@ -360,8 +360,9 @@ func test_items_maps_and_skins_ask_the_trail_first() -> void:
 	var dri: CharacterDef = Registry.character("drifter")
 	assert_str(Registry.skin_state(dri, "DRI-B")).is_equal("locked")
 	assert_str(Registry.skin_requirement_text(dri, "DRI-B")).is_equal("Reach Trail Level 1")
-	# pass 140 (lane QUESTS, re-pinned): Dust Walker has no goal now (on sale from the start), and no node gives it
-	assert_str(Registry.skin_state(dri, "DRI-C")).is_equal("buyable")
+	# pass 140 (lane QUESTS, re-pinned): Dust Walker has no goal now (on sale from the start), and no node gives it; pass
+	# 141 (lane TRAIL): its goal is back (the Revolver to level 5), still no node
+	assert_str(Registry.skin_state(dri, "DRI-C")).is_equal("locked")
 	assert_bool(Registry.skin_requirement_text(dri, "DRI-C").begins_with("Reach Trail")).is_false()
 	_rich()
 	_buy(["g_outlaw", "g_skin", "g_weapon", "g_free", "g_passive", "g_stage", "g_map"])

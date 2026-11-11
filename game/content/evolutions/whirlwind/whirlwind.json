@@ -23,7 +23,7 @@
     []
   ],
   "params": {
-    "fx_style": "crescent",
+    "fx_style": "moon",
     "fire_forward": true,
     "thrust": {
       "out": 0.05,

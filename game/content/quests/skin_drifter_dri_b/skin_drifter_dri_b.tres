@@ -14,6 +14,7 @@ unlocks = {
 "id": "drifter:DRI-B",
 "type": "skin"
 }
+requires = ["skin_drifter_dri_c"]
 id = "skin_drifter_dri_b"
 display_name = "Drifter · Black Hat"
 icon = ExtResource("1_drp46")

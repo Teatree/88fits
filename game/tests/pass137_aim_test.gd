@@ -369,7 +369,8 @@ func test_the_gravity_gun_grabs_a_near_threat_behind() -> void:
 	assert_bool(gun._fire()).is_true()
 	assert_int(gun._grips.size()).is_equal(1)
 	assert_int(int(gun._grips[0]["i"])).is_equal(back)
-	assert_int(gun.dry_shots).is_equal(0)
+	# pass 141 (lane GRAV): no search either (the dry shot it replaced is gone)
+	assert_int(gun.searches).is_equal(0)
 
 
 func test_a_rocket_takes_a_near_threat_behind() -> void:
