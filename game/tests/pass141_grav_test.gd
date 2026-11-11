@@ -8,8 +8,9 @@ extends GdUnitTestSuite
 ## takes nothing; a creature coming into reach mid-search is taken at once and ends it; a barrel at 5 m is lifted, held,
 ## thrown and broken a little in front of him without hurting him, paying what walking into it pays; one at 6 m stands;
 ## the reach ignores the levels' range and the Singularity's own; a carried barrel is out of the walk-in, the rounds and
-## the grid; one barrel at a time, the rest of the pull still takes creatures; the Singularity throws it the same way; the
-## same throw twice lands the same; no text changes.
+## the grid; one barrel at a time; the Singularity throws it the same way; the same throw twice lands the same; no text
+## changes. Pass 142: a creature first (a creature within 1.1 x the gun's range keeps it off the barrels; one coming that
+## near lets a held barrel down, a thrown one flies on, and the pull is given back).
 
 const FAKE_GAME := """extends Node
 var player: Node3D
@@ -436,32 +437,20 @@ func test_a_carried_barrel_is_out_of_the_walk_in_the_rounds_and_the_grid() -> vo
 	assert_int(int(hero.get("hurts"))).is_equal(0)
 
 
-func test_one_barrel_at_a_time_and_the_rest_of_the_pull_takes_creatures() -> void:
+func test_one_barrel_at_a_time() -> void:
+	# pass 142: with nobody near, two barrels in reach: the nearer alone, the gun busy until it is done
 	var w := _world([_at(4.0, 60.0), _at(3.0, -60.0)])
-	var em: EnemyManager = w["em"]
 	var bf: BarrelField = w["bf"]
-	var c := _creature(em, _at(4.0, 0.0))
 	var gun := _gun(w, "gravity_gun", 2)
 	assert_int(gun.stat_int("amount", 1)).is_equal(2)
 	assert_bool(gun._fire()).is_true()
-	# the nearer barrel, alone; the second grip is the creature
 	assert_int(int(gun._bgrip["i"])).is_equal(1)
 	assert_int(bf.carried.size()).is_equal(1)
-	assert_int(gun._grips.size()).is_equal(1)
-	assert_int(int(gun._grips[0]["i"])).is_equal(c)
-	# busy until both are done
+	assert_int(gun._grips.size()).is_equal(0)
 	assert_bool(gun._fire()).is_false()
 	_run(gun, 200, func() -> bool: return gun.barrel_throws > 0)
 	assert_int(bf.alive[1]).is_equal(0)
 	assert_int(bf.alive[0]).is_equal(1)
-	# with amount 1 a barrel takes the whole pull
-	var w1 := _world([_at(3.0, 0.0)])
-	var c1 := _creature(w1["em"] as EnemyManager, _at(4.0, 0.0))
-	var g1 := _gun(w1)
-	assert_bool(g1._fire()).is_true()
-	assert_bool(g1._bgrip.is_empty()).is_false()
-	assert_int(g1._grips.size()).is_equal(0)
-	assert_int((w1["em"] as EnemyManager).held[c1]).is_equal(0)
 
 
 func test_the_singularity_throws_a_barrel_the_same_way() -> void:
@@ -513,6 +502,118 @@ func test_the_same_throw_twice_lands_the_same() -> void:
 		var bf: BarrelField = w["bf"]
 		out.append([frames, bf.pos[0], bf.pos[1], bf.alive[0], bf.alive[1]])
 	assert_array(out[1]).is_equal(out[0])
+
+
+# ---------------------------------------------------------------- a creature first (pass 142)
+# Garry: "Currently the Barrels are higher prio than an enemy. That should not be the case ever, if there is an enemy that
+# is within range +10% the Gravity Gun will not try to pick up barrels".
+
+func test_a_creature_in_reach_is_taken_and_the_barrel_stands() -> void:
+	var w := _world([_at(3.0, 0.0)])
+	var em: EnemyManager = w["em"]
+	var bf: BarrelField = w["bf"]
+	var c := _creature(em, _at(4.0, 10.0))
+	var gun := _gun(w)
+	assert_bool(gun._fire()).is_true()
+	assert_bool(gun._bgrip.is_empty()).is_true()
+	assert_bool(bf.is_carried(0)).is_false()
+	assert_int(gun._grips.size()).is_equal(1)
+	assert_int(int(gun._grips[0]["i"])).is_equal(c)
+	# with amount 2 too: the second grip finds no creature, and still no barrel
+	var w2 := _world([_at(3.0, 0.0)])
+	var c2 := _creature(w2["em"] as EnemyManager, _at(4.0, 10.0))
+	var g2 := _gun(w2, "gravity_gun", 2)
+	assert_bool(g2._fire()).is_true()
+	assert_bool(g2._bgrip.is_empty()).is_true()
+	assert_int(int(g2._grips[0]["i"])).is_equal(c2)
+
+
+func test_a_creature_within_range_and_a_tenth_keeps_the_gun_off_the_barrels() -> void:
+	# range 7 m, the guard 1.1: a creature at 7.5 m is out of reach and still keeps the barrel at 3 m standing
+	var w := _world([_at(3.0, 0.0)])
+	var bf: BarrelField = w["bf"]
+	_creature(w["em"] as EnemyManager, _at(7.5, 0.0))
+	var gun := _gun(w)
+	assert_float(gun.stat("range", 0.0)).is_equal(7.0)
+	assert_float(float(gun._block("barrel", GravityGun.BARREL)["guard"])).is_equal(1.1)
+	_run(gun, 240)
+	assert_bool(bf.is_carried(0)).is_false()
+	assert_int(bf.alive[0]).is_equal(1)
+	assert_int(gun.barrel_throws).is_equal(0)
+	# behind him counts the same (no cone, no screen in the rule): the pull leaves the barrel (the gun may take the
+	# creature itself by the soft rule and throw it away; only then, with nobody left within the guard, is the barrel next)
+	var wb := _world([_at(3.0, 0.0)])
+	_creature(wb["em"] as EnemyManager, _at(6.0, 180.0))
+	var gb := _gun(wb)
+	gb._fire()
+	assert_bool((wb["bf"] as BarrelField).is_carried(0)).is_false()
+	assert_bool(gb._bgrip.is_empty()).is_true()
+	# past the guard (8 m) the barrel is the gun's again
+	var w2 := _world([_at(3.0, 0.0)])
+	_creature(w2["em"] as EnemyManager, _at(8.0, 0.0))
+	var g2 := _gun(w2)
+	assert_bool(g2._fire()).is_true()
+	assert_bool((w2["bf"] as BarrelField).is_carried(0)).is_true()
+	# a longer range moves the guard with it (level 5: range x1.15, the guard past 8.8 m)
+	var w5 := _world([_at(3.0, 0.0)])
+	_creature(w5["em"] as EnemyManager, _at(8.6, 0.0))
+	var g5 := _gun(w5, "gravity_gun", 5)
+	assert_float(g5.stat("range", 0.0) * 1.1).is_greater(8.6)
+	_run(g5, 240)
+	assert_bool((w5["bf"] as BarrelField).is_carried(0)).is_false()
+
+
+func test_a_creature_coming_near_lets_a_held_barrel_down_and_gives_the_pull_back() -> void:
+	var w := _world([_at(3.0, 0.0)])
+	var em: EnemyManager = w["em"]
+	var bf: BarrelField = w["bf"]
+	var gun := _gun(w)
+	gun._process(DT)
+	assert_bool(bf.is_carried(0)).is_true()
+	_run(gun, 200, func() -> bool: return int(gun._bgrip.get("phase", -1)) == GravityGun.PH_HOLD)
+	assert_float(bf.pos[0].y).is_greater(0.5)
+	assert_float(gun.cooldown_left).is_greater(1.0)
+	var c := _creature(em, _at(5.0, 10.0))
+	gun._process(DT)
+	# the creature is taken in the same tick (the pull given back); the barrel falls back to the sand, standing, unbroken
+	assert_int(gun._grips.size()).is_equal(1)
+	assert_int(int(gun._grips[0]["i"])).is_equal(c)
+	assert_int(int(gun._bgrip["phase"])).is_equal(GravityGun.PH_DROP)
+	var fell := _run(gun, 60, func() -> bool: return gun._bgrip.is_empty())
+	assert_float(float(fell) * DT).is_less_equal(GravityGun.DROP_S + 0.05)
+	assert_bool(bf.is_carried(0)).is_false()
+	assert_int(bf.alive[0]).is_equal(1)
+	assert_float(bf.pos[0].y).is_equal(0.0)
+	assert_int(gun.barrel_throws).is_equal(0)
+	assert_int(bf.broken).is_equal(0)
+
+
+func test_a_thrown_barrel_flies_on_and_the_gun_turns_to_the_creature() -> void:
+	var w := _world([_at(3.0, 0.0)])
+	var em: EnemyManager = w["em"]
+	var bf: BarrelField = w["bf"]
+	var gun := _gun(w)
+	gun._process(DT)
+	_run(gun, 200, func() -> bool: return int(gun._bgrip.get("phase", -1)) == GravityGun.PH_THROW)
+	var c := _creature(em, _at(5.0, 10.0))
+	gun._process(DT)
+	assert_int(gun._grips.size()).is_equal(1)
+	assert_int(int(gun._grips[0]["i"])).is_equal(c)
+	assert_int(int(gun._bgrip["phase"])).is_equal(GravityGun.PH_THROW)
+	_run(gun, 200, func() -> bool: return gun.barrel_throws > 0)
+	assert_int(bf.alive[0]).is_equal(0)
+	assert_int(int((w["hero"] as Node3D).get("hurts"))).is_equal(0)
+
+
+func test_the_singularity_leaves_the_barrel_while_a_creature_is_near() -> void:
+	# its own range 9 m: a creature at 9.5 m (inside 9.9 m) keeps it on its black hole
+	var w := _world([_at(4.0, 0.0)])
+	var bf: BarrelField = w["bf"]
+	_creature(w["em"] as EnemyManager, _at(9.5, 30.0))
+	var sing := _gun(w, "singularity")
+	assert_bool(sing._fire()).is_true()
+	assert_bool(bf.is_carried(0)).is_false()
+	assert_float(sing._charge).is_greater(0.0)
 
 
 # ---------------------------------------------------------------- no text tells of it

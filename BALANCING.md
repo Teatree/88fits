@@ -11173,3 +11173,39 @@ node n050) should halve to 0.001 for the same x1.2 (lane TRAIL / the lead). The 
 82.LEAD. The lead's merge: lane TRAIL's `tools/dl/p141/TRAIL/retarget_skins.py --apply` run after lane ART's install (the
 Trail's skin node on AST-D Splashdown, 3,000 gold; SOL-I Oasis behind `skin_solenne_sol_i`, 4,500 gold; AST-B and SOL-H
 shelved, their files kept); the Cake's first-rung pin in pass95_PASSIVES re-pinned to 0.002 (82.SMALL).
+
+## 83. Pass 142: the Sabre's crescent back, the Spear's thrust drawn by us, a creature before a barrel
+
+Garry (2026-11-11), on pass 141's build: "Sword, I liked the previous version more. Bring it back"; "Spear, ok cool, but
+let's not just copy the reference. Instead can you go ahead and generate something similar looking with the tools that we
+have? The goals wasn't to just use what they had"; "for Gravity Gun. Currently the Barrels are higher prio than an enemy.
+That should not be the case ever, if there is an enemy that is within range +10% the Gravity Gun will not try to pick up
+barrels".
+
+83.MELEE. **The Sabre swings pass 138's crescent again; the Spear's burst is our own drawing** (looks only).
+- The Sabre's and the Whirlwind's `params.fx_style` are "crescent" again (pass 138's bold crescent with pass 139's ground
+  fit, unchanged code). Pass 141's "moon" style is gone with its frames (art/fx/melee/slash_moon.png, the pack's Classic
+  row 1): MeleeFx.SLASH_STYLES is crescent, cel, classic, cyclic ("moon" in a JSON now plays the default, the crescent);
+  core/shaders/melee_swing_fx.gdshader keeps only the CC0 "cyclic" slash (selectable, on no weapon).
+- The Spear's and the Thunder Lance's "burst" plays a new art/fx/melee/thrust_burst.png drawn by **tools/gen_thrust_fx.py**
+  (procedural, seeded 1420, no frame of Garry's pack): a leaf-shaped flame blade on the stroke's line (widest at 0.66 of the
+  stroke at the hit, a sharp point at the reach), a white-hot core line, 6 short barbs flung back from just behind the point
+  (26-48 degrees) and 20 streamers swept back along the blade (5-24 degrees, turning parallel), impact sparks round the point,
+  then wisps and embers; streaky fBm noise eats the soft edges into flame and draws hot strands inside. Same layout and
+  channels as pass 141 (six frames of 360 x 192: R coverage, G heat, B sheath; the tail at u 0.035, the point at 0.895), so
+  the shader, MeleeFx's timing (`burst_frame`), the width (`BURST_W`), the tints (blue Spear, Heartseeker, fire, Venom Tip,
+  the Thunder Lance's crackle) and every hit are unchanged. Its frames measure close to the pack's (the hit frame's coverage
+  0.141 of the frame against 0.150, heat 0.48 against 0.51), so it reads as big on the sand. Pass 141's sentence that the
+  burst is "the pack's Classic row 4" is history; the pack's licence question no longer touches the game (none of its
+  frames ship).
+
+83.GRAV. **A creature always comes before a barrel** (`params.gravity.barrel.guard` 1.1; GravityGun._creature_near).
+- While any creature stands within **1.1 x the gun's range** of the Outlaw (its range now: levels, mutations, items; the
+  Singularity's own 9 m; on the screen or off, ahead or behind: any a weapon may choose, i.e. alive, up out of the sand, not
+  dying, hidden or held), the gun takes no barrel: the pull goes to the creatures (or, with none it can take, to the search).
+  Pass 141's "a barrel is taken first, in place of one creature of the pull" is history.
+- A barrel already in the grip when a creature comes that near is let go: still rising or held, it falls back to the sand in
+  0.2 s (`DROP_S`) and stands there unbroken (it can be taken again later); already thrown, it flies on and breaks before
+  the Outlaw as before. Either way the pull that took it is given back (the gun's cooldown ends), so the gun turns to the
+  creature in the same tick.
+- The barrel's own reach (0.75 x the level-1 range, 5.25 m), its throw and its break are unchanged. No text tells of it.

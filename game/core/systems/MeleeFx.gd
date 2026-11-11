@@ -32,15 +32,19 @@
 ## lays it flat at his feet as before.
 ## Pass 141 (lane MELEE; Garry: "Still look bad. (Sword looks ok maybe actually, it's the spear that's the real problem)",
 ## with his 2D pack _REFERENCES/2d/Everything and godotshaders.com's "Procedural Cyclic Slash"): new styles drawn from
-## them (the frames' sources in tools/dl/p141/MELEE/make_melee_fx.py):
-##   a thrust "burst" (the default): the pack's Classic row 4 as a flipbook (art/fx/melee/thrust_burst.png,
-##            core/shaders/melee_burst.gdshader), tinted by the stroke's colours: its head darts out to the reach in `ext`
-##            (the big frame arrives with the hit), the flames stream back from it, the embers go over the fade
-##            (burst_frame); laid flat at his waist, or turned to the camera round its own line (`burst_face`).
-##   a swing  "moon": the pack's Classic row 1, each frame unwrapped along its crescent (art/fx/melee/slash_moon.png),
-##            painted on today's crescent's arc (core/shaders/melee_swing_fx.gdshader style 1); "cyclic": the CC0
-##            procedural cyclic slash ported to the arc (a cellular noise scrolled along it, art/fx/melee/slash_noise.png,
-##            style 2).
+## them:
+##   a thrust "burst" (the default): a six-frame flipbook (art/fx/melee/thrust_burst.png, core/shaders/melee_burst.gdshader),
+##            tinted by the stroke's colours: its head darts out to the reach in `ext` (the big frame arrives with the hit),
+##            the flames stream back from it, the embers go over the fade (burst_frame); laid flat at his waist, or turned
+##            to the camera round its own line (`burst_face`).
+##   a swing  "cyclic": the CC0 procedural cyclic slash ported to the arc (a cellular noise scrolled along it,
+##            art/fx/melee/slash_noise.png, core/shaders/melee_swing_fx.gdshader); selectable, on no weapon.
+## Pass 142 (Garry: "Sword, I liked the previous version more. Bring it back"; "Spear, ok cool, but let's not just copy the
+## reference. Instead can you go ahead and generate something similar looking with the tools that we have? The goal
+## wasn't to just use what they had"): the Sabre and the Whirlwind swing pass 138's crescent again (with pass 139's
+## ground fit); pass 141's "moon" (the pack's row 1) is gone with its frames. The burst's flipbook is our own now, drawn
+## by tools/gen_thrust_fx.py (procedural: a spindle of light, flame tongues streaming back from an arrowhead, sparks and
+## embers; no frame of the pack), in the same layout and channels, so the burst plays as pass 141 timed it.
 class_name MeleeFx
 extends Node3D
 
@@ -63,7 +67,7 @@ const THRUST_SNAP := 0.09
 const THRUST_GHOST := 0.16
 ## pass 138: the styles (the first of each list the default), a new-style swing's dissolve (at least this long), a
 ## lance's light running on through the point on a hit, its width (x the lane's half width, clamped), its needle
-const SLASH_STYLES := ["crescent", "cel", "classic", "moon", "cyclic"]
+const SLASH_STYLES := ["crescent", "cel", "classic", "cyclic"]
 const STAB_STYLES := ["burst", "lance", "wind", "spearhead"]
 const SLASH_FADE := 0.22
 const PIERCE_T := 0.14
@@ -90,8 +94,7 @@ const BURST_W_MIN := 0.5
 const BURST_W_MAX := 1.4
 const BURST_BODY := 0.4
 const BURST_START := 0.12
-## pass 141: the swing's painted frames (slash_moon.png) and noise (slash_noise.png)
-const MOON_TEX := "res://art/fx/melee/slash_moon.png"
+## pass 141: the cyclic swing's noise (slash_noise.png)
 const NOISE_TEX := "res://art/fx/melee/slash_noise.png"
 
 ## pass 139: off lays every arc flat at his feet as before (tools comparing the two)
@@ -107,7 +110,6 @@ static var _lance_shader: Shader
 static var _burst_shader: Shader
 static var _swing_shader: Shader
 static var _burst_tex: Texture2D
-static var _moon_tex: Texture2D
 static var _noise_tex: Texture2D
 static var _quad_xz: ArrayMesh
 static var _quad_strip: ArrayMesh
@@ -147,7 +149,6 @@ static func _shaders() -> void:
 		_burst_shader = load("res://core/shaders/melee_burst.gdshader")
 		_swing_shader = load("res://core/shaders/melee_swing_fx.gdshader")
 		_burst_tex = load(BURST_TEX)
-		_moon_tex = load(MOON_TEX)
 		_noise_tex = load(NOISE_TEX)
 	if _quad_xz == null:
 		# x -1..1, z -1..1 on the ground plane (the arc)
@@ -220,17 +221,14 @@ func arc(anchor: Node3D, yaw: float, half_w: float, reach: float, sweep: float, 
 	var m: ShaderMaterial = e["mat"]
 	var style := style_of("slash", str(look.get("style", "")))
 	var bold := style != "classic"
-	# pass 141: the pack's painted crescent ("moon") and the procedural cyclic slash ("cyclic") on one shader
-	var painted := style == "moon" or style == "cyclic"
+	# pass 141: the procedural cyclic slash ("cyclic") on its own shader (pass 142: the pack's "moon" is gone)
+	var painted := style == "cyclic"
 	var want: Shader = _swing_shader if painted else (_slash_shader if bold else _arc_shader)
 	if m.shader != want:
 		m.shader = want
 	if painted:
-		m.set_shader_parameter("style", 2 if style == "cyclic" else 1)
-		m.set_shader_parameter("frames", _moon_tex)
 		m.set_shader_parameter("noise", _noise_tex)
 		m.set_shader_parameter("diss", 0.0)
-		m.set_shader_parameter("fr", 0.0)
 	elif bold:
 		m.set_shader_parameter("style", 2 if style == "cel" else 1)
 		m.set_shader_parameter("diss", 0.0)
@@ -580,8 +578,6 @@ func _arc_frame(e: Dictionary) -> void:
 	var f := 1.0 - clampf((t - sw) / float(e["fade"]), 0.0, 1.0)
 	var m: ShaderMaterial = e["mat"]
 	m.set_shader_parameter("head", head)
-	if bool(e.get("painted", false)):
-		m.set_shader_parameter("fr", moon_frame(t, sw, float(e["fade"])))
 	if bool(e.get("bold", false)):
 		# pass 138: the crescent erodes over the fade (`diss`), its strength going only in the second half
 		m.set_shader_parameter("diss", 1.0 - f)
@@ -803,14 +799,6 @@ func _burst_frame(e: Dictionary) -> void:
 	if t >= ext + hold + fd:
 		e["live"] = false
 		mi.visible = false
-
-
-## Pass 141: the painted swing's frame (0..5.999): the first four over the sweep, the fifth (the pack's fullest) as it
-## ends, the last over the fade.
-static func moon_frame(t: float, sweep: float, fade: float) -> float:
-	if t < sweep:
-		return 4.0 * clampf(t / maxf(sweep, 0.001), 0.0, 1.0)
-	return minf(4.0 + 1.999 * (t - sweep) / maxf(fade, 0.001), 5.999)
 
 
 ## How many arcs, thrusts and flashes are showing (tests).

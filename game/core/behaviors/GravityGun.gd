@@ -35,17 +35,27 @@
 ##   as a round's last hit breaks one (BarrelField.land_carried: debris, gems, coins, a power-up). It never hurts him.
 ##   While it is carried, walking into it, rounds and knocks pass it by (BarrelField.carried). The Singularity takes it
 ##   the same way, in place of that pull's black hole. No text tells of it (Garry).
+## Pass 142 (Garry: "Currently the Barrels are higher prio than an enemy. That should not be the case ever, if there is an
+## enemy that is within range +10% the Gravity Gun will not try to pick up barrels"; BALANCING 83.GRAV): a creature always
+## comes first. While any creature stands within `guard` (1.1) x the gun's range of him (its range now, with its levels,
+## mutations and items; the Singularity's own; on the screen or off: any a weapon may choose, _creature_near), the gun
+## takes no barrel. One in the grip when a creature comes that near is let go: still rising or held, it falls back to the
+## sand standing, unbroken (PH_DROP, DROP_S); already thrown, it flies on and breaks as before. Either way the pull it took
+## is given back (cooldown_left 0), so the gun turns to the creature at once.
 class_name GravityGun
 extends WeaponBehavior
 
 const PH_GRAB := 0
 const PH_HOLD := 1
 const PH_THROW := 2
+## pass 142: a barrel let go for a creature, falling back to the sand in DROP_S seconds
+const PH_DROP := 3
+const DROP_S := 0.2
 ## Repulsor's blast
 const PURPLE := Color(0.62, 0.3, 0.95)
 ## Pass 141 (lane GRAV): the search's and the barrel throw's numbers where the JSON names none (see the header).
 const SEARCH := {"every": 3.0, "seconds": 1.0, "sweep_deg": 50.0, "reach": 3.4, "wander": 0.5, "glow": 1.2}
-const BARREL := {"reach_frac": 0.75, "lift": 1.3, "pull": 0.3, "ahead": 1.3, "lead": 1.0, "spin": 1.25}
+const BARREL := {"reach_frac": 0.75, "lift": 1.3, "pull": 0.3, "ahead": 1.3, "lead": 1.0, "spin": 1.25, "guard": 1.1}
 ## the search beam reaches the sand in this long and draws back in the last SEARCH_OUT seconds
 const SEARCH_IN := 0.12
 const SEARCH_OUT := 0.16
@@ -142,6 +152,22 @@ func barrel_reach() -> float:
 	return base_r * float(_block("barrel", BARREL)["reach_frac"])
 
 
+## Pass 142: whether a creature stands within `guard` x the gun's range of him (its range now: levels, mutations and items
+## count; the Singularity's own), on the screen or off: any a weapon may choose (alive, up out of the sand, not dying,
+## hidden or in a grip: the crowd's grid and EnemyManager.nearest_index). While one does, the gun leaves the barrels be.
+func _creature_near() -> bool:
+	var em = game.get("enemies") if game != null and is_instance_valid(game) else null
+	if not (em is EnemyManager) or player == null:
+		return false
+	var r := stat("range", 7.0) * float(_block("barrel", BARREL)["guard"])
+	return (em as EnemyManager).nearest_index(player.global_position, r, "", true) >= 0
+
+
+## Pass 142: whether the barrel in the grip still keeps the gun from pulling (not once it was let go for a creature).
+func _barrel_busy() -> bool:
+	return not _bgrip.is_empty() and not bool(_bgrip.get("free", false))
+
+
 ## The map's barrels (null in a game without them).
 func _barrels() -> BarrelField:
 	var b = game.get("barrels") if game != null and is_instance_valid(game) else null
@@ -176,13 +202,16 @@ func _hole() -> Dictionary:
 func _fire() -> bool:
 	if not _hole().is_empty():
 		return _fire_hole()
-	if not _grips.is_empty() or not _bgrip.is_empty():
+	if not _grips.is_empty() or _barrel_busy():
 		return false
 	var em: EnemyManager = game.enemies
 	var reach := stat("range", 7.0)
 	var n: int = maxi(stat_int("amount", 1), 1)
-	# pass 141 (lane GRAV): a barrel he came up to is taken first, in place of one creature of the pull
-	var barrel := _take_barrel()
+	# pass 141 (lane GRAV): a barrel he came up to is taken, in place of one creature of the pull; pass 142: only while no
+	# creature stands within `guard` x the gun's range (a creature always comes first)
+	var barrel := false
+	if not _creature_near():
+		barrel = _take_barrel()
 	if barrel:
 		n -= 1
 	var took := false
@@ -274,8 +303,9 @@ func _fire_aimed(em: EnemyManager, reach: float, n: int) -> bool:
 
 ## The Singularity: the claws open, the core swells, and a moment later the black hole goes.
 func _fire_hole() -> bool:
-	# pass 141 (lane GRAV): a barrel he came up to takes this pull, thrown as the gun throws one (no black hole this time)
-	if _take_barrel():
+	# pass 141 (lane GRAV): a barrel he came up to takes this pull, thrown as the gun throws one (no black hole this time);
+	# pass 142: only while no creature stands within `guard` x its range
+	if not _creature_near() and _take_barrel():
 		sfx("fire", _core_pos())
 		return true
 	var em: EnemyManager = game.enemies
@@ -621,9 +651,28 @@ func _tick_barrel(delta: float, grab_s: float, hold_s: float, throw_s: float) ->
 		_bgrip = {}
 		return false
 	var b := _block("barrel", BARREL)
+	# pass 142: a creature come within the guard: the gun lets the barrel go (still rising or held, it falls back to the
+	# sand standing; thrown, it flies on) and the pull it took is given back, so the gun turns to the creature this tick
+	if not bool(_bgrip.get("free", false)) and _creature_near():
+		_bgrip["free"] = true
+		cooldown_left = 0.0
+		if int(_bgrip["phase"]) != PH_THROW:
+			_bgrip["phase"] = PH_DROP
+			_bgrip["t"] = 0.0
+			_bgrip["p0"] = bf.pos[i]
+			_bgrip["roll0"] = float(_bgrip["roll"])
 	var t: float = float(_bgrip["t"]) + delta
 	_bgrip["t"] = t
 	match int(_bgrip["phase"]):
+		PH_DROP:
+			var p0: Vector3 = _bgrip["p0"]
+			var u := clampf(t / DROP_S, 0.0, 1.0)
+			var gy := _ground(p0)
+			bf.carry_to(i, Vector3(p0.x, lerpf(p0.y, gy, u * u), p0.z), float(_bgrip["roll0"]) * (1.0 - u), 0.0)
+			if u >= 1.0:
+				bf.uncarry(i)
+				_bgrip = {}
+			return false
 		PH_GRAB:
 			var u := clampf(t / grab_s, 0.0, 1.0)
 			var e := 1.0 - pow(1.0 - u, 3.0)
@@ -829,7 +878,7 @@ func _aim(delta: float) -> void:
 		var bi: int = _bgrip["i"]
 		if int(_bgrip["phase"]) == PH_THROW:
 			want = Vector3(_bgrip["target"]) - from
-		elif bf != null and bi < bf.pos.size():
+		elif int(_bgrip["phase"]) != PH_DROP and bf != null and bi < bf.pos.size():
 			want = bf.pos[bi] - from
 	if want == Vector3.ZERO and _charge > 0.0 and _charge_to != Vector3.INF:
 		want = _charge_to - from
@@ -891,7 +940,7 @@ func _draw_beam() -> void:
 			continue
 		var i: int = g["i"]
 		ends.append([em.pos[i] + Vector3(0, em.lift_h[i] + em.size[i] * 0.45, 0), 1.0, 1.0, 0.12, 22.0])
-	if not _bgrip.is_empty() and int(_bgrip["phase"]) != PH_THROW:
+	if not _bgrip.is_empty() and int(_bgrip["phase"]) != PH_THROW and int(_bgrip["phase"]) != PH_DROP:
 		var bf := _barrels()
 		var bi: int = _bgrip["i"]
 		if bf != null and bi < bf.pos.size():

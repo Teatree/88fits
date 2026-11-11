@@ -1,10 +1,10 @@
 extends GdUnitTestSuite
 
-## Pass 141, lane MELEE: the Spear's thrust as Garry's pack's row 4 ("burst", the default: a flipbook of six frames,
-## core/shaders/melee_burst.gdshader, art/fx/melee/thrust_burst.png), the Sabre's swing as the pack's row 1 ("moon") or
-## the CC0 procedural cyclic slash ("cyclic") by params.fx_style. The key and its defaults, the frames timed to the
-## stroke (the big frame with the hit, the hit's moment unchanged), the head at the reach as the hit lands, the pools
-## capped, the textures as made by tools/dl/p141/MELEE/make_melee_fx.py.
+## Pass 141, lane MELEE: the Spear's thrust as a flipbook ("burst", the default: six frames,
+## core/shaders/melee_burst.gdshader, art/fx/melee/thrust_burst.png; pass 142: our own frames, tools/gen_thrust_fx.py),
+## the CC0 procedural cyclic slash ("cyclic") by params.fx_style (pass 142: the pack's "moon" is gone, the Sabre and the
+## Whirlwind swing the crescent again). The key and its defaults, the frames timed to the stroke (the big frame with the
+## hit, the hit's moment unchanged), the head at the reach as the hit lands, the pools capped, the textures.
 
 const FAKE_GAME := """extends Node
 var player: Node3D
@@ -145,19 +145,22 @@ func test_the_style_key_and_its_defaults() -> void:
 	assert_str(MeleeFx.style_of("stab", "burst")).is_equal("burst")
 	for st: String in ["lance", "wind", "spearhead"]:
 		assert_str(MeleeFx.style_of("stab", st)).is_equal(st)
-	assert_str(MeleeFx.style_of("stab", "moon")).is_equal("burst")
-	for st: String in ["crescent", "cel", "classic", "moon", "cyclic"]:
+	assert_str(MeleeFx.style_of("stab", "cyclic")).is_equal("burst")
+	for st: String in ["crescent", "cel", "classic", "cyclic"]:
 		assert_str(MeleeFx.style_of("slash", st)).is_equal(st)
+	# pass 142: the pack's "moon" is no style now (the default stands in)
+	assert_str(MeleeFx.style_of("slash", "moon")).is_equal("crescent")
+	assert_bool(MeleeFx.SLASH_STYLES.has("moon")).is_false()
 	assert_str(MeleeFx.style_of("slash", "burst")).is_equal(str(MeleeFx.SLASH_STYLES[0]))
 	# the Spear and the Thunder Lance play the burst; every melee weapon names a style of its own kind
 	for id: String in ["pike", "thunder_lance"]:
 		var wd = Registry.weapon(id)
 		assert_str(MeleeFx.style_of("stab", str(wd.params.get("fx_style", "")))).is_equal("burst")
-	# the Sabre and the Whirlwind play the pack's painted crescent; a stab weapon's sweep keeps the crescent (its
-	# tipped point, the Thunder Lance's crackle)
+	# pass 142 (Garry: "Sword, I liked the previous version more. Bring it back"): the Sabre and the Whirlwind play the
+	# crescent again; a stab weapon's sweep keeps it too (its tipped point, the Thunder Lance's crackle)
 	for id: String in ["sabre", "whirlwind"]:
 		var wd = Registry.weapon(id)
-		assert_str(MeleeFx.style_of("slash", str(wd.params.get("fx_style", "")))).is_equal("moon")
+		assert_str(str(wd.params.get("fx_style", ""))).is_equal("crescent")
 	assert_str(MeleeFx.style_of("slash", str(Registry.weapon("pike").params.get("fx_style", "")))).is_equal("crescent")
 
 
@@ -185,10 +188,6 @@ func test_the_burst_frames_run_with_the_stroke_the_big_one_with_the_hit() -> voi
 		assert_float(f).is_less(6.0)
 		last = f
 		t += 0.005
-	# the painted swing: four frames over the sweep, the fifth as it ends, the last over the fade
-	assert_float(MeleeFx.moon_frame(0.0, 0.16, 0.22)).is_equal(0.0)
-	assert_float(MeleeFx.moon_frame(0.16, 0.16, 0.22)).is_equal_approx(4.0, 0.001)
-	assert_float(MeleeFx.moon_frame(0.5, 0.16, 0.22)).is_less(6.0)
 
 
 func test_a_burst_darts_to_the_reach_lands_with_the_hit_and_ends_in_its_time() -> void:
@@ -262,18 +261,16 @@ func test_a_missed_burst_glints_and_the_old_styles_keep_their_shaders() -> void:
 
 # ---------------------------------------------------------------- the swing
 
-func test_the_painted_and_cyclic_swings_reveal_and_end_like_the_crescent() -> void:
+func test_the_cyclic_swing_reveals_and_ends_like_the_crescent() -> void:
 	var w := _world()
 	var hero: Node3D = w["hero"]
-	for st: String in ["moon", "cyclic"]:
+	for st: String in ["cyclic"]:
 		var fx := MeleeFx.new()
 		(w["g"] as Node).add_child(fx)
 		fx.arc(hero, 0.0, 1.3, 3.0, 0.16, 0.12, 1.0, {"style": st})
 		var e: Dictionary = fx._arcs[0]
 		var m: ShaderMaterial = e["mat"]
 		assert_str(m.shader.resource_path).ends_with("melee_swing_fx.gdshader")
-		assert_int(int(m.get_shader_parameter("style"))).is_equal(2 if st == "cyclic" else 1)
-		assert_object(m.get_shader_parameter("frames")).is_not_null()
 		assert_object(m.get_shader_parameter("noise")).is_not_null()
 		assert_float(float(m.get_shader_parameter("pull"))).is_equal(MeleeFx.GROUND_PULL)
 		var t := 0.0
@@ -281,7 +278,6 @@ func test_the_painted_and_cyclic_swings_reveal_and_end_like_the_crescent() -> vo
 			fx.tick(DT)
 			t += DT
 		assert_float(float(m.get_shader_parameter("head"))).is_greater(0.97)
-		assert_float(float(m.get_shader_parameter("fr"))).is_between(3.8, 4.3)
 		var gone_at := -1.0
 		while t < 1.0 and gone_at < 0.0:
 			fx.tick(DT)
@@ -335,13 +331,13 @@ func test_the_pools_are_capped_with_every_style_and_one_texture_shared() -> void
 	fx.queue_free()
 
 
-func test_the_textures_are_six_frames_of_the_packs_rows() -> void:
+func test_the_textures_are_six_frames_and_the_noise() -> void:
 	var burst: Texture2D = load(MeleeFx.BURST_TEX)
 	assert_object(burst).is_not_null()
 	assert_int(burst.get_height() % 6).is_equal(0)
 	assert_int(burst.get_width()).is_greater(burst.get_height() / 6)
-	var moon: Texture2D = load(MeleeFx.MOON_TEX)
-	assert_int(moon.get_height() % 6).is_equal(0)
+	# pass 142: the pack's painted swing is out of the game
+	assert_bool(ResourceLoader.exists("res://art/fx/melee/slash_moon.png")).is_false()
 	var noise: Texture2D = load(MeleeFx.NOISE_TEX)
 	assert_object(noise).is_not_null()
 	# the burst's tail and head lie inside the frame, the tail first

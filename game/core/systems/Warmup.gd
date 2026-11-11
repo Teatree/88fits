@@ -238,12 +238,12 @@ func _build_rest(game: Node) -> void:
 		var mm := ShaderMaterial.new()
 		mm.shader = sh
 		_quad(mm)
-	# pass 141 (lane MELEE): the pack's burst and painted swing, with their textures (MeleeFx keeps them loaded)
+	# pass 141 (lane MELEE): the burst and the cyclic swing, with their textures (MeleeFx keeps them loaded)
 	MeleeFx.warm()
-	for pair: Array in [[preload("res://core/shaders/melee_burst.gdshader"), MeleeFx.BURST_TEX], [preload("res://core/shaders/melee_swing_fx.gdshader"), MeleeFx.MOON_TEX]]:
+	for sh: Shader in [preload("res://core/shaders/melee_burst.gdshader"), preload("res://core/shaders/melee_swing_fx.gdshader")]:
 		var mb := ShaderMaterial.new()
-		mb.shader = pair[0]
-		mb.set_shader_parameter("frames", load(str(pair[1])))
+		mb.shader = sh
+		mb.set_shader_parameter("frames", load(MeleeFx.BURST_TEX))
 		mb.set_shader_parameter("noise", load(MeleeFx.NOISE_TEX))
 		_quad(mb)
 	# pass 113 (lane TWISTER): a small tornado (the funnel, skirt and debris shaders: the map's dust devils and the King's

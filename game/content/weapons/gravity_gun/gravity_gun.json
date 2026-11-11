@@ -108,7 +108,8 @@
         "pull": 0.3,
         "ahead": 1.3,
         "lead": 1.0,
-        "spin": 1.25
+        "spin": 1.25,
+        "guard": 1.1
       }
     },
     "familiar": {
