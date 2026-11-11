@@ -149,9 +149,10 @@ func test_pilot_weapon_sentences() -> void:
 			"Fires %d shot%s at an enemy within %.0f m for 20 damage." % [amount, s, 14.0])
 		assert_str(Loc.t("gen.weapon.shot.nearest", {"amount": a, "range": "8", "damage": "20"})).is_equal("Fires %d shot%s at an enemy within %.0f m for 20 damage." % [amount, s, 8.0])
 		assert_str(Loc.t("gen.weapon.ricochet", {"count": a, "pct": "50"})).is_equal("Every round ricochets %d time%s at %d%%." % [amount, s, 50])
-	assert_str(Loc.t("gen.weapon.blast.lane", {"width": "2.6", "length": "10"})).is_equal(
-		"Blasts a %.1f m wide lane %.0f m long where you face: everything in it is hit at once and shoved along it." % [2.6, 10.0])
-	assert_str(Loc.t("gen.weapon.blast.cone", {"deg": "75", "depth": "6"})).is_equal("Blasts a %d° cone %.0f m deep where you face: everything in it is hit at once." % [75, 6.0])
+	# pass 143 (Garry: "Boomstick text description doesn't mention damage dealt"): the blasts say what they deal
+	assert_str(Loc.t("gen.weapon.blast.lane", {"width": "2.6", "length": "10", "damage": "30"})).is_equal(
+		"Blasts a %.1f m wide lane %.0f m long where you face: everything in it is hit at once for 30 damage and shoved along it." % [2.6, 10.0])
+	assert_str(Loc.t("gen.weapon.blast.cone", {"deg": "75", "depth": "6", "damage": "32"})).is_equal("Blasts a %d° cone %.0f m deep where you face: everything in it is hit at once for 32 damage." % [75, 6.0])
 	assert_str(Loc.t("gen.weapon.mini_crit", {"pct": "25"})).is_equal("%d%% of rounds are mini crits." % 25)
 	assert_str(Loc.t("gen.weapon.hip_shot", {"nth": "5th", "volleys": "3"})).is_equal("Every %s pull fires %d volleys in a row." % ["5th", 3])
 	assert_str(Loc.t("gen.weapon.double_every", {"nth": Loc.t("gen.word.nth.3")})).is_equal("Every third shot fires twice in quick succession.")

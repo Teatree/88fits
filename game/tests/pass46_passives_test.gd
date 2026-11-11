@@ -359,7 +359,8 @@ func test_the_collection_has_its_tabs_and_marks_the_heroes_mutations() -> void:
 	assert_bool(tommy.has("drum_roll")).is_false()
 	var salt: Array = CollectionScreen.page_mutations(Registry.weapon("salt")).map(func(m: MutationDef) -> String: return m.id)
 	assert_bool(salt.has("salt_flats")).is_true()
-	assert_str(CollectionScreen.hero_only_text(Registry.mutation("salt_flats"))).is_equal("JEŻYK ONLY")
+	# pass 143: Jeżyk is the Horseman
+	assert_str(CollectionScreen.hero_only_text(Registry.mutation("salt_flats"))).is_equal("HORSEMAN ONLY")
 	# pass 69 (lane UI): Mira is back (a hero to buy), so her Blasting Cap is on the Land Mine's page, marked as hers (a
 	# hidden hero's own staying off: pass66_shape_test's rule, Dad has none)
 	# (Garry hid her again on 2026-10-13: the page shows her own exactly while she is in play)

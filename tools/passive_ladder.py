@@ -129,7 +129,7 @@ LADDER = {
 # docs/texts/text_rules.md (digits, "deal damage", "HP")
 TEXT = {
     "barrel_rush": "Smash a barrel to run 30% faster for 4 s.",
-    "cold_snap": "Hits have a 3% chance of freezing an enemy for 1 s.",
+    "cold_snap": "3% chance to freeze an enemy for 1 s when hit.",
     "counterpunch": "After an evade, your next attack deals ×2 damage and you attack and move faster for 2.5 s.",
     "desperado": "The more you are hurt, the harder you hit: up to +16% attack damage near death.",
     "gas_mask": "1% damage reduction for every poisoned enemy, up to 12%.",

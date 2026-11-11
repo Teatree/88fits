@@ -38,8 +38,11 @@ func test_a_kept_look_that_was_shelved_gives_way_to_the_heros_own() -> void:
 	assert_bool(buck.variant_shelved("BUC-B")).is_true()
 	Save.data["hero_look"] = {"buck": "BUC-B"}
 	assert_str(Registry.played_look(buck).look_code()).is_equal(buck.variant)
+	# pass 143: BUC-D is shelved too (the Horseman wears BUC-H alone); a kept look that is not shelved stays
 	Save.data["hero_look"] = {"buck": "BUC-D"}
-	assert_str(Registry.played_look(buck).look_code()).is_equal("BUC-D")
+	assert_str(Registry.played_look(buck).look_code()).is_equal(buck.variant)
+	Save.data["hero_look"] = {"buck": "BUC-H"}
+	assert_str(Registry.played_look(buck).look_code()).is_equal("BUC-H")
 
 
 func test_last_stands_rim_leaves_the_edges_readable() -> void:

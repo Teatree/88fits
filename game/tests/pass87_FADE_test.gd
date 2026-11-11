@@ -44,7 +44,8 @@ func test_two_new_looks_with_their_recipes() -> void:
 			assert_float(float(rs.get(v, 1.0))).is_between(0.5, 1.5)
 		# fresh until Garry picks (re-pinned in pass 88: he picked FAD-E, approved, so it is no longer fresh); never shelved
 		assert_bool(bool(e.get("fresh", false))).is_equal(code != "FAD-E")
-		assert_bool(bool(e.get("shelved", false))).is_false()
+		# never shelved until pass 143 (The Robot wears FAD-H alone: every older look shelved)
+		assert_bool(bool(e.get("shelved", false))).is_true()
 		arts[code] = str(rec["art_prompt"])
 	# the precise prompt says much more than the loose one
 	assert_int((arts["FAD-E"] as String).length()).is_greater(3 * (arts["FAD-F"] as String).length())
@@ -68,7 +69,8 @@ func test_the_game_wears_each_new_look_when_named() -> void:
 	var c: CharacterDef = Registry.character("fadeaway")
 	assert_object(c).is_not_null()
 	for code: String in LOOKS:
-		assert_bool(c.variant_codes().has(code)).override_failure_message(code).is_true()
+		# pass 143: shelved (The Robot wears FAD-H alone), still looks the game can wear when named
+		assert_bool(c.variant_codes(true).has(code)).override_failure_message(code).is_true()
 		var v: CharacterDef = c.variant_def(code)
 		assert_str(v.look_code()).is_equal(code)
 		assert_object(v.sprite).is_not_null()

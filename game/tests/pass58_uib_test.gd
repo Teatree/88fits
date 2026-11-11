@@ -537,7 +537,8 @@ func test_an_area_that_is_a_radius_reads_in_metres() -> void:
 		assert_str(TextGen._sentence(str(ar[0]))).override_failure_message(id).is_equal(str(RADII[id]))
 		# the number the weapon's own description gives, in whole metres (pass 140, lane TEXTS: "a 2 m pool of flames";
 		# the Hammer's, the rockets', the Land Mine's and the Salt's left to these rows)
-		if not ["hammer", "rocket_pod", "land_mine", "salt"].has(id):
+		# pass 143 (Garry's sentences): the Dynamite's and the Skull Rain's say no radius now
+		if not ["hammer", "rocket_pod", "land_mine", "salt", "lob_grenade", "skull_rain"].has(id):
 			assert_str(one.description()).override_failure_message(id).contains("%.0f m" % float(ar[1]))
 		for k in range(1, w.max_level):
 			for r: Dictionary in TextGen.weapon_changes(w, k, k + 1):

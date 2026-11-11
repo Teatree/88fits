@@ -576,8 +576,11 @@ func _place_model(delta: float, t: float, firing: bool, winding: bool) -> void:
 	if _upper:
 		_upper.position = _upper_rest + Vector3(0, 0.05 * _open, 0)
 		_upper.rotation.x = 0.18 * _open
-	var face := _dir() if (firing or winding) else Vector3.ZERO
-	if not firing and not winding:
+	# pass 143 (Garry: "Big Mouth should now always be facing where the outlaw is facing, otherwise it's weird"): under
+	# the aim rule the mouth looks down its aim line at rest too (it follows his facing, _tick_aim), never at a creature
+	var aimed := Aim.covers(inst)
+	var face := _dir() if (firing or winding or aimed) else Vector3.ZERO
+	if not firing and not winding and not aimed:
 		var near: int = aim_index(_familiar.global_position, stat("range", 12.0))
 		if near >= 0:
 			face = game.enemies.pos[near] - _familiar.global_position

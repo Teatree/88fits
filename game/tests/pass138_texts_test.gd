@@ -9,16 +9,18 @@ extends GdUnitTestSuite
 ## of its own, and Garry's rows of commit c1d5f178 stay byte for byte.
 
 ## Garry's rows (commit c1d5f178 and his four families' rows), byte for byte, typos included.
+## Pass 143: the Boomstick and Dragon's Breath families' rows say their damage (Garry: "Boomstick text description
+## doesn't mention damage dealt", "Dragon's Breath doesn't mention damage number"): his texts with the damage added.
 const GARRY_ROWS := {
 	"weapon.basketball.desc": "Throws a ball at {who} within {range} m, it bounces to {hops} more {hops?enemy:enemies} close by, then flies back.",
 	"weapon.big_mouth.desc": "Shoots a {range} m long beam at the crowd for {seconds} s.",
-	"weapon.boomstick.desc": "Fires {amount} {amount?pellet:pellets} in a {cone}° cone where you face.",
-	"weapon.dragons_breath.desc": "Breathes a {deg}° cone of fire {range} m long for {seconds} s every {cooldown} s",
+	"weapon.boomstick.desc": "Fires {amount} {amount?pellet:pellets} in a {cone}° cone where you face for {amount?{damage} damage:{damage} damage each}.",
+	"weapon.dragons_breath.desc": "Breathes a {deg}° cone of fire {range} m long for {seconds} s every {cooldown} s, dealing {damage} damage every {every}.",
 	"evolution.slam_dunk.desc": "Throws a ball at {who} within {range} m, it bounces to {hops} more {hops?enemy:enemies} close by, then flies back.",
 	"evolution.loudmouth.desc": "Shoots a {range} m long beam at the crowd for {seconds} s.",
-	"evolution.fire_eater.desc": "Breathes a {deg}° cone of fire {range} m long for {seconds} s every {cooldown} s",
-	"evolution.blunderbuss.desc": "Blasts a {deg}° cone {depth} m deep where you face: everything in it is hit at once.",
-	"evolution.doomstick.desc": "Fires {amount} {amount?pellet:pellets} in a {cone}° cone where you face.",
+	"evolution.fire_eater.desc": "Breathes a {deg}° cone of fire {range} m long for {seconds} s every {cooldown} s, dealing {damage} damage every {every}.",
+	"evolution.blunderbuss.desc": "Blasts a {deg}° cone {depth} m deep where you face: everything in it is hit at once for {damage} damage.",
+	"evolution.doomstick.desc": "Fires {amount} {amount?pellet:pellets} in a {cone}° cone where you face for {amount?{damage} damage:{damage} damage each}.",
 	"gen.weapon.ball.bounces": "Throws a ball at {who} within {range} m, it bounces to {hops} more {hops?enemy:enemies} close by, then flies back.",
 	"gen.weapon.breath.still": "Stand still {seconds} s before a breath: it lasts ×{long}, hits ×{hits}",
 	"gen.weapon.laser": "Shoots a {range} m long beam at the crowd for {seconds} s.",
@@ -89,17 +91,19 @@ func _inst(id: String, muts: Array = [], level := 1) -> WeaponInstance:
 func test_dynamite_reads_as_garry_wrote_it() -> void:
 	# pass 140 (lane TEXTS): his words, then the damage it deals (his rule: every weapon says its damage), the radius in
 	# whole metres (docs/texts/text_rules.md)
-	assert_str(Loc.row_text("weapon.lob_grenade.desc")).is_equal("Lobs {amount} {thing} at the densest crowd. Explodes in a {area} m radius for {damage} damage.")
+	# pass 143 (Garry: "Dynamite description doesn't mention damage deal. Should be 'Lobs 1 stick of dynamite at a crowd for
+	# N damage'"): his new sentence, the look's thing "stick of dynamite"
+	assert_str(Loc.row_text("weapon.lob_grenade.desc")).is_equal("Lobs {amount} {thing} at a crowd for {damage} damage.")
 	var def: WeaponDef = Registry.weapon("lob_grenade")
 	var one := _inst("lob_grenade")
-	var want := "Lobs 1 %s at the densest crowd. Explodes in a %.0f m radius for %d damage." % [TextGen.thing_word(def, 1, "grenade", "grenades"),
-		one.sheet.get_stat("area", 2.5), int(round(one.sheet.get_stat("damage", 25.0)))]
+	var want := "Lobs 1 %s at a crowd for %d damage." % [TextGen.thing_word(def, 1, "grenade", "grenades"), int(round(one.sheet.get_stat("damage", 25.0)))]
 	assert_str(one.description()).is_equal(want)
-	# with every path mutation (Sticky, Frag, New Equipment) still just the two sentences
+	assert_str(want).starts_with("Lobs 1 stick of dynamite at a crowd for ")
+	# with every path mutation (Sticky, Frag, New Equipment) still the one sentence
 	var all := _inst("lob_grenade", Registry.mutations_of("lob_grenade"), def.max_level)
 	assert_str(all.description()).starts_with("Lobs 2 ")
 	assert_str(all.description()).ends_with(" damage.")
-	assert_int(all.description().count(". ")).is_equal(1)
+	assert_int(all.description().count(". ")).is_equal(0)
 	assert_array(Loc.warnings()).is_empty()
 
 

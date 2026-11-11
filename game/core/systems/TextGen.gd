@@ -129,6 +129,11 @@ const PRIORITY_WHO := "the strongest enemy nearby"
 ## falls" a level, +60% at level 5; pass 48: Gas Mask's is too, one point a poisoned enemy). Pass 137: a row's key.
 const PREFIX := {"desperado": "gen.effect.up_to", "gas_mask_cap": "gen.effect.up_to"}
 
+## Pass 143: the seconds between two poison ticks and a freeze's seconds, as EnemyManager plays them (POISON_TICK,
+## FREEZE_SECONDS; a test pins them equal: TextGen never names EnemyManager, which a tool compiles before the autoloads).
+const POISON_TICK := 2.0
+const FREEZE_SECONDS := 1.0
+
 ## The rarities' names are rows gen.rarity.<id> (pass 137; rarity_name).
 
 
@@ -540,10 +545,14 @@ static func _weapon_sentence(def: WeaponDef, sheet: StatSheet, params: Dictionar
 					var bll: Dictionary = pr["blast"]
 					vars["width"] = "%.1f" % float(bll.get("width", 2.6))
 					vars["length"] = "%.0f" % (range_m * float(bll.get("length_mult", 1.25)))
+					# pass 143 (Garry: "Boomstick text description doesn't mention damage dealt"): what the blast deals
+					# each enemy in it (ProjectileEmitter._blast: frac x damage x amount)
+					vars["damage"] = _dmg(float(bll.get("frac", 0.4)) * sheet.get_stat("damage", 0.0) * maxi(amount, 1))
 				"blast.cone":
 					var blc: Dictionary = pr["blast"]
 					vars["deg"] = str(int(round(float(blc.get("deg", 75.0)))))
 					vars["depth"] = "%.0f" % float(blc.get("range", range_m))
+					vars["damage"] = _dmg(float(blc.get("frac", 0.4)) * sheet.get_stat("damage", 0.0) * maxi(amount, 1))
 			# pass 138: what an evolution's own row may name (its ricochets, its hip shot)
 			var rav = pr.get("ricochet_any")
 			vars["bounces"] = str(int((rav as Dictionary).get("count", 0))) if rav is Dictionary else "0"
@@ -560,6 +569,15 @@ static func _weapon_sentence(def: WeaponDef, sheet: StatSheet, params: Dictionar
 			var thing := {"lob.fire": ["bottle", "bottles"], "lob.poison": ["bomb", "bombs"]}.get(lob, ["grenade", "grenades"]) as Array
 			var lvars := {"amount": str(amount), "area": _m(sheet.get_stat("area", 2.5)), "damage": dmg,
 				"thing": thing_word(def, amount, Loc.t("gen.weapon.noun." + str(thing[0])), Loc.t("gen.weapon.noun." + str(thing[1])))}
+			# pass 143 (Garry: "doesn't mention that it's damage over time ... 'Lobs 1 poison bomb at a crowd for 6 damage
+			# over N seconds'"): a poison bomb's whole damage to an enemy it lands on ({total}: the blast, then every poison
+			# tick of its {seconds}) for the rows that say it
+			if lob == "lob.poison":
+				var psecs := sheet.get_stat("poison_duration", 10.0)
+				var ticks := floori(psecs / POISON_TICK + 0.001)
+				var ptotal := sheet.get_stat("damage", 0.0) + sheet.get_stat("poison_damage", 3.0) * maxi(sheet.get_int("poison_stacks", 1), 1) * ticks
+				lvars["total"] = _dmg(ptotal)
+				lvars["seconds"] = _sec(psecs)
 			return Loc.t_first([_own_key(def, lob, _lob_shape(sheet), lvars), "gen.weapon." + lob], lvars)
 		"Beam":
 			var bvars := {"range": _m(range_m), "chains": str(sheet.get_int("chains", 2)), "damage": dmg}
@@ -829,6 +847,13 @@ static func passive_description(def: PassiveDef, level: int) -> String:
 
 static func _passive_lines(def: PassiveDef, level: int) -> String:
 	var lv: int = max(level, 1)
+	# pass 143 (Garry: "Cold snap. It's not +3% chance. It's just 3%. Text should be: '3% chance to freeze an enemy for 1s
+	# when hit'"): an item with its own line (passive.<id>.line) says what it holds in all in it, no "+", no "total"
+	var own_line := own_passive_line(def, lv)
+	if own_line != "":
+		if def.on_ladder() and lv > 1:
+			return Loc.t("gen.passive.rung_rules", {"level": str(lv), "rung": rung_name(def, lv), "total": own_line})
+		return own_line + "."
 	var per := describe_effects(def.effects_at_level(lv))
 	if per == "":
 		# pass 119 (lane LEGEND_B): an item whose levels say nothing in numbers says its own rule
@@ -857,6 +882,22 @@ static func _passive_lines(def: PassiveDef, level: int) -> String:
 		return Loc.t("gen.passive.first_then_total" if lv > 1 else "gen.passive.first_then", vars)
 	# levels that differ (Evade, Vigour): what this level holds in all
 	return Loc.t("gen.passive.level_total", vars)
+
+
+## Pass 143: an item's own line (passive.<id>.line, no full stop) with what its levels give in all up to `lv`: {pct} its
+## first stat's sum as a percentage (Cold Snap: "3% chance to freeze an enemy for 1 s when hit"), {n} the sum as it is,
+## {seconds} a freeze's seconds; "" for an item without one.
+static func own_passive_line(def: PassiveDef, lv: int) -> String:
+	if def == null:
+		return ""
+	var key := "passive.%s.line" % def.id
+	if not Loc.has(key):
+		return ""
+	var sum := _sum_effects(def.effects_for_level(maxi(lv, 1)))
+	var v := 0.0
+	if not sum.is_empty() and sum[0] is Effect:
+		v = (sum[0] as Effect).value
+	return Loc.t(key, {"pct": _plain(v * 100.0), "n": _plain(v), "seconds": _plain(FREEZE_SECONDS)})
 
 
 ## Whether every effect in `list` is a "rule" stat (pass 119, lane LEGEND_A: said in its own words, never summed).

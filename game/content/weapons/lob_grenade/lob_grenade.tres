@@ -111,8 +111,8 @@ variants = {
 "icon_file": "lob_grenade_icon_b.png",
 "name": "Dynamite Stick",
 "note": "B · classic red paper stick: dark rings, cream ends, a pale cord fuse; the bundle three sticks in black tape; barbed wire round it (model_wire) and amber tar over it (model_tar) from its mutations",
-"noun": "stick",
-"nouns": "sticks",
+"noun": "stick of dynamite",
+"nouns": "sticks of dynamite",
 "params": {
 "model_form": "stick",
 "model_metallic": 0.0,
@@ -142,8 +142,8 @@ variants = {
 "icon_file": "lob_grenade_icon_c.png",
 "name": "Dynamite Stick",
 "note": "C · chunky cartoon stick: rounded ends, a cream label in black borders, a black curly fuse; the bundle four sticks tied with rope and a bow",
-"noun": "stick",
-"nouns": "sticks",
+"noun": "stick of dynamite",
+"nouns": "sticks of dynamite",
 "params": {
 "model_colour": "tan",
 "model_form": "stick",
@@ -170,8 +170,8 @@ variants = {
 "icon_file": "lob_grenade_icon_d.png",
 "name": "Dynamite Stick",
 "note": "D · waxed miner's stick: crimped ends, a printed band, a silver blasting cap and a tarred fuse; the bundle seven sticks in copper wire",
-"noun": "stick",
-"nouns": "sticks",
+"noun": "stick of dynamite",
+"nouns": "sticks of dynamite",
 "params": {
 "model_colour": "tan",
 "model_form": "stick",

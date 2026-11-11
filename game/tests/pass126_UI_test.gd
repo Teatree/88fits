@@ -286,38 +286,40 @@ func _has_coin(b: Control) -> bool:
 	return not b.find_children("*", "WCoin", true, false).is_empty()
 
 
+## Pass 143: Fadeaway's skins are gone (he became The Robot, with no skins): the question is asked about Calavera's first
+## skin (CAL-B, Marigold) in its place.
 func _fadeaway_on_sale() -> CharacterDef:
-	var fad := Registry.character("fadeaway")
-	Save.heroes_owned().append("fadeaway")
-	for q: String in ["unlock_fadeaway", "skin_fadeaway_fad_b"]:
+	var fad := Registry.character("calavera")
+	Save.heroes_owned().append("calavera")
+	for q: String in ["skin_calavera_cal_b"]:
 		(Save.data["quests_done"] as Array).append(q)
 	return fad
 
 
 func test_the_buy_look_question_wears_the_coin_on_the_heroes_screen() -> void:
 	var fad := _fadeaway_on_sale()
-	Save.data["gold"] = fad.skin_price("FAD-B") + 100
+	Save.data["gold"] = fad.skin_price("CAL-B") + 100
 	var s := await _screen()
 	s.call("show_hero", fad)
 	await get_tree().process_frame
-	assert_str(Registry.skin_state(fad, "FAD-B")).is_equal("buyable")
-	s.call("ask_buy_look", "FAD-B")
+	assert_str(Registry.skin_state(fad, "CAL-B")).is_equal("buyable")
+	s.call("ask_buy_look", "CAL-B")
 	await get_tree().process_frame
 	var b: WButton = WConfirm.current(s).button("confirm")
 	assert_str(b.role).is_equal(WButton.GREEN)
 	assert_bool(_has_coin(b)).is_true()
-	assert_str(b.label_text()).is_equal("%s · BUY" % W.num(fad.skin_price("FAD-B")))
+	assert_str(b.label_text()).is_equal("%s · BUY" % W.num(fad.skin_price("CAL-B")))
 
 
 func test_the_buy_look_question_wears_the_coin_on_the_details_pop_up() -> void:
 	var fad := _fadeaway_on_sale()
-	Save.data["gold"] = fad.skin_price("FAD-B") + 100
+	Save.data["gold"] = fad.skin_price("CAL-B") + 100
 	var host: Control = auto_free(Control.new())
 	host.size = Vector2(1080, 1920)
 	add_child(host)
 	var sh: Control = Sheet.open(host, fad, false)
 	await get_tree().process_frame
-	sh.call("ask_buy_look", "FAD-B")
+	sh.call("ask_buy_look", "CAL-B")
 	await get_tree().process_frame
 	var ask := WConfirm.current(sh)
 	assert_object(ask).is_not_null()
@@ -343,21 +345,21 @@ func test_the_buy_hero_questions_wear_the_coin_too() -> void:
 
 func test_short_of_a_look_the_price_stays_grey_with_the_amount_in_red() -> void:
 	var fad := _fadeaway_on_sale()
-	var price := fad.skin_price("FAD-B")
+	var price := fad.skin_price("CAL-B")
 	Save.data["gold"] = price - 10
 	var s := await _screen()
 	s.call("show_hero", fad)
 	await get_tree().process_frame
 	s.call("open_looks")
 	await get_tree().process_frame
-	var tile: WTap = (s.get("looks_grid") as Control).get_node("Look_FAD-B")
+	var tile: WTap = (s.get("looks_grid") as Control).get_node("Look_CAL-B")
 	var tag: Control = tile.find_child("Price", true, false)
 	assert_object(tag).is_not_null()
 	assert_bool(_has_coin(tag)).is_true()
 	assert_bool((tag.find_child("Word", true, false) as WText).color.is_equal_approx(R.SHORT_INK)).is_true()
 	assert_str((tile.find_child("Short", true, false) as WText).text).is_equal("10 short")
 	# a tap only says no: no question
-	s.call("ask_buy_look", "FAD-B")
+	s.call("ask_buy_look", "CAL-B")
 	await get_tree().process_frame
 	assert_bool(bool(s.call("looks_open"))).is_true()
 

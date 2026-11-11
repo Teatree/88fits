@@ -316,7 +316,8 @@ func test_no_decoy_node_without_the_perk() -> void:
 
 func test_jezyk_is_buck_renamed_with_the_frisbee_the_salt_and_salt_flats() -> void:
 	var j: CharacterDef = Registry.character("buck")
-	assert_str(j.display_name).is_equal("Jeżyk")
+	# pass 143 (Garry: "Jezyk. He should become the Horseman ... Otherwise he does the same thing")
+	assert_str(j.display_name).is_equal("Horseman")
 	assert_str(j.start_weapon).is_equal("frisbee")
 	assert_str(j.favourite_weapon).is_equal("salt")
 	assert_str(Registry.start_weapon_for(j).id).is_equal("frisbee")
@@ -349,9 +350,10 @@ func test_no_word_of_his_mentions_a_deer_any_more() -> void:
 	for w in words:
 		for bad in ["antler", "gazelle", "deer", "Buck"]:
 			assert_bool(str(w).contains(bad)).override_failure_message("%s says %s" % [w, bad]).is_false()
-	# his top-level art words are the tracksuit now; the deer's live on in the shelved looks' recipes
+	# his top-level art words are the tracksuit's... pass 143: the Horseman's (a horse's head, a serape); the deer's live
+	# on in the shelved looks' recipes
 	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/characters/buck/buck.json"))
-	assert_str(str(d["art_prompt"])).contains("track jacket")
+	assert_str(str(d["art_prompt"])).contains("head of a horse")
 	assert_bool(str(d["art_prompt"]).contains("antler")).is_false()
-	assert_bool(str(d.get("appearance", "")).contains("blue skin")).is_true()
+	assert_bool(str(d.get("appearance", "")).contains("horse")).is_true()
 	assert_bool(str(d["variants"]["BUC-B"]["recipe"]["art_prompt"]).contains("antlers")).is_true()

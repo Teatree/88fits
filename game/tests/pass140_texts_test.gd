@@ -92,6 +92,11 @@ func test_every_weapon_says_its_damage() -> void:
 		if not def.is_evolution:
 			n += 1
 			var want := TextGen._dmg(inst.sheet.get_stat("damage", 0.0))
+			# pass 143: the Skull Rain says its whole damage over the poison's seconds (the blast and every tick)
+			if row.contains(" damage over "):
+				var st := inst.sheet
+				var ticks := floori(st.get_stat("poison_duration", 10.0) / TextGen.POISON_TICK + 0.001)
+				want = TextGen._dmg(st.get_stat("damage", 0.0) + st.get_stat("poison_damage", 0.0) * maxi(st.get_int("poison_stacks", 1), 1) * ticks)
 			assert_bool(row.contains(want + " damage")).override_failure_message("%s: '%s' lacks %s" % [id, row, want]).is_true()
 		# whole metres in an item's own description (Garry: "1.9m doesn't read very well")
 		var re := RegEx.create_from_string(r"\d\.\d+ m\b")

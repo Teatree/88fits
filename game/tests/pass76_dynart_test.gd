@@ -113,7 +113,8 @@ func test_every_dynamite_look_names_the_family_and_wears_its_own_icons() -> void
 			assert_str(d.display_name).override_failure_message("%s in %s" % [id, code]).is_equal(str((NAMES_OF.get(code, {}) as Dictionary).get(id, NAMES[id])))
 			assert_object(d.icon).override_failure_message("%s in %s" % [id, code]).is_not_null()
 			assert_str(d.icon.resource_path).override_failure_message("%s in %s" % [id, code]).ends_with("%s_icon_%s.png" % [id, code.to_lower()])
-		assert_array(TextGen.weapon_nouns(Registry.weapon("lob_grenade"))).is_equal(["stick", "sticks"])
+		# pass 143 (Garry: "Lobs 1 stick of dynamite at a crowd for N damage")
+		assert_array(TextGen.weapon_nouns(Registry.weapon("lob_grenade"))).is_equal(["stick of dynamite", "sticks of dynamite"])
 		assert_array(TextGen.weapon_nouns(Registry.weapon("golden_pineapple"))).is_equal(EVO_NOUNS[code])
 		# the words keep their numbers
 		assert_str(Registry.mutation("frag").text).contains(str(FRAG_WORDS[code]))

@@ -188,12 +188,13 @@ func _resize(st: Dictionary, cap: int) -> void:
 			_draw(it)
 
 
-## The skull's paint: its vertex colours x the tint, lit, a little lift so the bone reads white on the sand, and the
+## The skull's paint (pass 143: the lift 0.22 -> 0.36, Garry: "Make it more white so it reads better over the yellow
+## sand"): its vertex colours x the tint, lit, a lift so the bone reads white on the sand, and the
 ## toxic green of the eye sockets and nose glowing (where green stands well over red and blue).
 const SHADER_CODE := """shader_type spatial;
 render_mode cull_back;
 uniform vec4 tint : source_color = vec4(1.0);
-uniform float lift = 0.22;
+uniform float lift = 0.36;
 uniform float eye_glow = 1.4;
 void fragment() {
 	vec3 c = COLOR.rgb * tint.rgb;

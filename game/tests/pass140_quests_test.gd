@@ -42,7 +42,8 @@ func _tasks() -> Array:
 
 func test_thirty_four_tasks_plus_dad_and_mira() -> void:
 	# pass 141 (lane TRAIL): 37, the three skins pass 140 sold from the start have their tasks again
-	assert_int(_tasks().size()).is_equal(37)
+	# pass 143: 34, the Horseman's and The Robot's three skin tasks gone with their old characters' skins
+	assert_int(_tasks().size()).is_equal(34)
 	assert_object(_q("unlock_dad")).is_not_null()
 	assert_object(_q("unlock_mira")).is_not_null()
 	for id in RETIRED:
@@ -50,10 +51,11 @@ func test_thirty_four_tasks_plus_dad_and_mira() -> void:
 	# ten skin tasks, five of them behind another task (pass 141: thirteen, seven: Black Hat and Winter Pelt wait for the
 	# outlaw's first skin)
 	var skins: Array = _tasks().filter(func(q: QuestDef) -> bool: return str(q.unlocks.get("type", "")) == "skin")
-	assert_int(skins.size()).is_equal(13)
-	assert_int(skins.filter(func(q: QuestDef) -> bool: return not q.requires.is_empty()).size()).is_equal(7)
+	# pass 143: ten and six (Czerwony, Purple Reign and Streetball gone; Streetball waited for Purple Reign)
+	assert_int(skins.size()).is_equal(10)
+	assert_int(skins.filter(func(q: QuestDef) -> bool: return not q.requires.is_empty()).size()).is_equal(6)
 	# twelve tasks behind another (the plan's count; pass 141: fourteen)
-	assert_int(_tasks().filter(func(q: QuestDef) -> bool: return not q.requires.is_empty()).size()).is_equal(14)
+	assert_int(_tasks().filter(func(q: QuestDef) -> bool: return not q.requires.is_empty()).size()).is_equal(13)
 	# every prerequisite is a quest, none waits on itself or in a ring
 	for q: QuestDef in Registry.quests.values():
 		var seen := {q.id: true}
@@ -188,8 +190,11 @@ func test_hero_counts_only_as_that_outlaw() -> void:
 	assert_bool(QuestTracker._satisfied(quick, true)).is_true()
 	assert_str(TextGen.quest_text(quick)).is_equal("Get the Revolver to level 5 in one run with Drifter.")
 	Run.end()
-	# Czerwony: 30 barrels in one run as Jezyk
-	var red := _q("skin_buck_buc_g")
+	# Czerwony's goal (pass 143: the skin is gone with Jeżyk; its task kept here as a fixture): 30 barrels in one run as
+	# the Horseman (id buck)
+	var red := QuestDef.new()
+	red.id = "fixture_barrels_as_buck"
+	red.condition = {"type": "barrels_total", "count": 30, "in_one_run": true, "hero": "buck"}
 	_start("drifter")
 	Run.barrels_broken = 40
 	assert_bool(QuestTracker._satisfied(red, true)).is_false()
@@ -267,13 +272,16 @@ func test_every_unlock_exists_and_none_is_also_a_trail_node() -> void:
 	for e in (split["locked"] as Array):
 		if str(e.get("by", "")) != "task":
 			continue
+		# pass 143: the Horseman's and The Robot's skins are gone (no task, no skin)
+		if ["skin_buck_buc_g", "skin_fadeaway_fad_b", "skin_fadeaway_fad_g"].has(str(e.get("quest", ""))):
+			continue
 		tasks += 1
 		var q: QuestDef = _q(str(e.get("quest", "")))
 		assert_object(q).override_failure_message("split task %s" % e.get("id")).is_not_null()
 		assert_str(_trail_type(str(q.unlocks.get("type", "")))).is_equal(str(e["kind"]))
 		assert_str(str(q.unlocks.get("id", ""))).is_equal(str(e["id"]))
 		assert_bool(gives.has("%s:%s" % [str(e["kind"]), str(e["id"])])).is_false()
-	assert_int(tasks).is_equal(34)
+	assert_int(tasks).is_equal(31)
 
 
 func test_the_skins_for_sale_need_no_task_and_may_comes_from_hers() -> void:

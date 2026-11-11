@@ -1,6 +1,6 @@
 {
   "id": "fadeaway",
-  "name": "Fadeaway",
+  "name": "The Robot",
   "flavour": "You cannot guard what you cannot catch.",
   "order": 6,
   "pronoun": "he",
@@ -28,20 +28,21 @@
   "unlock_quest": "",
   "frame_px": 256,
   "placeholder": {
-    "color": "#6B4AAE",
-    "hat": "#E8B840",
+    "color": "#C8202E",
+    "hat": "#4A4E57",
     "eyes": 2,
     "shape": "blob"
   },
-  "art_prompt": "a tall athletic young Black man with a short rounded afro, a thin goatee and sharp angular features, heavy-lidded confident eyes and a sly half-smile, a sleeveless purple basketball jersey with gold trim and a big gold number 88, loose knee-length purple shorts with a gold stripe, white high-top sneakers, a white sweatband on his forehead and white wristbands, standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
-  "motion": "running in place at a steady athletic jog like a basketball player on a fast break, arms pumping at his sides, the loose jersey and shorts swaying, empty hands, no ball",
-  "portrait_prompt": "head and shoulders portrait of a young Black man with a short rounded afro, a white sweatband, a thin goatee and a sly confident grin, a sleeveless purple basketball jersey with gold trim, facing the viewer",
+  "art_prompt": "a tall, lean, athletic humanoid robot with long arms and long legs and broad square shoulders held level, built from matte painted dark gunmetal-grey metal with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal: a broad square muzzle with a steel nose ring, two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers; no logo, no emblem, no lettering but the 88; standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
+  "motion": "running in place at a steady athletic jog like a basketball player on a fast break, metal arms pumping at his sides, the loose jersey and shorts swaying, empty hands, no ball",
+  "anim_hint": "a tall lean humanoid robot of dark gunmetal-grey metal with a robot bull's head (a broad muzzle with a steel nose ring, two curved off-white horns, two glowing amber-yellow eyes), in a sleeveless red basketball jersey with black and white trim and a big white number 88 on the front and on the back, loose red shorts with black and white side stripes and red and black high-top sneakers; he runs tall with his back straight, his chest up and both shoulders square and level",
+  "portrait_prompt": "head and shoulders portrait of a robot with a robot bull's head of dark gunmetal metal (a broad muzzle with a steel nose ring, two curved off-white horns, two glowing amber-yellow eyes), in a sleeveless red basketball jersey with black and white trim, facing the viewer",
   "badge": {
     "still": "fadeaway_portrait_c1",
     "head_width": 0.0,
     "top_pad": 0.03
   },
-  "title_pose": "standing relaxed and confident with his weight on one leg, holding the basketball from the second reference image against his hip with one hand, the other hand loose at his side, a sly half-smile under his heavy-lidded eyes, his purple jersey with the gold number 88 facing the viewer",
+  "title_pose": "standing relaxed and confident with his weight on one leg, holding the basketball from the second reference image against his hip with one metal hand, the other hand loose at his side, his glowing amber eyes on the viewer, his red jersey with the white number 88 facing the viewer",
   "title_holds": "the basketball is the only thing he holds",
   "title_extra_ref": {
     "file": "tools/dl/basketball_ref.png",
@@ -49,16 +50,16 @@
   },
   "trait_name": "Footwork",
   "trait_text": "Gain 0.5% evade chance per level.",
-  "pose_hint": "standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball",
-  "back_hint": "He faces away from the viewer: only the back of the afro and the sweatband, the back of the purple jersey with the gold number 88, the shorts and the heels of the sneakers are visible; no eyes, no face at all. Both arms hang straight down along his sides, relaxed, empty hands.",
-  "side_hint": "a clean side profile facing right: the afro, the goatee, the jersey's side, one arm hanging relaxed in front of the torso, empty hands",
-  "hurt_hint": "flinching back with a grimace, one arm raised across the chest",
+  "pose_hint": "standing tall and straight, weight on both feet, chest up, both shoulders level and square, arms relaxed at the sides, empty hands, no ball",
+  "back_hint": "He faces away from the viewer: only the back of the robot bull's head with its two horns curving out and up and its two small ears, the back of his metal neck, and the back of the red jersey with a big white number 88 with a black edge across the middle of his upper back, as big as the 88 on the front; both shoulders broad, square and level, his back straight; the red shorts with their black and white side stripes, the backs of his metal calves and the heels of the sneakers; no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed, empty hands.",
+  "side_hint": "a clean side profile facing right: the robot bull's broad muzzle in profile with the nose ring, the near horn curving forward and up, one glowing eye, the jersey's side with its black and white armhole trim, the red shorts with the black and white stripe down the side, standing tall with his back straight and both shoulders level, one arm hanging relaxed beside the torso, empty hands",
+  "hurt_hint": "his glowing eyes narrowed, flinching back with one arm raised across the chest",
   "pose_drivers": {
     "back": "run_spread",
     "bd": "run_spread"
   },
   "variant_base": "FAD-A",
-  "variant": "FAD-E",
+  "variant": "FAD-H",
   "variants": {
     "FAD-A": {
       "note": "the placeholder blob strip the editor drew at creation (not art)",
@@ -75,7 +76,7 @@
           "steps": 0
         }
       },
-      "note": "the first painting: five views on the Mixamo run, the back views on run_spread",
+      "note": "the first painting: five views on the Mixamo run, the back views on run_spread Pass 143: no longer a skin (Fadeaway became The Robot), shelved.",
       "sprite": "fadeaway_sprite_b.png",
       "anims": {
         "idle": 4,
@@ -102,13 +103,7 @@
         "hit": 12,
         "die": 8
       },
-      "skin": {
-        "purchasable": true,
-        "name": "Purple Reign",
-        "price": 1500,
-        "currency_type": "gold",
-        "unlock_quest": "skin_fadeaway_fad_b"
-      }
+      "shelved": true
     },
     "FAD-C": {
       "recipe": {
@@ -175,7 +170,8 @@
       },
       "icon": "fadeaway_icon_c.png",
       "icon_picked": true,
-      "title": "hero_fadeaway_c.png"
+      "title": "hero_fadeaway_c.png",
+      "shelved": true
     },
     "FAD-D": {
       "recipe": {
@@ -284,7 +280,8 @@
         "hit": 12,
         "die": 8
       },
-      "fresh": true
+      "fresh": true,
+      "shelved": true
     },
     "FAD-E": {
       "recipe": {
@@ -351,7 +348,8 @@
         "run": 36,
         "hit": 12,
         "die": 8
-      }
+      },
+      "shelved": true
     },
     "FAD-F": {
       "recipe": {
@@ -418,10 +416,11 @@
         "hit": 12,
         "die": 8
       },
-      "fresh": true
+      "fresh": true,
+      "shelved": true
     },
     "FAD-G": {
-      "note": "pass 126: a fire-red street jersey and black shorts: Klein edits of FAD-E's paintings, view by view (tools/gen_skin_views.py), walked on FAD-E's puppet walk",
+      "note": "pass 126: a fire-red street jersey and black shorts: Klein edits of FAD-E's paintings, view by view (tools/gen_skin_views.py), walked on FAD-E's puppet walk Pass 143: no longer a skin (Fadeaway became The Robot), shelved.",
       "recipe": {
         "anim_negative": "a basketball, a ball in his hands, extra arms or legs, a face on the back of his head, hunched shoulders, slouching, sloping shoulders, a plain jersey back without its number, a dull greyish jersey",
         "seed_offset": 2311,
@@ -469,13 +468,6 @@
         ]
       },
       "fresh": true,
-      "skin": {
-        "purchasable": true,
-        "name": "Streetball",
-        "price": 2500,
-        "currency_type": "gold",
-        "unlock_quest": "skin_fadeaway_fad_g"
-      },
       "sprite": "fadeaway_sprite_g.png",
       "anims": {
         "idle": 4,
@@ -503,8 +495,100 @@
         "die": 8
       },
       "icon": "fadeaway_icon_g.png",
-      "title": "hero_fadeaway_g.png"
+      "title": "hero_fadeaway_g.png",
+      "shelved": true
+    },
+    "FAD-H": {
+      "note": "pass 143: The Robot (Garry: \"a head of a robot bull and ... Chicago Bulls red basketball uniform. Without any of the Chicago Bulls symbols\"): a lean robot of dark gunmetal metal with a robot bull's head (two off-white horns, amber eyes, a nose ring) in a red jersey and shorts with black and white trim, the 88 on the chest and the back; Klein edits of FAD-E's paintings view by view (the front an edit of FAD-E's front, so his build, height and pose stay; tools/dl/p143/ROBOT/scripts/fronts.py, views.py), walked on FAD-E's puppet walk (fadeaway_puppet_run_up) at FAD-E's run_scale, polished (the blue screen's fringes and a green cast to grey); the badge a two-reference edit of FAD-E's badge painting (fadeaway_portrait_p143_c1, framed by portrait_badge with the horns' span 0.72 of the badge hung 0.10 from the top so both horns show), the title an edit of hero_fadeaway_c.png (fadeaway_title_p143_c1, the ball at his hip)",
+      "recipe": {
+        "art_prompt": "a tall, lean, athletic humanoid robot with long arms and long legs and broad square shoulders held level, built from matte painted dark gunmetal-grey metal with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal: a broad square muzzle with a steel nose ring, two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers; no logo, no emblem, no lettering but the 88; standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
+        "pose_hint": "standing tall and straight, weight on both feet, chest up, both shoulders level and square, arms relaxed at the sides, empty hands, no ball",
+        "back_hint": "He faces away from the viewer: only the back of the robot bull's head with its two horns curving out and up and its two small ears, the back of his metal neck, and the back of the red jersey with a big white number 88 with a black edge across the middle of his upper back, as big as the 88 on the front; both shoulders broad, square and level, his back straight; the red shorts with their black and white side stripes, the backs of his metal calves and the heels of the sneakers; no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed, empty hands.",
+        "side_hint": "a clean side profile facing right: the robot bull's broad muzzle in profile with the nose ring, the near horn curving forward and up, one glowing eye, the jersey's side with its black and white armhole trim, the red shorts with the black and white stripe down the side, standing tall with his back straight and both shoulders level, one arm hanging relaxed beside the torso, empty hands",
+        "anim_hint": "a tall lean humanoid robot of dark gunmetal-grey metal with a robot bull's head (a broad muzzle with a steel nose ring, two curved off-white horns, two glowing amber-yellow eyes), in a sleeveless red basketball jersey with black and white trim and a big white number 88 on the front and on the back, loose red shorts with black and white side stripes and red and black high-top sneakers; he runs tall with his back straight, his chest up and both shoulders square and level",
+        "anim_negative": "a basketball, a ball in his hands, a human face, human skin, hair, a third horn, extra arms or legs, a face or eyes on the back of his head, a logo, an emblem, a bull logo, lettering, words, hunched shoulders, slouching, a plain jersey back without its number, a dull greyish jersey",
+        "hurt_hint": "his glowing eyes narrowed, the whole metal body jolting",
+        "stills": "h",
+        "seed_offset": 2311,
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "pose_drivers": {
+          "front": "fadeaway_puppet_run_up",
+          "fd": "fadeaway_puppet_run_up",
+          "side": "fadeaway_puppet_run_up",
+          "bd": "fadeaway_puppet_run_up",
+          "back": "fadeaway_puppet_run_up"
+        },
+        "run_fit": "tools/dl/drivers/fadeaway_puppet_run/silhouette.json",
+        "fringe_remap": true,
+        "run_scale": {
+          "front": 0.885,
+          "fd": 0.905,
+          "side": 0.905,
+          "bd": 0.91,
+          "back": 0.915
+        },
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                190,
+                330
+              ]
+            ],
+            "to": 225,
+            "sat": 0.3,
+            "min_sat": 0.2
+          },
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                70,
+                170
+              ]
+            ],
+            "to": 225,
+            "sat": 0.3,
+            "min_sat": 0.1
+          }
+        ]
+      },
+      "fresh": true,
+      "sprite": "fadeaway_sprite_h.png",
+      "icon": "fadeaway_icon_h.png",
+      "icon_picked": true,
+      "title": "hero_fadeaway_h.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
     }
   },
-  "anim_negative": "no basketball, no extra arms or legs, no face on the back view, no text"
+  "anim_negative": "a basketball, a ball in his hands, a human face, human skin, hair, a third horn, extra arms or legs, a face or eyes on the back of his head, a logo, an emblem, a bull logo, lettering, words, hunched shoulders, slouching, a plain jersey back without its number, a dull greyish jersey"
 }

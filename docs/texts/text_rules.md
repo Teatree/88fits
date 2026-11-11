@@ -48,5 +48,7 @@ text next. Where a text lives and how to add one: the skill `game-texts` (`.clau
 ## Never
 
 - Change a text Garry wrote (the Basketball, Big Mouth, Boomstick and Dragon's Breath families, commit c1d5f178, and
-  any row `git log -p` shows him editing): list a suggestion instead.
+  any row `git log -p` shows him editing): list a suggestion instead. (Pass 143: he asked the Boomstick and Dragon's
+  Breath families to say their damage, and gave the Skull Rain's, the Dynamite's and Cold Snap's sentences; those rows
+  are his new texts. The Big Mouth's row still says no damage: a suggestion for him.)
 - Put a number in a row the code can hand in as a variable, or glue sentences after an item's own row.

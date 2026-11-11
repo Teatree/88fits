@@ -171,8 +171,9 @@ def checks(check, run_node, server):
     # ---- server
     try:
         refs_w = server.references_to("weapon", "orbit_saws")["quests"]
-        refs_h = server.references_to("hero", "fadeaway")["quests"]   # pass 129: May's and Calavera's quests retired
-        check("unlock_sabre" in refs_w and "skin_fadeaway_fad_b" in refs_h,
+        # pass 143: Fadeaway's skin quests are gone (he became The Robot, with no skins): May's skin task names her
+        refs_h = server.references_to("hero", "may")["quests"]   # pass 129: May's and Calavera's quests retired
+        check("unlock_sabre" in refs_w and "skin_may_may_b" in refs_h,
               "QUESTS100 references_to names the quests that name an item or a hero: %s / %s" % (refs_w, refs_h))
     except Exception as e:  # the server's content dir may point at a temp copy in another group: report, do not crash
         check(False, "QUESTS100 references_to: %s" % e)
@@ -186,9 +187,11 @@ def checks(check, run_node, server):
     # re-pinned in pass 129 (lane TRAIL-SETUP): six of the converted quests are retired (Trail nodes); the skins' goals
     # carry the build types beside the two that stay
     # re-pinned in pass 140 (lane QUESTS): the Tower's and Event Horizon's goals are retired (Trail nodes)
-    conv = {"unlock_sabre": "item_level", "unlock_evade": "item_level", "unlock_deadeye": "evolve_item", "skin_fadeaway_fad_b": "hero_level"}
+    conv = {"unlock_sabre": "item_level", "unlock_evade": "item_level", "unlock_deadeye": "evolve_item"}
     bad = [k for k, t in conv.items() if (by_id.get(k, {}).get("condition") or {}).get("type") != t]
     check(not bad, "QUESTS100 the converted quests carry their build types: %s" % bad)
     named = dict(zip([x["id"] for x in quests], r["named"]))
-    check(named.get("skin_fadeaway_fad_b", "").startswith("Reach level ") and named.get("skin_fadeaway_fad_b", "").endswith(" with Fadeaway."),
-          "QUESTS100 a level requirement reads: %s" % named.get("skin_fadeaway_fad_b"))
+    # pass 143: the last hero_level quest (skin_fadeaway_fad_b) is gone; any that comes back still reads as one
+    lv = [x["id"] for x in quests if (x.get("condition") or {}).get("type") == "hero_level"]
+    check(all(named.get(k, "").startswith("Reach level ") for k in lv),
+          "QUESTS100 a level requirement reads: %s" % {k: named.get(k) for k in lv})

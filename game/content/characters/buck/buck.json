@@ -1,7 +1,7 @@
 {
   "id": "buck",
-  "name": "Jeżyk",
-  "flavour": "The little hedgehog of the block. Slow to start, impossible to stop.",
+  "name": "Horseman",
+  "flavour": "Slow out of the gate. Impossible to stop.",
   "order": 7,
   "pronoun": "he",
   "trait": [
@@ -45,18 +45,18 @@
   "unlock_quest": "",
   "frame_px": 256,
   "placeholder": {
-    "color": "#141418",
-    "hat": "#4D7BFF",
+    "color": "#26306A",
+    "hat": "#8A4B24",
     "eyes": 2,
     "shape": "blob"
   },
-  "art_prompt": "a lean young man with a bald head and smooth blue skin, a stern focused face with sharp eyebrows, dark eyes and slightly large ears, wearing a black zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, black track pants with two white stripes running down the outside of each leg, black sneakers with thick white soles; standing straight, both arms relaxed at his sides, empty hands",
-  "motion": "running in place at a fast determined sprint, arms pumping at his sides, empty hands",
-  "anim_hint": "a bald blue-skinned man in a black zip-up tracksuit with two white stripes down the sleeves and down the legs, black sneakers with white soles, a fast determined sprint with the arms pumping",
-  "anim_negative": "hair, antlers, a hat, a hood, a beard, extra limbs, a face on the back of the head, text, logos",
+  "art_prompt": "a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the face to the muzzle, two large dark eyes, two upright pointed horse ears, a soft dark muzzle, a short dark-brown mane down the back of the neck; he wears a striped serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging over his shoulders to the middle of his thighs, a cream-white long-sleeved shirt, a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs, no hat; standing straight, both arms relaxed at his sides, empty hands",
+  "motion": "running in place at a fast determined pace, arms pumping at his sides, the poncho swinging, empty hands",
+  "anim_hint": "a man with a long chestnut-brown horse head (a white blaze, two upright ears, a short dark mane) in an indigo-blue serape poncho with cream, red and mustard bands over a cream shirt, a red bandana, dark brown trousers, brown cowboy boots and brown gloves, a fast determined run, the poncho swinging",
+  "anim_negative": "a human face, human ears, hair, a hat, a centaur, a horse body, four legs, hooves, a tail, extra arms, extra legs, extra hands, a second head, a face on the back of the head, text, logos",
   "anim_seed": 47,
-  "portrait_prompt": "head and shoulders of a bald blue-skinned young man with a stern half-smirk and one eyebrow raised, the high collar of his black track jacket zipped up to the chin, the white stripes on his shoulders, facing the viewer",
-  "hurt_hint": "flinching with his teeth gritted and his eyes squeezed shut, one arm raised across the chest",
+  "portrait_prompt": "head and shoulders of a man with a long chestnut-brown horse head with a white blaze, two upright ears and a short dark mane, a calm steady stare, a red bandana knotted at his neck and the indigo-blue striped serape poncho on his shoulders, facing the viewer",
+  "hurt_hint": "flinching with his eyes squeezed shut and his big teeth gritted, one arm raised across the chest",
   "anims": {
     "idle": 4,
     "run": 24,
@@ -84,18 +84,18 @@
   },
   "trait_name": "Full Tilt",
   "trait_text": "Starts 15% slower. While he is not hit his charge climbs over 10 s to +80% speed, +60% attack damage and +20% evade chance; a hit that lands knocks off half of it.",
-  "back_hint": "He faces away from the viewer: only the back of his bald blue head and ears, the back of the black track jacket with the two white stripes running down both sleeves, the white stripes down the legs and the white soles of the sneakers are visible; no eyes, no face at all. Both arms hang straight down along his sides, relaxed, empty hands.",
-  "appearance": "a lean young man with a bald head and smooth blue skin, a stern focused face with sharp eyebrows, dark eyes and slightly large ears, wearing a black zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, black track pants with two white stripes running down the outside of each leg, black sneakers with thick white soles",
-  "side_hint": "a clean side profile facing right: the bald blue head and its ear, the high jacket collar, the two white stripes running down the near sleeve and the near leg; both shoulders level, the near shoulder never raised above the far one, the near arm hanging relaxed beside the torso, empty hands",
+  "back_hint": "He faces away from the viewer: only the back of the long horse head with its two upright ears and the short dark mane down the back of the neck, the back of the indigo serape poncho with its horizontal cream, red and mustard bands and fringed hem, the dark brown trousers and the heels of the brown cowboy boots are visible; no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed, gloved empty hands.",
+  "appearance": "a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the face to the muzzle, two large dark eyes, two upright pointed horse ears, a soft dark muzzle, a short dark-brown mane down the back of the neck; he wears a striped serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging over his shoulders to the middle of his thighs, a cream-white long-sleeved shirt, a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs, no hat",
+  "side_hint": "a clean side profile facing right: the long horse head in profile with its muzzle pointing right, one eye, the ears upright, the mane down the back of the neck; the poncho hanging over the near arm; both shoulders level, the near arm hanging relaxed beside the torso, gloved empty hands",
   "pose_hint": "standing straight, weight on both feet, both arms relaxed at the sides, empty hands",
-  "title_pose": "standing with his feet apart and his hands pushed deep into the pockets of his black track jacket, his shoulders a little hunched, a stern unimpressed stare with one eyebrow raised, the jacket zipped up to the collar, the white stripes down his sleeves and legs facing the viewer",
-  "title_holds": "his hands hold nothing; they are in his jacket pockets",
+  "title_pose": "standing with his feet apart, his gloved thumbs hooked in his belt under the front of the poncho, his long horse head held high with a calm steady stare, the striped serape poncho hanging over his shoulders",
+  "title_holds": "his hands hold nothing; his thumbs are hooked in his belt",
   "hidden": false,
   "availability": "purchase",
   "price": 3500,
   "currency_type": "gold",
   "variant_base": "BUC-A",
-  "variant": "BUC-F",
+  "variant": "BUC-H",
   "variants": {
     "BUC-A": {
       "note": "the deer, the top-level strip before the Level Editor's looks (shelved in pass 69: the top-level words are Jeżyk's tracksuit now; BUC-B keeps the deer's words)",
@@ -258,7 +258,8 @@
       "fresh": true,
       "icon": "buck_icon_d.png",
       "icon_picked": true,
-      "title": "hero_buck_d.png"
+      "title": "hero_buck_d.png",
+      "shelved": true
     },
     "BUC-E": {
       "recipe": {
@@ -324,7 +325,8 @@
       },
       "icon": "buck_icon_e.png",
       "icon_picked": true,
-      "title": "hero_buck_e.png"
+      "title": "hero_buck_e.png",
+      "shelved": true
     },
     "BUC-F": {
       "recipe": {
@@ -397,10 +399,11 @@
       },
       "icon": "buck_icon_f.png",
       "icon_picked": true,
-      "title": "hero_buck_f.png"
+      "title": "hero_buck_f.png",
+      "shelved": true
     },
     "BUC-G": {
-      "note": "pass 126: a red tracksuit with white stripes: Klein edits of BUC-F's paintings, view by view (tools/gen_skin_views.py), walked on BUC-F's dash",
+      "note": "pass 126: a red tracksuit with white stripes: Klein edits of BUC-F's paintings, view by view (tools/gen_skin_views.py), walked on BUC-F's dash Pass 143: no longer a skin (Jeżyk became the Horseman), shelved.",
       "recipe": {
         "pose_drivers": {
           "front": "run_dash_f_low",
@@ -444,13 +447,6 @@
         ]
       },
       "fresh": true,
-      "skin": {
-        "purchasable": true,
-        "name": "Czerwony",
-        "price": 2500,
-        "currency_type": "gold",
-        "unlock_quest": "skin_buck_buc_g"
-      },
       "sprite": "buck_sprite_g.png",
       "anims": {
         "idle": 4,
@@ -478,7 +474,82 @@
         "die": 8
       },
       "icon": "buck_icon_g.png",
-      "title": "hero_buck_g.png"
+      "title": "hero_buck_g.png",
+      "shelved": true
+    },
+    "BUC-H": {
+      "note": "pass 143 (lane HORSE): the Horseman, a lean man with a chestnut horse head in an indigo serape poncho; his stills are Klein edits of BUC-F's (the pose, build and size kept, the head and the clothes swapped; tools/dl/p143/HORSE)",
+      "recipe": {
+        "stills": "h",
+        "pose_drivers": {
+          "front": "run_dash_f_low",
+          "fd": "run_dash_f",
+          "side": "run_dash_lvl",
+          "bd": "run_dash_lvl",
+          "back": "run_dash_lvl"
+        },
+        "pose_motion": "dashing in place on the spot like on a treadmill, leaning forward with both arms swept straight back behind him",
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "12 painted: Klein edits of BUC-F's stills (pass 143)"
+        },
+        "seed_offset": 1430,
+        "screen": "green",
+        "anim_seed": 2,
+        "run_scale": {
+          "back": 1.04,
+          "bd": 1.06,
+          "side": 0.9,
+          "fd": 0.91,
+          "front": 0.9
+        },
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                66,
+                175
+              ]
+            ],
+            "to": 30,
+            "sat": 0.6,
+            "min_sat": 0.1
+          }
+        ]
+      },
+      "fresh": true,
+      "sprite": "buck_sprite_h.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "icon": "buck_icon_h.png",
+      "icon_picked": true,
+      "title": "hero_buck_h.png"
     }
   }
 }

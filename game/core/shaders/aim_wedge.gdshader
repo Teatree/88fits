@@ -75,6 +75,8 @@ uniform float m_flash = 0.0;
 uniform float m_beat = 0.0;
 uniform float m_wind = 0.0;
 uniform float m_clock = 0.0;
+// pass 143: the line's share of its opacity (AimWedge.MOUTH_GAIN: half as noticeable as pass 139's)
+uniform float m_gain = 1.0;
 
 float ground(vec2 p) {
 	if (grid_n < 2) {
@@ -208,7 +210,7 @@ vec4 mouth_line(float s, float x) {
 	}
 	core_a += m_flash * 0.5 * core;
 	glow_a += m_flash * 0.35 * glow;
-	float a = clamp((core_a + glow_a) * ends, 0.0, 1.0);
+	float a = clamp((core_a + glow_a) * ends, 0.0, 1.0) * m_gain;
 	// the core hot towards white, the glow the colour's deep shade (a pale glow vanished on Sundown's sand)
 	vec3 hot = mix(m_color, vec3(1.0, 0.97, 0.95), 0.3 + 0.5 * m_flash);
 	vec3 c = mix(m_color * 0.8, hot, core_a / max(core_a + glow_a, 0.0001));

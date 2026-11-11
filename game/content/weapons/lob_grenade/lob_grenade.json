@@ -114,8 +114,8 @@
     "B": {
       "name": "Dynamite Stick",
       "flavour": "Light it. Lob it. Count to one.",
-      "noun": "stick",
-      "nouns": "sticks",
+      "noun": "stick of dynamite",
+      "nouns": "sticks of dynamite",
       "icon": "lob_grenade_icon_b.png",
       "note": "B · classic red paper stick: dark rings, cream ends, a pale cord fuse; the bundle three sticks in black tape; barbed wire round it (model_wire) and amber tar over it (model_tar) from its mutations",
       "params": {
@@ -175,8 +175,8 @@
     "C": {
       "name": "Dynamite Stick",
       "flavour": "Light it. Lob it. Count to one.",
-      "noun": "stick",
-      "nouns": "sticks",
+      "noun": "stick of dynamite",
+      "nouns": "sticks of dynamite",
       "icon": "lob_grenade_icon_c.png",
       "note": "C · chunky cartoon stick: rounded ends, a cream label in black borders, a black curly fuse; the bundle four sticks tied with rope and a bow",
       "params": {
@@ -222,8 +222,8 @@
     "D": {
       "name": "Dynamite Stick",
       "flavour": "Light it. Lob it. Count to one.",
-      "noun": "stick",
-      "nouns": "sticks",
+      "noun": "stick of dynamite",
+      "nouns": "sticks of dynamite",
       "icon": "lob_grenade_icon_d.png",
       "note": "D · waxed miner's stick: crimped ends, a printed band, a silver blasting cap and a tarred fuse; the bundle seven sticks in copper wire",
       "params": {

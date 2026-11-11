@@ -37,9 +37,9 @@ func test_the_puppet_look_is_in_his_json_with_its_recipe() -> void:
 	assert_str(str(rec["puppet"]["face"])).is_equal("nose")
 	# FAD-C's stills, nothing painted again
 	assert_str(str(rec["stills"])).is_equal("c")
-	# not approved yet, never shelved
+	# not approved yet; never shelved until pass 143 (The Robot wears FAD-H alone: every older look shelved)
 	assert_bool(bool(e.get("fresh", false))).is_true()
-	assert_bool(bool(e.get("shelved", false))).is_false()
+	assert_bool(bool(e.get("shelved", false))).is_true()
 	# the played look stays one of his own (Garry picks)
 	assert_str(str(d["variant"])).starts_with("FAD-")
 
@@ -66,7 +66,8 @@ func test_the_puppet_look_has_a_whole_strip_like_his_played_one() -> void:
 func test_the_game_wears_the_puppet_look_when_named() -> void:
 	var c: CharacterDef = Registry.character("fadeaway")
 	assert_object(c).is_not_null()
-	assert_bool(c.variant_codes().has("FAD-D")).is_true()
+	# pass 143: shelved (The Robot wears FAD-H alone), still a look the game can wear when named
+	assert_bool(c.variant_codes(true).has("FAD-D")).is_true()
 	var v: CharacterDef = c.variant_def("FAD-D")
 	assert_str(v.look_code()).is_equal("FAD-D")
 	assert_object(v.sprite).is_not_null()

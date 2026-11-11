@@ -5,7 +5,7 @@
   "weight": 9,
   "max_level": 6,
   "flavour": "Even the desert gets a cold night.",
-  "text": "Hits have a 3% chance of freezing an enemy for 1 s.",
+  "text": "3% chance to freeze an enemy for 1 s when hit.",
   "levels": [
     [
       {

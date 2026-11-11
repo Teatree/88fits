@@ -1,0 +1,394 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a tall, lean, athletic humanoid robot with long arms and long legs and broad square shoulders held level, built from matte painted dark gunmetal-grey metal with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal: a broad square muzzle with a steel nose ring, two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers; no logo, no emblem, no lettering but the 88; standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
+ "renders": {
+  "front": {
+   "seed": 3026242,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image shows the pose, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same build and long-limbed proportions, the same height, the same size and the same place in the frame, but turned into a new character: a tall, lean, athletic humanoid robot basketball player with long arms and long legs, broad square shoulders held level, a straight upright back and his chest up, built from smooth matte painted dark gunmetal-grey metal with soft cel-shaded highlights (painted metal, not chrome, not a mirror), with clear round ball joints at the shoulders, elbows, wrists, knees and ankles and metal hands with five jointed fingers; his head is a heavy robot bull's head of the same dark metal on a thick metal neck: a broad square muzzle with two round nostrils and a steel nose ring, two big curved horns of off-white ivory metal sweeping out and up from the top of his head, two glowing amber-yellow eyes under a heavy metal brow, two small metal ears sticking out sideways below the horns, and only a few big rivets; he wears a sleeveless bright red basketball jersey with black and white trim round the neck and the armholes and a big white number 88 with a black edge in the middle of the chest, loose knee-length bright red basketball shorts with a black and white stripe down the outside of each leg, and red and black high-top sneakers with white soles; no logo, no team crest, no animal emblem and no lettering anywhere, only the number 88. No human skin, no human face, no hair, no afro, no sweatband. Full body, front view, standing straight and facing the viewer with his arms relaxed at his sides, empty hands, no ball, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/fadeaway_h_fe_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 360,
+     "right": 368,
+     "top": 22,
+     "bottom": 22,
+     "height": 979,
+     "width": 295
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 20562,
+   "prompt": "The first reference image shows the character: a robot with a bull's head in a red basketball uniform. The second reference image shows the pose, the view, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same long-limbed build, the same size and the same place in the frame, but as the robot of the first reference image (its metal body, its robot bull's head and its uniform): a tall, lean humanoid robot of matte painted dark gunmetal-grey metal (painted metal with soft cel-shaded highlights, not chrome) with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal with a broad muzzle, a steel nose ring, exactly two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and on the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers with white soles; no logo, no emblem, no lettering other than the 88. No human skin, no human face, no hair. Seen directly from behind: the back of the robot bull's head: its plain dark metal back, the two horns curving out and up from the top of the head and the two small ears, no eyes, no muzzle, no face at all; the big white number 88 with a black edge across the middle of the red jersey's back between the shoulder blades. Both arms hang straight down along his sides, empty hands. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_h_front_ref.png",
+    "88fits/fadeaway_h_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 362,
+     "right": 369,
+     "top": 20,
+     "bottom": 28,
+     "height": 975,
+     "width": 292
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 20563,
+   "prompt": "The first reference image shows the character: a robot with a bull's head in a red basketball uniform. The second reference image shows the pose, the view, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same long-limbed build, the same size and the same place in the frame, but as the robot of the first reference image (its metal body, its robot bull's head and its uniform): a tall, lean humanoid robot of matte painted dark gunmetal-grey metal (painted metal with soft cel-shaded highlights, not chrome) with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal with a broad muzzle, a steel nose ring, exactly two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and on the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers with white soles; no logo, no emblem, no lettering other than the 88. No human skin, no human face, no hair. In strict side profile facing right: the bull's broad muzzle points to the right in profile with the nose ring hanging under it, the near horn curving forward and up, the near ear, one glowing amber eye; one arm hanging relaxed beside the torso, empty hand. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_h_front_ref.png",
+    "88fits/fadeaway_h_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 426,
+     "right": 416,
+     "top": 18,
+     "bottom": 23,
+     "height": 982,
+     "width": 181
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 20564,
+   "prompt": "The first reference image shows the character: a robot with a bull's head in a red basketball uniform. The second reference image shows the pose, the view, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same long-limbed build, the same size and the same place in the frame, but as the robot of the first reference image (its metal body, its robot bull's head and its uniform): a tall, lean humanoid robot of matte painted dark gunmetal-grey metal (painted metal with soft cel-shaded highlights, not chrome) with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal with a broad muzzle, a steel nose ring, exactly two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and on the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers with white soles; no logo, no emblem, no lettering other than the 88. No human skin, no human face, no hair. In three-quarter front view, turned towards the lower right, the bull's face and both glowing eyes visible, the 88 on the chest. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_h_front_ref.png",
+    "88fits/fadeaway_h_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 377,
+     "right": 369,
+     "top": 22,
+     "bottom": 22,
+     "height": 979,
+     "width": 277
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 36403,
+   "prompt": "The first reference image shows the character: a robot with a bull's head in a red basketball uniform. The second reference image shows the pose, the view, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same long-limbed build, the same size and the same place in the frame, but as the robot of the first reference image (its metal body, its robot bull's head and its uniform): a tall, lean humanoid robot of matte painted dark gunmetal-grey metal (painted metal with soft cel-shaded highlights, not chrome) with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal with a broad muzzle, a steel nose ring, exactly two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and on the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers with white soles; no logo, no emblem, no lettering other than the 88. No human skin, no human face, no hair. In three-quarter back view, turned away from the viewer towards the upper right, the head turned a little further away than the shoulders so that neither eye and not the nose ring can be seen, only the back and the near side of the head: the back of the robot bull's head: its plain dark metal back, the two horns curving out and up from the top of the head and the two small ears, no eyes, no muzzle, no face at all; the big white number 88 with a black edge across the middle of the red jersey's back between the shoulder blades. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_h_front_ref.png",
+    "88fits/fadeaway_h_bd_r2_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 370,
+     "right": 371,
+     "top": 18,
+     "bottom": 27,
+     "height": 978,
+     "width": 282
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 20566,
+   "prompt": "The first reference image shows the character: a robot with a bull's head in a red basketball uniform. The second reference image shows the pose, the view, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same long-limbed build, the same size and the same place in the frame, but as the robot of the first reference image (its metal body, its robot bull's head and its uniform): a tall, lean humanoid robot of matte painted dark gunmetal-grey metal (painted metal with soft cel-shaded highlights, not chrome) with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal with a broad muzzle, a steel nose ring, exactly two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and on the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers with white soles; no logo, no emblem, no lettering other than the 88. No human skin, no human face, no hair. Seen directly from behind, jumping for joy with both arms raised high, feet together: the back of the robot bull's head: its plain dark metal back, the two horns curving out and up from the top of the head and the two small ears, no eyes, no muzzle, no face at all; the big white number 88 with a black edge across the middle of the red jersey's back between the shoulder blades. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_h_front_ref.png",
+    "88fits/fadeaway_h_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 312,
+     "right": 312,
+     "top": 22,
+     "bottom": 43,
+     "height": 958,
+     "width": 399
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 28487,
+   "prompt": "The first reference image shows the character: a robot with a bull's head in a red basketball uniform. The second reference image shows the pose, the view, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same long-limbed build, the same size and the same place in the frame, but as the robot of the first reference image (its metal body, its robot bull's head and its uniform): a tall, lean humanoid robot of matte painted dark gunmetal-grey metal (painted metal with soft cel-shaded highlights, not chrome) with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal with a broad muzzle, a steel nose ring, exactly two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and on the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers with white soles; no logo, no emblem, no lettering other than the 88. No human skin, no human face, no hair. Seen directly from behind, flinching from a hit, feet fully visible, no motion lines and no impact marks drawn around him, the nose ring hidden in front of the head: the back of the robot bull's head: its plain dark metal back, the two horns curving out and up from the top of the head and the two small ears, no eyes, no muzzle, no face at all; the big white number 88 with a black edge across the middle of the red jersey's back between the shoulder blades. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_h_front_ref.png",
+    "88fits/fadeaway_h_hurt_back_r1_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 360,
+     "right": 369,
+     "top": 21,
+     "bottom": 28,
+     "height": 974,
+     "width": 294
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 36405,
+   "prompt": "The first reference image shows the character: a robot with a bull's head in a red basketball uniform. The second reference image shows the pose, the view, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same long-limbed build, the same size and the same place in the frame, but as the robot of the first reference image (its metal body, its robot bull's head and its uniform): a tall, lean humanoid robot of matte painted dark gunmetal-grey metal (painted metal with soft cel-shaded highlights, not chrome) with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal with a broad muzzle, a steel nose ring, exactly two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and on the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers with white soles; no logo, no emblem, no lettering other than the 88. No human skin, no human face, no hair. Facing the viewer, flinching in pain from a hit, both glowing eyes narrowed, feet fully visible; plain red shorts with only their black and white side stripes, no number and no lettering on the shorts. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_h_front_ref.png",
+    "88fits/fadeaway_h_hurt_front_r2_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 365,
+     "right": 359,
+     "top": 22,
+     "bottom": 22,
+     "height": 979,
+     "width": 299
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 20569,
+   "prompt": "The first reference image shows the character: a robot with a bull's head in a red basketball uniform. The second reference image shows the pose, the view, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same long-limbed build, the same size and the same place in the frame, but as the robot of the first reference image (its metal body, its robot bull's head and its uniform): a tall, lean humanoid robot of matte painted dark gunmetal-grey metal (painted metal with soft cel-shaded highlights, not chrome) with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal with a broad muzzle, a steel nose ring, exactly two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and on the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers with white soles; no logo, no emblem, no lettering other than the 88. No human skin, no human face, no hair. In strict side profile facing right, flinching in pain, the muzzle and the nose ring in profile, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_h_front_ref.png",
+    "88fits/fadeaway_h_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 402,
+     "right": 428,
+     "top": 25,
+     "bottom": 25,
+     "height": 973,
+     "width": 193
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 20571,
+   "prompt": "The first reference image shows the character: a robot with a bull's head in a red basketball uniform. The second reference image shows the pose, the view, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same long-limbed build, the same size and the same place in the frame, but as the robot of the first reference image (its metal body, its robot bull's head and its uniform): a tall, lean humanoid robot of matte painted dark gunmetal-grey metal (painted metal with soft cel-shaded highlights, not chrome) with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal with a broad muzzle, a steel nose ring, exactly two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and on the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers with white soles; no logo, no emblem, no lettering other than the 88. No human skin, no human face, no hair. In three-quarter back view, flinching from a hit, feet fully visible: the back of the robot bull's head: its plain dark metal back, the two horns curving out and up from the top of the head and the two small ears, no eyes, no muzzle, no face at all; the big white number 88 with a black edge across the middle of the red jersey's back between the shoulder blades. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_h_front_ref.png",
+    "88fits/fadeaway_h_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 375,
+     "right": 367,
+     "top": 27,
+     "bottom": 26,
+     "height": 970,
+     "width": 281
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 20570,
+   "prompt": "The first reference image shows the character: a robot with a bull's head in a red basketball uniform. The second reference image shows the pose, the view, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same long-limbed build, the same size and the same place in the frame, but as the robot of the first reference image (its metal body, its robot bull's head and its uniform): a tall, lean humanoid robot of matte painted dark gunmetal-grey metal (painted metal with soft cel-shaded highlights, not chrome) with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal with a broad muzzle, a steel nose ring, exactly two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and on the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers with white soles; no logo, no emblem, no lettering other than the 88. No human skin, no human face, no hair. In three-quarter front view, flinching in pain, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_h_front_ref.png",
+    "88fits/fadeaway_h_hurt_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [
+     "touches-edge"
+    ],
+    "geometry": {
+     "left": 366,
+     "right": 361,
+     "top": 26,
+     "bottom": 17,
+     "height": 980,
+     "width": 296
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 20572,
+   "prompt": "The first reference image shows the character: a robot with a bull's head in a red basketball uniform. The second reference image shows the pose, the view, the build, the size and the place in the frame. One single figure alone in the frame: redraw the figure of the second reference image in exactly the same pose, the same view, the same long-limbed build, the same size and the same place in the frame, but as the robot of the first reference image (its metal body, its robot bull's head and its uniform): a tall, lean humanoid robot of matte painted dark gunmetal-grey metal (painted metal with soft cel-shaded highlights, not chrome) with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal with a broad muzzle, a steel nose ring, exactly two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and on the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers with white soles; no logo, no emblem, no lettering other than the 88. No human skin, no human face, no hair. Lying flat on the ground on his back, knocked out, limbs sprawled, the whole body visible, the glowing eyes dimmed. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_h_front_ref.png",
+    "88fits/fadeaway_h_dead_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 52,
+     "right": 134,
+     "top": 213,
+     "bottom": 172,
+     "height": 638,
+     "width": 837
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "art_prompt": "a tall, lean, athletic humanoid robot with long arms and long legs and broad square shoulders held level, built from matte painted dark gunmetal-grey metal with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal: a broad square muzzle with a steel nose ring, two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers; no logo, no emblem, no lettering but the 88; standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
+  "pose_hint": "standing tall and straight, weight on both feet, chest up, both shoulders level and square, arms relaxed at the sides, empty hands, no ball",
+  "back_hint": "He faces away from the viewer: only the back of the robot bull's head with its two horns curving out and up and its two small ears, the back of his metal neck, and the back of the red jersey with a big white number 88 with a black edge across the middle of his upper back, as big as the 88 on the front; both shoulders broad, square and level, his back straight; the red shorts with their black and white side stripes, the backs of his metal calves and the heels of the sneakers; no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed, empty hands.",
+  "side_hint": "a clean side profile facing right: the robot bull's broad muzzle in profile with the nose ring, the near horn curving forward and up, one glowing eye, the jersey's side with its black and white armhole trim, the red shorts with the black and white stripe down the side, standing tall with his back straight and both shoulders level, one arm hanging relaxed beside the torso, empty hands",
+  "anim_hint": "a tall lean humanoid robot of dark gunmetal-grey metal with a robot bull's head (a broad muzzle with a steel nose ring, two curved off-white horns, two glowing amber-yellow eyes), in a sleeveless red basketball jersey with black and white trim and a big white number 88 on the front and on the back, loose red shorts with black and white side stripes and red and black high-top sneakers; he runs tall with his back straight, his chest up and both shoulders square and level",
+  "anim_negative": "a basketball, a ball in his hands, a human face, human skin, hair, a third horn, extra arms or legs, a face or eyes on the back of his head, a logo, an emblem, a bull logo, lettering, words, hunched shoulders, slouching, a plain jersey back without its number, a dull greyish jersey",
+  "hurt_hint": "his glowing eyes narrowed, the whole metal body jolting",
+  "stills": "h",
+  "seed_offset": 2311,
+  "method": "hero_pose5",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "pose_drivers": {
+   "front": "fadeaway_puppet_run_up",
+   "fd": "fadeaway_puppet_run_up",
+   "side": "fadeaway_puppet_run_up",
+   "bd": "fadeaway_puppet_run_up",
+   "back": "fadeaway_puppet_run_up"
+  },
+  "run_fit": "tools/dl/drivers/fadeaway_puppet_run/silhouette.json",
+  "fringe_remap": true,
+  "run_scale": {
+   "front": 0.885,
+   "fd": 0.905,
+   "side": 0.905,
+   "bd": 0.91,
+   "back": 0.915
+  }
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "fringe_remap": true,
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

@@ -83,7 +83,7 @@ params = {
 "cloud_seconds": 4.0,
 "ground_skull": {
 "sink": 0.5,
-"size": 1.5,
+"size": 0.75,
 "tilt": 0.55,
 "tint": "#FFFFFF"
 }

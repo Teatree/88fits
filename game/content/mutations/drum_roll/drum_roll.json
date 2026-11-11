@@ -1,7 +1,7 @@
 {
   "id": "drum_roll",
   "name": "Drum Roll",
-  "flavour": "Jeżyk fires faster the faster he runs.",
+  "flavour": "The Horseman fires faster the faster he runs.",
   "rarity": "rare",
   "weight": 8,
   "hidden": true,

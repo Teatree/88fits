@@ -4800,3 +4800,17 @@ else changed; nine rounds by eye against the pack's frames, four in game (tools/
 pass 142, Sundown and Blood Moon). No frame of Garry's Everything.zip ships now. **A creature before a barrel** (the Gravity
 Gun takes no barrel while a creature stands within 1.1 x its range; one in the grip is let down, or flies on if thrown, and
 the pull is given back). Dev build shipped.
+
+Pass 143 (2026-11-11). Garry's "Polish" and "Outlaws" (BALANCING 84). **The Skull Rain's skull** remodelled
+(tools/blender_skull_rain.py: a real skull's cranium, brow, sockets with a small green glint, a heart nose, two rows of
+teeth), half as big (0.75 / 0.8) and white (tint #FFFFFF, `lift` 0.36). **Five item texts** in his sentences: the Skull Rain's
+whole damage over the poison's seconds (21 over 10 s at level 1: the blast 6 + five ticks of 3), the Dynamite's damage ("stick
+of dynamite" the stick looks' thing), Cold Snap's plain chance (its own line, no "+"), the Boomstick family's damage each
+pellet and each blast, the Dragon's Breath's damage a second (TextGen.POISON_TICK / FREEZE_SECONDS mirror EnemyManager's).
+**The Big Mouth** looks down the aim line at rest under the aim rule; its wedge tell at half opacity (AimWedge.MOUTH_GAIN).
+**Jeżyk is the Horseman, Fadeaway The Robot** (names and flavour; ids and gameplay unchanged); their skins BUC-G, FAD-B, FAD-G
+shelved and their three quests gone; two art lanes (HORSE, ROBOT) painted BUC-H and FAD-H as Klein edits of BUC-F / FAD-E
+(the build, the size and the walk kept), checked by Gemini (one call each) and the local model and at full size by eye,
+installed by their install.py; every older look of the two shelved. The lead redrew The Robot's title shoes (Klein had
+painted a swoosh). New capture game/tools/_p143_TITLE_shots.gd (the menu with each
+outlaw). Dev build shipped.

@@ -326,8 +326,8 @@ func test_each_outlaws_second_skin_is_at_least_three_times_the_first() -> void:
 		var r1 := _runs(q1)
 		var r2 := _runs(q2)
 		assert_bool(r1 > 0.0 and r2 >= 3.0 * r1).override_failure_message("%s: %.1f runs then %.1f" % [m, r1, r2]).is_true()
-	# the Drifter, Ironwood, Astro, Calavera and Fadeaway
-	assert_int(pairs).is_equal(5)
+	# the Drifter, Ironwood, Astro and Calavera (pass 143: Fadeaway's two went with him: he is The Robot, with no skins)
+	assert_int(pairs).is_equal(4)
 
 
 func test_solenne_wears_the_dearest_skin() -> void:

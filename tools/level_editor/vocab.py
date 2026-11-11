@@ -281,7 +281,7 @@ STAT_NAMES = {
     "brand_chance": ["chance a kill burns the ground", "pct"], "desperado": ["attack damage as health falls", "pct"],
     "revive_hp": ["health on revive", "pct"], "hit_invuln": ["invulnerability after a hit", "sec"],
     "cone_deg": ["cone width", "deg"], "lift": ["lift", "m"], "pin": ["pins for", "sec"],
-    "plant": ["stands in the sand for", "sec"], "freeze_chance": ["chance a hit freezes for 1 s", "pct"],
+    "plant": ["stands in the sand for", "sec"], "freeze_chance": ["chance to freeze an enemy for 1 s when hit", "pct"],
     "crit_heal_chance": ["chance a crit heals 2% max HP", "pct"], "gold_on_hit": ["gold when hit", "num"],
     "debuff_duration": ["debuff duration", "pct"], "difficulty": ["difficulty", "pct"],
     "still_regen": ["regen per second standing still", "num"],

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_icon_c.png" id="1_4s7ql"]
+[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_icon_h.png" id="1_4s7ql"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_34e7o"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_kekjt"]
 
@@ -25,8 +25,8 @@ favourite_passive_bonus = {
 }
 availability = "purchase"
 price = 3000
-sprite_path = "res://content/characters/fadeaway/fadeaway_sprite_e.png"
-sprite_file = "fadeaway_sprite_e.png"
+sprite_path = "res://content/characters/fadeaway/fadeaway_sprite_h.png"
+sprite_file = "fadeaway_sprite_h.png"
 anims = {
 "cheer": 1.0,
 "die": 5.0,
@@ -99,15 +99,8 @@ variants = {
 },
 "frame_px": 256,
 "icon": "res://content/characters/fadeaway/fadeaway_icon.png",
-"note": "the first painting: five views on the Mixamo run, the back views on run_spread",
-"shelved": false,
-"skin": {
-"currency_type": "gold",
-"name": "Purple Reign",
-"price": 1500.0,
-"purchasable": true,
-"unlock_quest": "skin_fadeaway_fad_b"
-},
+"note": "the first painting: five views on the Mixamo run, the back views on run_spread Pass 143: no longer a skin (Fadeaway became The Robot), shelved.",
+"shelved": true,
 "sprite": "res://content/characters/fadeaway/fadeaway_sprite_b.png",
 "sprite_file": "fadeaway_sprite_b.png",
 "strip_cols": 62,
@@ -141,7 +134,7 @@ variants = {
 "frame_px": 256,
 "icon": "res://content/characters/fadeaway/fadeaway_icon_c.png",
 "note": "pass 69: white shorts with purple and gold trim (they had blended with the jersey); the side and back runs on drivers with the shoulders levelled with the neck and, in the side view, the far arm tucked behind the torso in the passing frames (tools/pose_shoulders.py: run_side, run_spread_lvl): the side frames' raised shoulder and the back run's sagging shoulders came from the driver",
-"shelved": false,
+"shelved": true,
 "sprite": "res://content/characters/fadeaway/fadeaway_sprite_c.png",
 "sprite_file": "fadeaway_sprite_c.png",
 "strip_cols": 62,
@@ -175,7 +168,7 @@ variants = {
 "frame_px": 256,
 "icon": "res://content/characters/fadeaway/fadeaway_icon_c.png",
 "note": "pass 85: the Puppet method on FAD-C's stills: his arms-out paintings (front c0, side c0, back c1) made into a 3D puppet (Hunyuan3D-2mv try 0, Mixamo bones, the hands rigged by hand: the finder had put them on the shorts' hem, running.fbx); fd and back walked on its depth video, front, side and bd on its stick figure (fadeaway_puppet_run; on depth the side and bd jerseys came out grey-purple twice); size from the 3D model (run_fit); colour fringes cleaned",
-"shelved": false,
+"shelved": true,
 "sprite": "res://content/characters/fadeaway/fadeaway_sprite_d.png",
 "sprite_file": "fadeaway_sprite_d.png",
 "strip_cols": 62,
@@ -209,7 +202,7 @@ variants = {
 "frame_px": 256,
 "icon": "res://content/characters/fadeaway/fadeaway_icon_c.png",
 "note": "pass 87: the precise (detailed) prompt on its own paintings (e: front c3, back c1, picked by eye); the back-diagonal painted from the front AND the back still so the 88 stays on his back (still_keys.bd), the back flinch from the back still (still_keys.hurt_back: no face, the 88 kept); walked on the puppet's stick figure fixed for him (fadeaway_puppet_run_up: the neck on the shoulder line = square shoulders, the head lifted = upright, the back-diagonal's shoulder twist calmed and its backswing kept off the 88); each view's run sized to his standing still by the head (run_scale)",
-"shelved": false,
+"shelved": true,
 "sprite": "res://content/characters/fadeaway/fadeaway_sprite_e.png",
 "sprite_file": "fadeaway_sprite_e.png",
 "strip_cols": 62,
@@ -243,7 +236,7 @@ variants = {
 "frame_px": 256,
 "icon": "res://content/characters/fadeaway/fadeaway_icon_c.png",
 "note": "pass 87: the loose (short) prompt on its own paintings (f: front c0, back c1, picked by eye; the short words gave a white 88 and a bigger afro); the back-diagonal painted from the front and the back still (still_keys.bd); walked on fadeaway_puppet_run_up like FAD-E; its first back walk painted a ball in his hand (the words say a basketball player), walked again with plain negatives (anim_seed 1); each view's run sized to his standing still by the head (run_scale)",
-"shelved": false,
+"shelved": true,
 "sprite": "res://content/characters/fadeaway/fadeaway_sprite_f.png",
 "sprite_file": "fadeaway_sprite_f.png",
 "strip_cols": 62,
@@ -276,30 +269,57 @@ variants = {
 },
 "frame_px": 256,
 "icon": "res://content/characters/fadeaway/fadeaway_icon_g.png",
-"note": "pass 126: a fire-red street jersey and black shorts: Klein edits of FAD-E's paintings, view by view (tools/gen_skin_views.py), walked on FAD-E's puppet walk",
-"shelved": false,
-"skin": {
-"currency_type": "gold",
-"name": "Streetball",
-"price": 2500.0,
-"purchasable": true,
-"unlock_quest": "skin_fadeaway_fad_g"
-},
+"note": "pass 126: a fire-red street jersey and black shorts: Klein edits of FAD-E's paintings, view by view (tools/gen_skin_views.py), walked on FAD-E's puppet walk Pass 143: no longer a skin (Fadeaway became The Robot), shelved.",
+"shelved": true,
 "sprite": "res://content/characters/fadeaway/fadeaway_sprite_g.png",
 "sprite_file": "fadeaway_sprite_g.png",
 "strip_cols": 62,
 "title": "hero_fadeaway_g.png"
+},
+"FAD-H": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": "res://content/characters/fadeaway/fadeaway_icon_h.png",
+"note": "pass 143: The Robot (Garry: \"a head of a robot bull and ... Chicago Bulls red basketball uniform. Without any of the Chicago Bulls symbols\"): a lean robot of dark gunmetal metal with a robot bull's head (two off-white horns, amber eyes, a nose ring) in a red jersey and shorts with black and white trim, the 88 on the chest and the back; Klein edits of FAD-E's paintings view by view (the front an edit of FAD-E's front, so his build, height and pose stay; tools/dl/p143/ROBOT/scripts/fronts.py, views.py), walked on FAD-E's puppet walk (fadeaway_puppet_run_up) at FAD-E's run_scale, polished (the blue screen's fringes and a green cast to grey); the badge a two-reference edit of FAD-E's badge painting (fadeaway_portrait_p143_c1, framed by portrait_badge with the horns' span 0.72 of the badge hung 0.10 from the top so both horns show), the title an edit of hero_fadeaway_c.png (fadeaway_title_p143_c1, the ball at his hip)",
+"shelved": false,
+"sprite": "res://content/characters/fadeaway/fadeaway_sprite_h.png",
+"sprite_file": "fadeaway_sprite_h.png",
+"strip_cols": 62,
+"title": "hero_fadeaway_h.png"
 }
 }
-variant = "FAD-E"
+variant = "FAD-H"
 id = "fadeaway"
-display_name = "Fadeaway"
+display_name = "The Robot"
 flavour = "You cannot guard what you cannot catch."
 icon = ExtResource("1_4s7ql")
 icon_file = "fadeaway_icon.png"
 placeholder = {
-"color": "#6B4AAE",
+"color": "#C8202E",
 "eyes": 2.0,
-"hat": "#E8B840",
+"hat": "#4A4E57",
 "shape": "blob"
 }

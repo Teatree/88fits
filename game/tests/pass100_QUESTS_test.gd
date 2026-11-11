@@ -282,7 +282,8 @@ func test_the_converted_quests_read_their_new_conditions() -> void:
 		# pass 140 (lane QUESTS, re-pinned): the Tower's and Event Horizon's goals are retired (Trail nodes); The Ghost's
 		# and The Eye's tasks carry item_level and evolve_item
 		"unlock_sabre": "item_level", "unlock_evade": "item_level",
-		"unlock_deadeye": "evolve_item", "skin_fadeaway_fad_b": "hero_level",
+		# pass 143: skin_fadeaway_fad_b (hero_level) is gone with Fadeaway's skins (he became The Robot)
+		"unlock_deadeye": "evolve_item",
 	}
 	for id: String in want.keys():
 		var q: QuestDef = Registry.quests.get(id)
@@ -300,7 +301,8 @@ func test_the_converted_quests_read_their_new_conditions() -> void:
 			builds[t] = true
 	assert_int(kills).is_between(4, 9)
 	# pass 129 (re-pinned): Ricochet's quest, the one that used weapon_paths, is retired (a Trail node): three build types in use
-	assert_int(builds.size()).is_greater_equal(3)
+	# pass 143: two (the last hero_level task, Purple Reign's, went with Fadeaway's skins)
+	assert_int(builds.size()).is_greater_equal(2)
 
 
 func test_every_condition_names_things_that_exist() -> void:

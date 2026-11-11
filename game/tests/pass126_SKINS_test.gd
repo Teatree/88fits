@@ -30,8 +30,13 @@ const SWAPS := preload("res://tests/fixtures/skin_swaps.gd")
 
 
 ## This pass's looks of hero `hid` as they stand now (pass 141's switch followed).
+## Pass 143 (Garry: "Don't create any looks for them yet"): Jeżyk became the Horseman and Fadeaway The Robot; their skins
+## of the old characters are shelved, no longer sold.
+const RETIRED := ["buck:BUC-G", "fadeaway:FAD-G"]
+
+
 func _looks(hid: String) -> Array:
-	return (LOOKS[hid] as Array).map(func(code: String) -> String: return SWAPS.now(hid, code))
+	return (LOOKS[hid] as Array).map(func(code: String) -> String: return SWAPS.now(hid, code)).filter(func(code: String) -> bool: return not RETIRED.has("%s:%s" % [hid, code]))
 
 
 func _no_goal(hid: String, code: String) -> bool:
@@ -86,7 +91,8 @@ func test_twelve_skins_each_with_its_art_goal_and_price() -> void:
 			var worn := c.variant_def(code)
 			assert_str(worn.look_title()).override_failure_message(m + ": title").is_not_empty()
 			assert_bool(ResourceLoader.exists(worn.title_path())).override_failure_message(m + ": title file").is_true()
-	assert_int(total).is_equal(12)
+	# pass 143: twelve less the two retired with their outlaws (RETIRED)
+	assert_int(total).is_equal(10)
 
 
 func test_every_goal_is_an_item_feat_or_at_least_five_of_his_very_good_runs() -> void:
@@ -156,7 +162,8 @@ func test_the_goals_use_varied_tasks() -> void:
 			var q: QuestDef = Registry.skin_quest(_hero(hid), code)
 			if q:
 				types[str(q.condition.get("type", ""))] = true
-	assert_int(types.size()).is_greater_equal(6)
+	# pass 143: five (Czerwony's barrels and Purple Reign's level went with their outlaws' old skins)
+	assert_int(types.size()).is_greater_equal(5)
 
 
 func test_a_career_goal_earned_opens_the_shop_and_buying_wears_it() -> void:
@@ -181,7 +188,16 @@ func test_a_career_goal_earned_opens_the_shop_and_buying_wears_it() -> void:
 
 func test_a_goal_done_for_a_hero_not_owned_stays_done_and_says_nothing() -> void:
 	var c := _hero("buck")
-	var q: QuestDef = Registry.skin_quest(c, "BUC-G")
+	# pass 143: Czerwony (BUC-G) is gone with Jeżyk; its goal stands in as a fixture task (30 barrels in one run as him)
+	var q := QuestDef.new()
+	q.id = "fixture_skin_buck_barrels"
+	q.condition = {"type": "barrels_total", "count": 30, "in_one_run": true, "hero": "buck"}
+	q.unlocks = {"type": "skin", "id": "buck:BUC-G"}
+	Registry.quests[q.id] = q
+	# ... and the look on sale again for the test's time (a skin's goal is tracked while its look is sold)
+	var was: Dictionary = (c.variants["BUC-G"] as Dictionary).duplicate(true)
+	c.variants["BUC-G"]["skin"] = {"purchasable": true, "name": "Czerwony", "price": 2500, "currency_type": "gold", "unlock_quest": q.id}
+	c.variants["BUC-G"].erase("shelved")
 	Save.data["heroes_owned"] = []
 	assert_str(Registry.hero_state(c)).is_not_equal("owned")
 	# pass 140 (lane QUESTS, re-pinned): 30 barrels in one run as Jezyk (a run of an outlaw not owned: a tool's)
@@ -200,6 +216,8 @@ func test_a_goal_done_for_a_hero_not_owned_stays_done_and_says_nothing() -> void
 	Save.heroes_owned().append("buck")
 	assert_str(Registry.hero_state(c)).is_equal("owned")
 	assert_str(Registry.skin_state(c, "BUC-G")).is_equal("buyable")
+	Registry.quests.erase(q.id)
+	c.variants["BUC-G"] = was
 	QuestTracker.just_completed.clear()
 
 

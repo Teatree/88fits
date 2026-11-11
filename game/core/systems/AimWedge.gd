@@ -58,6 +58,9 @@ const BAND_FROM := 0.45
 const FLASH := 0.25
 const BEAT_HZ := 1.6
 const LINE_W := 0.9
+## Pass 143 (Garry: "make the indicator for it's attack about half as noticeable since Right now it's almost as noticeable
+## as the shot itself"): the Mouth's line drawn at this share of its opacity in every state.
+const MOUTH_GAIN := 0.5
 const LINE_SEGMENTS := 40
 ## The fan's rows: one every this many metres out (it lies on the terrain vertex by vertex).
 const ROW_STEP := 0.35
@@ -354,6 +357,7 @@ func _tell_mouth(delta: float) -> void:
 	_line_mat.set_shader_parameter("m_beat", beat())
 	_line_mat.set_shader_parameter("m_wind", lb.windup_f() if st == TELL_WINDUP else 0.0)
 	_line_mat.set_shader_parameter("m_clock", _clock)
+	_line_mat.set_shader_parameter("m_gain", MOUTH_GAIN)
 
 
 ## Pass 139 (lane AIM): the Mouth's strip: LINE_SEGMENTS quads along -Z from 0 to 1 m, 1 m wide (the node scales it to

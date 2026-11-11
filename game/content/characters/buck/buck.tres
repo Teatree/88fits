@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_r747c"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_f.png" id="2_4jnfx"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_h.png" id="2_r747c"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_ihfma"]
 
 [sub_resource type="Resource" id="Resource_r747c"]
@@ -48,8 +48,8 @@ momentum = {
 }
 availability = "purchase"
 price = 3500
-sprite_path = "res://content/characters/buck/buck_sprite_f.png"
-sprite_file = "buck_sprite_f.png"
+sprite_path = "res://content/characters/buck/buck_sprite_h.png"
+sprite_file = "buck_sprite_h.png"
 anims = {
 "cheer": 1.0,
 "die": 5.0,
@@ -206,7 +206,7 @@ variants = {
 "frame_px": 256,
 "icon": "res://content/characters/buck/buck_icon_d.png",
 "note": "pass 69: Jezyk in the tracksuit (front from Garry's reference sheet, BUC-D's front_from_picture pick c0); the jog: the Running stride with the shoulders levelled and the side's far arm tucked (run_side), the back views spread and levelled (run_spread_lvl)",
-"shelved": false,
+"shelved": true,
 "sprite": "res://content/characters/buck/buck_sprite_d.png",
 "sprite_file": "buck_sprite_d.png",
 "strip_cols": 62,
@@ -240,7 +240,7 @@ variants = {
 "frame_px": 256,
 "icon": "res://content/characters/buck/buck_icon_e.png",
 "note": "pass 69: the sprint: BUC-D's paintings on run_sprint_lvl (the Running stride with the legs swung 1.35x wider and the spine leaning 12 degrees forward, back views spread, shoulders levelled, the side's far arm tucked)",
-"shelved": false,
+"shelved": true,
 "sprite": "res://content/characters/buck/buck_sprite_e.png",
 "sprite_file": "buck_sprite_e.png",
 "strip_cols": 62,
@@ -274,7 +274,7 @@ variants = {
 "frame_px": 256,
 "icon": "res://content/characters/buck/buck_icon_f.png",
 "note": "pass 69: the dash (the hedgehog's run): BUC-D's paintings on run_dash_lvl (the Running legs with both arms swept straight back behind the body and the spine leaning 14 degrees forward, shoulders levelled). Pass 70 (lane ART): the front walk on run_dash_f_low (the hands low beside his hips, no longer over the jacket); run_scale so every view runs at one size (the back ran small: 0.96 of his standing size against 1.17 from the side and front)",
-"shelved": false,
+"shelved": true,
 "sprite": "res://content/characters/buck/buck_sprite_f.png",
 "sprite_file": "buck_sprite_f.png",
 "strip_cols": 62,
@@ -307,30 +307,57 @@ variants = {
 },
 "frame_px": 256,
 "icon": "res://content/characters/buck/buck_icon_g.png",
-"note": "pass 126: a red tracksuit with white stripes: Klein edits of BUC-F's paintings, view by view (tools/gen_skin_views.py), walked on BUC-F's dash",
-"shelved": false,
-"skin": {
-"currency_type": "gold",
-"name": "Czerwony",
-"price": 2500.0,
-"purchasable": true,
-"unlock_quest": "skin_buck_buc_g"
-},
+"note": "pass 126: a red tracksuit with white stripes: Klein edits of BUC-F's paintings, view by view (tools/gen_skin_views.py), walked on BUC-F's dash Pass 143: no longer a skin (Jeżyk became the Horseman), shelved.",
+"shelved": true,
 "sprite": "res://content/characters/buck/buck_sprite_g.png",
 "sprite_file": "buck_sprite_g.png",
 "strip_cols": 62,
 "title": "hero_buck_g.png"
+},
+"BUC-H": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": "res://content/characters/buck/buck_icon_h.png",
+"note": "pass 143 (lane HORSE): the Horseman, a lean man with a chestnut horse head in an indigo serape poncho; his stills are Klein edits of BUC-F's (the pose, build and size kept, the head and the clothes swapped; tools/dl/p143/HORSE)",
+"shelved": false,
+"sprite": "res://content/characters/buck/buck_sprite_h.png",
+"sprite_file": "buck_sprite_h.png",
+"strip_cols": 62,
+"title": "hero_buck_h.png"
 }
 }
-variant = "BUC-F"
+variant = "BUC-H"
 id = "buck"
-display_name = "Jeżyk"
-flavour = "The little hedgehog of the block. Slow to start, impossible to stop."
-icon = ExtResource("2_4jnfx")
+display_name = "Horseman"
+flavour = "Slow out of the gate. Impossible to stop."
+icon = ExtResource("2_r747c")
 icon_file = "buck_icon.png"
 placeholder = {
-"color": "#141418",
+"color": "#26306A",
 "eyes": 2.0,
-"hat": "#4D7BFF",
+"hat": "#8A4B24",
 "shape": "blob"
 }

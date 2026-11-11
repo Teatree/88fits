@@ -38,9 +38,9 @@ params = {
 "cloud_seconds": 6.0,
 "ground_skull": {
 "sink": 0.5,
-"size": 1.6,
+"size": 0.8,
 "tilt": 0.55,
-"tint": "#FFE2B0"
+"tint": "#FFFFFF"
 }
 }
 id = "dia_de_muertos"

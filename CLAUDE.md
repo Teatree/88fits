@@ -312,7 +312,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-11-11, pass 142, version 1.00)
+## Status (2026-11-11, pass 143, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -670,9 +670,11 @@ Pass 141: **the Trail one lane a level** (83 levels, 109 nodes, fewer bigger pow
 
 Pass 142: **the Sabre swings pass 138's crescent again** (the pack's "moon" and slash_moon.png removed; `cyclic` stays selectable), **the Spear's burst is drawn by us** (`python tools/gen_thrust_fx.py [--preview <dir>]` writes art/fx/melee/thrust_burst.png procedurally in pass 141's layout; no frame of Garry's pack ships, so the licence doubt above is history), **a creature before a barrel** (the Gravity Gun takes no barrel while a creature stands within `params.gravity.barrel.guard` 1.1 x its range; one in the grip is let down or flies on, and the pull is given back). BALANCING 83.
 
+Pass 143: **the Skull Rain's skull remodelled** (`tools/blender_skull_rain.py`), half as big and white; **five item texts in Garry's sentences** (the Skull Rain's whole damage over the poison's seconds, the Dynamite's damage, Cold Snap's plain chance (`passive.cold_snap.line`), the Boomstick's and the Dragon's Breath's damage; `TextGen.POISON_TICK` / `FREEZE_SECONDS` mirror EnemyManager's); **the Big Mouth looks where the Outlaw faces** at rest and its wedge tell is half as strong (`AimWedge.MOUTH_GAIN`); **Jeżyk is the Horseman (BUC-H) and Fadeaway The Robot (FAD-H)**, new paintings over the old builds and walks, every older look of theirs shelved, their three skin quests gone (every older line here that names Jeżyk or Fadeaway as a look or a skin is history; the ids `buck` / `fadeaway` stay); the menu with an outlaw: `game/tools/_p143_TITLE_shots.gd -- out=<dir> [only=buck,fadeaway]`. BALANCING 84.
+
 **Outlaws** ("heroes" in code; title order): Drifter (Revolver; free), Astro (Gravity Gun), Calavera (Guitarra), Ironwood (the Spear =
-`pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout
-trampoline perk Hang Time, Buzzer Beater), Jeżyk (id `buck`: a bald blue Slav in a tracksuit, starts with the Frisbee, favourite the
+`pike`), Solenne (Sun Scepter), The Robot (id `fadeaway`, Fadeaway until pass 143: a gunmetal robot with a bull's head in a red basketball kit, look FAD-H; the Basketball: evade per level, Heat shown on the ball itself, the Timeout
+trampoline perk Hang Time, Buzzer Beater), the Horseman (id `buck`, Jeżyk until pass 143: a horse-headed outlaw in an indigo serape, look BUC-H; starts with the Frisbee, favourite the
 Salt, momentum, Salt Flats), May (renamed from Mamy in pass 69: attack speed, Trigger Happy on the Tommy Gun, the
 Inflatable May decoy, thrown as a puck that inflates) and Mira (an unattainable requirement). Since pass 129 Astro, Calavera, Solenne,
 Fadeaway, Jeżyk and May are **Trail nodes** (levels 9, 16, 23, 30, 38, 45 at their JSON prices: "Reach Trail Level N", owned once the
@@ -682,7 +684,7 @@ Dad is `hidden`. No HUD gauge for any hero (pass 69). The Heroes screen (`ui/Her
 hero; one not owned shows as a black silhouette, "Unknown", with his requirement or a BUY button. Each hero's trait is 1-2 stats that grow per level
 (`trait_per_level`, `Run.hero_sheet`), a favourite weapon or passive (arrives at a bonus level, marked on cards), perks,
 and a hero mutation. The title plaque opens the hero's Wanted-poster sheet (`ui/wanted/WHeroSheet.gd`). Art variants
-(`variants` / `variant` in the JSON; Jeżyk plays BUC-F, Fadeaway FAD-C, May MAY-G (her base since pass 70); Garry picks them in the arena or in the Level Editor's look grid; a look may be
+(`variants` / `variant` in the JSON; the Horseman plays BUC-H, The Robot FAD-H (pass 143; neither sells a skin), May MAY-G (her base since pass 70); Garry picks them in the arena or in the Level Editor's look grid; a look may be
 `shelved` out of the chips, a landed one is `fresh` until approved): see the art-variants memory. A hero JSON carries
 `availability` (available | purchase | hidden: only hidden hides him), `price` and `currency_type` (gold), the unlock
 quest edited from the Heroes tab (memory `88fits-hero-purchase-parked`: decided in pass 69).

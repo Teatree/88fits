@@ -38,8 +38,8 @@
       "best_chance": 0.6
     },
     "ground_skull": {
-      "size": 1.6,
-      "tint": "#FFE2B0",
+      "size": 0.8,
+      "tint": "#FFFFFF",
       "sink": 0.5,
       "tilt": 0.55
     },

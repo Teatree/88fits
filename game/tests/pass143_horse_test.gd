@@ -1,0 +1,86 @@
+## Pass 143, lane HORSE (Garry: "Jezyk. He should become the Horseman. This will be a humanoid character with a horse head. He
+## should be wearing a poncho, and westerny attire otherwise. Otherwise he does the same thing."): the outlaw `buck` plays one
+## new look, BUC-H (a lean man with a chestnut horse head in an indigo serape poncho), fresh until Garry approves it; it loads
+## with every frame row of a hero strip, its badge, sheet still and title cut-out exist, and every older look (Jeżyk's) is
+## shelved. Gameplay is untouched (the same start weapon).
+extends GdUnitTestSuite
+
+const CODE := "BUC-H"
+## every row a hero strip carries (Player's order), as many frames as the outlaw's own strip
+const ROWS := ["idle", "run", "hit", "die", "cheer", "idle_f", "run_f", "idle_s", "run_s", "idle_bd", "run_bd", "idle_fd", "run_fd",
+	"hit_f", "hit_s", "hit_bd", "hit_fd"]
+
+
+func before_test() -> void:
+	Save.data = Save._default()
+	Save._dirty = false
+
+
+func after_test() -> void:
+	Save.data = Save._default()
+	Save._dirty = false
+
+
+func _buck() -> CharacterDef:
+	var c: CharacterDef = Registry.character("buck")
+	assert_object(c).override_failure_message("no outlaw buck").is_not_null()
+	return c
+
+
+func _json() -> Dictionary:
+	return JSON.parse_string(FileAccess.get_file_as_string("res://content/characters/buck/buck.json")) as Dictionary
+
+
+func test_the_horseman_look_loads_and_is_played() -> void:
+	var c := _buck()
+	assert_str(c.variant).override_failure_message("the JSON plays BUC-H").is_equal(CODE)
+	assert_bool(c.variants.has(CODE)).override_failure_message("no look BUC-H").is_true()
+	assert_bool(c.variant_shelved(CODE)).override_failure_message("BUC-H shelved").is_false()
+	# `fresh` is the Level Editor's flag (the JSON's; the game's def does not carry it)
+	assert_bool(bool(((_json()["variants"] as Dictionary)[CODE] as Dictionary).get("fresh", false))).override_failure_message("fresh until Garry approves it").is_true()
+	# a fresh save wears it (no kept look, no skin): the played look is BUC-H
+	var worn: CharacterDef = Registry.played_look(c)
+	assert_str(worn.look_code()).is_equal(CODE)
+	var e: Dictionary = c.variants[CODE]
+	var an: Dictionary = e["anims"]
+	var total := 0
+	for r: String in ROWS:
+		assert_int(int(an.get(r, 0))).override_failure_message("row %s" % r).is_equal(int(c.anims.get(r, 0)))
+		assert_int(int(an.get(r, 0))).override_failure_message("row %s empty" % r).is_greater(0)
+		total += int(an.get(r, 0))
+	assert_int(total).override_failure_message("frames").is_equal(166)
+	assert_int(int(e["strip_cols"])).is_equal(62)
+	var strip := c.look_strip_path(CODE)
+	assert_str(strip.get_file()).is_equal("buck_sprite_h.png")
+	var tex := load(strip) as Texture2D
+	assert_object(tex).override_failure_message("the strip loads").is_not_null()
+	assert_int(tex.get_width()).is_equal(62 * 256)
+	assert_int(tex.get_height()).is_equal(3 * 256)
+	assert_float(float(worn.fps.get("run", 0))).override_failure_message("run rate").is_greater(0.0)
+
+
+func test_the_badge_the_sheet_still_and_the_title_exist() -> void:
+	var c := _buck()
+	var e: Dictionary = c.variants[CODE]
+	assert_str(str(e.get("icon", "")).get_file()).is_equal("buck_icon_h.png")
+	assert_object(LookArt.icon(e.get("icon"))).override_failure_message("badge loads").is_not_null()
+	assert_str(c.look_still_path(CODE)).override_failure_message("sheet still").is_not_empty()
+	var worn: CharacterDef = Registry.played_look(c)
+	assert_str(worn.look_title()).is_equal("hero_buck_h.png")
+	assert_bool(ResourceLoader.exists(worn.title_path())).override_failure_message("title file").is_true()
+
+
+func test_every_older_look_is_shelved() -> void:
+	var c := _buck()
+	for code in c.variants.keys():
+		if str(code) == CODE:
+			continue
+		assert_bool(c.variant_shelved(str(code))).override_failure_message("%s still offered (it shows Jeżyk)" % code).is_true()
+	# the arena's chips: BUC-H alone, so the list is empty (one art)
+	assert_array(c.variant_codes()).is_empty()
+
+
+func test_the_gameplay_is_unchanged() -> void:
+	var c := _buck()
+	assert_str(c.start_weapon).is_equal("frisbee")
+	assert_str(c.id).is_equal("buck")

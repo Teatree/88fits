@@ -11209,3 +11209,53 @@ barrels".
   the Outlaw as before. Either way the pull that took it is given back (the gun's cooldown ends), so the gun turns to the
   creature in the same tick.
 - The barrel's own reach (0.75 x the level-1 range, 5.25 m), its throw and its break are unchanged. No text tells of it.
+
+## 84. Pass 143: the Skull Rain's skull, five item texts, the Big Mouth's facing, the Horseman and The Robot
+
+Garry (2026-11-11, "Polish" and "Outlaws"): "Skull Poison weapon - The skull it leaves behind is too big. Make it half as
+big. Make it more white so it reads better over the yellow sand. Also, it doesn't look much like a skull right now. Remodel
+it."; "Big Mouth should now always be facing where the outlaw is facing, otherwise it's weird. Also make the indicator for
+it's attack about half as noticeable"; "Jezyk. He should become the Horseman ... Fadeaway. Should become The Robot ... Don't
+create any looks for them yet."
+
+**84.SKULL.** The skull a Skull Rain cloud holds (GroundSkulls) is remodelled (`tools/blender_skull_rain.py`: a cranium longer
+than wide, a brow, two big dark sockets with a small green glint deep in each, cheekbones, an upside-down heart of a nose, a
+row of teeth on each jaw over a dark mouth line; smooth shaded, about 4,900 triangles, 0.5 m wide at scale 1). Its
+`ground_skull.size` is half of pass 136's: Skull Rain 1.5 -> **0.75**, Dia de Muertos and Grave Hail 1.6 -> **0.8**; their
+tint #FFE2B0 -> **#FFFFFF** (the evolutions' cream read yellow on the sand); the bone near-white and the shader's `lift`
+0.22 -> **0.36**. Nothing else of the cloud, its timing or its damage changed.
+
+**84.TEXTS.** Garry's sentences, with the numbers the game plays:
+- Skull Rain: "Lobs {amount} poison {thing} at a crowd for {total} damage over {seconds} s." {total} is what an enemy the
+  bomb lands on takes in all: the blast's damage + poison per tick x stacks x the ticks of the poison's seconds (one every
+  `TextGen.POISON_TICK` 2 s = EnemyManager's; level 1: 6 + 3 x 1 x 5 = **21 over 10 s**). An enemy that walks into the
+  cloud later takes the poison only; one that stays in it is poisoned again and takes more.
+- Dynamite: "Lobs {amount} {thing} at a crowd for {damage} damage." The stick looks (B, C, D) name their thing "stick of
+  dynamite" / "sticks of dynamite" (so the change rows say "Sticks of dynamite: 1 -> 2" and the Cluster Bomb "2 sticks of
+  dynamite").
+- Cold Snap: its own line `passive.cold_snap.line` "{pct}% chance to freeze an enemy for {seconds} s when hit": what its
+  levels give in all, with no "+" and no "total" ("Level 2 (Uncommon): 4.5% chance ..."). The stat's name is now "chance to
+  freeze an enemy for 1 s when hit" (the next-level and change rows, the pause screen).
+- The Boomstick family: "... for {damage} damage each" (one pellet: "for {damage} damage"); a blast (Birdshot's lane, the
+  Blunderbuss's cone) says what it deals each enemy in it, `frac` x damage x amount as ProjectileEmitter._blast deals it.
+- The Dragon's Breath and Fire Eater: "..., dealing {damage} damage every {every}."
+- These rows were Garry's own (text_rules "Never"); he asked for these changes, so they are his new texts now.
+
+**84.MOUTH.** Under the aim rule the floating mouth looks down its aim line at rest too (`LaserBeam._place_model`: the line
+follows the Outlaw's facing at `aim.turn_deg` a second), never at the nearest creature; without the aim rule it turns to the
+nearest creature as before. Its tell on the aim wedge (pass 139's line) is drawn at **half** its opacity in every state
+(`AimWedge.MOUTH_GAIN` 0.5, the shader's `m_gain`).
+
+**84.OUTLAWS.** Jeżyk is the **Horseman** and Fadeaway **The Robot** (names, flavour; ids, saves, the Trail, quests and
+gameplay unchanged). They have no skins: BUC-G Czerwony, FAD-B Purple Reign and FAD-G Streetball are shelved looks now and
+their quests (skin_buck_buc_g, skin_fadeaway_fad_b, skin_fadeaway_fad_g) are gone; a save that wore one shows the outlaw's
+played look. Their new paintings: see 84.ART.
+
+**84.ART.** The Horseman plays **BUC-H** and The Robot **FAD-H** (each its outlaw's `variant`, `fresh` until Garry approves;
+every older look of theirs is shelved, so the chips, the Skins pop-up and the menus show only these). Both were painted as
+Klein edits of the looks they replace, so the build, the height, the pose and the walk stay: BUC-H over BUC-F (a chestnut
+horse's head with a white blaze and a dark mane, no hat; an indigo serape with cream, red and mustard bands, a cream shirt,
+a red bandana, brown gloves, trousers and boots; BUC-F's dash), FAD-H over FAD-E (a dark gunmetal robot with a robot
+bull's head, two off-white horns, amber eyes and a nose ring; a red basketball jersey and shorts with black and white trim
+and a white 88, no team mark; FAD-E's puppet walk). Their badges, title cut-outs and sheet stills are new; FAD-H's title
+cut-out had its shoes redrawn without the swoosh Klein had painted on them. No skin is sold for either outlaw.
