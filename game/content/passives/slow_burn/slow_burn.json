@@ -18,7 +18,7 @@
   ],
   "repeat_last_level": true,
   "trade": "",
-  "text": "Your burns, poison, slows, freezes and stuns last 20% longer a level.",
+  "text": "Debuffs last 20% longer a level.",
   "evolves_into": "prairie_fire",
   "art_prompt": "a coiled black fuse cord burning at one end with a bright orange spark and a small curl of grey smoke",
   "placeholder": {

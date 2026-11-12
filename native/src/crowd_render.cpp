@@ -80,6 +80,11 @@ int64_t CrowdCore::render(const Array &a, const PackedFloat64Array &p_s) {
 	const PackedFloat32Array p_vglow = a[q++];
 	const PackedFloat32Array p_lakes = a[q++];
 	const PackedFloat32Array p_fr = a[q++];
+	// pass 144 (Garry: Megabonk's stepped poses): each type's pose stride (EnemyManager._t_step, Settings.pose_rate): a
+	// looping strip shows every k-th frame and holds it; an older script that sends no stride plays every frame
+	const PackedInt32Array p_step = a.size() > q ? (PackedInt32Array)a[q++] : PackedInt32Array();
+	const int32_t *t_step = p_step.size() > 0 ? p_step.ptr() : nullptr;
+	const int n_step = p_step.size();
 	const int32_t *t_off = p_off.ptr();
 	const int32_t *t_cnt = p_cnt.ptr();
 	const uint8_t *t_ok = p_ok.ptr();
@@ -224,7 +229,11 @@ int64_t CrowdCore::render(const Array &a, const PackedFloat64Array &p_s) {
 		}
 		const int n = t_cnt[t * N_ANIMS + shown];
 		const int ai = (int)anim_t[i];
-		const int frame = t_off[t * N_ANIMS + shown] + (strip == A_DIE ? (ai < n - 1 ? ai : n - 1) : (ai % (n > 1 ? n : 1)));
+		int loop_f = ai % (n > 1 ? n : 1);
+		if (t_step != nullptr && t < n_step && t_step[t] > 1) {
+			loop_f -= loop_f % t_step[t];
+		}
+		const int frame = t_off[t * N_ANIMS + shown] + (strip == A_DIE ? (ai < n - 1 ? ai : n - 1) : loop_f);
 		const double s = size[i];
 		double sq = squash[i];
 		if (strip == A_RUN) {

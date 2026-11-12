@@ -11263,3 +11263,15 @@ enlarged 1.25x about the throat, each frame evened to the row's median (tools/dl
 bull's head, two off-white horns, amber eyes and a nose ring; a red basketball jersey and shorts with black and white trim
 and a white 88, no team mark; FAD-E's puppet walk). Their badges, title cut-outs and sheet stills are new; FAD-H's title
 cut-out had its shoes redrawn without the swoosh Klein had painted on them. No skin is sold for either outlaw.
+
+## 85. Pass 144: stepped poses
+
+Garry (2026-11-12): "thinking about Megabonk ... their animation ... it's kind of jerky looking. It feels like frames are
+missing"; "let's try this out, but don't change how the assets are generated".
+
+**85.POSES.** A looping animation (a run, an idle, a turn; never a death, a hit or a cheer) of the Outlaw and of every
+creature shows only every k-th frame of its strip and holds it: k = round(its frame rate / `Settings.pose_rate`), so it
+changes pose about pose_rate times a second while it still moves across the ground every frame. `pose_rate` **10** by
+default for a new player (Garry picked 10 of 12 / 10 / 8; a save keeps its own) (the developer menu's row "Stepped poses": 12 -> 10 -> 8 -> off; a run reads it as it starts). At 10 an Outlaw's
+36 fps run shows every fourth frame (9 poses a second); a creature's 15 and 20 fps runs every second frame (7.5 and 10). The strips, their rates and the run's speed-following are untouched
+(BillboardSprite.pose_rate, EnemyManager._t_step / _loop_frame, the compiled draw's `t_step`).

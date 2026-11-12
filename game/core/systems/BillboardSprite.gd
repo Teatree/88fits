@@ -15,6 +15,10 @@ var playing := false
 ## Pass 112 (lane ENEMY): a multiplier on the playing animation's frame rate (the hero's run follows his speed,
 ## Player.run_rate); 1 = as authored.
 var rate := 1.0
+## Pass 144: stepped poses (Settings.pose_rate, set by the Player as a run starts; 0 = off): a looping animation shows
+## every k-th frame and holds it, k = Settings.pose_stride(its authored rate, pose_rate). Never named here: a tool
+## compiles this class before the autoloads exist.
+var pose_rate := 0
 var _anims: Dictionary = {}   # name -> {"offset": int, "count": int}
 var _fps: Dictionary = {}     # prefix -> frames per second, from the content def
 var _total := 1
@@ -285,7 +289,11 @@ func _loops(anim: String) -> bool:
 func _apply() -> void:
 	if not _anims.has(animation):
 		return
-	_param("frame", float(int(_anims[animation]["offset"]) + int(frame)))
+	var f := int(frame)
+	if pose_rate > 0 and _loops(animation):
+		var k := maxi(1, int(roundf(_speed(animation) / float(pose_rate))))
+		f -= f % k
+	_param("frame", float(int(_anims[animation]["offset"]) + f))
 
 
 func set_flip(f: bool) -> void:

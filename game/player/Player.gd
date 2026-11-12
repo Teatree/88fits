@@ -199,6 +199,8 @@ func _setup_sprite() -> void:
 	# his speed trails run under him, never over him (pass 49)
 	sprite.enable_over_trails()
 	sprite.setup(tex, anims, ["idle", "run", "turn", "hit", "die", "cheer", "idle_f", "run_f", "idle_s", "run_s", "idle_bd", "run_bd", "idle_fd", "run_fd", "hit_f", "hit_s", "hit_bd", "hit_fd"], 1.9, cols, fps)
+	# pass 144: stepped poses (Settings.pose_rate: a loop holds every k-th frame, Megabonk's look)
+	sprite.pose_rate = Settings.pose_rate
 	sprite.position = Vector3(0, 0.0, 0)
 
 

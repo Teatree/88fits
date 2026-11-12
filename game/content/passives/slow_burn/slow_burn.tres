@@ -17,7 +17,7 @@ line = true
 levels = [[SubResource("Resource_sy8i5")]]
 max_level = 4
 evolves_into = "prairie_fire"
-text = "Your burns, poison, slows, freezes and stuns last 20% longer a level."
+text = "Debuffs last 20% longer a level."
 variants = {
 "A": {
 "icon": "res://content/passives/slow_burn/slow_burn_icon.png",

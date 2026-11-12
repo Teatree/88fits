@@ -4814,3 +4814,9 @@ shelved and their three quests gone; two art lanes (HORSE, ROBOT) painted BUC-H 
 installed by their install.py; every older look of the two shelved. The lead redrew The Robot's title shoes (Klein had
 painted a swoosh). Garry on the first BUC-H: "Head should be bigger when running to the side. And no need for that Naruto run, do a normal run": lane HORSE walked it again on a normal run (run_arms50 front and bd, run fd and side, run_spread_lvl back; the poncho held down by its words) and grew the side run's head 1.25x about the throat (its scripts/head_grow.py; side heads 33 -> 44 px of 256, the front's 44). New capture game/tools/_p143_TITLE_shots.gd (the menu with each
 outlaw). Dev build shipped.
+
+Pass 144 (2026-11-12). **Stepped poses** (BALANCING 85): Garry asked for Megabonk's "jerky" held-frame look without changing
+how the art is made: a looping strip shows every k-th frame and holds it, k = its rate / `Settings.pose_rate` (10 for a new player, Garry's pick after trying 12 / 10 / 8;
+the developer menu's "Stepped poses" 12 / 10 / 8 / off); the Outlaw's sprite, the crowd's script draw and the compiled draw
+(crowd_render.cpp, both libraries rebuilt; the Windows DLL was held by Garry's open editor, so the old one was moved aside to
+tools/dl/p143/LEAD/crowd_locked_old.dll before the build); _p125_NATIVE_pixels PASS. No build (Garry asked).

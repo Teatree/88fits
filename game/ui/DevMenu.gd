@@ -156,6 +156,12 @@ func _refresh() -> void:
 	var nc_row := _switch("Compiled crowd (off: the script's, slower)", "native_crowd")
 	nc_row.name = "NativeCrowdRow"
 	_list.add_child(nc_row)
+	# pass 144: stepped poses (Settings.pose_rate, Megabonk's held frames), read as a run starts
+	var pr_row := _row("Stepped poses (held frames, as Megabonk)", Settings.pose_rate_label(), func():
+		Settings.set_value("pose_rate", Settings.next_pose_rate(Settings.pose_rate))
+		_refresh())
+	pr_row.name = "PoseRateRow"
+	_list.add_child(pr_row)
 	# pass 101 (lane FPS): the frame cap (Settings.frame_cap): 60 (a phone's default) or MAX (the screen's own rate)
 	var fc_row := _row("Frame rate · 60 or the screen's max (%s Hz)" % _refresh_hz(), Settings.frame_cap_label(), func():
 		Settings.set_value("frame_cap", Settings.next_frame_cap(Settings.frame_cap))

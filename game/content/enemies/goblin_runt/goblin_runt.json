@@ -85,9 +85,22 @@
       "recipe": {
         "pose": "run_runt",
         "gait": "running in place on the spot like on a treadmill",
-        "run_fps": 20,
+        "run_fps": 18,
         "death": "pose:death_back_runt",
-        "stand": "still"
+        "stand": "still",
+        "anim_negative": "extra ears, extra horns, a third ear, bending dagger, deforming dagger, disappearing dagger, ears growing or splitting, extra arms, a third arm, extra hands, two daggers, extra fingers, extra legs, sword being seen through the enemy from the back",
+        "art_prompt": "a tiny scrawny goblin with exactly two huge pointed ears, one on each side of its head and nothing else sticking out of its head, wide angry eyes and a mischievous grin, wearing a brown poncho and holding a pointy dagger in one hand, two arms and two legs, standing and facing the viewer",
+        "method": "creature_pose2",
+        "stills": "b",
+        "motion": "scurrying in place with quick little steps, gripping its rusty dagger in the same hand the whole time",
+        "dead_hint": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, arms flopped out limp, its rusty dagger lying on the ground beside its open hand",
+        "back_hint": "It still holds its pointy dagger in the same hand as in the front view, the blade visible beside its body on the right side of the picture. In each frame the dagger is in it's hand",
+        "seed_offset": 9077,
+        "anim_seed": 1,
+        "painter": {
+          "model": "klein",
+          "steps": 30
+        }
       },
       "sprite": "goblin_runt_sprite_b.png",
       "anims": {
@@ -101,11 +114,12 @@
       },
       "strip_cols": 43,
       "fps": {
-        "run": 20,
+        "run": 18,
         "die": 12
       },
-      "head": 0.969,
-      "icon": "goblin_runt_icon_b.png"
+      "head": 0.992,
+      "icon": "goblin_runt_icon_b.png",
+      "fresh": true
     },
     "RUN-C": {
       "note": "a new painting with the dagger held low; the walk; the painted fall",

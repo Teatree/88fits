@@ -483,6 +483,9 @@ var _s_next := PackedInt32Array()
 ## its badge, and the frame table (offset and count of each of the 13 strips, and which of them exist).
 var _t_eight := PackedByteArray()
 var _t_run_fps := PackedFloat32Array()
+## Pass 144 (Garry: Megabonk's stepped poses): each type's pose stride, Settings.pose_stride(its run rate, Settings.pose_rate) as
+## the type is made: a looping strip shows every k-th frame and holds it (_loop_frame; the compiled draw the same); 1 = every frame.
+var _t_step := PackedInt32Array()
 var _t_die_fps := PackedFloat32Array()
 var _t_faces := PackedByteArray()
 ## per type, two entries (front set, back set): how its painting is mirrored, 0 = painted facing screen-right (mirror
@@ -1400,6 +1403,7 @@ func register_type(def: EnemyDef) -> int:
 	_t_kbt.append(1.0 - clampf(def.knockback_resist, 0.0, 1.0))
 	_t_eight.append(1 if bool(t["eight"]) else 0)
 	_t_run_fps.append(float(t["run_fps"]))
+	_t_step.append(Settings.pose_stride(float(t["run_fps"]) if float(t["run_fps"]) > 0.0 else 10.0, Settings.pose_rate))
 	_t_die_fps.append(float(t["die_fps"]))
 	_t_faces.append(1 if def.brain in ["caster", "kite", "artillery", "support", "sniper", "squad"] else 0)
 	# pass 112 (lane MONK): a squad type (Squads: one walk and one volley per squad)
@@ -6610,12 +6614,20 @@ func _lr_strip(i: int, t: int, strip: int) -> int:
 
 ## The frame of type `t`'s sheet creature `i` is drawn with now and whether the picture is mirrored (pass 111: what the
 ## render puts on the MultiMesh, for the tests and the captures): x = frame index, y = 1 mirrored / 0 as painted.
+## Pass 144: the frame of a looping strip of `n` frames creature `i` of type `t` shows now: every frame, or with a pose
+## stride k > 1 (Settings.pose_rate) the k-th frames only, each held k frames' time (crowd_render.cpp the same).
+func _loop_frame(i: int, t: int, n: int) -> int:
+	var q := int(anim_t[i]) % maxi(n, 1)
+	var k: int = _t_step[t] if t < _t_step.size() else 1
+	return q - q % k if k > 1 else q
+
+
 func drawn_frame(i: int) -> Vector2i:
 	var t := type_idx[i]
 	var strip := _strip_of(i, t)
 	var shown := _lr_strip(i, t, strip)
 	var n := _t_cnt[t * N_ANIMS + shown]
-	var frame := _t_off[t * N_ANIMS + shown] + (mini(int(anim_t[i]), n - 1) if strip == A_DIE else (int(anim_t[i]) % maxi(n, 1)))
+	var frame := _t_off[t * N_ANIMS + shown] + (mini(int(anim_t[i]), n - 1) if strip == A_DIE else _loop_frame(i, t, n))
 	if strip == A_ATTACK and _t_atkv[t] == 1:
 		frame = _attack_view_frame(i, t, shown)
 	if strip == A_ATTACK and _t_throw[t] == 1:
@@ -6701,7 +6713,7 @@ func _draw_one(i: int, t: int, k: int) -> void:
 	# pass 111 (lane ENEMY): heading left, a look's own left-heading copy of the strip (_lr_strip; the strip itself else)
 	var shown := _lr_strip(i, t, strip)
 	var n := _t_cnt[t * N_ANIMS + shown]
-	var frame := _t_off[t * N_ANIMS + shown] + (mini(int(anim_t[i]), n - 1) if strip == A_DIE else (int(anim_t[i]) % maxi(n, 1)))
+	var frame := _t_off[t * N_ANIMS + shown] + (mini(int(anim_t[i]), n - 1) if strip == A_DIE else _loop_frame(i, t, n))
 	if strip == A_ATTACK and _t_atkv[t] == 1:
 		# pass 73 (lane SNIPER): the front or the back half of an attack strip painted both ways (the sniper's aim)
 		frame = _attack_view_frame(i, t, shown)
@@ -6835,7 +6847,7 @@ func _render_native() -> bool:
 			fr.append(pl.normal.y)
 			fr.append(pl.normal.z)
 			fr.append(pl.d)
-	_nat.render([_t_off, _t_cnt, _t_ok, _t_okb, _t_hit_ok, _t_lsets, _t_face_fix, _t_atkv, _t_throw, _t_squad, vtint, status_tint, _elite_outline, fire_blue, flash_green, vglow, lakes, fr],
+	_nat.render([_t_off, _t_cnt, _t_ok, _t_okb, _t_hit_ok, _t_lsets, _t_face_fix, _t_atkv, _t_throw, _t_squad, vtint, status_tint, _elite_outline, fire_blue, flash_green, vglow, lakes, fr, _t_step],
 		PackedFloat64Array([_dr_scf.x, _dr_scf.y, _dr_scf.z, _dr_cam_up.x, _dr_cam_up.y, _dr_cam_up.z, _dr_ppos.x, _dr_ppos.y, _dr_ppos.z, 1.0 if _dr_shadow_all else 0.0, 100.0,
 			1.0 if _dr_eye_cam != null else 0.0, bounty_i, tethered_i, _glow_clock, 1.0 if _dr_lake else 0.0, types.size(), _nat_hmode,
 			_nat_map.size_m if _nat_map != null else 0.0, _nat_map.resolution if _nat_map != null else 1.0, _nat_map.grid_n if _nat_map != null else 0]))

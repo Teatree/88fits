@@ -17,7 +17,7 @@ line = true
 levels = [[SubResource("Resource_ff6ld")]]
 max_level = 4
 evolves_into = "shackles"
-text = "Your burns, poison, slows, marks and pins last 15% longer a level."
+text = "Debuffs last 15% longer a level."
 variants = {
 "A": {
 "icon": "res://content/passives/ducktape/ducktape_icon.png",

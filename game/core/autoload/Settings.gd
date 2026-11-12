@@ -79,6 +79,14 @@ var coins_x25: bool = true
 ## game/bin). On by default; off, the script runs them as before, the same run to the last digit: the developer menu's switch
 ## for comparing the two on a phone (a run reads it as it starts). The run record says which ran (`native`).
 var native_crowd: bool = true
+## Pass 144 (Garry: "Megabonk ... it's kind of jerky looking ... let's try this out, but don't change how the assets are
+## generated"): stepped poses. A looping animation (a run, an idle) of the Outlaw and of every creature shows only every
+## k-th frame of its strip and holds it, k = round(its frame rate / pose_rate), so it changes pose about pose_rate times a
+## second while it moves smoothly; the strips are untouched. 0 = off (every frame, as before). The developer menu's row
+## "Stepped poses" steps 12 -> 10 -> 8 -> off; a run reads it as it starts; 10 for a new player (Garry: "the 10s version
+## ... is the best. Let's make it default"); a save keeps its own. BALANCING 85.POSES.
+const POSE_RATES := [12, 10, 8, 0]
+var pose_rate: int = 10
 ## The HUD's item slots in their colours under the Royale theme (pass 122, lane UIHUD; Garry: "Put rarity colours on the
 ## HUD's item slots behind a debug switch, so I can compare them with plain frames on the phone before choosing"): off
 ## (the default), every slot is the plain common frame; on, a weapon's or Card's level colour (W.level_fill, pass 48's
@@ -173,6 +181,24 @@ func apply_frame_cap() -> void:
 	Engine.max_fps = maxi(frame_cap, 0)
 
 
+## Pass 144: the stride a looping strip of `fps` frames a second plays at under `rate` poses a second (0 = off: 1).
+static func pose_stride(fps: float, rate: int) -> int:
+	if rate <= 0 or fps <= 0.0:
+		return 1
+	return maxi(1, int(roundf(fps / float(rate))))
+
+
+## Pass 144: the pose rate after `current`, round POSE_RATES (12 -> 10 -> 8 -> off), and in words.
+func next_pose_rate(current: int) -> int:
+	var k := POSE_RATES.find(current)
+	return int(POSE_RATES[(k + 1) % POSE_RATES.size()])
+
+
+func pose_rate_label(rate: int = -1) -> String:
+	var r := pose_rate if rate < 0 else rate
+	return "OFF" if r <= 0 else "%d a second" % r
+
+
 ## Pass 101 (lane FPS): the cap after `current`, round FRAME_CAPS (60 -> Max -> 60), the developer menu's tap.
 func next_frame_cap(current: int) -> int:
 	var k := FRAME_CAPS.find(current)
@@ -223,7 +249,7 @@ func to_dict() -> Dictionary:
 		"debug_modal_buttons": debug_modal_buttons, "free_revive_button": free_revive_button, "hit_log": hit_log,
 		"preview_locked_heroes": preview_locked_heroes, "top_inset": top_inset, "debug_mode": debug_mode,
 		"ranged_on_screen": ranged_on_screen, "pierce_falloff": pierce_falloff,
-		"hero_knockback": hero_knockback, "fire_forward": fire_forward, "aim_mode": aim_mode, "show_aim": show_aim, "native_crowd": native_crowd,
+		"hero_knockback": hero_knockback, "fire_forward": fire_forward, "aim_mode": aim_mode, "show_aim": show_aim, "native_crowd": native_crowd, "pose_rate": pose_rate,
 		"shoot_barrels": shoot_barrels,
 		"hud_slot_rarity2": hud_slot_rarity, "coins_x25": coins_x25,
 		"dummy_count": dummy_count, "dummy_hp": dummy_hp,
@@ -263,6 +289,7 @@ func from_dict(d: Dictionary) -> void:
 	shoot_barrels = bool(d.get("shoot_barrels", shoot_barrels))
 	coins_x25 = bool(d.get("coins_x25", coins_x25))
 	native_crowd = bool(d.get("native_crowd", native_crowd))
+	pose_rate = int(d.get("pose_rate", pose_rate)) if POSE_RATES.has(int(d.get("pose_rate", pose_rate))) else pose_rate
 	# pass 123 (Garry: "Weapon Rarity isn't displayed at the top left"): on by default; a new key, so a save written with
 	# pass 122's default (off) plays the new one
 	hud_slot_rarity = bool(d.get("hud_slot_rarity2", hud_slot_rarity))
