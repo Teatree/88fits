@@ -57,6 +57,8 @@
       "seconds": 2.2,
       "fade_in": 0.3,
       "fade_out": 0.4,
+      "words_hold": 1.4,
+      "words_fade": 0.35,
       "sound": "st_war_drum_beat",
       "picture": "res://art/ui/drum/war_drum_big.png",
       "head": [0.524, 0.399, 0.266],
@@ -71,6 +73,12 @@
         {"t": 1.35, "s": 0.7},
         {"t": 1.56, "s": 1.0, "big": true}
       ]
+    },
+    "burst": {
+      "radius": 5.0,
+      "damage": 8,
+      "knockback": 8.0,
+      "color": "#FF3B2F"
     },
     "aura": {
       "beat": 0.5,

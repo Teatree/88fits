@@ -312,7 +312,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-11-12, pass 144, version 1.00)
+## Status (2026-11-13, pass 145, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -673,6 +673,8 @@ Pass 142: **the Sabre swings pass 138's crescent again** (the pack's "moon" and 
 Pass 143: **the Skull Rain's skull remodelled** (`tools/blender_skull_rain.py`), half as big and white; **five item texts in Garry's sentences** (the Skull Rain's whole damage over the poison's seconds, the Dynamite's damage, Cold Snap's plain chance (`passive.cold_snap.line`), the Boomstick's and the Dragon's Breath's damage; `TextGen.POISON_TICK` / `FREEZE_SECONDS` mirror EnemyManager's); **the Big Mouth looks where the Outlaw faces** at rest and its wedge tell is half as strong (`AimWedge.MOUTH_GAIN`); **Jeżyk is the Horseman (BUC-H) and Fadeaway The Robot (FAD-H)**, new paintings over the old builds and walks, every older look of theirs shelved, their three skin quests gone (every older line here that names Jeżyk or Fadeaway as a look or a skin is history; the ids `buck` / `fadeaway` stay); the menu with an outlaw: `game/tools/_p143_TITLE_shots.gd -- out=<dir> [only=buck,fadeaway]`. BALANCING 84.
 
 Pass 144: **stepped poses** (Megabonk's held frames): a looping strip shows every k-th frame and holds it, k = its rate / `Settings.pose_rate` (10 by default for a new player; the developer menu's "Stepped poses" 12 / 10 / 8 / off), the art untouched (BillboardSprite.pose_rate, EnemyManager._t_step, crowd_render.cpp `t_step`). BALANCING 85.
+
+Pass 145: the War Drum's moment says "×2 POWER" / "15 SECONDS" (DrumBoost.headline), staying 1.4 s after the big slap (moment `words_hold`, `words_fade`), and the boost opens with a small push round the Outlaw (params.burst, Game._drum_burst). BALANCING 86.
 
 **Outlaws** ("heroes" in code; title order): Drifter (Revolver; free), Astro (Gravity Gun), Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), The Robot (id `fadeaway`, Fadeaway until pass 143: a gunmetal robot with a bull's head in a red basketball kit, look FAD-H; the Basketball: evade per level, Heat shown on the ball itself, the Timeout

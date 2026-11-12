@@ -11275,3 +11275,13 @@ changes pose about pose_rate times a second while it still moves across the grou
 default for a new player (Garry picked 10 of 12 / 10 / 8; a save keeps its own) (the developer menu's row "Stepped poses": 12 -> 10 -> 8 -> off; a run reads it as it starts). At 10 an Outlaw's
 36 fps run shows every fourth frame (9 poses a second); a creature's 15 and 20 fps runs every second frame (7.5 and 10). The strips, their rates and the run's speed-following are untouched
 (BillboardSprite.pose_rate, EnemyManager._t_step / _loop_frame, the compiled draw's `t_step`).
+
+## 86. Pass 145: the War Drum's words and its push
+
+**86.DRUM.** The moment says two short lines, "×2 POWER" (the boost's damage multiplier, ×1.5 under a Berserk) and
+"15 SECONDS" (`DrumBoost.headline`, strings `gen.structure.drum.power` / `.seconds`), bigger than before (92 and 58 px).
+They come with the big slap and stay `moment.words_hold` 1.4 s fully shown, then fade over `moment.words_fade` 0.35 s;
+the drum still fades at `moment.seconds` 2.2, so time stands still about 3.3 s in all. As the boost starts, once, every
+creature within `params.burst.radius` 5 m of the Outlaw takes `params.burst.damage` 8 (flat) and a push of
+`params.burst.knockback` 8, under a red wave, a flash ring, a burst and a small camera kick (`Game._drum_burst`;
+content/structures/war_drum/war_drum.json).

@@ -127,6 +127,17 @@ static func summary(effects: Array, seconds: float) -> String:
 	return " · ".join(parts)
 
 
+## Pass 145 (Garry: "Make the text much simpler"): what the moment says, two short lines "×2 POWER · 15 SECONDS" (the
+## damage multiplier names the boost; summary() above keeps the whole list for tools).
+static func headline(effects: Array, seconds: float) -> String:
+	var mult := 1.0
+	for e in effects:
+		if e is Effect and (e as Effect).stat == "might":
+			mult = 1.0 + (e as Effect).value
+	return " · ".join([Loc.t("gen.structure.drum.power", {"mult": _num(mult)}),
+		Loc.t("gen.structure.drum.seconds", {"seconds": str(int(round(seconds)))})])
+
+
 static func _num(v: float) -> String:
 	return str(int(round(v))) if absf(v - round(v)) < 0.01 else ("%.2f" % v).rstrip("0").rstrip(".")
 

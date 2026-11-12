@@ -36,6 +36,9 @@ const FLASH_TAU := 0.09
 const LINES := 12
 const TITLE_PX := 112
 const WORDS_PX := 50
+## pass 145: the two short lines' sizes (the gain, then its seconds)
+const HEAD_PX := 92
+const TAIL_PX := 58
 const RED := Color(0.86, 0.16, 0.1)
 
 var playing := false
@@ -49,6 +52,11 @@ var words := ""
 var _seconds := 2.2
 var _fade_in := 0.3
 var _fade_out := 0.4
+## pass 145 (Garry: "make it linger for just a bit longer"): the words stay `words_hold` s after the big slap, fully
+## shown, then fade over `words_fade`; the moment ends when they are gone (the drum still fades at `seconds`)
+var _words_hold := 1.4
+var _words_fade := 0.35
+var _end_t := 2.2
 var _hits: Array = []
 var _next := 0
 var _tex: Texture2D = null
@@ -92,6 +100,8 @@ func open(def: StructureDef, p_words: String = "") -> void:
 	_seconds = maxf(float(m.get("seconds", 2.2)), 0.2)
 	_fade_in = clampf(float(m.get("fade_in", 0.3)), 0.01, _seconds * 0.5)
 	_fade_out = clampf(float(m.get("fade_out", 0.4)), 0.01, _seconds * 0.5)
+	_words_hold = maxf(float(m.get("words_hold", 0.0)), 0.0)
+	_words_fade = maxf(float(m.get("words_fade", 0.35)), 0.01)
 	var h = m.get("head", [])
 	if h is Array and (h as Array).size() >= 3:
 		_head = Vector3(float(h[0]), float(h[1]), float(h[2]))
@@ -100,6 +110,11 @@ func open(def: StructureDef, p_words: String = "") -> void:
 		if x is Dictionary:
 			_hits.append(x)
 	_hits.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.get("t", 0.0)) < float(b.get("t", 0.0)))
+	_end_t = _seconds
+	if _words_hold > 0.0 and p_words != "":
+		for x: Dictionary in _hits:
+			if bool(x.get("big", false)):
+				_end_t = maxf(_end_t, float(x.get("t", 0.0)) + _words_hold + _words_fade)
 	var pic := str(m.get("picture", ""))
 	_tex = load(pic) as Texture2D if pic != "" and ResourceLoader.exists(pic) else def.icon
 	title = def.display_name.to_upper()
@@ -166,7 +181,7 @@ func _process(delta: float) -> void:
 		if t - float(r["t0"]) < RING_LIFE * (1.4 if bool(r.get("big", false)) else 1.0):
 			keep.append(r)
 	_rings = keep
-	if t >= _seconds:
+	if t >= _end_t:
 		_finish()
 		return
 	queue_redraw()
@@ -209,6 +224,20 @@ func _input(event: InputEvent) -> void:
 func _gui_input(event: InputEvent) -> void:
 	if playing:
 		accept_event()
+
+
+## 0..1: the words from the big slap on: in over 0.12 s, out over words_fade at the moment's end (pass 145).
+func words_alpha_at(time: float) -> float:
+	if _words_t < 0.0:
+		return 0.0
+	var a_in := clampf((time - _words_t) / 0.12, 0.0, 1.0)
+	var a_out := clampf((_end_t - time) / _words_fade, 0.0, 1.0) if _end_t > _seconds else alpha_at(time)
+	return minf(a_in, a_out)
+
+
+## Seconds the whole moment lasts (the drum, then the words lingering).
+func total_seconds() -> float:
+	return _end_t
 
 
 ## 0..1: in over fade_in, out over the last fade_out.
@@ -257,7 +286,8 @@ func _draw() -> void:
 	var vp := size
 	var a := alpha_at(t)
 	# the world stands still behind a deep red dusk
-	draw_rect(Rect2(Vector2.ZERO, vp), Color(0.14, 0.04, 0.03, 0.74 * a))
+	var wv := words_alpha_at(t)
+	draw_rect(Rect2(Vector2.ZERO, vp), Color(0.14, 0.04, 0.03, 0.74 * maxf(a, wv)))
 	var r := drum_rect()
 	var hc := r.position + Vector2(_head.x * r.size.x, _head.y * r.size.y)
 	var hr := _head.z * r.size.x
@@ -324,16 +354,19 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# the boost in words, from the big slap on: two lines (" · " halves)
 	if _words_t >= 0.0 and words != "":
-		var wa := a * clampf((t - _words_t) / 0.12, 0.0, 1.0)
+		var wa := wv
 		var wsc := 1.0 + 0.15 * exp(-(t - _words_t) / 0.08)
 		var parts := words.split(" · ")
 		var half := int(floor(parts.size() / 2.0))
 		var lines: Array = [" · ".join(parts.slice(0, half)), " · ".join(parts.slice(half))]
 		var wy := r.end.y + vp.y * 0.05
+		var li := 0
 		for ln: String in lines:
+			li += 1
 			if ln == "":
 				continue
-			var px := WORDS_PX
+			# pass 145: two short lines, the gain big and its seconds smaller; a long line still shrinks to fit
+			var px := (HEAD_PX if li == 1 else TAIL_PX) if parts.size() <= 2 else WORDS_PX
 			var ww := font.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x
 			while ww * wsc > vp.x - 64.0 and px > 20:
 				px -= 2

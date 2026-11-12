@@ -49,6 +49,12 @@ params = {
 "radius": 3.0,
 "wave_seconds": 0.55
 },
+"burst": {
+"color": "#FF3B2F",
+"damage": 8.0,
+"knockback": 8.0,
+"radius": 5.0
+},
 "effects": [{
 "op": "mul",
 "stat": "might",
@@ -111,7 +117,9 @@ params = {
 }],
 "picture": "res://art/ui/drum/war_drum_big.png",
 "seconds": 2.2,
-"sound": "st_war_drum_beat"
+"sound": "st_war_drum_beat",
+"words_fade": 0.35,
+"words_hold": 1.4
 },
 "plate": true,
 "seconds": 15.0,

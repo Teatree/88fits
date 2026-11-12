@@ -2715,7 +2715,7 @@ func _use_drum(def: StructureDef) -> void:
 		set_paused(true)
 		var rules := DrumBoost.stack_rules(def)
 		var effs := DrumBoost.stacked_effects(def.effects, rules, DrumBoost.withs_running(rules))
-		drum_moment.open(def, DrumBoost.summary(effs, Run.buff_seconds(float(def.params.get("seconds", 15.0)))))
+		drum_moment.open(def, DrumBoost.headline(effs, Run.buff_seconds(float(def.params.get("seconds", 15.0)))))
 		drum_moment.finished.connect(func() -> void:
 			Audio.hold_music(false)
 			_drum_boost_start(def)
@@ -2725,9 +2725,32 @@ func _use_drum(def: StructureDef) -> void:
 
 func _drum_boost_start(def: StructureDef) -> void:
 	drum_boost.start(def)
+	_drum_burst(def)
 	# short: the moment has said what it gives (the HUD's plate counts the seconds)
 	if hud:
 		hud.toast(Loc.t("toast.buff_seconds", {"name": def.display_name.to_upper(), "seconds": "%d" % int(round(drum_boost.left()))}), def.color)
+
+
+## Pass 145 (Garry: "a small knockback after Player picks up the War Drum ... it deals very little damage, but it's
+## there the first time, and there is some VFX that plays right after"): once, as the boost starts, the creatures within
+## params.burst.radius m of the Outlaw take params.burst.damage (flat) and are pushed out by params.burst.knockback;
+## a red wave races out over the sand with a flash ring, a burst at his feet and a small kick of the camera.
+func _drum_burst(def: StructureDef) -> void:
+	var b = def.params.get("burst", {})
+	if not b is Dictionary or (b as Dictionary).is_empty() or player == null or _ended:
+		return
+	var r := float(b.get("radius", 5.0))
+	var at := player.global_position
+	if enemies:
+		enemies.damage_radius(at, r, float(b.get("damage", 8.0)), "war_drum", float(b.get("knockback", 8.0)))
+	if Run.sim_mode:
+		return
+	var col := Color(str(b.get("color", "#FF3B2F")))
+	telegraphs.race_ring(at, r, 0.4, Color(1.0, 0.9, 0.75, 1.0), 0.32)
+	telegraphs.race_ring(at, r * 0.92, 0.55, Color(col, 0.9), 0.26)
+	telegraphs.flash_ring(at, r, col, 0.4)
+	fx.burst(at + Vector3(0, 0.5, 0), col.lightened(0.25), r * 0.45)
+	camera.shake(0.7)
 
 
 ## A Totem Pole used (pass 73, lane STRUCT; use_structure's "totem"): its menu of gifts (ui/TotemScreen.gd) through the
