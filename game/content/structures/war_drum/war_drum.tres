@@ -52,7 +52,7 @@ params = {
 "burst": {
 "color": "#FF3B2F",
 "damage": 8.0,
-"knockback": 8.0,
+"knockback": 40.0,
 "radius": 5.0
 },
 "effects": [{
@@ -119,7 +119,7 @@ params = {
 "seconds": 2.2,
 "sound": "st_war_drum_beat",
 "words_fade": 0.35,
-"words_hold": 1.4
+"words_hold": 0.9
 },
 "plate": true,
 "seconds": 15.0,

@@ -674,7 +674,7 @@ Pass 143: **the Skull Rain's skull remodelled** (`tools/blender_skull_rain.py`),
 
 Pass 144: **stepped poses** (Megabonk's held frames): a looping strip shows every k-th frame and holds it, k = its rate / `Settings.pose_rate` (10 by default for a new player; the developer menu's "Stepped poses" 12 / 10 / 8 / off), the art untouched (BillboardSprite.pose_rate, EnemyManager._t_step, crowd_render.cpp `t_step`). BALANCING 85.
 
-Pass 145: the War Drum's moment says "×2 POWER" / "15 SECONDS" (DrumBoost.headline), staying 1.4 s after the big slap (moment `words_hold`, `words_fade`), and the boost opens with a small push round the Outlaw (params.burst, Game._drum_burst). BALANCING 86.
+Pass 145: the War Drum's moment says "×2 ATTACK ×2 SPEED" / "FOR 15 SECONDS" (DrumBoost.headline), staying 0.9 s after the big slap (moment `words_hold`, `words_fade`), and the boost opens with a small push round the Outlaw (params.burst, Game._drum_burst). BALANCING 86.
 
 **Outlaws** ("heroes" in code; title order): Drifter (Revolver; free), Astro (Gravity Gun), Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), The Robot (id `fadeaway`, Fadeaway until pass 143: a gunmetal robot with a bull's head in a red basketball kit, look FAD-H; the Basketball: evade per level, Heat shown on the ball itself, the Timeout

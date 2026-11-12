@@ -14,10 +14,10 @@ func _drum() -> StructureDef:
 
 func test_the_words_are_two_short_lines() -> void:
 	var d := _drum()
-	assert_str(DrumBoost.headline(d.effects, 15.0)).is_equal("×2 POWER · 15 SECONDS")
+	assert_str(DrumBoost.headline(d.effects, 15.0)).is_equal("×2 ATTACK ×2 SPEED · FOR 15 SECONDS")
 	var rules := DrumBoost.stack_rules(d)
 	var under_rage := DrumBoost.stacked_effects(d.effects, rules, {"rage": true, "sprint": false})
-	assert_str(DrumBoost.headline(under_rage, 15.0)).is_equal("×1.5 POWER · 15 SECONDS")
+	assert_str(DrumBoost.headline(under_rage, 15.0)).is_equal("×1.5 ATTACK ×1.5 SPEED · FOR 15 SECONDS")
 
 
 func test_the_words_linger_after_the_drum() -> void:
@@ -35,8 +35,8 @@ func test_the_words_linger_after_the_drum() -> void:
 	m.t = big_t
 	m._process(0.0)
 	m._words_t = big_t
-	assert_float(m.words_alpha_at(big_t + 1.0)).is_equal(1.0)
-	assert_float(m.alpha_at(big_t + 1.0)).is_less(0.5)
+	assert_float(m.words_alpha_at(big_t + 0.8)).is_equal(1.0)
+	assert_float(m.alpha_at(big_t + 0.8)).is_less(0.5)
 	assert_float(m.words_alpha_at(m.total_seconds())).is_equal(0.0)
 	m.skip()
 	m.free()
@@ -53,7 +53,13 @@ func test_the_boost_starts_with_a_small_push() -> void:
 	var here: Vector3 = g.player.global_position
 	var near: int = g.enemies.spawn("skeleton", here + Vector3(2, 0, 0))
 	var far: int = g.enemies.spawn("skeleton", here + Vector3(9, 0, 0))
-	await get_tree().create_timer(0.3).timeout
+	# the Revolver must not kill them while they rise
+	for i: int in [near, far]:
+		g.enemies.max_hp[i] = 1.0e5
+		g.enemies.hp[i] = 1.0e5
+	# out of the ground first (a rising creature stands where it is)
+	await get_tree().create_timer(1.5).timeout
+	here = g.player.global_position
 	var hp_near: float = g.enemies.hp[near]
 	var hp_far: float = g.enemies.hp[far]
 	var b: Dictionary = _drum().params["burst"]
@@ -63,3 +69,11 @@ func test_the_boost_starts_with_a_small_push() -> void:
 	assert_float(g.enemies.hp[near]).is_less(hp_near)
 	assert_float(hp_near - float(g.enemies.hp[near])).is_less_equal(float(b["damage"]) * 3.0)
 	assert_float(g.enemies.hp[far]).is_equal(hp_far)
+	# pushed away by a small distance (about a metre or more for a skeleton), not a throw across the screen
+	var p0: Vector3 = g.enemies.pos[near]
+	var d0 := Vector2(p0.x - here.x, p0.z - here.z).length()
+	await get_tree().create_timer(0.3).timeout
+	var p1: Vector3 = g.enemies.pos[near]
+	var d1 := Vector2(p1.x - here.x, p1.z - here.z).length()
+	print("drum push: ", d0, " -> ", d1)
+	assert_float(d1 - d0).is_between(1.0, 4.0)

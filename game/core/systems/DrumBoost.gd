@@ -127,15 +127,20 @@ static func summary(effects: Array, seconds: float) -> String:
 	return " · ".join(parts)
 
 
-## Pass 145 (Garry: "Make the text much simpler"): what the moment says, two short lines "×2 POWER · 15 SECONDS" (the
-## damage multiplier names the boost; summary() above keeps the whole list for tools).
+## Pass 145 (Garry: "Make the text much simpler"; then "x2 ATTACK x2 SPEED / for 15 SECONDS"): what the moment says,
+## two short lines "×2 ATTACK ×2 SPEED · FOR 15 SECONDS" (attack = the damage multiplier, speed = the weapon speed's;
+## summary() above keeps the whole list for tools).
 static func headline(effects: Array, seconds: float) -> String:
-	var mult := 1.0
+	var dmg := 1.0
+	var haste := 1.0
 	for e in effects:
-		if e is Effect and (e as Effect).stat == "might":
-			mult = 1.0 + (e as Effect).value
-	return " · ".join([Loc.t("gen.structure.drum.power", {"mult": _num(mult)}),
-		Loc.t("gen.structure.drum.seconds", {"seconds": str(int(round(seconds)))})])
+		if e is Effect and (e as Effect).op == "mul":
+			if (e as Effect).stat == "might":
+				dmg = 1.0 + (e as Effect).value
+			elif (e as Effect).stat == "haste":
+				haste = 1.0 + (e as Effect).value
+	return " · ".join([Loc.t("gen.structure.drum.head", {"damage": _num(dmg), "haste": _num(haste)}),
+		Loc.t("gen.structure.drum.for_seconds", {"seconds": str(int(round(seconds)))})])
 
 
 static func _num(v: float) -> String:

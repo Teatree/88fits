@@ -11278,10 +11278,11 @@ default for a new player (Garry picked 10 of 12 / 10 / 8; a save keeps its own) 
 
 ## 86. Pass 145: the War Drum's words and its push
 
-**86.DRUM.** The moment says two short lines, "×2 POWER" (the boost's damage multiplier, ×1.5 under a Berserk) and
-"15 SECONDS" (`DrumBoost.headline`, strings `gen.structure.drum.power` / `.seconds`), bigger than before (92 and 58 px).
-They come with the big slap and stay `moment.words_hold` 1.4 s fully shown, then fade over `moment.words_fade` 0.35 s;
-the drum still fades at `moment.seconds` 2.2, so time stands still about 3.3 s in all. As the boost starts, once, every
-creature within `params.burst.radius` 5 m of the Outlaw takes `params.burst.damage` 8 (flat) and a push of
-`params.burst.knockback` 8, under a red wave, a flash ring, a burst and a small camera kick (`Game._drum_burst`;
-content/structures/war_drum/war_drum.json).
+**86.DRUM.** The moment says two short lines, "×2 ATTACK ×2 SPEED" (the boost's damage and weapon-speed multipliers,
+×1.5 each under a Berserk) and "FOR 15 SECONDS" (`DrumBoost.headline`, strings `gen.structure.drum.head` /
+`.for_seconds`), bigger than before (92 and 58 px). They come with the big slap and stay `moment.words_hold` 0.9 s fully
+shown, then fade over `moment.words_fade` 0.35 s; the drum still fades at `moment.seconds` 2.2, so time stands still about
+2.8 s in all. As the boost starts, once, every creature within `params.burst.radius` 5 m of the Outlaw takes
+`params.burst.damage` 8 (flat) and a push of `params.burst.knockback` 40 (a skeleton about 2 m out, heavier creatures
+less; one still rising out of the sand stays), under a red wave, a flash ring, a burst and a small camera kick
+(`Game._drum_burst`; content/structures/war_drum/war_drum.json). Pass 145b (Garry): the words, 1.4 s -> 0.9 s, push 8 -> 40.

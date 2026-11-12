@@ -4823,3 +4823,4 @@ tools/dl/p143/LEAD/crowd_locked_old.dll before the build); _p125_NATIVE_pixels P
 
 
 Pass 145 (2026-11-13): the War Drum (Garry: "the text is a bit too hard to see ... make the text much simpler and make it linger for just a bit longer. Let's add a small knockback after Player picks up the War Drum"): its moment says "×2 POWER" / "15 SECONDS" (DrumBoost.headline) in bigger type, staying 1.4 s after the big slap while the drum fades (moment `words_hold`, `words_fade`; DrumMoment.words_alpha_at, total_seconds); the boost opens with one small push (params.burst: 5 m, 8 damage, knockback 8; Game._drum_burst with a red race ring, flash ring, burst and shake). Tests pass145_DRUM_test, captures tools/dl/p145/DRUM. BALANCING 86.
+Pass 145b: Garry's War Drum words "×2 ATTACK ×2 SPEED" / "FOR 15 SECONDS", held 0.9 s (was 1.4), the push 40 (was 8: about 2 m for a skeleton). BALANCING 86.
