@@ -214,7 +214,7 @@ func test_the_results_show_at_most_three_rows_the_ladder_first() -> void:
 	Save.add_keyed_total(TaskTally.SAVE_HEAL_ITEM, "cake", 1000)
 	Save.add_keyed_total(TaskTally.SAVE_HEAL_ITEM, "mend", 1900)
 	Save.add_keyed_total(TaskTally.SAVE_DAMAGE, "revolver", 20000)
-	var before := {"unlock_adrenaline": 500, "unlock_brimstone_brand": 10000, "unlock_gas_mask": 1000,
+	var before := {"unlock_adrenaline": 500, "unlock_counterpunch": 10000, "unlock_gas_mask": 1000,
 		"unlock_snake_oil": 900, "unlock_thirst": 1000, "skin_drifter_dri_b": 10000,
 		# waits for Fire Bug: never a row
 		"skin_solenne_sol_h": 0}
@@ -276,6 +276,9 @@ func test_every_unlock_exists_and_none_is_also_a_trail_node() -> void:
 		if ["skin_buck_buc_g", "skin_fadeaway_fad_b", "skin_fadeaway_fad_g"].has(str(e.get("quest", ""))):
 			continue
 		tasks += 1
+		# pass 148: Brimstone Brand is open and Counterpunch has its task (unlock_counterpunch, the same Fire Bug)
+		if str(e.get("quest", "")) == "unlock_brimstone_brand":
+			e = {"quest": "unlock_counterpunch", "kind": e["kind"], "id": "counterpunch", "by": "task"}
 		var q: QuestDef = _q(str(e.get("quest", "")))
 		assert_object(q).override_failure_message("split task %s" % e.get("id")).is_not_null()
 		assert_str(_trail_type(str(q.unlocks.get("type", "")))).is_equal(str(e["kind"]))
@@ -298,3 +301,25 @@ func test_the_skins_for_sale_need_no_task_and_may_comes_from_hers() -> void:
 	assert_str(Registry.hero_state(may)).is_equal("locked")
 	Save.mark_quest("unlock_may")
 	assert_str(Registry.hero_state(may)).is_equal("owned")
+
+
+# ---------------------------------------------------------------- pass 148
+
+func test_counterpunch_takes_brimstones_task_and_brimstone_is_open() -> void:
+	# Garry (2026-11-14): Brimstone Brand is open from the start; Counterpunch unlocks where Brimstone did (Fire Bug)
+	var q: QuestDef = Registry.quest_for("passive", "counterpunch")
+	assert_object(q).is_not_null()
+	assert_str(q.id).is_equal("unlock_counterpunch")
+	assert_str(str(q.condition.get("type", ""))).is_equal("element_damage")
+	assert_int(int(q.condition.get("count", 0))).is_equal(100000)
+	assert_object(Registry.quest_for("passive", "brimstone_brand")).is_null()
+	assert_bool(Registry.is_unlocked("passive", "brimstone_brand")).is_true()
+	assert_array((Registry.quests["skin_solenne_sol_i"] as QuestDef).requires).contains(["unlock_counterpunch"])
+
+
+func test_a_save_that_had_done_fire_bug_keeps_it() -> void:
+	Save.data["quests_done"] = ["unlock_tommy_gun", "unlock_brimstone_brand"]
+	Save._rename_quests()
+	assert_bool(Save.quest_done("unlock_counterpunch")).is_true()
+	assert_bool(Save.quest_done("unlock_brimstone_brand")).is_false()
+	assert_bool(Save.quest_done("unlock_tommy_gun")).is_true()

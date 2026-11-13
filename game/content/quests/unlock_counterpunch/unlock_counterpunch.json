@@ -1,5 +1,5 @@
 {
-  "id": "unlock_brimstone_brand",
+  "id": "unlock_counterpunch",
   "name": "Fire Bug",
   "condition": {
     "type": "element_damage",
@@ -8,7 +8,7 @@
   },
   "unlocks": {
     "type": "passive",
-    "id": "brimstone_brand"
+    "id": "counterpunch"
   },
-  "icon": "res://content/passives/brimstone_brand/brimstone_brand_icon.png"
+  "icon": "res://content/passives/counterpunch/counterpunch_icon.png"
 }

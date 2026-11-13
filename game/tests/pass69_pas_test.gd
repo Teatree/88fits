@@ -161,8 +161,8 @@ func test_five_new_items_and_the_magnet_with_their_numbers() -> void:
 		assert_bool(p.hidden).is_false()
 		assert_int(p.from_stage).is_less_equal(1)
 		# pass 140 (lane FIX): four are tasks' unlocks now (BALANCING 81.QUESTS), the Magnet a Trail node (81.TRAIL), the
-		# Counterpunch open from the start
-		var lock := "" if id == "counterpunch" else ("trail" if id == "magnet" else "task")
+		# Counterpunch open from the start; pass 148: Counterpunch takes Brimstone Brand's task (Fire Bug), Brimstone is open
+		var lock := "trail" if id == "magnet" else "task"
 		assert_str(UNLOCKS.locked_by("passive", id)).override_failure_message(id + " is locked by").is_equal(lock)
 		UNLOCKS.open("passive", id)
 		assert_bool(Registry.unlocked_passives().has(p)).override_failure_message(id + " is locked").is_true()

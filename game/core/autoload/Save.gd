@@ -192,6 +192,8 @@ func load_save() -> void:
 	_migrate()
 	# pass 83 (lane META): a hero this save had freed by his quest, who is bought now, stays its own
 	_keep_freed_heroes()
+	# pass 148: a quest that now unlocks something else under a new id keeps its completion
+	_rename_quests()
 	# content can disappear between versions (heroes come and go): never point at a missing id
 	if not Registry.characters.has(str(data.get("last_character", ""))):
 		data["last_character"] = DEFAULT_HERO if Registry.characters.has(DEFAULT_HERO) else (Registry.sorted_characters()[0].id if not Registry.characters.is_empty() else DEFAULT_HERO)
@@ -883,6 +885,24 @@ func _keep_freed_heroes() -> void:
 	for id: String in FREED_BY_QUEST.keys():
 		if (done as Array).has(FREED_BY_QUEST[id]) and not owns_hero(id):
 			heroes_owned().append(id)
+			request_save(true)
+
+
+## Quests renamed (pass 148, Garry: Brimstone Brand is free from the start and Counterpunch takes its unlock, since a new
+## player has no evade outlaw yet): old id -> new id. A save that had done the old one has done the new one. Idempotent.
+const RENAMED_QUESTS := {"unlock_brimstone_brand": "unlock_counterpunch"}
+
+
+func _rename_quests() -> void:
+	var done = data.get("quests_done")
+	if not (done is Array):
+		return
+	for old: String in RENAMED_QUESTS.keys():
+		var nid: String = RENAMED_QUESTS[old]
+		if (done as Array).has(old):
+			(done as Array).erase(old)
+			if not (done as Array).has(nid):
+				(done as Array).append(nid)
 			request_save(true)
 
 

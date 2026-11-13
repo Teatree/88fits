@@ -14,7 +14,7 @@ unlocks = {
 "id": "solenne:SOL-I",
 "type": "skin"
 }
-requires = ["unlock_brimstone_brand"]
+requires = ["unlock_counterpunch"]
 id = "skin_solenne_sol_i"
 display_name = "Solenne · Oasis"
 icon = ExtResource("1_poptv")

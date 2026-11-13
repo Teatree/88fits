@@ -76,7 +76,7 @@ static func fill(run: Node, save: Node, qt, died: bool = false) -> void:
 		table["revive"] = 900.0
 	# the counted unlocks as the run began: kills (all time), skeletons, chests
 	# pass 140 (lane QUESTS): plan v2's tasks (Killing Spree waits for Dust Yourself Off, marked done below)
-	tl.quests_before = {"unlock_adrenaline": 120, "unlock_brimstone_brand": 12000, "unlock_gas_mask": 4000, "unlock_hammer": 0}
+	tl.quests_before = {"unlock_adrenaline": 120, "unlock_counterpunch": 12000, "unlock_gas_mask": 4000, "unlock_hammer": 0}
 	run.set("timeline", tl)
 	run.set("character", run.get_node("/root/Registry").character("drifter"))
 	run.set("extracted", not died)

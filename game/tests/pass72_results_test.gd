@@ -258,11 +258,11 @@ func test_the_unlocks_brought_closer_are_the_counted_ones_that_grew_nearest_firs
 	Save.mark_quest("unlock_tommy_gun")
 	Save.mark_quest("unlock_hammer")
 	Save.add_keyed_total(TaskTally.SAVE_ELEMENT, "fire", 30000)
-	var before := {"unlock_adrenaline": 120, "unlock_phoenix_feather": 1, "unlock_gas_mask": 0, "unlock_brimstone_brand": 10000,
+	var before := {"unlock_adrenaline": 120, "unlock_phoenix_feather": 1, "unlock_gas_mask": 0, "unlock_counterpunch": 10000,
 		"unlock_hammer": 0}
 	var list: Array = RESULTS.progress_list(before)
 	var ids: Array = list.map(func(c): return (c["q"] as QuestDef).id)
-	assert_array(ids).is_equal(["unlock_adrenaline", "unlock_brimstone_brand"])
+	assert_array(ids).is_equal(["unlock_adrenaline", "unlock_counterpunch"])
 	assert_int(int(list[0]["before"])).is_equal(120)
 	assert_int(int(list[0]["after"])).is_equal(380)
 	assert_int(int(list[0]["need"])).is_equal(2000)

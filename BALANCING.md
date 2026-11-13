@@ -11362,3 +11362,12 @@ damage a second": a beam ticks, so it says its damage a second, the sheet's dama
 aim rule a hold's ticks still ramp 30% to 130% over the first second, pass 136), and the generic forward shot ("... for
 20 damage" / "for 20 damage each"). Checked by the text census (game/tools/text_census.gd parts=a): all 74 weapons and
 evolutions, at every level and with every mutation, print "<number> damage". No number changed.
+
+## 90. Pass 148: Brimstone Brand open, Counterpunch behind Fire Bug
+
+Garry (2026-11-14): "Brimstone should be available from the start and the Counter Punch unlocks whenever Brimstone does
+right now ... players don't really have access to any kinds of evade characters at that point". **Brimstone Brand** has no
+task now (open from the start; its `from_stage` still keeps it to the Blood Moon's cards, unchanged). **Counterpunch** is
+unlocked by the task **Fire Bug** (`content/quests/unlock_counterpunch`: deal 100,000 fire damage over all runs, the same
+condition, name and place in the ladder: Solenne's Oasis skin task still waits for it). `unlock_brimstone_brand` is gone;
+a save that had done it has done `unlock_counterpunch` (Save.RENAMED_QUESTS, every load).
