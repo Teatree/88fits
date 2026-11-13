@@ -119,7 +119,8 @@ def clean():
     ext = co.max(axis=0) - co.min(axis=0)
     log("raw mesh: %d verts, %d faces, extent %s" % (len(obj.data.vertices), len(obj.data.polygons), np.round(ext, 3).tolist()))
     # up: the longest axis is her height
-    up = int(np.argmax(ext))
+    # up=N forces the axis (a T-pose's arm span can be longer than the height: 2 keeps the import's own up)
+    up = int(a["up"]) if a.get("up") not in (None, "") else int(np.argmax(ext))
     if up != 2:
         rot = Matrix.Rotation(math.radians(-90 if up == 1 else 90), 4, "X" if up == 1 else "Y")
         obj.matrix_world = rot @ obj.matrix_world
