@@ -1234,6 +1234,12 @@ class HeroFigure extends Control:
 	func _process(delta: float) -> void:
 		_t = fmod(_t + delta * fps * anim_rate, float(count))
 		var f := int(_t)
+		# pass 146 (Garry: "The Outlaw Screen still uses the old animation style without the stutter thing ... do this
+		# anywhere else we show enemy or outlaw animations"): pass 144's stepped poses, as in a run (he plays only his
+		# idle and run loops here): every k-th frame held, k = his rate now / Settings.pose_rate
+		var k := Settings.pose_stride(fps * anim_rate, Settings.pose_rate)
+		if k > 1:
+			f -= f % k
 		if f != frame:
 			frame = f
 			queue_redraw()

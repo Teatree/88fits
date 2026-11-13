@@ -2625,6 +2625,8 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 			if offer.is_empty():
 				Run.add_gold(60, "stranger_empty")
 				hud.toast(Loc.t("toast.stranger_nothing"), UiKit.ACCENT)
+				# pass 146: he falls all the same
+				structures.collapse_at(at)
 				return
 			var cost := float(offer.get("hp_cost", p.get("hp_cost", 0.15)))
 			_request_modal(Modal.STRANGER, func() -> bool:
@@ -2640,6 +2642,8 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 						hud.toast(Loc.t("toast.stranger_deal", {"deal": line, "percent": "%d" % int(round(cost * 100.0))}), Color(0.75, 0.6, 1.0))
 					else:
 						hud.toast(Loc.t("toast.stranger_gone"), UiKit.INK2)
+					# pass 146 (Garry: "he actually dies when Player agrees / doesn't"): his robe falls as the screen closes
+					structures.collapse_at(at)
 					_modal_done({}, false), CONNECT_ONE_SHOT)
 				return true)
 		"shop":

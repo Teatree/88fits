@@ -312,7 +312,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-11-13, pass 145, version 1.00)
+## Status (2026-11-13, pass 146, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -675,6 +675,8 @@ Pass 143: **the Skull Rain's skull remodelled** (`tools/blender_skull_rain.py`),
 Pass 144: **stepped poses** (Megabonk's held frames): a looping strip shows every k-th frame and holds it, k = its rate / `Settings.pose_rate` (10 by default for a new player; the developer menu's "Stepped poses" 12 / 10 / 8 / off), the art untouched (BillboardSprite.pose_rate, EnemyManager._t_step, crowd_render.cpp `t_step`). BALANCING 85.
 
 Pass 145: the War Drum's moment says "×2 ATTACK ×2 SPEED" / "FOR 15 SECONDS" (DrumBoost.headline), staying 0.9 s after the big slap (moment `words_hold`, `words_fade`), and the boost opens with a small push round the Outlaw (params.burst, Game._drum_burst). BALANCING 86.
+
+Pass 146: **the Stranger breathes and falls** (a structure's painted strip `params.anim`: idle looped and stepped, die by `StructureManager.collapse_at` as his screen closes; his strip by `python tools/gen_stranger_anim.py --kind idle,die [--seeds N]` then `--pick idle=K die=K`, Wan 2.2 first-last-frame from his two paintings); pass 144's held poses on the Outlaws screen, the main menu's Outlaw and the title stage. BALANCING 87.
 
 **Outlaws** ("heroes" in code; title order): Drifter (Revolver; free), Astro (Gravity Gun), Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), The Robot (id `fadeaway`, Fadeaway until pass 143: a gunmetal robot with a bull's head in a red basketball kit, look FAD-H; the Basketball: evade per level, Heat shown on the ball itself, the Timeout

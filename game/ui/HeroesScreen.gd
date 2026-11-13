@@ -1065,6 +1065,10 @@ func _process(delta: float) -> void:
 		return
 	_clock += delta
 	var f := int(_clock * _fps) % _anim_n
+	# pass 146: pass 144's stepped poses, as in a run (his run loop: every k-th frame held, k = its rate / Settings.pose_rate)
+	var k := Settings.pose_stride(_fps, Settings.pose_rate)
+	if k > 1:
+		f -= f % k
 	if f != _frame:
 		_frame = f
 		_sprite.queue_redraw()

@@ -564,6 +564,8 @@ class Actor extends Node3D:
 		var fps: Dictionary = art.fps if art and art.sprite else {}
 		sprite.enable_over_trails()
 		sprite.setup(tex, anims, TitleStage.ORDER, TitleStage.HERO_HEIGHT, cols, fps)
+		# pass 146: pass 144's stepped poses, as in a run
+		sprite.pose_rate = Settings.pose_rate
 		sprite.set_tint(TitleStage.LOCKED_TINT if locked else Color.WHITE)
 		# the fog would warm the black mask to brown (pass 69): a locked hero is drawn without it
 		sprite.set_fogless(locked)

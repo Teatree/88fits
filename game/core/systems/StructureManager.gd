@@ -587,9 +587,21 @@ func _spawn(def: StructureDef, at: Vector3) -> Structure:
 		bs.scenery = true
 		s.visual = bs
 		s.add_child(bs)
-		bs.setup(load(sprite_path), {"idle": 1}, ["idle"], def.height * 1.15)
-		# one frame: nothing to play (pass 73: a dozen Totem Poles no longer set their frame every frame)
-		bs.playing = false
+		var an := anim_of(def)
+		if not an.is_empty():
+			# pass 146 (Garry: the Stranger "looks too static ... a bit of an idle animation ... he actually dies when Player
+			# agrees / doesn't"): a painted strip (params.anim: its idle loop, then its die), stepped as every looping strip
+			# (pass 144's held poses), the die played by collapse_at
+			bs.setup(load(str(an["strip"])), {"idle": int(an.get("idle", 1)), "die": int(an.get("die", 0))}, ["idle", "die"],
+				def.height * 1.15, int(an.get("cols", 0)), an.get("fps", {}) if an.get("fps", {}) is Dictionary else {})
+			bs.pose_rate = Settings.pose_rate
+			bs.play("idle")
+			# a start of its own by where it stands (never the placing dice: the map stays the same)
+			bs.frame = fposmod(at.x * 7.31 + at.z * 3.17, float(maxi(int(an.get("idle", 1)), 1)))
+		else:
+			bs.setup(load(sprite_path), {"idle": 1}, ["idle"], def.height * 1.15)
+			# one frame: nothing to play (pass 73: a dozen Totem Poles no longer set their frame every frame)
+			bs.playing = false
 		bs.position.y = 0.04
 		if def.params.get("portal") is Dictionary:
 			_add_portal(s, def.params["portal"], def.height * 1.15, def.color)
@@ -913,7 +925,9 @@ func _use(s: Structure) -> void:
 	# coins, so the game is told first: its deposit starts the coin stream the lift waits for)
 	var off_path := "res://art/sprites/props/st_%s_off.png" % s.def.id
 	var flies := str(s.def.params.get("spent", "")) == "fly_away"
-	if not flies:
+	# pass 146: a strip with a die (the Stranger) stands as he is while his screen is up and falls in collapse_at
+	var falls := s.visual is BillboardSprite and int(anim_of(s.def).get("die", 0)) > 0
+	if not flies and not falls:
 		if s.visual is BillboardSprite and ResourceLoader.exists(off_path):
 			(s.visual as BillboardSprite).set_texture(load(off_path))
 			(s.visual as BillboardSprite).set_tint(Color(0.8, 0.78, 0.78, 1.0))
@@ -926,6 +940,30 @@ func _use(s: Structure) -> void:
 	game.use_structure(s.def, s.global_position)
 	if flies:
 		_fly_away(s)
+
+
+## Pass 146: a structure's painted strip (params.anim {strip, cols, idle, die, fps}) when its file is there, else {}.
+static func anim_of(def: StructureDef) -> Dictionary:
+	var an = def.params.get("anim", {}) if def != null else {}
+	if not an is Dictionary or str((an as Dictionary).get("strip", "")) == "" or not ResourceLoader.exists(str(an["strip"])):
+		return {}
+	return an
+
+
+## Pass 146 (Garry: "he actually dies when Player agrees / doesn't. Just collapses into that thing that stays"): the
+## structure standing at `at` plays its strip's die once (the Stranger's robe falling into the heap of his spent painting,
+## its last frame) and lies there, tinted as a spent painting. Nothing for one without a die.
+func collapse_at(at: Vector3) -> void:
+	var s := _structure_at(at)
+	if s == null or not s.visual is BillboardSprite or int(anim_of(s.def).get("die", 0)) <= 0:
+		return
+	var bs := s.visual as BillboardSprite
+	if bs.animation == "die":
+		return
+	bs.play("die")
+	bs.animation_finished.connect(func(_a: String) -> void:
+		if is_instance_valid(bs):
+			bs.set_tint(Color(0.8, 0.78, 0.78, 1.0)), CONNECT_ONE_SHOT)
 
 
 ## The Strongbox's exit: once the coins are in (pass 58: the lift waits for the stream, deposit), the balloon lifts it.

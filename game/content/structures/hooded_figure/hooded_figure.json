@@ -10,7 +10,19 @@
   "color": "#6A4FA0",
   "params": {
     "hp_cost": 0.15,
-    "levels": 3
+    "levels": 3,
+    "anim": {
+      "strip": "res://art/sprites/props/st_hooded_figure_anim.png",
+      "cols": 8,
+      "idle": 32,
+      "die": 12,
+      "fps": {
+        "idle": 16,
+        "die": 12
+      },
+      "die_on": "closed",
+      "made_by": "tools/gen_stranger_anim.py (Wan 2.2 first-last-frame) from idle_s14501 and die_s14501"
+    }
   },
   "placeholder": {
     "color": "#6A4FA0",

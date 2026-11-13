@@ -11286,3 +11286,16 @@ shown, then fade over `moment.words_fade` 0.35 s; the drum still fades at `momen
 `params.burst.damage` 8 (flat) and a push of `params.burst.knockback` 40 (a skeleton about 2 m out, heavier creatures
 less; one still rising out of the sand stays), under a red wave, a flash ring, a burst and a small camera kick
 (`Game._drum_burst`; content/structures/war_drum/war_drum.json). Pass 145b (Garry): the words, 1.4 s -> 0.9 s, push 8 -> 40.
+
+## 87. Pass 146: the Stranger breathes and falls; held poses on the menus
+
+**87.STRANGER.** A structure may carry a painted strip (`params.anim` {strip, cols, idle, die, fps}; StructureManager.anim_of):
+it loops its idle from a start of its own (by where it stands, never the placing dice), stepped as every looping strip
+(`Settings.pose_rate`, pass 144), and plays its die once by `collapse_at`, holding the last frame under the spent tint. The
+Stranger's (content/structures/hooded_figure, art/sprites/props/st_hooded_figure_anim.png by tools/gen_stranger_anim.py:
+Wan 2.2 first-last-frame from his two paintings): idle 32 frames at 16 fps (a slow bow of the hood, shown as 8 poses a
+second at the default 10), die 12 frames at 12 fps ending on his spent painting. He stands as he is while his screen is up
+and falls as it closes, whether the deal was taken or not, and at once when he had nothing to offer.
+
+**87.POSES.** The menus' figures hold their poses as a run does (pass 144's k = round(rate / `Settings.pose_rate`)): the
+Outlaws screen's run, the main menu's Outlaw (idle, the run in and off), the title stage's sprite.

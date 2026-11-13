@@ -7,6 +7,18 @@
 script = ExtResource("2_hc5yv")
 effect_kind = "stranger"
 params = {
+"anim": {
+"cols": 8.0,
+"die": 12.0,
+"die_on": "closed",
+"fps": {
+"die": 12.0,
+"idle": 16.0
+},
+"idle": 32.0,
+"made_by": "tools/gen_stranger_anim.py (Wan 2.2 first-last-frame) from idle_s14501 and die_s14501",
+"strip": "res://art/sprites/props/st_hooded_figure_anim.png"
+},
 "hp_cost": 0.15,
 "levels": 3.0
 }
