@@ -627,13 +627,13 @@ func test_the_estimate_and_the_words_count_bounces() -> void:
 	Run.heat = 0
 	assert_str(TextGen.amount_noun(b1.def, b1.sheet, b1.params)).is_equal("bounces")
 	# pass 138 (lane TEXTS): Garry's row (c1d5f178) and nothing glued on (no Heat, no dunk: the ball shows its Heat)
-	assert_str(b1.description()).is_equal("Throws a ball at the strongest enemy within 9 m, it bounces to 1 more enemy close by, then flies back.")
+	assert_str(b1.description()).is_equal("Throws a ball at the strongest enemy within 9 m for 20 damage, it bounces to 1 more enemy close by, then flies back.")
 	assert_str(b3.description()).contains("it bounces to 3 more enemies close by")
 	assert_str(rb.description()).contains("then flies back.")
 	assert_str(b1.description()).not_contains("ricochet")
 	var slam := {"at_heat": 10, "radius": 3.5, "damage_frac": 1.5, "knockback": 12.0}
 	var sd := _ball({"return_pierce": 80, "ricochet_any": {"count": 3, "reach": 10.0}, "catch": {"heat_keep": true, "slam": slam}}, {"range": 10.0})
-	assert_str(sd.description()).is_equal("Throws a ball at the strongest enemy within 10 m, it bounces to 3 more enemies close by, then flies back.")
+	assert_str(sd.description()).is_equal("Throws a ball at the strongest enemy within 10 m for 20 damage, it bounces to 3 more enemies close by, then flies back.")
 	# the Build tab: the amount row counts the bounces a throw makes (ricochet_any.count + amount - 1), the ricochet row
 	# what each one strikes for
 	assert_int(b3.ball_bounces()).is_equal(3)

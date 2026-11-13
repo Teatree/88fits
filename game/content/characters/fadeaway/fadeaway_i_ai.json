@@ -1,0 +1,419 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a huge, hulking, very muscular black bull standing upright like a man, much broader than a man: a massive barrel chest, very broad shoulders with huge rounded shoulder muscles, thick heavy arms that hang away from his body, big dark hands, thick powerful legs; short jet-black fur with a cool dark slate-grey sheen; a big bull's head with a broad muzzle, small dark stern eyes under a heavy brow, two ears sticking out sideways and two cream-gold curved horns sweeping out and up; a sleeveless red basketball jersey with navy-blue and white trim and a big navy-blue number 22 outlined in white on the chest (the back plain red), loose red basketball shorts with navy-blue side panels and white trim, white socks, red, navy-blue and white high-top sneakers; no nose ring, no metal, no robot parts, no logo, no lettering but the 22; standing tall and facing the viewer with his arms hanging away from his sides, empty hands",
+ "renders": {
+  "front": {
+   "seed": 2024760,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is a 3D render of the character: redraw it as a hand-painted 2D anime game character in the art style of the first image, keeping exactly the render's pose, his very broad and bulky build and proportions, his colours, his size and his place in the frame: a huge, hulking, very muscular black bull standing upright like a man: a massive barrel chest, very broad shoulders with huge rounded shoulder muscles, thick heavy arms that hang away from his body, big dark hands with thick fingers, thick powerful legs; short jet-black fur with a cool dark slate-grey sheen on the muscles; a big bull's head with a broad muzzle and two round nostrils, small dark stern eyes under a heavy brow, two ears sticking out sideways below the horns and exactly two cream-gold curved horns sweeping out and up from the top of his head; a sleeveless red basketball jersey with navy-blue and white trim round the neck and the armholes and a big navy-blue number 22 outlined in white in the middle of the chest; loose red basketball shorts with navy-blue side panels and white trim; white socks; red, navy-blue and white high-top sneakers with white soles; no nose ring, no metal, no robot parts, no logo, no lettering anywhere other than the 22 on the chest. Full body, front view, facing the viewer, standing as in the render with his arms hanging away from his sides, empty hands, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/fadeaway_i_front_render_green.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 260,
+     "right": 258,
+     "top": 75,
+     "bottom": 121,
+     "height": 827,
+     "width": 505
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 24838,
+   "prompt": "The first reference image shows the character as he is painted: a hand-painted 2D anime bull in a red basketball uniform. The second reference image is a 3D render of the same character in another view or pose. One single figure alone in the frame: redraw the figure of the second reference image in exactly its pose, its view, its very broad and bulky build, its size and its place in the frame, painted exactly like the character of the first reference image (the same line art, cel shading, colours, face, horns and uniform): a huge, hulking, very muscular black bull standing upright like a man: a massive barrel chest, very broad shoulders with huge rounded shoulder muscles, thick heavy arms that hang away from his body, big dark hands with thick fingers, thick powerful legs; short jet-black fur with a cool dark slate-grey sheen on the muscles; a big bull's head with a broad muzzle and two round nostrils, small dark stern eyes under a heavy brow, two ears sticking out sideways below the horns and exactly two cream-gold curved horns sweeping out and up from the top of his head; a sleeveless red basketball jersey with navy-blue and white trim round the neck and the armholes and a big navy-blue number 22 outlined in white in the middle of the chest; loose red basketball shorts with navy-blue side panels and white trim; white socks; red, navy-blue and white high-top sneakers with white soles; no nose ring, no metal, no robot parts, no logo, no lettering anywhere other than the 22 on the chest. Full body, seen directly from behind as in the render: the back of the bull's head with its two horns curving out and up and its two ears, the back of his thick neck, no eyes, no face at all; the back of the red jersey is plain red with its navy and white trim only: no number, no lettering on the back; both arms hanging away from his sides, empty hands; the heels of the sneakers; feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_i_front_ref.png",
+    "88fits/fadeaway_i_back_render.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 258,
+     "right": 260,
+     "top": 75,
+     "bottom": 109,
+     "height": 839,
+     "width": 505
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 28709,
+   "prompt": "Repaint this picture as a hand-painted 2D anime game character in the art style of the first reference image, painted exactly like the character of the second reference image (the same line art, cel shading, colours, face, horns and uniform), keeping the picture's pose, view, build, size and place exactly: a huge, hulking, very muscular black bull standing upright like a man: a massive barrel chest, very broad shoulders with huge rounded shoulder muscles, thick heavy arms that hang away from his body, big dark hands with thick fingers, thick powerful legs; short jet-black fur with a cool dark slate-grey sheen on the muscles; a big bull's head with a broad muzzle and two round nostrils, small dark stern eyes under a heavy brow, two ears sticking out sideways below the horns and exactly two cream-gold curved horns sweeping out and up from the top of his head; a sleeveless red basketball jersey with navy-blue and white trim round the neck and the armholes and a big navy-blue number 22 outlined in white in the middle of the chest; loose red basketball shorts with navy-blue side panels and white trim; white socks; red, navy-blue and white high-top sneakers with white soles; no nose ring, no metal, no robot parts, no logo, no lettering anywhere other than the 22 on the chest. Full body, in strict side profile facing right as in the render: the bull's muzzle in profile pointing right, the near horn, the near ear and one eye; the near arm hanging beside the body, empty hand, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/fadeaway_i_front_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 373,
+     "right": 292,
+     "top": 87,
+     "bottom": 117,
+     "height": 819,
+     "width": 358
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 28662,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is a 3D render of the character: redraw it as a hand-painted 2D anime game character in the art style of the first image, keeping exactly the render's pose, its view and the way the body is turned, his very broad and bulky build and proportions, his colours, his size and his place in the frame: a huge, hulking, very muscular black bull standing upright like a man: a massive barrel chest, very broad shoulders with huge rounded shoulder muscles, thick heavy arms that hang away from his body, big dark hands with thick fingers, thick powerful legs; short jet-black fur with a cool dark slate-grey sheen on the muscles; a big bull's head with a broad muzzle and two round nostrils, small dark stern eyes under a heavy brow, two ears sticking out sideways below the horns and exactly two cream-gold curved horns sweeping out and up from the top of his head; a sleeveless red basketball jersey with navy-blue and white trim round the neck and the armholes and a big navy-blue number 22 outlined in white in the middle of the chest; loose red basketball shorts with navy-blue side panels and white trim; white socks; red, navy-blue and white high-top sneakers with white soles; no nose ring, no metal, no robot parts, no logo, no lettering anywhere other than the 22 on the chest. Full body, three-quarter front view, turned towards the lower right as in the render, his face, both eyes and the 22 on his chest visible, empty hands, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/fadeaway_i_fd_render.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 276,
+     "right": 296,
+     "top": 126,
+     "bottom": 119,
+     "height": 778,
+     "width": 451
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 24841,
+   "prompt": "The first reference image shows the character as he is painted: a hand-painted 2D anime bull in a red basketball uniform. The second reference image is a 3D render of the same character in another view or pose. One single figure alone in the frame: redraw the figure of the second reference image in exactly its pose, its view, its very broad and bulky build, its size and its place in the frame, painted exactly like the character of the first reference image (the same line art, cel shading, colours, face, horns and uniform): a huge, hulking, very muscular black bull standing upright like a man: a massive barrel chest, very broad shoulders with huge rounded shoulder muscles, thick heavy arms that hang away from his body, big dark hands with thick fingers, thick powerful legs; short jet-black fur with a cool dark slate-grey sheen on the muscles; a big bull's head with a broad muzzle and two round nostrils, small dark stern eyes under a heavy brow, two ears sticking out sideways below the horns and exactly two cream-gold curved horns sweeping out and up from the top of his head; a sleeveless red basketball jersey with navy-blue and white trim round the neck and the armholes and a big navy-blue number 22 outlined in white in the middle of the chest; loose red basketball shorts with navy-blue side panels and white trim; white socks; red, navy-blue and white high-top sneakers with white soles; no nose ring, no metal, no robot parts, no logo, no lettering anywhere other than the 22 on the chest. Full body, three-quarter back view, turned away from the viewer towards the upper right as in the render: the back and the near side of the head with the two horns and the ears, no eyes, no muzzle, no face; the back of the red jersey is plain red with its navy and white trim only: no number, no lettering on the back; feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_i_front_ref.png",
+    "88fits/fadeaway_i_bd_render.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 265,
+     "right": 266,
+     "top": 68,
+     "bottom": 80,
+     "height": 875,
+     "width": 492
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 24842,
+   "prompt": "The first reference image shows the character as he is painted: a hand-painted 2D anime bull in a red basketball uniform. The second reference image is a 3D render of the same character in another view or pose. One single figure alone in the frame: redraw the figure of the second reference image in exactly its pose, its view, its very broad and bulky build, its size and its place in the frame, painted exactly like the character of the first reference image (the same line art, cel shading, colours, face, horns and uniform): a huge, hulking, very muscular black bull standing upright like a man: a massive barrel chest, very broad shoulders with huge rounded shoulder muscles, thick heavy arms that hang away from his body, big dark hands with thick fingers, thick powerful legs; short jet-black fur with a cool dark slate-grey sheen on the muscles; a big bull's head with a broad muzzle and two round nostrils, small dark stern eyes under a heavy brow, two ears sticking out sideways below the horns and exactly two cream-gold curved horns sweeping out and up from the top of his head; a sleeveless red basketball jersey with navy-blue and white trim round the neck and the armholes and a big navy-blue number 22 outlined in white in the middle of the chest; loose red basketball shorts with navy-blue side panels and white trim; white socks; red, navy-blue and white high-top sneakers with white soles; no nose ring, no metal, no robot parts, no logo, no lettering anywhere other than the 22 on the chest. Full body, seen directly from behind as in the render, cheering with joy with both arms thrown up high above his head and his fists raised: the back of his head with the two horns, no face; the back of the red jersey is plain red with its navy and white trim only: no number, no lettering on the back; feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_i_front_ref.png",
+    "88fits/fadeaway_i_cheer_render.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 238,
+     "right": 237,
+     "top": 78,
+     "bottom": 97,
+     "height": 848,
+     "width": 548
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 28670,
+   "prompt": "One single figure alone in the frame: the exact same character seen directly from behind, flinching in pain from a hit: his head ducked down and forward between his hunched shoulders, both arms hanging bent at his sides with the fists clenched, the elbows out, no hand on his back, his eyes squeezed shut and his muzzle snarling, the whole heavy body jolting, still standing on both feet, feet fully visible. Keep the same bull, his very broad and bulky build, the same outfit, colours, proportions, pose scale and art style as the reference; no face on the back of his head, the back of the red jersey is plain red with its navy and white trim only: no number, no lettering on the back. No nose ring, no metal, no motion lines, no impact marks.  isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_i_hurt_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 239,
+     "right": 245,
+     "top": 89,
+     "bottom": 109,
+     "height": 825,
+     "width": 539
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 28642,
+   "prompt": "One single figure alone in the frame: the exact same character facing the viewer, flinching in pain from a hit: leaning back a little, his heavy shoulders hunched, one big hand raised towards his chest, his eyes squeezed shut and his muzzle snarling, the whole heavy body jolting, still standing on both feet, feet fully visible. Keep the same bull, his very broad and bulky build, the same outfit, colours, proportions, pose scale and art style as the reference. No nose ring, no metal, no motion lines, no impact marks. He is the same bull as the reference: his bull's head with its broad muzzle and exactly two big cream-gold curved horns sweeping out and up from the top of his head, two ears; the big navy number 22 on the chest still visible beside his raised hand. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_i_hurt_front_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 298,
+     "right": 306,
+     "top": 80,
+     "bottom": 122,
+     "height": 821,
+     "width": 419
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 24846,
+   "prompt": "One single figure alone in the frame: the exact same character in strict side profile facing right, flinching in pain from a hit: leaning back a little, his heavy shoulders hunched, one big hand raised towards his chest, his eyes squeezed shut and his muzzle snarling, the whole heavy body jolting, still standing on both feet, feet fully visible. Keep the same bull, his very broad and bulky build, the same outfit, colours, proportions, pose scale and art style as the reference. No nose ring, no metal, no motion lines, no impact marks. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_i_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 374,
+     "right": 273,
+     "top": 83,
+     "bottom": 117,
+     "height": 823,
+     "width": 376
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 28669,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter back view, flinching in pain from a hit: his head ducked down and forward between his hunched shoulders and turned away so no eye shows, both arms hanging bent at his sides with the fists clenched, the elbows out, no hand on his back, his eyes squeezed shut and his muzzle snarling, the whole heavy body jolting, still standing on both feet, feet fully visible. Keep the same bull, his very broad and bulky build, the same outfit, colours, proportions, pose scale and art style as the reference; no face on the back of his head, the back of the red jersey is plain red with its navy and white trim only: no number, no lettering on the back. No nose ring, no metal, no motion lines, no impact marks.  isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_i_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 261,
+     "right": 266,
+     "top": 80,
+     "bottom": 80,
+     "height": 863,
+     "width": 496
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 24845,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter front view, flinching in pain from a hit: leaning back a little, his heavy shoulders hunched, one big hand raised towards his chest, his eyes squeezed shut and his muzzle snarling, the whole heavy body jolting, still standing on both feet, feet fully visible. Keep the same bull, his very broad and bulky build, the same outfit, colours, proportions, pose scale and art style as the reference. No nose ring, no metal, no motion lines, no impact marks. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_i_hurt_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 298,
+     "right": 318,
+     "top": 125,
+     "bottom": 119,
+     "height": 779,
+     "width": 407
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 28665,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is a 3D render of the character: redraw it as a hand-painted 2D anime game character in the art style of the first image, keeping exactly the render's pose, its view and the way the body is turned, his very broad and bulky build and proportions, his colours, his size and his place in the frame: a huge, hulking, very muscular black bull standing upright like a man: a massive barrel chest, very broad shoulders with huge rounded shoulder muscles, thick heavy arms that hang away from his body, big dark hands with thick fingers, thick powerful legs; short jet-black fur with a cool dark slate-grey sheen on the muscles; a big bull's head with a broad muzzle and two round nostrils, small dark stern eyes under a heavy brow, two ears sticking out sideways below the horns and exactly two cream-gold curved horns sweeping out and up from the top of his head; a sleeveless red basketball jersey with navy-blue and white trim round the neck and the armholes and a big navy-blue number 22 outlined in white in the middle of the chest; loose red basketball shorts with navy-blue side panels and white trim; white socks; red, navy-blue and white high-top sneakers with white soles; no nose ring, no metal, no robot parts, no logo, no lettering anywhere other than the 22 on the chest. He lies flat on the ground on his back, knocked out, limbs sprawled exactly as in the render, the whole body visible, seen from a little above, his eyes closed. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/fadeaway_i_dead_render.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 66,
+     "right": 66,
+     "top": 191,
+     "bottom": 182,
+     "height": 650,
+     "width": 891
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "art_prompt": "a huge, hulking, very muscular black bull standing upright like a man, much broader than a man: a massive barrel chest, very broad shoulders with huge rounded shoulder muscles, thick heavy arms that hang away from his body, big dark hands, thick powerful legs; short jet-black fur with a cool dark slate-grey sheen; a big bull's head with a broad muzzle, small dark stern eyes under a heavy brow, two ears sticking out sideways and two cream-gold curved horns sweeping out and up; a sleeveless red basketball jersey with navy-blue and white trim and a big navy-blue number 22 outlined in white on the chest (the back plain red), loose red basketball shorts with navy-blue side panels and white trim, white socks, red, navy-blue and white high-top sneakers; no nose ring, no metal, no robot parts, no logo, no lettering but the 22; standing tall and facing the viewer with his arms hanging away from his sides, empty hands",
+  "pose_hint": "standing tall and broad, weight on both feet, his thick arms hanging away from his sides, empty hands, no ball",
+  "back_hint": "He faces away from the viewer: only the back of the bull's head with its two cream-gold horns curving out and up and its two ears, the back of his thick black neck, the broad back of the red jersey, plain red with its navy and white trim and no number, the red shorts with their navy side panels, the backs of his thick black calves, the white socks and the heels of the sneakers; no eyes, no muzzle, no face at all. Both thick arms hang away from his sides, empty hands.",
+  "side_hint": "a clean side profile facing right: the bull's broad muzzle in profile pointing right, the near horn curving out and up, the near ear and one eye, his massive chest and back, the jersey's side with its navy and white armhole trim, the red shorts with the navy side panel, one thick arm hanging beside the body, empty hand",
+  "anim_hint": "a huge hulking black bull standing upright like a man, much broader than a man, with very broad muscular shoulders and thick arms, two cream-gold curved horns, a broad muzzle, in a sleeveless red basketball jersey with navy and white trim and a big navy number 22 on the chest (the back plain red), red shorts with navy side panels, white socks and red, navy and white high-top sneakers; he walks with heavy, powerful, lumbering steps",
+  "anim_negative": "a basketball, a ball in his hands, metal, a robot, robot parts, a nose ring, glowing eyes, a human face, human skin, hair, a third horn, extra arms or legs, a face or eyes on the back of his head, a number or lettering on the back of the jersey, a logo, an emblem, a bull logo, lettering, words, a thin or slim body, a dull greyish jersey",
+  "hurt_hint": "his eyes squeezed shut and his muzzle snarling, the whole heavy body jolting",
+  "stills": "i",
+  "screen": "green",
+  "seed_offset": 2477,
+  "method": "hero_puppet",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "pose_drivers": {
+   "front": "fadeaway_bull_creature_walk",
+   "fd": "fadeaway_bull_creature_walk",
+   "side": "fadeaway_bull_creature_walk",
+   "bd": "fadeaway_bull_creature_walk",
+   "back": "fadeaway_bull_creature_walk"
+  },
+  "ctl_drivers": {
+   "front": "fadeaway_bull_creature_walk_depth",
+   "fd": "fadeaway_bull_creature_walk_depth",
+   "side": "fadeaway_bull_creature_walk_depth",
+   "bd": "fadeaway_bull_creature_walk_depth",
+   "back": "fadeaway_bull_creature_walk_depth"
+  },
+  "pose_motion": "walking in place on the spot like on a treadmill with heavy, powerful, lumbering steps",
+  "run_fit": "tools/dl/drivers/fadeaway_bull_creature_walk/silhouette.json",
+  "run_scale": {
+   "front": 0.874,
+   "fd": 0.954,
+   "side": 1.02,
+   "bd": 1.032,
+   "back": 1.004
+  },
+  "fringe_remap": true,
+  "polish": [
+   {
+    "mode": "hue",
+    "ranges": [
+     [
+      70,
+      170
+     ]
+    ],
+    "to": 230,
+    "sat": 0.25,
+    "min_sat": 0.12
+   }
+  ],
+  "puppet": {
+   "source": "bull_basketball.glb",
+   "rig": "tools/dl/p147/ROBOT/scripts/rig_bull.py (T-pose joints, bone heat on a voxel proxy, Mixamo names)",
+   "glb": "tools/dl/puppet/fadeaway_bull/fadeaway_bull_puppet.glb",
+   "clip": "creature_walk.fbx",
+   "idle": "mutant breathing idle.fbx, blended 0.40 of the way from his upright rest (scripts/make_stand.py)",
+   "frame": "soles",
+   "face": "nose"
+  }
+ },
+ "clip_kind": {
+  "back": "control",
+  "front": "control",
+  "side": "control",
+  "bd": "control",
+  "fd": "control"
+ },
+ "fringe_remap": true,
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

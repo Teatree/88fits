@@ -50,5 +50,7 @@ text next. Where a text lives and how to add one: the skill `game-texts` (`.clau
 - Change a text Garry wrote (the Basketball, Big Mouth, Boomstick and Dragon's Breath families, commit c1d5f178, and
   any row `git log -p` shows him editing): list a suggestion instead. (Pass 143: he asked the Boomstick and Dragon's
   Breath families to say their damage, and gave the Skull Rain's, the Dynamite's and Cold Snap's sentences; those rows
-  are his new texts. The Big Mouth's row still says no damage: a suggestion for him.)
+  are his new texts. Pass 147: he asked every weapon description to say its damage, as the Revolver does; the
+  Basketball's, Slam Dunk's, the Big Mouth's and Loudmouth's rows and the generic ball, laser and forward-shot rows
+  gained it. A beam says damage a second, `damage / params.beam.tick`.)
 - Put a number in a row the code can hand in as a variable, or glue sentences after an item's own row.

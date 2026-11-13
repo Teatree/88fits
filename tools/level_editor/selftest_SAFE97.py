@@ -695,8 +695,12 @@ def _check_requirements(check):
         local.update(dirs)
         for f in fs:
             if f.endswith(".py"):
-                files.append(os.path.join(d, f))
                 local.add(f[:-3])
+                # 2026-11-13: a *_remote.py runs ON THE AI SERVER in its own venv (tools/hy3d_paint_remote.py,
+                # hy3d21_paint_remote.py: the Hunyuan3D paint), never on the PC: its imports are the server's
+                if f.endswith("_remote.py"):
+                    continue
+                files.append(os.path.join(d, f))
     blender = {"bpy", "bmesh", "mathutils", "bpy_extras"}
     import_to_req = {"PIL": "pillow", "websocket": "websocket-client", "gradio_client": "gradio_client", "cv2": "opencv-python"}
     missing = {}

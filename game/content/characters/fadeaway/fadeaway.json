@@ -1,6 +1,6 @@
 {
   "id": "fadeaway",
-  "name": "The Robot",
+  "name": "Pip",
   "flavour": "You cannot guard what you cannot catch.",
   "order": 6,
   "pronoun": "he",
@@ -29,20 +29,20 @@
   "frame_px": 256,
   "placeholder": {
     "color": "#C8202E",
-    "hat": "#4A4E57",
+    "hat": "#1E1E24",
     "eyes": 2,
     "shape": "blob"
   },
-  "art_prompt": "a tall, lean, athletic humanoid robot with long arms and long legs and broad square shoulders held level, built from matte painted dark gunmetal-grey metal with clear joints at the shoulders, elbows, wrists and knees and metal hands with five fingers; his head is a robot bull's head of the same dark metal: a broad square muzzle with a steel nose ring, two curved off-white horns, two glowing amber-yellow eyes and two small ears; a sleeveless bright red basketball jersey with black and white trim and a big white number 88 with a black edge on the chest and the back, loose red basketball shorts with a black and white stripe down each side, red and black high-top sneakers; no logo, no emblem, no lettering but the 88; standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
-  "motion": "running in place at a steady athletic jog like a basketball player on a fast break, metal arms pumping at his sides, the loose jersey and shorts swaying, empty hands, no ball",
-  "anim_hint": "a tall lean humanoid robot of dark gunmetal-grey metal with a robot bull's head (a broad muzzle with a steel nose ring, two curved off-white horns, two glowing amber-yellow eyes), in a sleeveless red basketball jersey with black and white trim and a big white number 88 on the front and on the back, loose red shorts with black and white side stripes and red and black high-top sneakers; he runs tall with his back straight, his chest up and both shoulders square and level",
-  "portrait_prompt": "head and shoulders portrait of a robot with a robot bull's head of dark gunmetal metal (a broad muzzle with a steel nose ring, two curved off-white horns, two glowing amber-yellow eyes), in a sleeveless red basketball jersey with black and white trim, facing the viewer",
+  "art_prompt": "a huge, hulking, very muscular black bull standing upright like a man, much broader than a man: a massive barrel chest, very broad shoulders with huge rounded shoulder muscles, thick heavy arms that hang away from his body, big dark hands, thick powerful legs; short jet-black fur with a cool dark slate-grey sheen; a big bull's head with a broad muzzle, small dark stern eyes under a heavy brow, two ears sticking out sideways and two cream-gold curved horns sweeping out and up; a sleeveless red basketball jersey with navy-blue and white trim and a big navy-blue number 22 outlined in white on the chest (the back plain red), loose red basketball shorts with navy-blue side panels and white trim, white socks, red, navy-blue and white high-top sneakers; no nose ring, no metal, no robot parts, no logo, no lettering but the 22; standing tall and facing the viewer with his arms hanging away from his sides, empty hands",
+  "motion": "walking in place with heavy, powerful, lumbering steps like a huge bull on two legs, his thick arms swinging away from his sides, the jersey and shorts swaying, empty hands, no ball",
+  "anim_hint": "a huge hulking black bull standing upright like a man, much broader than a man, with very broad muscular shoulders and thick arms, two cream-gold curved horns, a broad muzzle, in a sleeveless red basketball jersey with navy and white trim and a big navy number 22 on the chest (the back plain red), red shorts with navy side panels, white socks and red, navy and white high-top sneakers; he walks with heavy, powerful, lumbering steps",
+  "portrait_prompt": "head and shoulders portrait of a huge black bull standing like a man (a broad muzzle, small dark stern eyes, two cream-gold curved horns, two ears), his massive shoulders in a sleeveless red basketball jersey with navy and white trim, facing the viewer",
   "badge": {
     "still": "fadeaway_portrait_c1",
     "head_width": 0.0,
     "top_pad": 0.03
   },
-  "title_pose": "standing relaxed and confident with his weight on one leg, holding the basketball from the second reference image against his hip with one metal hand, the other hand loose at his side, his glowing amber eyes on the viewer, his red jersey with the white number 88 facing the viewer",
+  "title_pose": "standing relaxed and confident with his weight on one leg, holding the basketball from the second reference image against his hip with one big dark hand, the other arm hanging loose away from his side, his stern eyes on the viewer, his red jersey with the navy number 22 facing the viewer",
   "title_holds": "the basketball is the only thing he holds",
   "title_extra_ref": {
     "file": "tools/dl/basketball_ref.png",
@@ -50,16 +50,16 @@
   },
   "trait_name": "Footwork",
   "trait_text": "Gain 0.5% evade chance per level.",
-  "pose_hint": "standing tall and straight, weight on both feet, chest up, both shoulders level and square, arms relaxed at the sides, empty hands, no ball",
-  "back_hint": "He faces away from the viewer: only the back of the robot bull's head with its two horns curving out and up and its two small ears, the back of his metal neck, and the back of the red jersey with a big white number 88 with a black edge across the middle of his upper back, as big as the 88 on the front; both shoulders broad, square and level, his back straight; the red shorts with their black and white side stripes, the backs of his metal calves and the heels of the sneakers; no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed, empty hands.",
-  "side_hint": "a clean side profile facing right: the robot bull's broad muzzle in profile with the nose ring, the near horn curving forward and up, one glowing eye, the jersey's side with its black and white armhole trim, the red shorts with the black and white stripe down the side, standing tall with his back straight and both shoulders level, one arm hanging relaxed beside the torso, empty hands",
-  "hurt_hint": "his glowing eyes narrowed, flinching back with one arm raised across the chest",
+  "pose_hint": "standing tall and broad, weight on both feet, his thick arms hanging away from his sides, empty hands, no ball",
+  "back_hint": "He faces away from the viewer: only the back of the bull's head with its two cream-gold horns curving out and up and its two ears, the back of his thick black neck, the broad back of the red jersey, plain red with its navy and white trim and no number, the red shorts with their navy side panels, the backs of his thick black calves, the white socks and the heels of the sneakers; no eyes, no muzzle, no face at all. Both thick arms hang away from his sides, empty hands.",
+  "side_hint": "a clean side profile facing right: the bull's broad muzzle in profile pointing right, the near horn curving out and up, the near ear and one eye, his massive chest and back, the jersey's side with its navy and white armhole trim, the red shorts with the navy side panel, one thick arm hanging beside the body, empty hand",
+  "hurt_hint": "his eyes squeezed shut and his muzzle snarling, flinching back with one big hand raised to his chest",
   "pose_drivers": {
     "back": "run_spread",
     "bd": "run_spread"
   },
   "variant_base": "FAD-A",
-  "variant": "FAD-H",
+  "variant": "FAD-I",
   "variants": {
     "FAD-A": {
       "note": "the placeholder blob strip the editor drew at creation (not art)",
@@ -587,8 +587,118 @@
         "run": 36,
         "hit": 12,
         "die": 8
+      },
+      "shelved": true
+    },
+    "FAD-I": {
+      "note": "pass 147: the bull basketball player (Garry: \"a robot, a basketball player a bull ... doesn't look like either\": now a bull and a basketball player, nothing metal): the puppet method on the textured 3D model bull_basketball.glb (Hunyuan3D from Garry's picture), rigged with Mixamo bones from his T-pose (tools/dl/p147/ROBOT/scripts/rig_bull.py), walked on Mixamo's \"mutant walking\" (creature_walk, in place, his own rest directions kept) and a standing idle from the mutant's breathing idle; the stills are Klein paintings of renders of the textured model in each view (green screen: the blue one keyed his white trim away; the side by img2img from its render, the fd and the dead from the style anchor and the render, the hurts edited from the painted views; tools/dl/p147/ROBOT/scripts/stills.py), walked on the puppet's depth guides (fadeaway_bull_creature_walk_depth, Wan 2.2 Fun Control) sized by the puppet's silhouette (run_fit), polished (the green screen's fringes to slate); wider than the other outlaws by design",
+      "recipe": {
+        "art_prompt": "a huge, hulking, very muscular black bull standing upright like a man, much broader than a man: a massive barrel chest, very broad shoulders with huge rounded shoulder muscles, thick heavy arms that hang away from his body, big dark hands, thick powerful legs; short jet-black fur with a cool dark slate-grey sheen; a big bull's head with a broad muzzle, small dark stern eyes under a heavy brow, two ears sticking out sideways and two cream-gold curved horns sweeping out and up; a sleeveless red basketball jersey with navy-blue and white trim and a big navy-blue number 22 outlined in white on the chest (the back plain red), loose red basketball shorts with navy-blue side panels and white trim, white socks, red, navy-blue and white high-top sneakers; no nose ring, no metal, no robot parts, no logo, no lettering but the 22; standing tall and facing the viewer with his arms hanging away from his sides, empty hands",
+        "pose_hint": "standing tall and broad, weight on both feet, his thick arms hanging away from his sides, empty hands, no ball",
+        "back_hint": "He faces away from the viewer: only the back of the bull's head with its two cream-gold horns curving out and up and its two ears, the back of his thick black neck, the broad back of the red jersey, plain red with its navy and white trim and no number, the red shorts with their navy side panels, the backs of his thick black calves, the white socks and the heels of the sneakers; no eyes, no muzzle, no face at all. Both thick arms hang away from his sides, empty hands.",
+        "side_hint": "a clean side profile facing right: the bull's broad muzzle in profile pointing right, the near horn curving out and up, the near ear and one eye, his massive chest and back, the jersey's side with its navy and white armhole trim, the red shorts with the navy side panel, one thick arm hanging beside the body, empty hand",
+        "anim_hint": "a huge hulking black bull standing upright like a man, much broader than a man, with very broad muscular shoulders and thick arms, two cream-gold curved horns, a broad muzzle, in a sleeveless red basketball jersey with navy and white trim and a big navy number 22 on the chest (the back plain red), red shorts with navy side panels, white socks and red, navy and white high-top sneakers; he walks with heavy, powerful, lumbering steps",
+        "anim_negative": "a basketball, a ball in his hands, metal, a robot, robot parts, a nose ring, glowing eyes, a human face, human skin, hair, a third horn, extra arms or legs, a face or eyes on the back of his head, a number or lettering on the back of the jersey, a logo, an emblem, a bull logo, lettering, words, a thin or slim body, a dull greyish jersey",
+        "hurt_hint": "his eyes squeezed shut and his muzzle snarling, the whole heavy body jolting",
+        "stills": "i",
+        "screen": "green",
+        "seed_offset": 2477,
+        "method": "hero_puppet",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "pose_drivers": {
+          "front": "fadeaway_bull_creature_walk",
+          "fd": "fadeaway_bull_creature_walk",
+          "side": "fadeaway_bull_creature_walk",
+          "bd": "fadeaway_bull_creature_walk",
+          "back": "fadeaway_bull_creature_walk"
+        },
+        "ctl_drivers": {
+          "front": "fadeaway_bull_creature_walk_depth",
+          "fd": "fadeaway_bull_creature_walk_depth",
+          "side": "fadeaway_bull_creature_walk_depth",
+          "bd": "fadeaway_bull_creature_walk_depth",
+          "back": "fadeaway_bull_creature_walk_depth"
+        },
+        "pose_motion": "walking in place on the spot like on a treadmill with heavy, powerful, lumbering steps",
+        "run_fit": "tools/dl/drivers/fadeaway_bull_creature_walk/silhouette.json",
+        "run_scale": {
+          "front": 0.874,
+          "fd": 0.954,
+          "side": 1.02,
+          "bd": 1.032,
+          "back": 1.004
+        },
+        "fringe_remap": true,
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                70,
+                170
+              ]
+            ],
+            "to": 230,
+            "sat": 0.25,
+            "min_sat": 0.12
+          },
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                70,
+                170
+              ]
+            ],
+            "to": 230,
+            "sat": 0.3,
+            "min_sat": 0.04
+          }
+        ],
+        "puppet": {
+          "source": "bull_basketball.glb",
+          "rig": "tools/dl/p147/ROBOT/scripts/rig_bull.py (T-pose joints, bone heat on a voxel proxy, Mixamo names)",
+          "glb": "tools/dl/puppet/fadeaway_bull/fadeaway_bull_puppet.glb",
+          "clip": "creature_walk.fbx",
+          "idle": "mutant breathing idle.fbx, blended 0.40 of the way from his upright rest (scripts/make_stand.py)",
+          "frame": "soles",
+          "face": "nose"
+        }
+      },
+      "fresh": true,
+      "sprite": "fadeaway_sprite_i.png",
+      "icon": "fadeaway_icon_i.png",
+      "icon_picked": true,
+      "title": "hero_fadeaway_i.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
       }
     }
   },
-  "anim_negative": "a basketball, a ball in his hands, a human face, human skin, hair, a third horn, extra arms or legs, a face or eyes on the back of his head, a logo, an emblem, a bull logo, lettering, words, hunched shoulders, slouching, a plain jersey back without its number, a dull greyish jersey"
+  "anim_negative": "a basketball, a ball in his hands, metal, a robot, robot parts, a nose ring, glowing eyes, a human face, human skin, hair, a third horn, extra arms or legs, a face or eyes on the back of his head, a number or lettering on the back of the jersey, a logo, an emblem, a bull logo, lettering, words, a thin or slim body, a dull greyish jersey"
 }

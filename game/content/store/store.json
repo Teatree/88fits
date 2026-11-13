@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "currency": "gold",
+  "show_bonus": true,
+  "packs": [
+    {"id": "pack_handful", "coins": 1000, "price_cents": 99, "price_text": "$0.99", "ribbon": "", "picture": "res://art/ui/store/pack_handful.png"},
+    {"id": "pack_stack", "coins": 5500, "price_cents": 499, "price_text": "$4.99", "ribbon": "", "picture": "res://art/ui/store/pack_stack.png"},
+    {"id": "pack_pouch", "coins": 12000, "price_cents": 999, "price_text": "$9.99", "ribbon": "most_popular", "picture": "res://art/ui/store/pack_pouch.png"},
+    {"id": "pack_sack", "coins": 26000, "price_cents": 1999, "price_text": "$19.99", "ribbon": "", "picture": "res://art/ui/store/pack_sack.png"},
+    {"id": "pack_chest", "coins": 70000, "price_cents": 4999, "price_text": "$49.99", "ribbon": "", "picture": "res://art/ui/store/pack_chest.png"},
+    {"id": "pack_cart", "coins": 150000, "price_cents": 9999, "price_text": "$99.99", "ribbon": "best_value", "picture": "res://art/ui/store/pack_cart.png"}
+  ]
+}

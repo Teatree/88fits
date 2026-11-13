@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_icon_h.png" id="1_4s7ql"]
+[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_icon_i.png" id="1_4s7ql"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_34e7o"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_kekjt"]
 
@@ -25,8 +25,8 @@ favourite_passive_bonus = {
 }
 availability = "purchase"
 price = 3000
-sprite_path = "res://content/characters/fadeaway/fadeaway_sprite_h.png"
-sprite_file = "fadeaway_sprite_h.png"
+sprite_path = "res://content/characters/fadeaway/fadeaway_sprite_i.png"
+sprite_file = "fadeaway_sprite_i.png"
 anims = {
 "cheer": 1.0,
 "die": 5.0,
@@ -304,22 +304,56 @@ variants = {
 "frame_px": 256,
 "icon": "res://content/characters/fadeaway/fadeaway_icon_h.png",
 "note": "pass 143: The Robot (Garry: \"a head of a robot bull and ... Chicago Bulls red basketball uniform. Without any of the Chicago Bulls symbols\"): a lean robot of dark gunmetal metal with a robot bull's head (two off-white horns, amber eyes, a nose ring) in a red jersey and shorts with black and white trim, the 88 on the chest and the back; Klein edits of FAD-E's paintings view by view (the front an edit of FAD-E's front, so his build, height and pose stay; tools/dl/p143/ROBOT/scripts/fronts.py, views.py), walked on FAD-E's puppet walk (fadeaway_puppet_run_up) at FAD-E's run_scale, polished (the blue screen's fringes and a green cast to grey); the badge a two-reference edit of FAD-E's badge painting (fadeaway_portrait_p143_c1, framed by portrait_badge with the horns' span 0.72 of the badge hung 0.10 from the top so both horns show), the title an edit of hero_fadeaway_c.png (fadeaway_title_p143_c1, the ball at his hip)",
-"shelved": false,
+"shelved": true,
 "sprite": "res://content/characters/fadeaway/fadeaway_sprite_h.png",
 "sprite_file": "fadeaway_sprite_h.png",
 "strip_cols": 62,
 "title": "hero_fadeaway_h.png"
+},
+"FAD-I": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": "res://content/characters/fadeaway/fadeaway_icon_i.png",
+"note": "pass 147: the bull basketball player (Garry: \"a robot, a basketball player a bull ... doesn't look like either\": now a bull and a basketball player, nothing metal): the puppet method on the textured 3D model bull_basketball.glb (Hunyuan3D from Garry's picture), rigged with Mixamo bones from his T-pose (tools/dl/p147/ROBOT/scripts/rig_bull.py), walked on Mixamo's \"mutant walking\" (creature_walk, in place, his own rest directions kept) and a standing idle from the mutant's breathing idle; the stills are Klein paintings of renders of the textured model in each view (green screen: the blue one keyed his white trim away; the side by img2img from its render, the fd and the dead from the style anchor and the render, the hurts edited from the painted views; tools/dl/p147/ROBOT/scripts/stills.py), walked on the puppet's depth guides (fadeaway_bull_creature_walk_depth, Wan 2.2 Fun Control) sized by the puppet's silhouette (run_fit), polished (the green screen's fringes to slate); wider than the other outlaws by design",
+"shelved": false,
+"sprite": "res://content/characters/fadeaway/fadeaway_sprite_i.png",
+"sprite_file": "fadeaway_sprite_i.png",
+"strip_cols": 62,
+"title": "hero_fadeaway_i.png"
 }
 }
-variant = "FAD-H"
+variant = "FAD-I"
 id = "fadeaway"
-display_name = "The Robot"
+display_name = "Pip"
 flavour = "You cannot guard what you cannot catch."
 icon = ExtResource("1_4s7ql")
 icon_file = "fadeaway_icon.png"
 placeholder = {
 "color": "#C8202E",
 "eyes": 2.0,
-"hat": "#4A4E57",
+"hat": "#1E1E24",
 "shape": "blob"
 }

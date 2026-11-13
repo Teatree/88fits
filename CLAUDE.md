@@ -84,6 +84,7 @@ bash tools/godot.sh --headless --fixed-fps 60 --path D:/_projects/88fits/game --
 bash tools/godot.sh --headless --path D:/_projects/88fits/game --log-file <abs> --script res://tools/text_census.gd -- out=<abs json> [parts=a,b,c] [only=<screens>] [samples=1]   # pass 137: every text a player reads (generated texts, screens, toasts); python tools/text_census_diff.py a.json b.json [--max N] (exit 1 on a difference; PYTHONIOENCODING=utf-8 on Windows)
 python tools/loc_verify.py [--base HEAD] [--files game/ui/X.gd ...]   # pass 137: every literal a diff removed is the en.json text of a key it added (skill game-texts)
 python tools/level_editor/strings_io.py --export out.csv | --check-csv in.csv   # pass 137: the Texts tab's CSV from a shell
+GODOT_TIMEOUT=240 bash tools/godot.sh --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --log-file <f> --script res://tools/_p147_STORE_shots.gd -- out=<dir>   # pass 147: the Store, the tab bar locked and open, the message, the cutout inset; _p147_BULL_shots.gd -- out=<dir> the Outlaws screen and the menu on an outlaw (Pip)
 python tools/totem_necks.py [--only ids] [--sheet] [--install]   # pass 138: the Totem faces without their wooden necks, laid on the cedar block over one drop shadow (then --import); odds: bash tools/godot.sh --headless --path D:/_projects/88fits/game --log-file <f> --script res://tools/_p138_TOTEM_odds.gd -- [n=] [same=] [out=]; menu captures _p138_TOTEM_shots.gd -- out=<dir> [only=first,late,tiers,held,faces,rolled]
 GODOT_TIMEOUT=240 bash tools/godot.sh --audio-driver Dummy --fixed-fps 60 --resolution 1080x1920 --path D:/_projects/88fits/game --log-file <f> --script res://tools/_p138_MELEE_shots.gd -- out=<dir>   # pass 138: the Sabre's slash and the Spear's lance per style and stage (also _p138_FX_shots.gd: the barrel flash, the sun's patch)
 GODOT_TIMEOUT=240 bash tools/godot.sh --audio-driver Dummy --fixed-fps 60 --resolution 1080x1920 --path D:/_projects/88fits/game --log-file <f> --script res://tools/_p139_AIM_shots.gd -- out=<dir>   # pass 139: the aim wedge's tells (Breath, Mouth, both) and the Mouth's wind-up; also _p139_SWING_shots.gd -- out=<dir> [stages=0,3] [modes=before,after,nodepth], _p139_CHEST_shots.gd, _p139_POP_shots.gd
@@ -314,7 +315,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-11-13, pass 146, version 1.00)
+## Status (2026-11-13, pass 147, version 1.00)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -680,8 +681,10 @@ Pass 145: the War Drum's moment says "×2 ATTACK ×2 SPEED" / "FOR 15 SECONDS" (
 
 Pass 146: **the Stranger breathes and falls** (a structure's painted strip `params.anim`: idle looped and stepped, die by `StructureManager.collapse_at` as his screen closes; his strip by `python tools/gen_stranger_anim.py --kind idle,die [--seeds N]` then `--pick idle=K die=K`, Wan 2.2 first-last-frame from his two paintings); pass 144's held poses on the Outlaws screen, the main menu's Outlaw and the title stage. BALANCING 87. Waiting on Garry: the rocks' look (painted at ~15-20 degrees against the camera's 46-50, side-on pebbles and a base outline: options shader foot / repaint at the game's pitch / 3D, under pass 146 notes in docs/HISTORY.md); arena_check flaked once on a kill leaking into the save.
 
+Pass 147: **Pip** (`fadeaway`, The Robot until now: a huge black bull in a red #22 kit, look FAD-I by the puppet method on bull_basketball.glb walked on the new driver `creature_walk` (Mixamo's mutant walk from Garry's creature pack, tools/dl/mixamo/creature_walk.fbx; `pose_driver.py inplace=1`; `puppet_blender.py anim walk_name= align=0 inplace= extra=`), every older look shelved; every older line here that names The Robot or FAD-H as played is history); **the Store** (ui/StoreScreen.gd, core/systems/StorePacks.gd, content/store/store.json, docs/store_schema.md: six coin packs $0.99-$99.99, no real purchase ("Coming soon"), `Settings.store_open` false and prod-locked, the debug panel's Store row; BALANCING 88); **every weapon's description says its damage** (a beam's a second; BALANCING 89); the Level Editor's animation previews have a **poses** select (smooth / 12 / 10 / 8, StripPlayer.setPoseRate, the Frames view and Show on screen follow it). Waiting on Garry: the rocks' look (pass 146), Pip's known faults under pass 147 in docs/HISTORY.md.
+
 **Outlaws** ("heroes" in code; title order): Drifter (Revolver; free), Astro (Gravity Gun), Calavera (Guitarra), Ironwood (the Spear =
-`pike`), Solenne (Sun Scepter), The Robot (id `fadeaway`, Fadeaway until pass 143: a gunmetal robot with a bull's head in a red basketball kit, look FAD-H; the Basketball: evade per level, Heat shown on the ball itself, the Timeout
+`pike`), Solenne (Sun Scepter), Pip (id `fadeaway`; Fadeaway until pass 143, The Robot until pass 147: a huge black bull in a red #22 basketball kit, look FAD-I, drawn wider by design; the Basketball: evade per level, Heat shown on the ball itself, the Timeout
 trampoline perk Hang Time, Buzzer Beater), the Horseman (id `buck`, Jeżyk until pass 143: a horse-headed outlaw in an indigo serape, look BUC-H; starts with the Frisbee, favourite the
 Salt, momentum, Salt Flats), May (renamed from Mamy in pass 69: attack speed, Trigger Happy on the Tommy Gun, the
 Inflatable May decoy, thrown as a puck that inflates) and Mira (an unattainable requirement). Since pass 129 Astro, Calavera, Solenne,
@@ -692,7 +695,7 @@ Dad is `hidden`. No HUD gauge for any hero (pass 69). The Heroes screen (`ui/Her
 hero; one not owned shows as a black silhouette, "Unknown", with his requirement or a BUY button. Each hero's trait is 1-2 stats that grow per level
 (`trait_per_level`, `Run.hero_sheet`), a favourite weapon or passive (arrives at a bonus level, marked on cards), perks,
 and a hero mutation. The title plaque opens the hero's Wanted-poster sheet (`ui/wanted/WHeroSheet.gd`). Art variants
-(`variants` / `variant` in the JSON; the Horseman plays BUC-H, The Robot FAD-H (pass 143; neither sells a skin), May MAY-G (her base since pass 70); Garry picks them in the arena or in the Level Editor's look grid; a look may be
+(`variants` / `variant` in the JSON; the Horseman plays BUC-H, Pip FAD-I (pass 147; neither sells a skin), May MAY-G (her base since pass 70); Garry picks them in the arena or in the Level Editor's look grid; a look may be
 `shelved` out of the chips, a landed one is `fresh` until approved): see the art-variants memory. A hero JSON carries
 `availability` (available | purchase | hidden: only hidden hides him), `price` and `currency_type` (gold), the unlock
 quest edited from the Heroes tab (memory `88fits-hero-purchase-parked`: decided in pass 69).

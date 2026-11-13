@@ -404,7 +404,9 @@ static func ball_words(def: WeaponDef, sheet: StatSheet, pr: Dictionary) -> Stri
 		hops += maxi(sheet.get_int("amount", 1), 1) - 1
 	var rp := int(pr.get("return_pierce", 80))
 	var way := (", " + Loc.t("gen.weapon.ball.way_all")) if rp >= 80 else ((", " + Loc.t("gen.weapon.ball.way_some", {"n": str(rp)})) if rp > 0 else "")
-	var vars := {"who": who, "range": "%.0f" % sheet.get_stat("range", 8.0), "hops": str(hops), "reach": "%.0f" % float(rd.get("reach", 7.0)), "way": way}
+	# pass 147 (Garry: "Add dmg number for the Basketball Weapon description"): the damage a hit of the ball deals
+	var vars := {"who": who, "range": "%.0f" % sheet.get_stat("range", 8.0), "hops": str(hops), "reach": "%.0f" % float(rd.get("reach", 7.0)), "way": way,
+		"damage": _dmg(sheet.get_stat("damage", 0.0))}
 	var shape := _ball_shape(sheet, pr)
 	# pass 138 (lane TEXTS): the row alone; Alley-Oop's launch, the Heat and Slam Dunk's dunk are no longer glued on
 	return Loc.t_first([_own_key(def, shape, _ball_shape(sheet, _home_params(def)), vars), "gen.weapon." + shape], vars)
@@ -642,7 +644,12 @@ static func _weapon_sentence(def: WeaponDef, sheet: StatSheet, params: Dictionar
 			var kvars := {"amount": str(amount), "prey": prey, "range": _m(range_m), "blast": _m(blast_m), "damage": dmg}
 			return Loc.t_first([_own_key(def, pshape, phome, kvars), "gen.weapon." + pshape], kvars)
 		"LaserBeam":
-			var avars := {"range": "%.0f" % range_m, "seconds": "%.1f" % sheet.get_stat("duration", 2.0)}
+			# pass 147 (Garry: "go through each Weapon description and add dmg dealt numbers where missing"): the beam's
+			# damage a second to what stands in it, the sheet's damage every beam.tick (LaserBeam._burn; under the aim rule
+			# the small ticks ramp from 30% to 130% of this over a second held on one creature, LaserBeam.ramp_of)
+			var btk := maxf(float((pr.get("beam", {}) as Dictionary).get("tick", 0.18)) if pr.get("beam") is Dictionary else 0.18, 0.05)
+			var avars := {"range": "%.0f" % range_m, "seconds": "%.1f" % sheet.get_stat("duration", 2.0),
+				"damage": _dmg(sheet.get_stat("damage", 0.0) / btk)}
 			return Loc.t_first([_own_key(def, "laser", "laser", avars), "gen.weapon.laser"], avars)
 		"ConeWave":
 			# the Guitarra (pass 46): a cone of melody that lifts what stands in it (pass 137: cone.ring for a full ring,

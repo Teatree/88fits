@@ -11,7 +11,8 @@
 ## game's own icon: STORE the Hush Money sack (greyed), HEROES the hero the title opens on in the look he is played in
 ## (his round badge in a navy ring), BATTLE the Revolver, UPGRADE the crown of Stakes' Boss form, COLLECTIONS the Field
 ## Notes card in its played look.
-## STORE is locked (there is no store; no new rule): the locked grey with a lock badge; a finger on it plays ui_locked and
+## STORE is locked (pass 147: while the Store is shut, the default; the debug panel's "Store" opens it, StorePacks.is_open):
+## the locked grey with a lock badge; a finger on it plays ui_locked and
 ## shakes the tab (the Stages' closed card's shake), nothing else. HEROES is locked the same way while
 ## res://ui/HeroesScreen.tscn does not exist. A finger on another tab goes to its screen with today's cross-fade (UiFx.go;
 ## `navigate` replaces that for a test or a tool); the open tab's tap does nothing. The fourth tab (the Trail's since pass
@@ -46,8 +47,11 @@ const TRAIL_ICON := "boots"
 ## Each tab's word is the string table's row WORD_KEY % id (pass 137: ui.tab_bar.store, .heroes, .battle, .upgrade,
 ## .collections).
 const WORD_KEY := "ui.tab_bar.%s"
-## Where each tab goes ("" nowhere: there is no store).
-const SCENES := {"store": "", "heroes": "res://ui/HeroesScreen.tscn", "battle": "res://ui/TitleScreen.tscn",
+## Pass 147 (lane SHOP): STORE opens the Store (coin packs, no real purchase) only while StorePacks.is_open() (the
+## Settings' store_open, the Settings screen's debug panel; off by default and in prod); locked it is exactly as before.
+const STORE_SCENE := "res://ui/StoreScreen.tscn"
+## Where each tab goes.
+const SCENES := {"store": STORE_SCENE, "heroes": "res://ui/HeroesScreen.tscn", "battle": "res://ui/TitleScreen.tscn",
 	"upgrade": TRAIL_SCENE, "collections": "res://ui/CollectionScreen.tscn"}
 ## The locked tab's icon: desaturated and darker (the mock's saturate(.15) brightness(.8)).
 const GREY_SHADER := "shader_type canvas_item;\nvoid fragment() {\n\tvec4 c = COLOR;\n\tfloat l = dot(c.rgb, vec3(0.299, 0.587, 0.114));\n\tCOLOR = vec4(mix(vec3(l), c.rgb, 0.15) * 0.8, c.a);\n}\n"
@@ -124,7 +128,7 @@ static func reach() -> float:
 	return float(R.DOCK_TAB_H_ACTIVE) + W.safe_bottom()
 
 
-## The scene a tab opens ("" for STORE).
+## The scene a tab opens (pass 147: STORE's is the Store, opened only while the Store is open: opens()).
 static func scene_of(id: String) -> String:
 	return str(SCENES.get(id, ""))
 
@@ -135,10 +139,12 @@ static func word_of(id: String) -> String:
 	return Loc.t(key) if Loc.has(key) else ""
 
 
-## Whether a tab goes anywhere: STORE never, HEROES once its screen exists, the Trail's once it is open (pass 137), the
-## rest always.
+## Whether a tab goes anywhere: STORE only while the Store is open (pass 147: StorePacks.is_open, the debug panel's
+## switch; before, never), HEROES once its screen exists, the Trail's once it is open (pass 137), the rest always.
 static func opens(id: String) -> bool:
 	if id == "upgrade" and not trail_open():
+		return false
+	if id == "store" and not StorePacks.is_open():
 		return false
 	var p := scene_of(id)
 	return p != "" and ResourceLoader.exists(p)

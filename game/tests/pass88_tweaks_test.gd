@@ -166,9 +166,10 @@ func test_the_death_sink_eases_in_frame_by_frame() -> void:
 
 func test_fadeaway_plays_fad_e_approved() -> void:
 	# pass 143: Fadeaway is The Robot and plays FAD-H (fresh until Garry approves); FAD-E stays approved, shelved
+	# pass 147 (re-pinned by the data): he is the bull (FAD-I); the look he plays is the JSON's, never FAD-E again
 	var j := _json("res://content/characters/fadeaway/fadeaway.json")
-	assert_str(str(j["variant"])).is_equal("FAD-H")
+	assert_str(str(j["variant"])).is_not_equal("FAD-E")
 	assert_bool(bool((j["variants"]["FAD-E"] as Dictionary).get("fresh", false))).is_false()
 	assert_bool(bool((j["variants"]["FAD-E"] as Dictionary).get("shelved", false))).is_true()
 	var c: CharacterDef = Registry.character("fadeaway")
-	assert_str(c.variant).is_equal("FAD-H")
+	assert_str(c.variant).is_equal(str(j["variant"]))

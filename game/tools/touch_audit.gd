@@ -91,6 +91,9 @@
 ## NEXT, a real tap on NEXT turns the page.
 ## Pass 129 (lane TRAIL-UI): trail (run alone with only=trail): the Trail screen on its fixture: choosing a tile, the
 ## dock's BUY (a choice asks first), scrolling, the back square, and the way from a "Reach Trail Level N" line and back.
+## Pass 147 (lane SHOP): store (run alone with only=store): the Store opened in memory: every price, the back square and the
+## tab bar; a real price tap adds no coins and opens "Coming soon", its OK and the dim close it; the STORE tab asks for the
+## Store only while it is open. The run starts with the Store shut (Settings.store_open false, in memory).
 ## Pass 111 (lane SKINS): hero_skins (run with title, or alone with only=hero_skins): the hero sheet of a hero who sells a
 ## look, owned, its goal done and the gold for it: every control on it answers a finger (muted; a swipe that starts on a
 ## Looks tile scrolls the sheet and presses nothing), the buy question is audited
@@ -487,6 +490,9 @@ func _screen(name: String, path: String) -> void:
 
 func _run() -> void:
 	root.get_node("Save").data["runs_started"] = maxi(int(root.get_node("Save").data.get("runs_started", 0)), 1)
+	# pass 147 (lane SHOP): the Store shut as a new player has it (the tab_bar and title_royale audits expect a locked STORE;
+	# store opens it for its own part), in memory only
+	root.get_node("Settings").set("store_open", false)
 	await _screen("title", "res://ui/TitleScreen.tscn")
 	if _want("title"):
 		await _title_swipe()
@@ -547,6 +553,8 @@ func _run() -> void:
 		await _heroes_audit()
 	if _want("trail"):
 		await _trail_audit()
+	if _want("store"):
+		await _store_audit()
 	await _in_game()
 	_report()
 
@@ -3832,3 +3840,88 @@ func _trail_audit() -> void:
 			save.data[k] = kept[k]
 	nav.clear()
 	trail.load_from()
+
+
+## Pass 147 (lane SHOP): store (run alone with only=store): the Store (ui/StoreScreen.tscn) under real fingers, with the
+## Store opened in memory (Settings.store_open) and the purse lent and put back. Every control answers (the six prices,
+## the back square, the tab bar); a real tap on a price adds no coins and opens the "Coming soon" modal; a real tap on its
+## OK closes it, and so does a tap on the dim; a swipe on the cards opens nothing; then, on a hub screen with the Store
+## open, a real tap on the STORE tab asks for the Store (the bar's navigate stubbed), and shut it asks for nothing.
+func _store_audit() -> void:
+	var save = root.get_node("Save")
+	var st = root.get_node("Settings")
+	var keep_gold = save.data.get("gold")
+	var keep_open: bool = bool(st.get("store_open"))
+	st.set("store_open", true)
+	save.data["gold"] = 777
+	var check := func(ok: bool, what: String, why: String) -> void:
+		_count("store", ok)
+		if not ok:
+			_fail("store", what, why)
+	change_scene_to_file("res://ui/StoreScreen.tscn")
+	await _wait(0.6)
+	await _frames(20)
+	await _wait(0.6)
+	var s = current_scene
+	check.call(s != null and str(s.scene_file_path) == "res://ui/StoreScreen.tscn", "StoreScreen", "the Store did not open")
+	if s == null:
+		st.set("store_open", keep_open)
+		return
+	await _audit("store", s)
+	var cf = load("res://ui/wanted/WConfirm.gd")
+	# a real tap on a price: no coins, the modal; its OK closes it
+	for way in ["ok", "dim"]:
+		var card: Control = s.call("card_of", "pack_pouch" if way == "ok" else "pack_cart")
+		var price: Control = card.get_node_or_null("Price") if card else null
+		var at := Vector2.INF
+		if price:
+			at = await _spot(price)
+		if at == Vector2.INF:
+			check.call(false, "Price", "no price button on screen")
+			break
+		await _tap(at)
+		await _wait(0.6)
+		check.call(int(save.data["gold"]) == 777, "Price (%s)" % way, "a real tap changed the purse to %d" % int(save.data["gold"]))
+		var ask = cf.current(s)
+		check.call(ask != null, "Price (%s)" % way, "a real tap opened no message")
+		if ask == null:
+			continue
+		if way == "ok":
+			var ok_btn: Control = ask.call("button", "ok")
+			if ok_btn:
+				await _tap(ok_btn.get_global_rect().get_center())
+		else:
+			await _tap(Vector2(540, 300))
+		await _wait(0.5)
+		check.call(not bool(cf.is_open(s)), "Btn_ok" if way == "ok" else "Dim", "a real tap did not close the message")
+		if cf.is_open(s):
+			cf.dismiss(s)
+			await _wait(0.4)
+	# a swipe over the cards opens nothing
+	await _swipe(Vector2(540, 1100), Vector2(540, 700), 10)
+	await _wait(0.4)
+	check.call(not bool(cf.is_open(s)), "Grid", "a swipe over the cards opened the message")
+	# the STORE tab on another hub screen: open, it asks for the Store; shut, for nothing
+	var src := "extends ScreenBase\nfunc tab_bar() -> String:\n\treturn \"battle\"\nfunc on_back() -> void:\n\tpass\n"
+	for open in [true, false]:
+		st.set("store_open", open)
+		var gs := GDScript.new()
+		gs.source_code = src
+		gs.reload()
+		var hub: Control = gs.new()
+		hub.name = "StoreHub"
+		change_scene_to_node(hub)
+		await _wait(1.0)
+		var bar: Control = current_scene.get("tab_bar_node")
+		if bar == null:
+			check.call(false, "TabBar", "the hub has no tab bar")
+			continue
+		var asked: Array = []
+		bar.set("navigate", func(p: String) -> void: asked.append(p))
+		var t: Control = bar.call("tab", "store")
+		await _tap(t.get_global_rect().get_center())
+		await _wait(0.4)
+		var want: Array = ["res://ui/StoreScreen.tscn"] if open else []
+		check.call(asked == want, "Tab_store (%s)" % ("open" if open else "shut"), "a real tap asked for %s" % str(asked))
+	st.set("store_open", keep_open)
+	save.data["gold"] = keep_gold

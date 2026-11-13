@@ -1038,10 +1038,14 @@ def ctl_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline_
                   "bd": "in three-quarter back view, turned away from the viewer", "fd": "in three-quarter front view"}
     if view in ("back", "bd"):
         negative_extra = (negative_extra + ", " if negative_extra else "") + "face, eyes, mouth, nose, looking at the viewer"
+    # pass 147: the screen named as the still has it (a look on the green screen, the bull FAD-I, was told "blue")
+    _px = np.asarray(still_rgb.convert("RGB"))
+    _bg = np.median(np.concatenate([_px[:24].reshape(-1, 3), _px[:, :24].reshape(-1, 3)]), axis=0)
+    screen = "blue" if _bg[2] > _bg[1] else "green"
     prompt = ("A 2D anime game character sprite, " + (hint + ", " if hint else "") + view_words.get(view, "") + (", " + view_hint if view_hint else "") +
               ", " + motion + " exactly as the control video shows, the same character, outfit and colours as the reference in every frame, "
               "crisp clean line art, cel shading. The camera is completely locked off and static. The background stays a flat solid bright "
-              "blue color with nothing in it, no ground, no shadow.")
+              + screen + " color with nothing in it, no ground, no shadow.")
     try:
         frames, meta = animate.cycle_control(still_rgb, key, ctl_dir, seed, prompt=prompt, negative_extra=negative_extra, loop_frames=loop)
     except Exception as e:

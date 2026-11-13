@@ -333,7 +333,8 @@ const OnScreen = (() => {
     if (count <= 0) return null;
     const fps = StripPlayer.previewFps(kind, ak.key, lk.fps);
     const raw = Math.floor(ph.into * fps);
-    const k = anim === 'die' ? Math.min(raw, count - 1) : raw % count;
+    // pass 147: the game's held poses on a looping animation (the previews' page-wide "poses" setting)
+    const k = anim === 'die' ? Math.min(raw, count - 1) : StripPlayer.steppedIndex(raw % count, fps, StripPlayer.poseRate(), true);
     const off = StripPlayer.frameOffset(lk.anims, ak.key, StripPlayer.order(kind));
     const cols = lk.cols > 0 ? lk.cols : Math.floor(entry.w / lk.px) || 1;
     const [x, y] = StripPlayer.cell(off + k, cols, lk.px);

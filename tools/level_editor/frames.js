@@ -123,6 +123,13 @@ const Frames = (() => {
       loopCb.checked = true;
       loopCb.addEventListener('change', () => { this.loop = loopCb.checked; });
       this.loopCb = loopCb;
+      // pass 147: the game's held poses (StripPlayer's page-wide setting): a looping animation shows every k-th frame
+      const poses = el('select', { title: 'held poses, as the game shows a looping animation (pass 144): every k-th frame held, k = fps ÷ poses a second. The same setting as the poses choice on every preview.' });
+      const SP = typeof StripPlayer !== 'undefined' ? StripPlayer : null;
+      for (const r of (SP ? SP.POSE_RATES : [0])) poses.appendChild(el('option', { value: String(r), text: r ? `${r} poses/s` : 'smooth', selected: SP && r === SP.poseRate() }));
+      poses.addEventListener('change', () => { if (SP) SP.setPoseRate(Number(poses.value)); });
+      if (SP) SP.onPoseRate((r) => { poses.value = String(r); });
+      this.poseSel = poses;
       const zoom = el('select', { title: 'the frame\'s size on the stage' });
       for (const z of FM.ZOOMS) zoom.appendChild(el('option', { value: z, text: `${z}x`, selected: z === this.zoom }));
       zoom.addEventListener('change', () => { this.zoom = Number(zoom.value) || 2; this.applyZoom(); });
@@ -132,7 +139,7 @@ const Frames = (() => {
         this.playBtn,
         B('▶', 'one frame on (→)', () => { this.pause(); this.showPos(FM.step(this.pos, this.n(), 1, true)); }),
         B('▶|', 'the last frame (End)', () => { this.pause(); this.showPos(this.n() - 1); }),
-        this.scrub, speed, el('label', { class: 'cb', title: 'off: plays once and stops on the last frame' }, loopCb, el('span', { text: 'loop' })), zoom);
+        this.scrub, speed, poses, el('label', { class: 'cb', title: 'off: plays once and stops on the last frame' }, loopCb, el('span', { text: 'loop' })), zoom);
       // the versions of the shown slot
       this.versions = el('div', { class: 'fr-versions' });
       const main = el('div', { class: 'fr-main' }, el('div', { class: 'fr-left' }, stage, this.fileLine, ctl, this.guide), this.versions);
@@ -277,12 +284,14 @@ const Frames = (() => {
       if (!this.playing || !this.dlg.isConnected) return;
       this.acc += Math.min(0.25, (t - this.last) / 1000);
       this.last = t;
-      const per = 1 / this.fps;
+      // pass 147: held poses on a looping animation (the game's stutter): k frames at a time, held k / fps
+      const k = (this.loop && this.detail && this.detail.loop && typeof StripPlayer !== 'undefined') ? StripPlayer.poseStride(this.fps, StripPlayer.poseRate()) : 1;
+      const per = k / this.fps;
       const n = this.n();
       while (this.acc >= per && n > 1) {
         this.acc -= per;
         if (!this.loop && this.pos >= n - 1) { this.showPos(n - 1); this.pause(); return; }
-        this.showPos(FM.step(this.pos, n, 1, true));
+        this.showPos(FM.step(this.pos - (this.pos % k), n, k, true));
       }
       this.raf = requestAnimationFrame((t2) => this.tick(t2));
     }

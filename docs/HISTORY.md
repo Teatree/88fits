@@ -4829,3 +4829,53 @@ Pass 146 (2026-11-13): the Stranger (Garry: "looks too static ... a bit of an id
 Pass 146 notes (2026-11-13): the dev build shipped to Drive (88fits.apk, 88fits.exe + crowd.windows.x86_64.dll): 3,546 tests, smoke_run and touch_audit (2109/2109) passed; arena_check failed once inside the full ship ("the save changed in the arena: totals.kills 2402 -> 2403", the kill credited to a `slam_...` weapon key neither pass touched) and passed alone, so it was taken as a flake: look into it if it comes back (a kill leaking into the PC save during the arena's leave). **Waiting on Garry: the rocks' look.** He said the 2D rocks feel detached from the ground and at the wrong angle, with little rocks at the foot of the big ones at a different angle from the 3D view. Found: rock_big.png (and its kin) is painted from about 15-20 degrees above the ground, with a row of side-on pebbles along its foot and a dark outline along the ground line, while CameraRig looks down at 46 (fixed) / 50 (follow) degrees and prop_billboard.gdshader turns the quad to face the camera (face_camera 1), so the painting's own perspective is about 30 degrees shallower than the 3D world and the outline cuts it off the sand. Options given: (1) a shader foot: fade the bottom few percent into the sand, sink the prop a little, a soft contact darkening under the foot (prop_billboard + a per-kind number in props.json; every painted prop gains); (2) repaint rock_small, rock_big, boulder, boulder_b from a Blender render at the game's ~48 degree pitch with no pebbles and no base outline (Klein, picked by eye, like the cart), the pebbles put back as small flat ground pieces; (3) real low-poly 3D rocks (tools/blender_lowpoly.py kit, the weapon_grade treatment; note the 88fits-structures-2d memory: structures stay 2.5D, rocks are scenery, his call). The lead recommended 1 + 2; nothing was changed.
 After pass 146 (2026-11-13): Garry's bull basketball player (a picture he gave, arms out) as a 3D model, bull_basketball.glb at the repo root: the shape by Hunyuan3D 2mv in ComfyUI (front view only, the puppet method's graph; puppet_blender `clean` gained `up=N` since a T-pose's arm span beat his height), then **textured** by Hunyuan3D-2 Paint turbo, newly set up on the AI server outside ComfyUI (~/ai/hy3dpaint: Tencent's repo, an overlay venv on ComfyUI's ROCm torch, the CUDA rasterizer hipified and built for gfx1201; tools/hy3d_paint_remote.py, tools/blender_glb_finish.py; about 66 s a model; Tencent's licence excludes the EU, as for the shape model). 40k faces, 2 m, 5 MB. The back and sides are the model's guess (the shorts' side panels are blotchy in places). Garry also asked whether the developer menu's "Collection · unlock everything" is real: it marks everything seen and completes the item-unlock quests (real for those), never Trail nodes, outlaws, skins or stages.
 Then (Garry: "try not using turbo ... the material is only diffuse, no normals"): the Hunyuan3D-2.0 full paint model was no better (dark blotches on the shorts; kept in tools/dl/bull3d/bull_full.glb). Set up **Hunyuan3D-2.1 Paint** (PBR) on the AI server (tools/hy3d21_paint_remote.py, ~/ai/hy3dpaint/.venv21; see CLAUDE.md's command line for the ROCm patches) and a **normal-map bake** in Blender (tools/blender_pbr_bake.py: the raw shape's detail into a 2048 tangent-space map). bull_basketball.glb is now the 2.1 result: albedo, metallic, roughness and normal maps, 40k faces, 2.9 MB; clean 22, shorts panels and sneakers; the turbo 2.0 version is tools/dl/bull3d/bull_v20_turbo.glb. The normal map shows scattered single-texel speckles at tiny UV islands (xatlas): not visible in the previews. TRELLIS.2 was left out by Garry.
+
+## Pass 147 (2026-11-13): Pip the bull, the Store, every weapon's damage, held poses in the Level Editor's previews
+
+Garry's four asks, one lead and two lanes (ROBOT, SHOP; briefs in tools/dl/p147/, each lane's status.md the full log).
+
+**Pip (lane ROBOT).** Garry: "Let's update The Robot character because right now it's trying to be too many things at once
+... Use the latest 3d model with animations ... the walking animation is that I put in references 3d ... save that pose as a
+'creature_walk' ... Use the 3d puppet method ... he is wider and that's by design". The outlaw `fadeaway` is now **Pip**
+(Scottie Pippen, not spelt out), look **FAD-I** (fresh; FAD-H and every older look shelved; pass143_robot_test re-pinned to
+FAD-H kept whole and shelved). The walk: "mutant walking.fbx" from Garry's creature pack in _REFERENCES/3d (unzipped to
+tools/dl/mixamo/creature_npc/), saved as `tools/dl/mixamo/creature_walk.fbx` and the driver `tools/dl/drivers/creature_walk`
+(12 frames, five views, `pose_driver.py inplace=1`: the clip travels 1.88 m a stride; `fwd=body`: its feet turn out 9
+degrees). The model: bull_basketball.glb (the Hunyuan3D 2.1 PBR model) rigged by tools/dl/p147/ROBOT/scripts/rig_bull.py
+(puppet_blender's joint finder wants an A-pose, so the T-pose's joints come from cross-sections; bone heat on a remeshed
+proxy, weights carried to the textured mesh), walked in place in his own wide stance (`puppet_blender.py anim` gained
+`walk_name=`, `align=0`, `inplace=`, `extra=<name>:<fbx>,...`), the walk's 24-degree hunch turned back to 14.6 (scripts/
+unhunch.py; the original kept as `walk_mutant`), the idle blended 40% from upright (scripts/make_stand.py), a made cheer
+-> tools/dl/puppet/fadeaway_bull/fadeaway_bull_puppet.glb; guides tools/dl/drivers/fadeaway_bull_creature_walk(_depth).
+Stills Klein over renders of the textured model on **green** (blue keyed his white trim away), the walk by the depth route
+(gen_art `ctl_drivers`) on all five views, `run_scale` per view from the measured 8-degree stills vs 25-degree guides, two
+polish passes for the green fringe; fps 36. Badge c1 framed like FAD-H's, title cut-out #1. gen_art's depth-route prompt
+now names the still's screen colour (it always said blue). Gemini flagged 11 cells (the green soles fixed; a hand over the
+22 and a far leg behind the near one kept, as the 3D guide shows); the local 27B gives no answer at its 8k context, the
+instruct Qwen3-VL 30B-A3B called every sheet sane. Known: a smeared lifted sneaker in a few frames (run_bd 19-21, run 20,
+run_f 9, run_s 9), the 22 smears in 2-3 front frames, a tan muzzle (Garry's drawing has a dark one), the front idle stands
+taller than the front walk (0.81) so a start toward the camera may pop. Review: tools/dl/p147/ROBOT/review/
+(fadeaway_FAD-I_review.png, walk_*.gif, game_screens.png, arena_pair.png). Tests pass147_bull_test; captures
+game/tools/_p147_BULL_shots.gd -- out=<dir>.
+
+**The Store (lane SHOP).** Garry: "Make the Shop Screen ... only ... Coin Packs ... Archero or Survivor.io Gems section
+... the whole Portrait screen. Don't implement actual purchasing yet ... prices that are common ... unlockable via the
+Debug version of the Settings. By default locked." ui/StoreScreen.gd (+ .tscn), core/systems/StorePacks.gd, the data
+content/store/store.json (docs/store_schema.md), six painted packs game/art/ui/store/pack_*.png (a handful, stacks, a pouch,
+a sack, a chest, a mine cart); $0.99 1,000 coins to $99.99 150,000 (+10% coins a dollar a step; BALANCING 88); a price tap
+opens "Coming soon ... nothing was charged" and adds nothing; `Settings.store_open` (false, prod-locked) and the debug
+panel's "Store" row; Coins x25 never touches the packs. Tests pass147_store_test, touch_audit's store screen, captures
+game/tools/_p147_STORE_shots.gd -- out=<dir> (tools/dl/p147/SHOP/shots/).
+
+**Every weapon's damage (lead).** Garry: "Add dmg number for the Basketball Weapon description ... go through each Weapon
+description and add dmg dealt numbers where missing ... like Revolver". The Basketball, Slam Dunk, the Big Mouth (damage a
+second: damage / beam.tick, 87 at level 1), Loudmouth and the generic ball, laser and forward-shot rows (TextGen ball_words
+and the LaserBeam case); the text census proves all 74 weapons and evolutions print "<number> damage". Tests
+pass67_ball, pass137_loc, pass138_texts re-pinned. BALANCING 89, text_rules.md rule 4's note.
+
+**Held poses in the Level Editor (lead).** Garry: "Make it so the previews of animations have an option to show the
+animation with the new 'stutter' effect". StripPlayer (tools/level_editor/strip_player.js) has a poses select (smooth /
+12 / 10 / 8 poses a second, remembered in the page's localStorage `le.pose_rate`, every preview on the page follows it):
+the game's rule, k = round(fps / rate), only looping anims; the Frames view and the Timeline's Show on screen follow the
+same setting. selftest_V pins poseStride / steppedIndex; selftest_SAFE97 skips `*_remote.py` (AI-server scripts);
+selftest_PLE reads the new retarget_run call. Garry's Level Editor needs a reload of the page (no server change).

@@ -254,7 +254,7 @@ def blender_src_checks(check):
           "PLE blender: face=nose|head places the ears (from the nose by default) and meta.json says which")
     check("def set_names()" in src and 'MESH_NAME, RIG_NAME = nm, nm + "_Rig"' in src and "set_names()" in src.split("def main()")[1],
           "PLE blender: name= names the mesh and the armature (May's names the default)")
-    check('retarget_run(rig, mesh, a["idle"], name="idle")' in src and 'keep=("run", "idle")' in src, "PLE blender: idle= retargets a Mixamo idle like the run")
+    check('retarget_run(rig, mesh, a["idle"], name="idle"' in src and 'keep=("run", "idle")' in src, "PLE blender: idle= retargets a Mixamo idle like the run")  # pass 147: the call also passes keep= and align=
     check('frame_mode == "soles"' in src and '"frame": frame_mode' in src and '"clip": a.get("clip")' in src,
           "PLE blender: frame=soles puts the ground at the lowest sole; meta.json says the framing and the clip")
 

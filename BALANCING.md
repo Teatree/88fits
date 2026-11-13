@@ -11299,3 +11299,66 @@ and falls as it closes, whether the deal was taken or not, and at once when he h
 
 **87.POSES.** The menus' figures hold their poses as a run does (pass 144's k = round(rate / `Settings.pose_rate`)): the
 Outlaws screen's run, the main menu's Outlaw (idle, the run in and off), the title stage's sprite.
+
+## 88. Pass 147: the Store (coin packs, no real purchase, locked by default)
+
+Garry (2026-11-13): "Make the Shop Screen. On this screen we will only allow selling of Coin Packs for now ... Very much
+reference should be of the Archero or Survivor.io Gems section in the shop, but fixed to occupy the whole Portrait screen.
+Don't implement actual purchasing yet, but put up prices that are common for us. Make the shop button unlockable via the
+Debug version of the Settings. By default locked."
+
+**88.STORE.** The packs are data, `game/content/store/store.json` (docs/store_schema.md; the rules in
+`core/systems/StorePacks.gd`, the screen `ui/StoreScreen.gd`), in the order the screen lays them (two columns, three rows):
+
+| pack | picture | coins | price | coins a whole dollar | bonus tag | ribbon |
+|---|---|---|---|---|---|---|
+| pack_handful | a few coins | 1,000 | $0.99 | 1,000 | none | |
+| pack_stack | stacks | 5,500 | $4.99 | 1,100 | +10% | |
+| pack_pouch | a pouch | 12,000 | $9.99 | 1,200 | +20% | Most popular |
+| pack_sack | a sack | 26,000 | $19.99 | 1,300 | +30% | |
+| pack_chest | a chest | 70,000 | $49.99 | 1,400 | +40% | |
+| pack_cart | a mine cart | 150,000 | $99.99 | 1,500 | +50% | Best value |
+
+How they were chosen (my proposal, Garry's to tune in the file): the prices are the common store tiers. The $0.99 pack
+is about what a good early run pays: a Sundown clear banks about 1,000-1,300 coins (the stage's coins, ~515, + its boss
+chest 505 + Wages 215 + a poster's 150 half the time: `tools/trail_setup.py`'s ECON; its measured journey has Sundown
+purses of 500-920 by run 5), so 1,000 coins = one good early run. Each bigger pack buys 10% more coins a dollar than the
+one before it (the genre's shape: the biggest pack clearly more a dollar than the smallest, here x1.5; Archero's gem packs
+run about x1.7 from memory, not checked). Against the Trail (every required node 676,140 coins): 1,000 coins buy a new
+save's first 11 Trail levels (975 coins) or two levels around level 14; the $99.99 pack is 22% of the whole Trail; a late
+Blood Moon run pays 12,000-32,000.
+
+Rules (no others):
+- **No real purchase.** A price tap plays the button's press and opens the kit's modal "Coming soon / Purchases aren't open
+  yet. Nothing was bought and nothing was charged." with OK (`StorePacks.buy` answers `{"ok": false, "reason": "not_yet"}`):
+  no coins added, nothing saved, nothing recorded or sent.
+- **The bonus tag** "+N% BONUS": N = round(100 x (coins / (dollars x base) - 1)), dollars = the price rounded up to a whole
+  dollar ($4.99 = 5), base = the cheapest pack's coins a whole dollar; no tag under 1%; none at all with `"show_bonus": false`.
+  It follows the coins when Garry edits them.
+- **Locked by default.** `Settings.store_open` (saved; false for everyone): off, the STORE tab is locked exactly as before
+  (grey, the padlock, ui_locked and the shake); on (the Settings screen's debug panel row "Store", shown in the player's
+  debug mode), the tab wears its colours, no padlock, and opens the Store; the change shows the next time a tab bar is
+  built. `Settings.PROD_LOCKED` holds it off in the production build (`StorePacks.is_open` is false there whatever the save says).
+- **Coins x25** (`Settings.coins_x25`) never touches these amounts.
+- The cards fill the board between the header and the tab bar: a card's height is the board's visible height (the camera
+  cutout's inset taken off) less the heading and the gaps, over three rows, between 360 and 640 px.
+
+## 89. Pass 147: Pip, the weapons' damage in every description, held poses in the Level Editor's previews
+
+**89.PIP.** The outlaw `fadeaway` (The Robot since pass 143) is **Pip**, a huge black bull in a red #22 basketball kit,
+nothing metal (Garry: "trying to be too many things at once, a robot, a basketball player a bull ... Call him something
+short and simple, maybe implying a name of a famous Chicago Bulls Player, but something not immediately obvious": Scottie
+Pippen). He plays look **FAD-I** (fresh), every older look shelved (FAD-H kept whole). His numbers, items, trait, perks,
+mutation and his place on the Trail are unchanged; only his name, his look and his art words changed. He is drawn wider than
+the other outlaws by design (the same height as the Drifter on the Outlaws screen and the menu). His walk is a heavy
+lumbering walk (Mixamo's mutant walk, kept as the driver `creature_walk`), shown at fps 36 like FAD-H, so the default held
+poses (pass 144) show it as 10 poses a second.
+
+**89.DAMAGE.** Every weapon's and evolution's description says the damage it deals as a whole number (docs/texts/
+text_rules.md rule 4; Garry: "go through each Weapon description and add dmg dealt numbers where missing ... like
+Revolver"). Pass 147 added it where it was missing: the Basketball and Slam Dunk ("... within 9 m for 20 damage, it
+bounces ..."; the generic `gen.weapon.ball.*` rows), the Big Mouth and Loudmouth and the generic laser row ("... dealing 87
+damage a second": a beam ticks, so it says its damage a second, the sheet's damage / `params.beam.tick` 0.18; under the
+aim rule a hold's ticks still ramp 30% to 130% over the first second, pass 136), and the generic forward shot ("... for
+20 damage" / "for 20 damage each"). Checked by the text census (game/tools/text_census.gd parts=a): all 74 weapons and
+evolutions, at every level and with every mutation, print "<number> damage". No number changed.

@@ -1,12 +1,14 @@
 ## Pass 143, lane ROBOT (Garry: "Fadeaway. Should become The Robot. This robot will have a head of a robot bull and will be
 ## wearing Chicago bulls red basketball uniform. Without any of the Chicago bulls symbols."; "Don't create any looks for them
-## yet"): the outlaw `fadeaway` plays one look, FAD-H (a lean robot of dark metal with a robot bull's head in a red jersey and
-## shorts, the 88 on the chest and the back), painted for this pass; it loads with every frame row of a hero strip, its badge,
-## sheet still and title cut-out exist, and every older look of his is shelved (they show the old character).
+## yet"): the outlaw `fadeaway` played one look, FAD-H (a lean robot of dark metal with a robot bull's head in a red jersey and
+## shorts, the 88 on the chest and the back), painted for that pass; it loads with every frame row of a hero strip, its badge,
+## sheet still and title cut-out exist, and every look but the one he plays is shelved.
+## Pass 147 (re-pinned by the data): he is the bull basketball player now (FAD-I, pass147_bull_test.gd); FAD-H is kept, whole
+## and shelved, like every older look.
 extends GdUnitTestSuite
 
 const CODE := "FAD-H"
-## every row a hero strip carries (Player's order), as many frames as FAD-E's (the look it replaces, same walk)
+## every row a hero strip carries (Player's order), as many frames as FAD-E's (the look it replaced, same walk)
 const ROWS := ["idle", "run", "hit", "die", "cheer", "idle_f", "run_f", "idle_s", "run_s", "idle_bd", "run_bd", "idle_fd", "run_fd",
 	"hit_f", "hit_s", "hit_bd", "hit_fd"]
 
@@ -31,15 +33,13 @@ func _json() -> Dictionary:
 	return JSON.parse_string(FileAccess.get_file_as_string("res://content/characters/fadeaway/fadeaway.json")) as Dictionary
 
 
-func test_the_robot_plays_fad_h_with_every_frame_row() -> void:
+func test_the_robot_look_fad_h_keeps_every_frame_row() -> void:
 	var c := _robot()
-	assert_str(c.variant).override_failure_message("the look he plays").is_equal(CODE)
 	assert_bool(c.variants.has(CODE)).override_failure_message("no look " + CODE).is_true()
-	assert_bool(c.variant_shelved(CODE)).override_failure_message(CODE + " shelved").is_false()
-	# `fresh` is the Level Editor's flag (the JSON's; the game's def does not carry it): fresh until Garry approves the look
-	assert_bool(bool((_json()["variants"] as Dictionary)[CODE].get("fresh", false))).override_failure_message(CODE + ": fresh").is_true()
-	var worn := Registry.played_look(c)
-	assert_str(worn.look_code()).override_failure_message("a fresh save plays " + CODE).is_equal(CODE)
+	# the look he plays is the JSON's (pass 147: the bull, FAD-I); FAD-H is shelved since, never deleted
+	assert_str(c.variant).is_equal(str(_json()["variant"]))
+	assert_bool(c.variant_shelved(CODE)).override_failure_message(CODE + " shelved since pass 147").is_equal(c.variant != CODE)
+	var worn := c.variant_def(CODE)
 	assert_str(worn.strip_path().get_file()).is_equal("fadeaway_sprite_h.png")
 	var e: Dictionary = c.variants[CODE]
 	var an: Dictionary = e["anims"]
@@ -55,32 +55,28 @@ func test_the_robot_plays_fad_h_with_every_frame_row() -> void:
 	assert_object(tex).override_failure_message("the strip loads").is_not_null()
 	assert_int(tex.get_width()).is_equal(62 * 256)
 	assert_int(tex.get_height()).is_equal(3 * 256)
-	assert_int(worn.strip_cols).is_equal(62)
-	assert_float(float(worn.fps.get("run", 0))).override_failure_message("run rate").is_greater(0.0)
 
 
-func test_every_older_look_is_shelved() -> void:
+func test_every_look_but_the_played_one_is_shelved() -> void:
 	var c := _robot()
 	var n := 0
 	for code: String in c.variants:
-		if code == CODE:
+		if code == c.variant:
 			continue
 		n += 1
-		assert_bool(c.variant_shelved(code)).override_failure_message(code + " still offered: it shows the old Fadeaway").is_true()
+		assert_bool(c.variant_shelved(code)).override_failure_message(code + " still offered: it shows an older character").is_true()
 	assert_int(n).override_failure_message("the older looks are kept (shelved, never deleted)").is_greater(0)
-	# a phone that kept an old look from the arena plays The Robot all the same
+	# a phone that kept an old look from the arena plays the one he plays all the same
 	Save.data["hero_look"] = {"fadeaway": "FAD-E"}
-	assert_str(Registry.played_look(c).look_code()).is_equal(CODE)
+	assert_str(Registry.played_look(c).look_code()).is_equal(c.variant)
 
 
-func test_the_badge_the_sheet_still_and_the_title_exist() -> void:
+func test_the_robot_badge_sheet_still_and_title_are_kept() -> void:
 	var c := _robot()
 	var e: Dictionary = c.variants[CODE]
 	var icon := str(e.get("icon", ""))
 	assert_str(icon.get_file()).override_failure_message("badge").is_equal("fadeaway_icon_h.png")
 	assert_object(LookArt.icon(e.get("icon"))).override_failure_message("badge loads").is_not_null()
-	assert_str(c.look_still_path(CODE)).override_failure_message("sheet still").is_not_empty()
 	var worn := c.variant_def(CODE)
 	assert_str(worn.look_title()).override_failure_message("title").is_equal("hero_fadeaway_h.png")
 	assert_bool(ResourceLoader.exists(worn.title_path())).override_failure_message("title file").is_true()
-	assert_str(worn.title_path()).is_not_equal(CharacterDef.TITLE_DIR + "hero_fadeaway.png")

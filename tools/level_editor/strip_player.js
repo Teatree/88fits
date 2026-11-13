@@ -22,8 +22,14 @@
 // Also here: SeqPlayer (a sequence of frame files: a driver's driver_NN.png, a depth driver's ctl_NN.png, a clip's
 // out_NN.png), IconPreview (an icon at 128 / 64 / 36 px on its rarity plate or round for a hero badge), CutoutPreview
 // (the hero's title cut-out, 660x888 at a quarter, 1:1 in the modal) and openImage (any picture in the modal).
-// The pure parts (animKey, previewFps, mirror, dirList, frameOffset, cell) run under Node for selftest_V.py: nothing at
-// the top level touches the document.
+// The pure parts (animKey, previewFps, mirror, dirList, frameOffset, cell, poseStride, steppedIndex) run under Node for
+// selftest_V.py: nothing at the top level touches the document.
+//
+// Pass 147 (Garry: "Make it so the previews of animations have an option to show the animation with the new 'stutter'
+// effect that we have in the game now"): the "poses" choice on every player's bar (smooth, 12, 10, 8 a second; one
+// setting for the whole page, remembered in the browser) steps a looping animation as the game's held poses do (pass 144,
+// Settings.pose_stride: every k-th frame shown and held, k = round(fps / rate), the art untouched; hit, die and cheer
+// play smooth as in the game). The Frames view and the Timeline's Show on screen follow the same setting.
 'use strict';
 
 const StripPlayer = (() => {
@@ -121,6 +127,33 @@ const StripPlayer = (() => {
     if (base === 'die') return num('die') || 6;       // die_fps default 6
     return { attack: 8, hit: 8 }[base] || 6;
   }
+  /** Pass 147: the game's held poses (Settings.pose_stride): a looping strip at `fps` shows every k-th frame. */
+  function poseStride(fps, rate) {
+    const f = Number(fps), r = Number(rate);
+    if (!(r > 0) || !(f > 0)) return 1;
+    return Math.max(1, Math.round(f / r));
+  }
+  /** The frame a looping animation shows at frame `idx` under the held poses (BillboardSprite: f -= f % k). */
+  function steppedIndex(idx, fps, rate, loops) {
+    if (!loops) return idx;
+    const k = poseStride(fps, rate);
+    return k > 1 ? idx - (idx % k) : idx;
+  }
+  const POSE_RATES = [0, 12, 10, 8];      // 0 = smooth (the developer menu's "Stepped poses" 12 / 10 / 8 / off)
+  const POSE_KEY = 'le.pose_rate';
+  let poseRateNow = (() => { try { const v = Number(typeof localStorage !== 'undefined' ? localStorage.getItem(POSE_KEY) : 0); return POSE_RATES.includes(v) ? v : 0; } catch (e) { return 0; } })();
+  /** The page's held-pose rate (0 = smooth). */
+  function poseRate() { return poseRateNow; }
+  /** Set the page's held-pose rate: every player redraws and its bar follows; `onPoseRate` listeners hear it. */
+  const poseListeners = new Set();
+  function setPoseRate(v) {
+    const n = POSE_RATES.includes(Number(v)) ? Number(v) : 0;
+    poseRateNow = n;
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem(POSE_KEY, String(n)); } catch (e) { /* private window */ }
+    for (const p of players) p.onPoseRate();
+    for (const f of poseListeners) { try { f(n); } catch (e) { /* a listener's own fault */ } }
+  }
+  function onPoseRate(f) { poseListeners.add(f); return () => poseListeners.delete(f); }
   /** Is the drawn frame mirrored? EnemyManager._face_bit: side and diagonal sets mirror when heading left; a creature's
    *  front and back sets too, inverted by front_faces / back_faces "left", never for "straight"; a hero's base and front
    *  views never (Player mirrors only its side and diagonal views). */
@@ -354,7 +387,11 @@ const StripPlayer = (() => {
       this.bdBtn = el('button', { type: 'button', class: 'btn small sp-btn', text: this.backdrop === 'sand' ? 'sand' : 'none', title: 'the backdrop: the sand with the foot line, the blob and the 1 m bar, or nothing', onclick: () => this.setBackdrop(this.backdrop === 'sand' ? 'none' : 'sand') });
       // modal
       this.fullBtn = this.inModal ? null : el('button', { type: 'button', class: 'btn small sp-btn', text: '⤢', title: 'the close look: this player at 4× (or as big as fits) in a dialog; Esc closes', onclick: () => this.openModal() });
-      bar.append(this.animSel, this.dirSel, this.leftWrap, this.stepBack, this.playBtn, this.stepFwd, this.scrub, this.speedSel, this.zoomBox, this.bdBtn);
+      // pass 147: the held poses (the game's stutter), one setting for the whole page
+      this.poseSel = el('select', { class: 'sp-sel sp-poses', title: 'held poses, as the game shows a looping animation (pass 144: every k-th frame held, k = the rate ÷ poses a second; the game plays 10 for a new player). One setting for every preview on the page.' });
+      for (const r of POSE_RATES) this.poseSel.appendChild(el('option', { value: String(r), text: r ? `${r} poses/s` : 'smooth', selected: r === poseRate() }));
+      this.poseSel.addEventListener('change', () => setPoseRate(Number(this.poseSel.value)));
+      bar.append(this.animSel, this.dirSel, this.leftWrap, this.stepBack, this.playBtn, this.stepFwd, this.scrub, this.speedSel, this.poseSel, this.zoomBox, this.bdBtn);
       if (this.fullBtn) bar.appendChild(this.fullBtn);
       this.line = el('div', { class: 'sp-line muted small' });
       this.el.append(bar, this.line);
@@ -400,8 +437,15 @@ const StripPlayer = (() => {
       const hold = r.loops ? 0 : HOLD_S;
       const period = r.count / r.fps + hold;
       const tt = this.t % period;
-      const idx = Math.min(r.count - 1, Math.floor(tt * r.fps));
+      const raw = Math.min(r.count - 1, Math.floor(tt * r.fps));
+      const idx = steppedIndex(raw, r.fps, poseRate(), r.loops);
       if (idx !== this.frameIdx) this.showFrame(idx, true);
+    }
+
+    /** Pass 147: the page's held-pose rate changed: the bar follows, a paused player stays where it is. */
+    onPoseRate() {
+      if (this.poseSel) this.poseSel.value = String(poseRate());
+      this.updateLine();
     }
 
     showFrame(idx, fromTick) {
@@ -521,6 +565,7 @@ const StripPlayer = (() => {
       if (r.fell) parts.push(el('span', { class: 'warn-text', text: ` · (plays ${viewLabel(r.view)} view${r.asked ? ': no ' + this.anim + r.asked : ''})`, title: 'the strip lacks this view: the game falls back along the nearest available one (Player.gd _anim_for)' }));
       if (this.mirrored) parts.push(el('span', { class: 'muted', text: ' · mirrored' }));
       if (!r.loops && r.ok) parts.push(el('span', { class: 'muted', text: ' · plays once in the game, looped here' }));
+      if (r.loops && r.ok && poseRate() > 0) { const k = poseStride(r.fps, poseRate()); parts.push(el('span', { class: 'muted', text: k > 1 ? ` · held poses: every ${k}${k === 2 ? 'nd' : k === 3 ? 'rd' : 'th'} frame` : ' · held poses: every frame (its rate is at or under the poses)', title: 'pass 144: the game shows every k-th frame of a looping strip and holds it, k = round(fps ÷ poses a second)' })); }
       parts.push(el('span', { class: 'muted', text: ` · ${this.size} m at ~${this.ppm} px/m, ${this.zoom}×`, title: 'approximate scale: gen_art\'s review sheets use 94 px/m; the camera\'s pixels_per_metre is 90 without a target' }));
       this.line.append(...parts);
     }
@@ -730,6 +775,7 @@ const StripPlayer = (() => {
     create, createSeq, stats, closeModal, openImage, IconPreview, CutoutPreview, plateFor,
     MAX_ANIMATING, LRU_MAX, PPM, HERO_SIZE, RARITY_PLATE, ENEMY_ORDER, CHAR_ORDER, SUFFIX, CHAIN, BASE_ONLY, LOOPS, LEFT_OF, hasLeftSets,
     animKey, previewFps, mirror, dirList, animList, frameOffset, totalFrames, cell, order, viewLabel, kindOf,
+    poseStride, steppedIndex, poseRate, setPoseRate, onPoseRate, POSE_RATES,
   };
 })();
 

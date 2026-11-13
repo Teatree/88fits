@@ -40,6 +40,8 @@ process.stdin.on('end', () => {
   out.mirror = Q.mirror.map((m) => SP.mirror(m.kind, m.view, m.facing, m.ff, m.bf));
   out.dirs = Q.dirs.map((d) => SP.dirList(d.kind, d.anims).map((x) => x.v));
   out.anims = Q.anims.map((a) => SP.animList(a.kind, a.anims).map((x) => x.v));
+  out.poses = [[36, 10], [36, 12], [36, 8], [14, 10], [10, 10], [36, 0], [0, 10]].map(([f, r]) => SP.poseStride(f, r));
+  out.stepped = [[7, 36, 10, true], [7, 36, 10, false], [9, 36, 0, true], [11, 24, 12, true]].map(([i, f, r, l]) => SP.steppedIndex(i, f, r, l));
   out.consts = { cap: SP.MAX_ANIMATING, lru: SP.LRU_MAX, ppm: SP.PPM, hero: SP.HERO_SIZE, enemyOrder: SP.ENEMY_ORDER, charOrder: SP.CHAR_ORDER, chain: SP.CHAIN.hero };
   process.stdout.write(JSON.stringify(out));
 });
@@ -268,6 +270,10 @@ def checks(check, run_node, server):
         same = sum(1 for a, b in zip(res.get("keys", []), expect["keys"]) if a == b)
         check(same == len(expect["keys"]) and len(res.get("keys", [])) == len(expect["keys"]), "V: animKey agrees on %d of %d (anim, view) cases" % (same, len(expect["keys"])))
         check(res.get("fps") == expect["fps"], "V: previewFps agrees (%s)" % res.get("fps"))
+        # pass 147: the held poses mirror Settings.pose_stride (k = max(1, round(fps / rate)); 0 = off) and BillboardSprite's
+        # f -= f % k on looping strips only
+        check(res.get("poses") == [4, 3, 5, 1, 1, 1, 1], "V: poseStride is the game's pose_stride (%s)" % res.get("poses"))
+        check(res.get("stepped") == [4, 7, 9, 10], "V: steppedIndex holds every k-th frame of a looping strip only (%s)" % res.get("stepped"))
         check(res.get("mirror") == expect["mirror"], "V: mirror() agrees on %d cases" % len(expect["mirror"]))
         dirs = res.get("dirs", [])
         check(len(dirs) == 3 and len(dirs[0]) == 8 and len(dirs[1]) == 2 and len(dirs[2]) == 8, "V: 8 directions with run_s, 2 without (%s)" % [len(d) for d in dirs])

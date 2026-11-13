@@ -11,19 +11,21 @@ extends GdUnitTestSuite
 ## Garry's rows (commit c1d5f178 and his four families' rows), byte for byte, typos included.
 ## Pass 143: the Boomstick and Dragon's Breath families' rows say their damage (Garry: "Boomstick text description
 ## doesn't mention damage dealt", "Dragon's Breath doesn't mention damage number"): his texts with the damage added.
+## Pass 147 (Garry: "Add dmg number for the Basketball Weapon description ... add dmg dealt numbers where missing"): the
+## Basketball and Big Mouth families' rows likewise.
 const GARRY_ROWS := {
-	"weapon.basketball.desc": "Throws a ball at {who} within {range} m, it bounces to {hops} more {hops?enemy:enemies} close by, then flies back.",
-	"weapon.big_mouth.desc": "Shoots a {range} m long beam at the crowd for {seconds} s.",
+	"weapon.basketball.desc": "Throws a ball at {who} within {range} m for {damage} damage, it bounces to {hops} more {hops?enemy:enemies} close by, then flies back.",
+	"weapon.big_mouth.desc": "Shoots a {range} m long beam at the crowd for {seconds} s, dealing {damage} damage a second.",
 	"weapon.boomstick.desc": "Fires {amount} {amount?pellet:pellets} in a {cone}° cone where you face for {amount?{damage} damage:{damage} damage each}.",
 	"weapon.dragons_breath.desc": "Breathes a {deg}° cone of fire {range} m long for {seconds} s every {cooldown} s, dealing {damage} damage every {every}.",
-	"evolution.slam_dunk.desc": "Throws a ball at {who} within {range} m, it bounces to {hops} more {hops?enemy:enemies} close by, then flies back.",
-	"evolution.loudmouth.desc": "Shoots a {range} m long beam at the crowd for {seconds} s.",
+	"evolution.slam_dunk.desc": "Throws a ball at {who} within {range} m for {damage} damage, it bounces to {hops} more {hops?enemy:enemies} close by, then flies back.",
+	"evolution.loudmouth.desc": "Shoots a {range} m long beam at the crowd for {seconds} s, dealing {damage} damage a second.",
 	"evolution.fire_eater.desc": "Breathes a {deg}° cone of fire {range} m long for {seconds} s every {cooldown} s, dealing {damage} damage every {every}.",
 	"evolution.blunderbuss.desc": "Blasts a {deg}° cone {depth} m deep where you face: everything in it is hit at once for {damage} damage.",
 	"evolution.doomstick.desc": "Fires {amount} {amount?pellet:pellets} in a {cone}° cone where you face for {amount?{damage} damage:{damage} damage each}.",
-	"gen.weapon.ball.bounces": "Throws a ball at {who} within {range} m, it bounces to {hops} more {hops?enemy:enemies} close by, then flies back.",
+	"gen.weapon.ball.bounces": "Throws a ball at {who} within {range} m for {damage} damage, it bounces to {hops} more {hops?enemy:enemies} close by, then flies back.",
 	"gen.weapon.breath.still": "Stand still {seconds} s before a breath: it lasts ×{long}, hits ×{hits}",
-	"gen.weapon.laser": "Shoots a {range} m long beam at the crowd for {seconds} s.",
+	"gen.weapon.laser": "Shoots a {range} m long beam at the crowd for {seconds} s, dealing {damage} damage a second.",
 	"gen.weapon.launch": "Each hit has a {pct}% chance to throw the enemy into the air.",
 }
 

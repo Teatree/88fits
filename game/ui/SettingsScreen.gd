@@ -184,6 +184,15 @@ func _debug_panel() -> PanelContainer:
 		sw5.toggled.connect(func(on: bool): Settings.set_value("coins_x25", on))
 		r5.add_child(sw5)
 		col.add_child(r5)
+	# "Store" (pass 147, lane SHOP; Garry: "Make the shop button unlockable via the Debug version of the Settings. By default
+	# locked"): on, the tab bar's STORE tab opens the Store (coin packs, no real purchase); the next tab bar built shows it
+	if "store_open" in Settings:
+		var r6 := _row(Loc.t("ui.settings.store"))
+		var sw6 := WSwitch.make(bool(Settings.get("store_open")))
+		sw6.name = "StoreOpen"
+		sw6.toggled.connect(func(on: bool): Settings.set_value("store_open", on))
+		r6.add_child(sw6)
+		col.add_child(r6)
 	return p
 
 

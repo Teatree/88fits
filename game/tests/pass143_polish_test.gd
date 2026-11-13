@@ -205,7 +205,9 @@ func test_the_horseman_and_the_robot_have_no_skins() -> void:
 	var h: CharacterDef = Registry.character("buck")
 	var r: CharacterDef = Registry.character("fadeaway")
 	assert_str(h.display_name).is_equal("Horseman")
-	assert_str(r.display_name).is_equal("The Robot")
+	# pass 147: The Robot became Pip, the bull (Garry: "Call him something short and simple, maybe implying a name of a
+	# famous Chicago Bulls Player")
+	assert_str(r.display_name).is_equal("Pip")
 	assert_array(Registry.skins_of(h)).is_empty()
 	assert_array(Registry.skins_of(r)).is_empty()
 	for q in ["skin_buck_buc_g", "skin_fadeaway_fad_b", "skin_fadeaway_fad_g"]:

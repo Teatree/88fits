@@ -140,7 +140,9 @@ func test_pilot_weapon_sentences() -> void:
 	for amount in [1, 2, 5]:
 		var a := str(amount)
 		var s := "" if amount == 1 else "s"
-		assert_str(Loc.t("gen.weapon.shot.forward", {"amount": a, "cone": "30"})).is_equal("Fires %d pellet%s in a %d° cone where you face." % [amount, s, 30])
+		# pass 147: the forward volley says its damage too (as the Boomstick's own row)
+		var each := " each" if amount > 1 else ""
+		assert_str(Loc.t("gen.weapon.shot.forward", {"amount": a, "cone": "30", "damage": "7"})).is_equal("Fires %d pellet%s in a %d° cone where you face for 7 damage%s." % [amount, s, 30, each])
 		# pass 140 (lane TEXTS): every weapon says its damage ({damage}), and they hit "an enemy" (they aim where you face)
 		assert_str(Loc.t("gen.weapon.shot.random", {"amount": a, "range": "8", "damage": "12"})).is_equal("Fires %d shot%s at random enemies within %.0f m for 12 damage." % [amount, s, 8.0])
 		assert_str(Loc.t("gen.weapon.shot.flare", {"amount": a, "range": "8", "damage": "3"})).is_equal("Fires %d flare%s for 3 damage that %s enemies on fire." % [amount, s, "sets" if amount == 1 else "set"])

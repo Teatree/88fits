@@ -149,7 +149,8 @@ func test_a_finger_on_a_tab_asks_for_its_scene_and_store_goes_nowhere() -> void:
 	assert_array(asked).contains_exactly(want)
 	# the scenes by tab, the store's none
 	var script: GDScript = load("res://ui/wanted/WTabBar.gd")
-	assert_str(script.scene_of("store")).is_equal("")
+	# pass 147 (lane SHOP): STORE's scene is the Store, opened only while the Store is open (the debug panel's switch)
+	assert_str(script.scene_of("store")).is_equal("res://ui/StoreScreen.tscn")
 	assert_str(script.scene_of("battle")).is_equal("res://ui/TitleScreen.tscn")
 	assert_bool(script.opens("store")).is_false()
 	assert_bool(script.opens("upgrade")).is_true()

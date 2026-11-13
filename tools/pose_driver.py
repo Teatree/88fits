@@ -52,6 +52,9 @@ Pass 69 (Jezyk's three runs, all additive):
     "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/running.fbx out=tools/dl/drivers/run_sprint frames=24 amp=1.3 lean=12
     "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/running.fbx out=tools/dl/drivers/run_dash frames=24 arms=back lean=14
   then tools/pose_shoulders.py levels the shoulders (every Mixamo driver's neck sits above the shoulder line).
+Pass 147: inplace=1 takes a clip's root motion out (the hips' travel over the stride spread evenly over its frames): Mixamo's
+"mutant walking" (tools/dl/mixamo/creature_walk.fbx) walks 1.9 m a stride; tools/dl/drivers/creature_walk is made with it.
+    "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/creature_walk.fbx out=tools/dl/drivers/creature_walk frames=12 inplace=1
 Output: <out>/<view>/poses.json, <out>/<view>/driver_NN.png, <out>/<view>_sheet.png, <out>/meta.json.
 """
 import json
@@ -153,9 +156,22 @@ def extract():
     if not out:
         raise SystemExit("pose_driver: out=<folder> is needed")
 
+    # pass 147 (creature_walk): inplace=1 takes a clip's root motion back out (Mixamo's "mutant walking" walks 1.9 m a
+    # stride): the hips' horizontal travel from the stride's first frame to its last, spread evenly over the frames, is
+    # subtracted from every joint, so the body's own sway and bob stay and the figure walks on the spot
+    step = Vector((0.0, 0.0, 0.0))
+    if a.get("inplace") in ("1", "true", "yes") and f1 > f0:
+        sc.frame_set(int(math.floor(f0)), subframe=f0 - math.floor(f0))
+        h0 = arm.matrix_world @ pb["Hips"].head
+        sc.frame_set(int(math.floor(f1)), subframe=f1 - math.floor(f1))
+        h1 = arm.matrix_world @ pb["Hips"].head
+        step = (h1 - h0) / (f1 - f0)
+        step.z = 0.0
+        print("pose_driver: in place (the hips travelled %.3f m over the stride)" % (step.length * (f1 - f0)))
+
     def joint(name, f):
         sc.frame_set(int(math.floor(f)), subframe=f - math.floor(f))
-        return arm.matrix_world @ pb[name].head
+        return arm.matrix_world @ pb[name].head - step * (f - f0)
 
     # the character's forward: the feet point forward (toe minus ankle), averaged over the stride
     fwd = Vector((0, 0, 0))
@@ -392,6 +408,7 @@ def extract():
                "body": a.get("body"), "fwd": a.get("fwd", "feet"), "arms": a.get("arms"), "rig": a.get("rig", "mixamo"), "rigmap": a.get("rigmap"),
                "arm_drop": a.get("arm_drop"), "arm_wide": a.get("arm_wide"), "fore_drop": a.get("fore_drop"),
                "amp": float(a["amp"]) if a.get("amp") else None, "lean": float(a["lean"]) if a.get("lean") else None,
+               "inplace": a.get("inplace") in ("1", "true", "yes"),
                "retarget": {k: round(v, 3) for k, v in R.items()}, "notes": ""},
               open(os.path.join(out, "meta.json"), "w"), indent=1)
 

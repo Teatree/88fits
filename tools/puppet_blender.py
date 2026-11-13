@@ -877,12 +877,17 @@ def linear(act):
     return fcs
 
 
-def retarget_run(rig, mesh, clip, name="run", keep=("run", "idle")):
+def retarget_run(rig, mesh, clip, name="run", keep=("run", "idle"), inplace=None, align=True):
     """The Mixamo clip retargeted onto our rig by bone directions: each of our bones takes the source bone's world
     rotation away from its rest (D = M_pose M_rest^-1) after first being turned onto the source's rest direction (A: her
     A-pose arms onto Mixamo's T-pose), O_pose = D A O_rest, so every bone points where the source's points and twists
     as it does; the hips' travel is scaled by the leg lengths; then the whole clip is lifted so the lowest sole of the
-    stride touches z = 0. Keys at the clip's own frames (30 fps), renamed "run"."""
+    stride touches z = 0. Keys at the clip's own frames (30 fps), renamed "run".
+    Pass 147 (the bull, FAD-I): inplace (None = auto: a clip whose hips travel over 0.2 m between its first and last frame)
+    takes the clip's root motion out, the travel spread evenly over the frames (Mixamo's "mutant walking" walks 1.9 m a
+    stride); align=False skips the A-pose-onto-T-pose turn (A): a rig built in a T-pose (the bull) keeps its own rest
+    directions (his wide-set legs, his arms) and every bone takes the source bone's world turn away from its rest,
+    O_pose = D O_rest."""
     before = set(bpy.data.objects)
     bpy.ops.import_scene.fbx(filepath=os.path.abspath(clip))
     new = [o for o in bpy.data.objects if o not in before]
@@ -902,7 +907,7 @@ def retarget_run(rig, mesh, clip, name="run", keep=("run", "idle")):
 
     def ydir(M):
         return (M.to_3x3().normalized() @ Vector((0, 1, 0))).normalized()
-    align = {n: ydir(o_rest[n]).rotation_difference(ydir(s_rest[n])) for n in common}
+    align = {n: (ydir(o_rest[n]).rotation_difference(ydir(s_rest[n])) if align else Quaternion()) for n in common}
     o_rot = {n: o_rest[n].to_3x3().normalized().to_quaternion() for n in common}
     s_rot_inv = {n: s_rest[n].to_3x3().normalized().to_quaternion().inverted() for n in common}
 
@@ -914,6 +919,15 @@ def retarget_run(rig, mesh, clip, name="run", keep=("run", "idle")):
     root = rig.data.bones[0].name if rig.data.bones[0].parent is None else next(b.name for b in rig.data.bones if b.parent is None)
     act = new_action(rig, name)
     frames = list(range(f0, f1 + 1))
+    sc.frame_set(f1)
+    travel = (src.matrix_world @ sbones["Hips"].matrix).translation - hips_rest_s
+    sc.frame_set(f0)
+    travel = travel - ((src.matrix_world @ sbones["Hips"].matrix).translation - hips_rest_s)
+    travel.z = 0.0
+    if inplace is None:
+        inplace = travel.length > 0.2
+    if not inplace:
+        travel = Vector((0.0, 0.0, 0.0))
     poses = []
     for f in frames:
         sc.frame_set(f)
@@ -923,7 +937,7 @@ def retarget_run(rig, mesh, clip, name="run", keep=("run", "idle")):
             D = M.to_3x3().normalized().to_quaternion() @ s_rot_inv[n]
             rots[ours[n].name] = D @ align[n] @ o_rot[n]
         hs = (src.matrix_world @ sbones["Hips"].matrix).translation
-        root_loc = hips_rest_o + (hs - hips_rest_s) * k
+        root_loc = hips_rest_o + (hs - hips_rest_s - travel * ((f - f0) / float(max(1, f1 - f0)))) * k
         poses.append((rots, root_loc))
     # the stride on the floor: lowest sole over the stride at z = 0 (evaluated on the posed mesh)
     lows = []
@@ -948,8 +962,9 @@ def retarget_run(rig, mesh, clip, name="run", keep=("run", "idle")):
     for a_ in list(bpy.data.actions):
         if a_ is not act and a_.name not in keep:
             bpy.data.actions.remove(a_)
-    log("%s: %d frames from %s (%d..%d at 30 fps), hips travel x%.3f, lifted %.3f m to the floor, %d bones driven" % (
-        act.name, len(frames), os.path.basename(clip), f0, f1, k, lift, len(common)))
+    log("%s: %d frames from %s (%d..%d at 30 fps), hips travel x%.3f, lifted %.3f m to the floor, %d bones driven%s%s" % (
+        act.name, len(frames), os.path.basename(clip), f0, f1, k, lift, len(common),
+        ", in place (%.2f m taken out)" % travel.length if travel.length > 0 else "", "" if align else ", own rest directions"))
     return act, len(frames) - 1
 
 
@@ -1147,10 +1162,17 @@ def mode_anim():
     rig.matrix_world = Matrix.Identity(4)
     sc = bpy.context.scene
     sc.render.fps = 30
-    run, run_n = retarget_run(rig, mesh, a.get("clip", os.path.join(REPO, "tools", "dl", "mixamo", "running.fbx")))
+    # pass 147: walk_name= names the moving clip's action (default "run"; the bull's "walk"), align=0 keeps a T-posed rig's
+    # own rest directions, inplace=0|1 (default auto), extra=<name>:<fbx>,... more clips kept beside them (his death, cheer)
+    run_name = str(a.get("walk_name") or "run")
+    al = str(a.get("align", "1")) not in ("0", "false", "no")
+    ip = None if a.get("inplace") in (None, "", "auto") else str(a["inplace"]) not in ("0", "false", "no")
+    extra = [kv.split(":", 1) for kv in str(a.get("extra") or "").split(",") if ":" in kv]
+    keep = tuple([run_name, "idle"] + [nm for nm, _f in extra])
+    run, run_n = retarget_run(rig, mesh, a.get("clip", os.path.join(REPO, "tools", "dl", "mixamo", "running.fbx")), name=run_name, keep=keep, inplace=ip, align=al)
     if a.get("idle"):
         # pass 71: a Mixamo idle retargeted like the run (the stride's floor rule keeps its feet down)
-        idle, idle_n = retarget_run(rig, mesh, a["idle"], name="idle")
+        idle, idle_n = retarget_run(rig, mesh, a["idle"], name="idle", keep=keep, align=al)
     else:
         idle, idle_n = make_idle(rig, mesh)
     if a.get("paint"):
@@ -1164,7 +1186,8 @@ def mode_anim():
     ad = rig.animation_data
     for tr in list(ad.nla_tracks):
         ad.nla_tracks.remove(tr)
-    for act in (idle, run):
+    extra_acts = [retarget_run(rig, mesh, fbx, name=nm, keep=keep, inplace=False, align=al)[0] for nm, fbx in extra]
+    for act in [idle, run] + extra_acts:
         tr = ad.nla_tracks.new()
         tr.name = act.name
         st = tr.strips.new(act.name, 0, act)
@@ -1425,7 +1448,7 @@ def mode_silhouette():
     rig, mesh = load_puppet(a["src"])
     n = int(a.get("frames", 24))
     pitch = math.radians(float(a.get("pitch", 25.0)))
-    run = bpy.data.actions["run"]
+    run = bpy.data.actions[str(a.get("action") or "run")]   # pass 147: the bull's moving clip is "walk"
     idle = bpy.data.actions["idle"]
     sc = bpy.context.scene
     cam_up_l = Vector((0.0, math.sin(pitch), math.cos(pitch)))
