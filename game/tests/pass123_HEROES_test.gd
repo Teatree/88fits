@@ -411,7 +411,10 @@ func test_the_sprite_runs_in_place_down_and_right() -> void:
 	assert_int(int(s.get("_anim_from"))).is_equal(off)
 	assert_float(float(s.get("_fps"))).is_greater(0.0)
 	var f0 := int(s.get("_frame"))
-	s.call("_process", 1.0 / float(s.get("_fps")) + 0.01)
+	# pass 147: the screen holds every pose k frames since pass 146 (Settings.pose_stride), so one held pose's time, not
+	# one frame's, is what surely moves it (one frame's passed or failed by where the clock sat in the hold)
+	var k := Settings.pose_stride(float(s.get("_fps")), Settings.pose_rate)
+	s.call("_process", float(k) / float(s.get("_fps")) + 0.01)
 	assert_int(int(s.get("_frame"))).is_not_equal(f0)
 	# a hero not owned is drawn flat black
 	s.call("show_hero", _hero("fadeaway"))
