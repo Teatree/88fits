@@ -262,6 +262,9 @@ func test_the_drop_chance_of_a_kill_grows_with_the_watch() -> void:
 		assert_float(wd.powerup_chance_mult()).is_equal_approx(1.0 if lv == 0 else 1.14, 0.0001)
 		pk.set("dropped", 0)
 		wd._rng.seed = 62
+		# pass 147: the drop roll has its own stream since pass 116 (_drop_rng); seeding only _rng left it random, so the
+		# ratio wandered (one ship read 1.18)
+		wd._drop_rng.seed = 62
 		for n in range(20000):
 			wd.drop_pickup_from(d, Vector3.ZERO, false)
 		counts.append(int(pk.get("dropped")))
