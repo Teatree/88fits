@@ -4879,3 +4879,13 @@ animation with the new 'stutter' effect". StripPlayer (tools/level_editor/strip_
 the game's rule, k = round(fps / rate), only looping anims; the Frames view and the Timeline's Show on screen follow the
 same setting. selftest_V pins poseStride / steppedIndex; selftest_SAFE97 skips `*_remote.py` (AI-server scripts);
 selftest_PLE reads the new retarget_run call. Garry's Level Editor needs a reload of the page (no server change).
+
+Pass 147 notes (2026-11-13): the dev build shipped to Drive (88fits.apk, 88fits.exe + crowd.windows.x86_64.dll, the Play
+bundle outlaw_survivors.aab at version code 37; build 1.00-20261113-1933-587ff12; no phone on adb). The first full ship
+stopped on pass123_HEROES's run test: since pass 146 the Outlaws screen holds each pose k frames, and the test moved the
+clock one frame, so it passed or failed by where the clock sat in the hold (now one held pose). The second stopped on
+two flakes: pass62_it's Pocket Watch drop ratio (it seeded `_rng` while the drop roll has used `_drop_rng` since pass
+116: now seeded, 1.18 had read against 1.07-1.17) and pass120_REPLAY's "stands up with the same HP" (one check after a
+revive read 0 HP; its recorded run differs every time since the wave dice take a fresh seed each run; it passed alone,
+left as it is: look into it if it comes back). Between the two runs every test passed; smoke_run OK, arena_check OK,
+touch_audit 2,128 of 2,128 (the Store's controls among them), then `ship.sh --quick` built and copied.
