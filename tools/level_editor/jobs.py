@@ -167,6 +167,10 @@ MODEL_FIELDS = {
     "steps": _f("int", 0, False, "the passes (sampling steps): 0 = the model's own default (Klein 4; dev 8 with Turbo, 28 without); more = slower and usually cleaner", group="model"),
     "guidance": _f("float", 0.0, False, "dev only: how hard the words are followed (0 = the default 4.0)", group="model"),
     "turbo": _f("bool", True, False, "dev only: the Turbo LoRA (8 quick steps); off = the full 28-step quality, what the candidate methods use", group="model"),
+    # 2026-11-15: Klein's text encoder: stock (qwen_3_8b_fp8mixed) or uncensored (ponpoke's abliterated Qwen3 8B, the same
+    # model with its refusal direction removed; the painter, steps and seeds are unchanged); comfy.KLEIN_CLIP reads ART_TEXT_ENCODER
+    "text_encoder": _f("enum", "stock", False, "Klein only: the text encoder that reads the words: stock, or uncensored (the same "
+                                                "encoder with its refusals removed; everything else paints the same)", ("stock", "uncensored"), group="model"),
 }
 
 
@@ -938,6 +942,8 @@ def _asset_env(job):
     spec = job.get("spec") or {}
     model = "dev" if (spec.get("dev") or spec.get("model") == "dev") else "klein"
     env["ART_MODEL"] = model
+    if spec.get("text_encoder") == "uncensored":
+        env["ART_TEXT_ENCODER"] = "uncensored"
     if int(spec.get("steps") or 0):
         env["ART_STEPS"] = str(int(spec["steps"]))
     if float(spec.get("guidance") or 0):
@@ -2027,6 +2033,8 @@ def _painter_of(spec):
     if model == "dev":
         out["guidance"] = float(spec.get("guidance") or 0)
         out["turbo"] = True if spec.get("turbo") is None else bool(spec.get("turbo"))
+    if spec.get("text_encoder") == "uncensored":
+        out["text_encoder"] = "uncensored"
     return out
 
 

@@ -235,12 +235,13 @@ const Jobs = (() => {
     const dev = j.model === 'dev' || (j.model == null && !!(spec && spec.flags && spec.flags.dev));
     const out = { model: dev ? 'dev' : 'klein', steps: Number(j.steps) || 0 };
     if (dev) { out.guidance = Number(j.guidance) || 0; out.turbo = j.turbo !== false; }
+    if (j.text_encoder === 'uncensored') out.text_encoder = 'uncensored';
     return out;
   }
   /** Whether two painters would paint a still differently: the model, the passes, and for dev the guidance and Turbo
    *  (recipe.painter's bookkeeping keys, stills and reused, do not count). */
   function painterDiffers(a, b) {
-    const n = (p) => { const x = p && typeof p === 'object' ? p : {}; const dev = x.model === 'dev'; return [dev ? 'dev' : 'klein', Number(x.steps) || 0, dev ? Number(x.guidance) || 0 : 0, dev ? x.turbo !== false : true].join('|'); };
+    const n = (p) => { const x = p && typeof p === 'object' ? p : {}; const dev = x.model === 'dev'; return [dev ? 'dev' : 'klein', Number(x.steps) || 0, dev ? Number(x.guidance) || 0 : 0, dev ? x.turbo !== false : true, x.text_encoder === 'uncensored' ? 'unc' : ''].join('|'); };
     return n(a) !== n(b);
   }
 
@@ -1645,6 +1646,7 @@ const Jobs = (() => {
       if (opts.painter.steps) spec.job.steps = Number(opts.painter.steps);
       if (opts.painter.guidance) spec.job.guidance = Number(opts.painter.guidance);
       if (opts.painter.turbo === false) spec.job.turbo = false;
+      if (opts.painter.text_encoder === 'uncensored') spec.job.text_encoder = 'uncensored';
       spec.flags.dev = spec.job.model === 'dev';
     }
     if (spec.recipe && spec.recipe.painter) delete spec.recipe.painter;
@@ -2682,6 +2684,7 @@ const Jobs = (() => {
     if (pj.steps) job.steps = pj.steps;
     if (spec.counts && Number(spec.counts.first_seed)) job.first_seed = Math.round(Number(spec.counts.first_seed));   // pass 72
     if (pj.model === 'dev') { if (pj.guidance) job.guidance = pj.guidance; job.turbo = pj.turbo; }
+    if (pj.text_encoder) job.text_encoder = pj.text_encoder;
     return flatten({ method: p.jk, recipe: {}, refs: [], drivers: {}, flags: { dev: pj.model === 'dev', skip_qa: !!(spec.flags && spec.flags.skip_qa) }, counts: { seeds: n }, job, note: '' }, p.jk, specs);
   }
 

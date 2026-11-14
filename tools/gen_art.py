@@ -104,6 +104,8 @@ def apply_painter(p):
     MODEL["guidance"] = float(p.get("guidance") or 0)
     MODEL["turbo"] = p.get("turbo") if isinstance(p.get("turbo"), bool) else None
     DEV = MODEL["model"] == "dev"
+    if p.get("text_encoder") == "uncensored" and not os.environ.get("ART_TEXT_ENCODER"):
+        comfy.KLEIN_CLIP = comfy.KLEIN_CLIP_UNCENSORED   # 2026-11-15: a look painted with the uncensored encoder keeps it
     print("gen_art: the look's recorded painter: %s%s" % (MODEL["model"], (" %d steps" % MODEL["steps"]) if MODEL["steps"] else ""))
 
 
@@ -115,7 +117,10 @@ def painter_info(full=False):
         turbo = MODEL["turbo"] if MODEL["turbo"] is not None else (not full)
         return {"model": "dev", "unet": comfy.FLUX2_UNET, "steps": int(MODEL["steps"] or (8 if turbo else 28)),
                 "guidance": float(MODEL["guidance"] or 4.0), "turbo": bool(turbo)}
-    return {"model": "klein", "unet": comfy.KLEIN_UNET, "steps": int(MODEL["steps"] or 4)}
+    out = {"model": "klein", "unet": comfy.KLEIN_UNET, "steps": int(MODEL["steps"] or 4)}
+    if comfy.KLEIN_CLIP != comfy.KLEIN_CLIP_STOCK:
+        out["clip"] = comfy.KLEIN_CLIP   # 2026-11-15: only off the stock encoder, so every older marker still matches
+    return out
 
 
 def paint(prompt, seed, width, height, refs, prefix, full=False, init=None, denoise=1.0):

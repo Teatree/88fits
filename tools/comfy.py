@@ -88,7 +88,13 @@ def _beat():
             pass
 
 KLEIN_UNET = "flux-2-klein-9b-fp8.safetensors"
-KLEIN_CLIP = "qwen_3_8b_fp8mixed.safetensors"
+KLEIN_CLIP_STOCK = "qwen_3_8b_fp8mixed.safetensors"
+# 2026-11-15: ponpoke/flux2-klein-9b-uncensored-text-encoder (Qwen3 8B abliterated: the refusal direction removed from
+# layers 14-24, no retraining), a drop-in for the stock encoder; chosen per job by ART_TEXT_ENCODER=uncensored (the Level
+# Editor's job form, "text_encoder") or by a file name in ART_TEXT_ENCODER; every Klein graph reads KLEIN_CLIP
+KLEIN_CLIP_UNCENSORED = "qwen_3_8b_klein_uncensored_f16.safetensors"
+_TE = os.environ.get("ART_TEXT_ENCODER", "").strip()
+KLEIN_CLIP = KLEIN_CLIP_UNCENSORED if _TE == "uncensored" else (_TE if _TE.endswith(".safetensors") else KLEIN_CLIP_STOCK)
 FLUX2_UNET = "flux2_dev_fp8mixed.safetensors"
 FLUX2_CLIP = "mistral_3_small_flux2_fp8.safetensors"
 FLUX2_TURBO_LORA = "Flux2TurboComfyv2.safetensors"

@@ -58,6 +58,7 @@ const LookGrid = (() => {
     const dev = p.model === 'dev';
     const bits = [dev ? 'Flux.2 dev' : 'Flux.2 Klein', p.steps ? `${p.steps} passes` : (dev ? (p.turbo === false ? '28 passes (default)' : '8 passes (default)') : '4 passes (default)')];
     if (dev) { if (p.guidance) bits.push(`guidance ${p.guidance}`); bits.push(p.turbo === false ? 'no Turbo' : 'Turbo'); }
+    if (p.text_encoder === 'uncensored') bits.push('uncensored encoder');
     if (p.stills === 'reused') bits.push('stills reused from earlier paintings: this painter painted none of them');
     else if (typeof p.stills === 'string' && p.stills) bits.push(`stills: ${p.stills}${Array.isArray(p.reused) && p.reused.length ? ' (the other ' + p.reused.length + ' reused)' : ''}`);
     return bits.join(' · ');
