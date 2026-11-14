@@ -18,6 +18,8 @@
 //   states(data, level, picks)  the same for a previewed Trail Level (every required node up to it bought, the first
 //                             member of each choice unless `picks` {group: id} says another, optional nodes left open)
 //   curvePrice / priceOf / totals / upgradeTotals / statTotals   resolved prices and what they add up to
+//   trailCurrency / currencyOf  pass 149: the Trail's currency and a node's (Trail.currency_of: its own `currency`, else
+//                             the Trail's); totals sum the Trail's currency and keep another one's apart (`other`)
 //   fmtValue / parseValue / giveText   an amount the way the player reads it ("+3%"), and back
 //   check(data, picks)        [{sev: error|warn, code, id?, level?, upgrade?, text}]; `picks` = GET /api/trail's lists
 //                             (without them the ids of outlaws, items... are not checked)
@@ -36,8 +38,9 @@ const TrailModel = (() => {
   const GIVE_WORDS = { upgrade: 'Upgrade', outlaw: 'Outlaw', skin: 'Skin', weapon: 'Weapon', passive: 'Card or item', stage: 'Stage', map: 'Map', structure: 'Structure', powerup: 'Power-up', feature: 'Feature' };
   const MOTIFS = ['cactus', 'star', 'skull', 'horseshoe', 'moon', 'flame', 'dust', 'none'];
   const VALUE_KINDS = ['percent', 'flat', 'count', 'seconds', 'word'];
-  const NODE_KEYS = ['id', 'level', 'kind', 'group', 'from', 'need', 'gives', 'price', 'price_mult', 'x', 'name', 'note'];
-  const CSV_COLS = ['id', 'level', 'kind', 'group', 'from', 'need', 'gives_type', 'gives_what', 'value', 'price', 'price_mult', 'x', 'name', 'note', 'resolved_price', 'cumulative'];
+  // pass 149 (lane EDITOR): a node's own `currency` (the hard currency, the gems; blank = the Trail's) sits after its price
+  const NODE_KEYS = ['id', 'level', 'kind', 'group', 'from', 'need', 'gives', 'price', 'price_mult', 'currency', 'x', 'name', 'note'];
+  const CSV_COLS = ['id', 'level', 'kind', 'group', 'from', 'need', 'gives_type', 'gives_what', 'value', 'price', 'price_mult', 'currency', 'x', 'name', 'note', 'resolved_price', 'cumulative'];
   const CSV_READ_ONLY = ['resolved_price', 'cumulative'];
   const DEFAULT_PRICE = { base: 40, k: 1.5, power: 2.0, round: 10 };
 
@@ -390,29 +393,50 @@ const TrailModel = (() => {
     if (isNum(n.price)) return Math.trunc(n.price);
     return Math.max(0, Math.round(curvePrice(data.price, lvl(n) || 1) * (isNum(n.price_mult) ? n.price_mult : 1)));
   }
+  /** Pass 149 (lane EDITOR): Trail.currency_of: the currency node `n` is paid in: its own `currency` when it names one,
+   *  else the Trail's (gold when the file names none). The page does not map an unknown id to gold as the game does
+   *  (Currency.of): check() calls it an error instead. */
+  function trailCurrency(data) { return isObj(data) && typeof data.currency === 'string' && data.currency ? data.currency : 'gold'; }
+  function currencyOf(data, n) { return isObj(n) && typeof n.currency === 'string' && n.currency ? n.currency : trailCurrency(data); }
 
-  /** What the Trail costs. A choice counts once at its dearest member; `perRun` coins a run gives the runs. */
+  /** What the Trail costs. A choice counts once at its dearest member; `perRun` coins a run gives the runs. Pass 149: the
+   *  sums (all, required, optional, the levels' running totals, the runs) are in the Trail's own currency only: a node
+   *  priced in another one (the gems) is summed apart in `other` {currency: {nodes, all, required, optional,
+   *  with_optional}}, where a choice counts once at its dearest member in that currency. */
   function totals(data, perRun) {
     const ix = index(data);
     const per = isNum(perRun) && perRun > 0 ? perRun : 0;
+    const main = trailCurrency(data);
     const levels = [];
+    const other = {};
+    const rec = (c) => other[c] || (other[c] = { currency: c, nodes: 0, all: 0, required: 0, optional: 0, with_optional: 0 });
     let cum = 0, cumAll = 0, all = 0, optional = 0, count = 0;
     for (let l = 1; l <= ix.max; l++) {
       const list = ix.byLevel.get(l) || [];
       let req = 0, opt = 0;
-      const groupMax = new Map();
+      const groupMax = new Map(), otherMax = new Map();
       for (const n of list) {
-        const p = priceOf(data, n);
+        const p = priceOf(data, n), c = currencyOf(data, n);
+        if (c !== main) {
+          const r = rec(c);
+          r.nodes++; r.all += p;
+          if (!required(n)) r.optional += p;
+          else if (inGroup(n)) { const k = c + '\n' + groupKey(n); otherMax.set(k, Math.max(otherMax.get(k) || 0, p)); }
+          else r.required += p;
+          continue;
+        }
         all += p; count++;
         if (!required(n)) opt += p;
         else if (inGroup(n)) groupMax.set(groupKey(n), Math.max(groupMax.get(groupKey(n)) || 0, p));
         else req += p;
       }
       for (const v of groupMax.values()) req += v;
+      for (const [k, v] of otherMax) rec(k.split('\n')[0]).required += v;
       cum += req; cumAll += req + opt; optional += opt;
       levels.push({ level: l, nodes: list.length, required: req, optional: opt, cumulative: cum, cumulative_all: cumAll, runs: per ? cum / per : null });
     }
-    return { nodes: count, levels, all, required: cum, optional, with_optional: cumAll, runs: per ? cum / per : null, runs_with_optional: per ? cumAll / per : null };
+    for (const r of Object.values(other)) r.with_optional = r.required + r.optional;
+    return { nodes: count, levels, all, required: cum, optional, with_optional: cumAll, runs: per ? cum / per : null, runs_with_optional: per ? cumAll / per : null, currency: main, other };
   }
 
   /** Per upgrade type: how many nodes give it and how much: `sure` (plain nodes), `optional`, `choice` (the most its
@@ -585,6 +609,9 @@ const TrailModel = (() => {
       if (n.from != null && (!Array.isArray(n.from) || n.from.some((f) => typeof f !== 'string'))) { err('from', at, `${n.id}: from must be a list of node ids`); broken.add(n.id); }
       if (n.price != null && (!isNum(n.price) || n.price < 0)) err('price', at, `${n.id}: price must be a number, 0 or more`);
       if (n.price_mult != null && (!isNum(n.price_mult) || n.price_mult <= 0)) err('price', at, `${n.id}: price_mult must be a number above 0`);
+      // pass 149 (lane EDITOR): a node's own currency names one of content/currencies (blank = the Trail's)
+      if (n.currency != null && (typeof n.currency !== 'string' || !/^[a-z0-9_]*$/.test(n.currency))) err('currency', at, `${n.id}: currency must be a currency id (gems), or blank for the Trail's`);
+      else if (cur && typeof n.currency === 'string' && n.currency && !cur.has(n.currency)) err('unknown_id', at, `${n.id}: currency "${n.currency}" is not in content/currencies (${Array.from(cur).join(', ')})`);
       if (n.x != null && (!isNum(n.x) || n.x < 0 || n.x > 1)) err('x', at, `${n.id}: x must be between 0 and 1`);
       else if (isNum(n.x) && n.x > FREE_X) warn('x', at, `${n.id}: x ${n.x} sits in the right quarter the screen keeps free`);
       const g = n.gives;
@@ -707,7 +734,7 @@ const TrailModel = (() => {
       const g = isObj(n.gives) ? n.gives : {};
       const p = priceOf(data, n);
       cum += p;
-      const row = [n.id, n.level, n.kind, n.group, Array.isArray(n.from) ? n.from.join(' ') : '', n.need, g.type, giveWhat(g), g.value, n.price, n.price_mult, n.x, n.name, n.note, p, cum];
+      const row = [n.id, n.level, n.kind, n.group, Array.isArray(n.from) ? n.from.join(' ') : '', n.need, g.type, giveWhat(g), g.value, n.price, n.price_mult, n.currency, n.x, n.name, n.note, p, cum];
       lines.push(row.map((v) => csvCell(v, sep)).join(sep));
     }
     return (opt.bom === false ? '' : '﻿') + lines.join('\n') + '\n';
@@ -799,6 +826,7 @@ const TrailModel = (() => {
       base.gives = g;
       if (has('price')) setKey(base, 'price', num(get('price'), 'price', line));
       if (has('price_mult')) setKey(base, 'price_mult', num(get('price_mult'), 'price_mult', line));
+      if (has('currency')) setKey(base, 'currency', get('currency').toLowerCase());   // pass 149: blank = the Trail's
       if (has('x')) setKey(base, 'x', num(get('x'), 'x', line));
       if (has('name')) setKey(base, 'name', get('name'));
       if (has('note')) setKey(base, 'note', get('note'));
@@ -901,7 +929,7 @@ const TrailModel = (() => {
   return {
     W, ROW, TILE, TILE4, RAIL, RAIL_THIN, DIAMOND, DIAMOND_SMALL, DIAMOND_X, FREE_X, AUTO_X, KINDS, GIVES, GIVE_WORDS, MOTIFS, VALUE_KINDS, NODE_KEYS, CSV_COLS, CSV_READ_ONLY, DEFAULT_PRICE,
     normalise, index, groupKey, resolveFrom, railIds, autoSlots, layout, place, links, railPoints, railRun, rails, diamondOf, choiceMarks, hexRgb, sectionsSorted, sectionAt, coloursAt, dependents, spread, evaluate, states,
-    curvePrice, priceOf, totals, upgradeTotals, statTotals, fmtValue, parseValue, giveWhat, giveText, check, errorsOf,
+    curvePrice, priceOf, trailCurrency, currencyOf, totals, upgradeTotals, statTotals, fmtValue, parseValue, giveWhat, giveText, check, errorsOf,
     toCsv, parseCsv, fromCsv, diffNodes, nextId, sortNodes, addNode, duplicateNode, deleteNodes, moveNode, insertLevel, removeLevel, renameId, ordered,
   };
 })();

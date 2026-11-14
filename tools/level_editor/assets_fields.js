@@ -790,8 +790,8 @@ const AFIELDS = (() => {
     T('Availability', [
       // pass 69 (lane UI wired it: Registry.hero_state owned | buyable | locked | hidden): changing it keeps `hidden` in step
       { key: 'availability', label: 'Availability', type: 'select', options: (v) => v.availability, def: 'available', help: 'free = owned from the start (with a Requirement: owned once its quest is done); to buy = on the title and in the outlaw drawer as a black silhouette, locked until the Requirement is done, then BUY for the price; hidden = out of play. A bought outlaw is kept in the save (heroes_owned)', after: (d, v) => { const hide = v === 'hidden'; if ('hidden' in d || hide) d.hidden = hide; } },
-      { key: 'price', label: 'Price', type: 'int', min: 0, def: 0, only: (d) => d.availability === 'purchase', help: 'what BUY costs, spent from the gold he banked (Save.buy_hero; the Coins board\'s sink "hero"). 0 = free once the requirement is done' },
-      { key: 'currency_type', label: 'Currency', type: 'select', options: (v) => v.currencies, def: 'gold', only: (d) => d.availability === 'purchase', help: 'the currency the price is paid in (content/currencies)' },
+      { key: 'price', label: 'Price', type: 'int', min: 0, def: 0, only: (d) => d.availability === 'purchase', help: 'what BUY costs, spent from the purse of the Currency below (gold, or the gems since pass 149) (Save.buy_hero; the Coins board\'s sink "hero"). 0 = free once the requirement is done' },
+      { key: 'currency_type', label: 'Currency', type: 'select', options: (v) => v.currencies, def: 'gold', only: (d) => d.availability === 'purchase', help: 'the currency the price is paid in (content/currencies: gold, or the gems, the hard currency of pass 149; a gem price shows the gem icon on his BUY button)' },
     ]),
     T('Art words', [
       { key: 'art_prompt', label: 'Subject', type: 'textarea', help: 'the painter\'s subject (default "a small goofy outlaw called <name>, <flavour>")' },

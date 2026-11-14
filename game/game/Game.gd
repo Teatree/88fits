@@ -3330,9 +3330,11 @@ func _open_revive() -> bool:
 	_modal = Modal.REVIVE
 	set_paused(true)
 	var chances: int = 1 + Run.player_sheet.get_int("revives", 0) - Run.revives_used
+	# pass 149 (lane STORE): the paid revive (store.json's `revive`; none at price 0) once the free chances are spent
+	var paid := StorePacks.revive_for(chances, Run.paid_revives)
 	# the last 30 s as rows for the list and as text for its copy button (pass 46)
 	revive_screen.open(Run.run_gold, chances, player.damage_log_text(), player.damage_log.back() if not player.damage_log.is_empty() else {},
-		player.damage_log.duplicate(true))
+		player.damage_log.duplicate(true), paid)
 	return true
 
 
@@ -3358,6 +3360,9 @@ func _revive(kind: String) -> void:
 	# pass 120 (lane REPLAY): "replay" is a replay's safety net standing him up where the player's run went on (no chance spent)
 	if kind != "debug" and kind != "phoenix" and kind != "replay":
 		Run.revives_used += 1
+	# pass 149: a paid revive (its price spent on Down!, never in a replay) counts against the run's per_run too
+	if kind == "paid":
+		Run.paid_revives += 1
 	# pass 115: a Phoenix Feather's revive keeps its own floor (Player.revive_share)
 	player.revive(kind == "phoenix")
 	# he comes back with a bang: a wave a third of the nuke's that clears everything but the big ones

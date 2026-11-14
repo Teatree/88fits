@@ -173,6 +173,17 @@ const Trail = (() => {
     return el('span', { class: 'trl-ic none', style: `width:${px}px;height:${px}px;font-size:${Math.max(9, Math.round(px * 0.34))}px`, text: String(label || '?').slice(0, 2) });
   }
   const upIcon = (u) => (u && u.icon && S.d.iconSet.has(u.icon) ? `/api/trail/icon/${encodeURIComponent(u.icon)}` : null);
+  // pass 149 (lane EDITOR): the currencies (GET /api/trail's currency_info: name, word, icon): a node's own `currency`
+  // (the gems) beside its price, its icon under its tile as the game draws it (TrailScreen.Tile._price: the coin of
+  // Trail.currency_of)
+  const curInfo = (id) => (S.picks.currency_info || []).find((c) => c && c.id === id) || { id, name: id, word: id, icon: `/api/currencies/${encodeURIComponent(id)}/icon` };
+  const curWord = (id) => curInfo(id).word || id;
+  const curImg = (id, px, cls) => el('img', { class: 'trl-cur ' + (cls || ''), src: curInfo(id).icon, alt: '', width: px, height: px, draggable: false, title: curInfo(id).name, onerror: (e) => { e.target.remove(); } });
+  const nodeCur = (n) => M.currencyOf(S.doc, n);
+  function curOptions() {
+    const ids = (S.picks.currency_info || []).map((c) => c.id);
+    return ids.length ? ids : (S.picks.currencies || ['gold']).map((c) => (typeof c === 'string' ? c : c.id));
+  }
 
   /** What a node gives, for its tile and its cell: {url, label, name}. */
   function giftOf(n) {
@@ -326,13 +337,13 @@ const Trail = (() => {
       const t = el('div', {
         class: `trl-tile ${state} k-${n.kind}` + (n.name ? ' named' : '') + (unlock ? ' unlock' : '') + (S.sel === n.id ? ' sel' : '') + (S.marked.has(n.id) ? ' marked' : '') + (S.link === n.id ? ' linking' : ''),
         style: `left:${p.x - p.size / 2}px;top:${p.y - p.size / 2}px;width:${p.size}px;height:${p.size}px`,
-        title: `${n.id} · level ${l} · ${M.giveText(S.doc, n, S.picks)} · ${fmtGold(M.priceOf(S.doc, n))} ${S.doc.currency} · ${state}${n.kind === 'choice' ? '\nAlt+click: show this member as the one taken' : ''}${iss.length ? '\n' + iss.map((x) => x.text).join('\n') : ''}`,
+        title: `${n.id} · level ${l} · ${M.giveText(S.doc, n, S.picks)} · ${fmtGold(M.priceOf(S.doc, n))} ${curWord(nodeCur(n))} · ${state}${n.kind === 'choice' ? '\nAlt+click: show this member as the one taken' : ''}${iss.length ? '\n' + iss.map((x) => x.text).join('\n') : ''}`,
         onclick: (e) => tileClick(n, e),
       }, icon(gift.url, Math.round(p.size * 0.74), gift.label),
       iss.length ? el('span', { class: 'trl-badge ' + (iss.some((x) => x.sev === 'error') ? 'err' : 'warn'), text: '!' }) : null,
       state === 'closed' ? el('span', { class: 'trl-strike' }) : null,
       unlock ? el('span', { class: 'trl-unl', text: state === 'bought' ? 'UNLOCKED' : 'UNLOCK' }) : null,
-      el('span', { class: 'trl-cap' }, el('b', { text: cap }), S.showPrices ? el('i', { text: fmtGold(M.priceOf(S.doc, n)) }) : null));
+      el('span', { class: 'trl-cap' }, el('b', { text: cap }), S.showPrices ? el('i', { class: nodeCur(n) !== M.trailCurrency(S.doc) ? 'other' : '' }, curImg(nodeCur(n), 26), el('span', { text: fmtGold(M.priceOf(S.doc, n)) })) : null));
       tile.appendChild(t);
     }
     // a choice group's bar, and between each pair of members an OR on a gold pill until one is bought, then a padlock on
@@ -427,18 +438,28 @@ const Trail = (() => {
       lab('base', numIn('price|base', p.base, set('base'), { w: 70 })), lab('k', numIn('price|k', p.k, set('k'), { w: 70 })),
       lab('power', numIn('price|power', p.power, set('power'), { w: 70 })), lab('round to', numIn('price|round', p.round, set('round'), { w: 70 })),
       el('span', { class: 'muted small', text: 'a node costs round(base + k × level ^ power) × its multiplier, unless it has its own price' })));
+    const main = M.trailCurrency(S.doc);
+    body.appendChild(el('div', { class: 'trl-line' },
+      lab('paid in', sel('trail|currency', main, curOptions().map((c) => [c, curInfo(c).name || c]), (v) => edit((d) => { d.currency = v; }), { title: 'the Trail\'s currency: every node without its own (pass 149: a node may name its own beside its price, e.g. the gems)' })),
+      el('span', { class: 'muted small', text: 'a node with its own currency is summed apart below: gems never add to coins' })));
     body.appendChild(el('div', { class: 'trl-line' },
       lab('coins a run', numIn('page|perrun', S.perRun, (v) => { if (v > 0) { S.perRun = v; store('perrun', String(v)); later(); } }, { w: 80, title: 'a page setting for the "runs" below, never written to the file' })),
-      el('span', { text: `All ${tot.nodes} nodes: ${fmtGold(tot.all)} ${S.doc.currency}.` }),
+      el('span', { text: `All ${tot.nodes} nodes in ${curWord(main)}: ${fmtGold(tot.all)} ${curWord(main)}.` }),
       el('span', { text: `Every required node (a choice once, at its dearest): ${fmtGold(tot.required)}, about ${tot.runs == null ? '?' : Math.ceil(tot.runs)} runs.` }),
       el('span', { class: 'muted', text: `Optional nodes: ${fmtGold(tot.optional)} more (about ${tot.runs_with_optional == null ? '?' : Math.ceil(tot.runs_with_optional)} runs for everything a player can buy).` })));
+    // pass 149: the nodes priced in another currency, each currency on its own line (never added to the Trail's)
+    for (const o of Object.values(tot.other || {})) {
+      body.appendChild(el('div', { class: 'trl-line trl-other' }, curImg(o.currency, 20),
+        el('span', { text: `${o.nodes} node${o.nodes === 1 ? '' : 's'} in ${curWord(o.currency)}: ${fmtGold(o.all)} ${curWord(o.currency)} for all of them; every required one (a choice once, at its dearest) ${fmtGold(o.required)}, optional ${fmtGold(o.optional)} more.` })));
+    }
     body.appendChild(priceChart(tot));
   }
   /** One series (what a level's node costs on the curve) with a crosshair readout; nodes off the curve as rings. */
   function priceChart(tot) {
     const Wd = 560, Hd = 150, L = 46, Rr = 10, T = 8, B = 22;
     const maxL = Math.max(10, S.d.ix.max);
-    const off = S.d.ix.nodes.filter((n) => n.level >= 1 && M.priceOf(S.doc, n) !== M.curvePrice(S.doc.price, n.level));
+    // pass 149: a node priced in another currency (the gems) is not on this scale: left out of the rings
+    const off = S.d.ix.nodes.filter((n) => n.level >= 1 && nodeCur(n) === M.trailCurrency(S.doc) && M.priceOf(S.doc, n) !== M.curvePrice(S.doc.price, n.level));
     const maxP = Math.max(10, M.curvePrice(S.doc.price, maxL), ...off.map((n) => M.priceOf(S.doc, n)));
     const X = (l) => L + (Wd - L - Rr) * (l - 1) / (maxL - 1), Y = (v) => T + (Hd - T - B) * (1 - v / maxP);
     const g = svg('svg', { class: 'trl-chart', viewBox: `0 0 ${Wd} ${Hd}`, role: 'img', 'aria-label': 'the price of a node by level' });
@@ -459,13 +480,13 @@ const Trail = (() => {
       const r = g.getBoundingClientRect();
       const l = Math.max(1, Math.min(maxL, Math.round(1 + ((e.clientX - r.left) / r.width * Wd - L) / (Wd - L - Rr) * (maxL - 1))));
       cross.setAttribute('x1', X(l)); cross.setAttribute('x2', X(l)); cross.setAttribute('visibility', 'visible');
-      const nodes = (S.d.ix.byLevel.get(l) || []).map((n) => `${n.id} ${fmtGold(M.priceOf(S.doc, n))}`).join(', ');
+      const nodes = (S.d.ix.byLevel.get(l) || []).map((n) => `${n.id} ${fmtGold(M.priceOf(S.doc, n))}${nodeCur(n) !== M.trailCurrency(S.doc) ? ' ' + curWord(nodeCur(n)) : ''}`).join(', ');
       const t = tot.levels[l - 1];
       read.textContent = `Level ${l}: the curve gives ${fmtGold(M.curvePrice(S.doc.price, l))}${nodes ? ` · ${nodes}` : ' · no node yet'}${t ? ` · required gold to here ${fmtGold(t.cumulative)}${t.runs != null ? `, about ${Math.ceil(t.runs)} runs` : ''}` : ''}`;
     });
     hit.addEventListener('mouseleave', () => cross.setAttribute('visibility', 'hidden'));
     g.appendChild(hit);
-    return el('div', { class: 'trl-chart-box' }, el('div', { class: 'muted small', text: `Price of a node by level (${S.doc.currency})` }), g, read);
+    return el('div', { class: 'trl-chart-box' }, el('div', { class: 'muted small', text: `Price of a node by level (${curWord(M.trailCurrency(S.doc))})` }), g, read);
   }
 
   function totalsBlock(body) {
@@ -574,7 +595,7 @@ const Trail = (() => {
       el('span', { class: 'muted small', text: `levels on top · ${ix.nodes.length} nodes on ${ix.max} levels` })));
     if (S.marked.size) {
       const field = el('select', { class: 'trl-in' });
-      for (const [v, t] of [['value', 'value'], ['upgrade', 'upgrade type'], ['kind', 'kind'], ['price', 'own price'], ['price_mult', 'price multiplier'], ['level', 'level'], ['group', 'group'], ['need', 'need (all / any)'], ['x', 'x'], ['name', 'name'], ['note', 'note']]) field.appendChild(el('option', { value: v, text: t }));
+      for (const [v, t] of [['value', 'value'], ['upgrade', 'upgrade type'], ['kind', 'kind'], ['price', 'own price'], ['price_mult', 'price multiplier'], ['currency', 'currency (blank = the Trail\'s)'], ['level', 'level'], ['group', 'group'], ['need', 'need (all / any)'], ['x', 'x'], ['name', 'name'], ['note', 'note']]) field.appendChild(el('option', { value: v, text: t }));
       const val = el('input', { type: 'text', class: 'trl-in', placeholder: 'value (empty clears it)', style: 'width:150px' });
       const ids = () => Array.from(S.marked);
       bar.appendChild(el('div', { class: 'trl-line trl-bulk' }, el('b', { text: `${S.marked.size} selected` }), 'set', field, 'to', val,
@@ -603,6 +624,7 @@ const Trail = (() => {
           if (v !== undefined && !Number.isFinite(v)) { bad = `"${text}" is not a number`; continue; }
           if (field === 'level') { if (v >= 1) n.level = Math.round(v); } else setKey(n, field, v);
         } else if (field === 'kind') { if (M.KINDS.includes(text)) setKind(d, n, text); else bad = 'kind is node, choice or optional'; }
+        else if (field === 'currency') { const c = text.toLowerCase(); if (!c || curOptions().includes(c)) setKey(n, 'currency', c || undefined); else bad = `no currency "${text}" (${curOptions().join(', ')})`; }
         else setKey(n, field, text);
       }
       M.sortNodes(d);
@@ -730,6 +752,8 @@ const Trail = (() => {
       what, valueCell,
       numIn(cellKey(id, 'price'), n.price, (v) => setField(id, 'price', v), { w: 66, ph: fmtGold(curve), title: `own price (empty = the curve: ${fmtGold(curve)})` }),
       numIn(cellKey(id, 'mult'), n.price_mult, (v) => setField(id, 'price_mult', v === 1 ? undefined : v), { w: 44, ph: '×1', title: 'price multiplier on the curve', disabled: typeof n.price === 'number' }),
+      sel(cellKey(id, 'cur'), n.currency || '', [['', `Trail (${curInfo(M.trailCurrency(S.doc)).name || M.trailCurrency(S.doc)})`]].concat(curOptions().map((c) => [c, curInfo(c).name || c])), (v) => setField(id, 'currency', v || undefined),
+        { cls: 'cur' + (n.currency && n.currency !== M.trailCurrency(S.doc) ? ' other' : ''), title: 'pass 149: the currency this node is paid in (blank = the Trail\'s; the gems are the hard currency, a price in gems shows the gem icon in the game)' }),
       chips, addFrom,
       el('button', { type: 'button', tabindex: -1, class: 'btn small ghost' + (S.link === id ? ' on' : ''), text: '⌖', title: 'connect by clicking: then click the nodes on the left this one connects from (Esc ends)', onclick: () => { S.link = S.link === id ? null : id; S.sel = id; later(); } }),
       sel(cellKey(id, 'need'), n.need || 'all', [['all', 'all'], ['any', 'any']], (v) => setField(id, 'need', v === 'all' ? undefined : v), { cls: 'need', title: 'needs all of the nodes it connects from, or any one' }),

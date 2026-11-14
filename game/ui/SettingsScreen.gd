@@ -193,7 +193,29 @@ func _debug_panel() -> PanelContainer:
 		sw6.toggled.connect(func(on: bool): Settings.set_value("store_open", on))
 		r6.add_child(sw6)
 		col.add_child(r6)
+	# "Add 1,000 gems" (pass 149, lane STORE: a way to test the gems, which nothing in the game gives): a tap adds them to
+	# the wallet (StorePacks.debug_grant; never in prod, where there is no debug panel)
+	if not Settings.is_prod():
+		var r7 := _row(_add_gems_words())
+		r7.name = "AddGemsRow"
+		var b7 := WButton.make([{"coin": 30.0, "fill": W.BRASS, "currency": StorePacks.gem_currency()}, "+" + W.num(StorePacks.DEBUG_GRANT)],
+			26, WButton.PRIMARY, 3, 4, 8.0, 16.0, 26.0, WButton.BLUE)
+		b7.name = "AddGems"
+		b7.pressed.connect(func() -> void:
+			StorePacks.debug_grant()
+			W.sfx("ui_buy")
+			var nm := r7.find_child("Name", true, false) as WText
+			if nm:
+				nm.text = _add_gems_words())
+		r7.add_child(b7)
+		col.add_child(r7)
 	return p
+
+
+## The gem grant row's words: the amount and the wallet now.
+static func _add_gems_words() -> String:
+	return Loc.t("ui.settings.add_gems", {"amount": W.num(StorePacks.DEBUG_GRANT),
+		"balance": W.num(Currency.balance(StorePacks.gem_currency()))})
 
 
 ## The debug panel follows the debug mode at once when ten taps flip it (just above the wipe, where _refresh puts it).

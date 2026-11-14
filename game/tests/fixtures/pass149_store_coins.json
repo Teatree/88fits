@@ -1,0 +1,774 @@
+{
+ "_doc": "Pass 149 (lane STORE): the coin offer rule's fixture, never the game file. coins_now(offer) = nice(offer.coins x stage_mult[s] x (1 + trail_per_step x floor(T / trail_step)), round_sig): s the stage index (0-based; past the end of stage_mult its last value holds), T the Trail Level (trail_step 0 or less: no Trail steps), nice() = round to round_sig significant figures, half away from zero (NOT Python's banker's round), counted on the whole part's digits, 0 for v <= 0. `cases`: the store.json offers and scaling below at stages 0-3 x Trail levels 0, 9, 10, 35, 83; `bonus`: the coin offers' bonus tag N at each (coins per gem against the offer with the fewest gems, both at the amounts shown; round(100 x (rate / base - 1)), 0 under 1); `nice`: [v, sig, out]; `edge`: the same offers under `scaling_edge`. Read by game/tests/pass149_store_test.gd (StorePacks.gd) and the Level Editor's store_model.js selftest, so the two writers of the amounts stay the same. Made by tools/dl/p149/STORE/make_fixture.py.",
+ "offers": [
+  {
+   "id": "coins_small",
+   "gems": 100,
+   "coins": 1000,
+   "ribbon": "",
+   "picture": "res://art/ui/store/pack_handful.png"
+  },
+  {
+   "id": "coins_medium",
+   "gems": 500,
+   "coins": 5500,
+   "ribbon": "most_popular",
+   "picture": "res://art/ui/store/pack_sack.png"
+  },
+  {
+   "id": "coins_large",
+   "gems": 1200,
+   "coins": 14000,
+   "ribbon": "best_value",
+   "picture": "res://art/ui/store/pack_cart.png"
+  }
+ ],
+ "scaling": {
+  "stage_mult": [
+   1.0,
+   3.0,
+   7.0,
+   14.0
+  ],
+  "trail_step": 10,
+  "trail_per_step": 0.05,
+  "round_sig": 2
+ },
+ "levels": [
+  0,
+  9,
+  10,
+  35,
+  83
+ ],
+ "cases": [
+  {
+   "offer": "coins_small",
+   "stage": 0,
+   "trail": 0,
+   "coins": 1000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 0,
+   "trail": 9,
+   "coins": 1000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 0,
+   "trail": 10,
+   "coins": 1100
+  },
+  {
+   "offer": "coins_small",
+   "stage": 0,
+   "trail": 35,
+   "coins": 1200
+  },
+  {
+   "offer": "coins_small",
+   "stage": 0,
+   "trail": 83,
+   "coins": 1400
+  },
+  {
+   "offer": "coins_small",
+   "stage": 1,
+   "trail": 0,
+   "coins": 3000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 1,
+   "trail": 9,
+   "coins": 3000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 1,
+   "trail": 10,
+   "coins": 3200
+  },
+  {
+   "offer": "coins_small",
+   "stage": 1,
+   "trail": 35,
+   "coins": 3400
+  },
+  {
+   "offer": "coins_small",
+   "stage": 1,
+   "trail": 83,
+   "coins": 4200
+  },
+  {
+   "offer": "coins_small",
+   "stage": 2,
+   "trail": 0,
+   "coins": 7000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 2,
+   "trail": 9,
+   "coins": 7000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 2,
+   "trail": 10,
+   "coins": 7400
+  },
+  {
+   "offer": "coins_small",
+   "stage": 2,
+   "trail": 35,
+   "coins": 8000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 2,
+   "trail": 83,
+   "coins": 9800
+  },
+  {
+   "offer": "coins_small",
+   "stage": 3,
+   "trail": 0,
+   "coins": 14000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 3,
+   "trail": 9,
+   "coins": 14000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 3,
+   "trail": 10,
+   "coins": 15000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 3,
+   "trail": 35,
+   "coins": 16000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 3,
+   "trail": 83,
+   "coins": 20000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 0,
+   "trail": 0,
+   "coins": 5500
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 0,
+   "trail": 9,
+   "coins": 5500
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 0,
+   "trail": 10,
+   "coins": 5800
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 0,
+   "trail": 35,
+   "coins": 6300
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 0,
+   "trail": 83,
+   "coins": 7700
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 1,
+   "trail": 0,
+   "coins": 17000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 1,
+   "trail": 9,
+   "coins": 17000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 1,
+   "trail": 10,
+   "coins": 17000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 1,
+   "trail": 35,
+   "coins": 19000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 1,
+   "trail": 83,
+   "coins": 23000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 2,
+   "trail": 0,
+   "coins": 39000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 2,
+   "trail": 9,
+   "coins": 39000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 2,
+   "trail": 10,
+   "coins": 40000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 2,
+   "trail": 35,
+   "coins": 44000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 2,
+   "trail": 83,
+   "coins": 54000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 3,
+   "trail": 0,
+   "coins": 77000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 3,
+   "trail": 9,
+   "coins": 77000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 3,
+   "trail": 10,
+   "coins": 81000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 3,
+   "trail": 35,
+   "coins": 89000
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 3,
+   "trail": 83,
+   "coins": 110000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 0,
+   "trail": 0,
+   "coins": 14000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 0,
+   "trail": 9,
+   "coins": 14000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 0,
+   "trail": 10,
+   "coins": 15000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 0,
+   "trail": 35,
+   "coins": 16000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 0,
+   "trail": 83,
+   "coins": 20000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 1,
+   "trail": 0,
+   "coins": 42000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 1,
+   "trail": 9,
+   "coins": 42000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 1,
+   "trail": 10,
+   "coins": 44000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 1,
+   "trail": 35,
+   "coins": 48000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 1,
+   "trail": 83,
+   "coins": 59000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 2,
+   "trail": 0,
+   "coins": 98000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 2,
+   "trail": 9,
+   "coins": 98000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 2,
+   "trail": 10,
+   "coins": 100000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 2,
+   "trail": 35,
+   "coins": 110000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 2,
+   "trail": 83,
+   "coins": 140000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 3,
+   "trail": 0,
+   "coins": 200000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 3,
+   "trail": 9,
+   "coins": 200000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 3,
+   "trail": 10,
+   "coins": 210000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 3,
+   "trail": 35,
+   "coins": 230000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 3,
+   "trail": 83,
+   "coins": 270000
+  }
+ ],
+ "bonus": [
+  {
+   "stage": 0,
+   "trail": 0,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 10,
+    "coins_large": 17
+   }
+  },
+  {
+   "stage": 0,
+   "trail": 9,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 10,
+    "coins_large": 17
+   }
+  },
+  {
+   "stage": 0,
+   "trail": 10,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 5,
+    "coins_large": 14
+   }
+  },
+  {
+   "stage": 0,
+   "trail": 35,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 5,
+    "coins_large": 11
+   }
+  },
+  {
+   "stage": 0,
+   "trail": 83,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 10,
+    "coins_large": 19
+   }
+  },
+  {
+   "stage": 1,
+   "trail": 0,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 13,
+    "coins_large": 17
+   }
+  },
+  {
+   "stage": 1,
+   "trail": 9,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 13,
+    "coins_large": 17
+   }
+  },
+  {
+   "stage": 1,
+   "trail": 10,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 6,
+    "coins_large": 15
+   }
+  },
+  {
+   "stage": 1,
+   "trail": 35,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 12,
+    "coins_large": 18
+   }
+  },
+  {
+   "stage": 1,
+   "trail": 83,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 10,
+    "coins_large": 17
+   }
+  },
+  {
+   "stage": 2,
+   "trail": 0,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 11,
+    "coins_large": 17
+   }
+  },
+  {
+   "stage": 2,
+   "trail": 9,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 11,
+    "coins_large": 17
+   }
+  },
+  {
+   "stage": 2,
+   "trail": 10,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 8,
+    "coins_large": 13
+   }
+  },
+  {
+   "stage": 2,
+   "trail": 35,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 10,
+    "coins_large": 15
+   }
+  },
+  {
+   "stage": 2,
+   "trail": 83,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 10,
+    "coins_large": 19
+   }
+  },
+  {
+   "stage": 3,
+   "trail": 0,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 10,
+    "coins_large": 19
+   }
+  },
+  {
+   "stage": 3,
+   "trail": 9,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 10,
+    "coins_large": 19
+   }
+  },
+  {
+   "stage": 3,
+   "trail": 10,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 8,
+    "coins_large": 17
+   }
+  },
+  {
+   "stage": 3,
+   "trail": 35,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 11,
+    "coins_large": 20
+   }
+  },
+  {
+   "stage": 3,
+   "trail": 83,
+   "bonus": {
+    "coins_small": 0,
+    "coins_medium": 10,
+    "coins_large": 13
+   }
+  }
+ ],
+ "nice": [
+  [
+   17325.0,
+   2,
+   17000
+  ],
+  [
+   1050.0,
+   2,
+   1100
+  ],
+  [
+   1000.0,
+   2,
+   1000
+  ],
+  [
+   9960.0,
+   2,
+   10000
+  ],
+  [
+   0.0,
+   2,
+   0
+  ],
+  [
+   -5.0,
+   2,
+   0
+  ],
+  [
+   7.4,
+   2,
+   7
+  ],
+  [
+   99.5,
+   2,
+   100
+  ],
+  [
+   123456.0,
+   3,
+   123000
+  ],
+  [
+   1150.0,
+   2,
+   1200
+  ],
+  [
+   17325.0,
+   2,
+   17000
+  ],
+  [
+   274400.0,
+   2,
+   270000
+  ],
+  [
+   149999.0,
+   1,
+   100000
+  ]
+ ],
+ "scaling_edge": {
+  "stage_mult": [
+   1.0,
+   2.5
+  ],
+  "trail_step": 0,
+  "trail_per_step": 0.5,
+  "round_sig": 3
+ },
+ "edge": [
+  {
+   "offer": "coins_small",
+   "stage": 0,
+   "trail": 0,
+   "coins": 1000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 0,
+   "trail": 40,
+   "coins": 1000
+  },
+  {
+   "offer": "coins_small",
+   "stage": 1,
+   "trail": 0,
+   "coins": 2500
+  },
+  {
+   "offer": "coins_small",
+   "stage": 1,
+   "trail": 40,
+   "coins": 2500
+  },
+  {
+   "offer": "coins_small",
+   "stage": 5,
+   "trail": 0,
+   "coins": 2500
+  },
+  {
+   "offer": "coins_small",
+   "stage": 5,
+   "trail": 40,
+   "coins": 2500
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 0,
+   "trail": 0,
+   "coins": 5500
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 0,
+   "trail": 40,
+   "coins": 5500
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 1,
+   "trail": 0,
+   "coins": 13800
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 1,
+   "trail": 40,
+   "coins": 13800
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 5,
+   "trail": 0,
+   "coins": 13800
+  },
+  {
+   "offer": "coins_medium",
+   "stage": 5,
+   "trail": 40,
+   "coins": 13800
+  },
+  {
+   "offer": "coins_large",
+   "stage": 0,
+   "trail": 0,
+   "coins": 14000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 0,
+   "trail": 40,
+   "coins": 14000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 1,
+   "trail": 0,
+   "coins": 35000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 1,
+   "trail": 40,
+   "coins": 35000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 5,
+   "trail": 0,
+   "coins": 35000
+  },
+  {
+   "offer": "coins_large",
+   "stage": 5,
+   "trail": 40,
+   "coins": 35000
+  }
+ ]
+}

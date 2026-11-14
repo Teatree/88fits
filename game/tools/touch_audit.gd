@@ -94,6 +94,9 @@
 ## Pass 147 (lane SHOP): store (run alone with only=store): the Store opened in memory: every price, the back square and the
 ## tab bar; a real price tap adds no coins and opens "Coming soon", its OK and the dim close it; the STORE tab asks for the
 ## Store only while it is open. The run starts with the Store shut (Settings.store_open false, in memory).
+## Pass 149 (lane STORE): the Store's two sections: a real tap on a gem pack's price as pass 147's; a real tap on a coin
+## offer's gem price asks, a real tap on the buy button trades the gems for the coins (once); short of gems a real tap
+## opens the message, a real tap on its GET GEMS closes it; the gem wallet in the header only while the Store is open.
 ## Pass 111 (lane SKINS): hero_skins (run with title, or alone with only=hero_skins): the hero sheet of a hero who sells a
 ## look, owned, its goal done and the gold for it: every control on it answers a finger (muted; a swipe that starts on a
 ## Looks tile scrolls the sheet and presses nothing), the buy question is audited
@@ -3851,9 +3854,12 @@ func _store_audit() -> void:
 	var save = root.get_node("Save")
 	var st = root.get_node("Settings")
 	var keep_gold = save.data.get("gold")
+	var keep_wallets = save.data.get("wallets")
 	var keep_open: bool = bool(st.get("store_open"))
 	st.set("store_open", true)
 	save.data["gold"] = 777
+	# pass 149: the gem wallet lent too (put back at the end)
+	save.data["wallets"] = {"gems": 600}
 	var check := func(ok: bool, what: String, why: String) -> void:
 		_count("store", ok)
 		if not ok:
@@ -3871,7 +3877,7 @@ func _store_audit() -> void:
 	var cf = load("res://ui/wanted/WConfirm.gd")
 	# a real tap on a price: no coins, the modal; its OK closes it
 	for way in ["ok", "dim"]:
-		var card: Control = s.call("card_of", "pack_pouch" if way == "ok" else "pack_cart")
+		var card: Control = s.call("card_of", "gems_pouch" if way == "ok" else "gems_vault")
 		var price: Control = card.get_node_or_null("Price") if card else null
 		var at := Vector2.INF
 		if price:
@@ -3881,7 +3887,8 @@ func _store_audit() -> void:
 			break
 		await _tap(at)
 		await _wait(0.6)
-		check.call(int(save.data["gold"]) == 777, "Price (%s)" % way, "a real tap changed the purse to %d" % int(save.data["gold"]))
+		check.call(int(save.data["gold"]) == 777 and int(save.data["wallets"].get("gems", 0)) == 600, "Price (%s)" % way,
+			"a real tap changed the purse to %d or the gems to %d" % [int(save.data["gold"]), int(save.data["wallets"].get("gems", 0))])
 		var ask = cf.current(s)
 		check.call(ask != null, "Price (%s)" % way, "a real tap opened no message")
 		if ask == null:
@@ -3901,6 +3908,52 @@ func _store_audit() -> void:
 	await _swipe(Vector2(540, 1100), Vector2(540, 700), 10)
 	await _wait(0.4)
 	check.call(not bool(cf.is_open(s)), "Grid", "a swipe over the cards opened the message")
+	# pass 149: the gem wallet in the header (the Store is open)
+	check.call(s.find_child("Wallet_gems", true, false) != null, "Wallet_gems", "no gem wallet in the open Store's header")
+	# pass 149: a coin offer: a real tap asks; a real tap on its buy button trades 500 gems for its coins, once
+	var offer: Control = s.call("card_of", "coins_medium")
+	var oprice: Control = offer.get_node_or_null("Price") if offer else null
+	var oat := Vector2.INF
+	if oprice:
+		oat = await _spot(oprice)
+	if oat == Vector2.INF:
+		check.call(false, "Offer_coins_medium", "no offer price on screen")
+	else:
+		var coins_now: int = load("res://core/systems/StorePacks.gd").coins_now(load("res://core/systems/StorePacks.gd").offer("coins_medium"))
+		await _tap(oat)
+		await _wait(0.6)
+		var ask = cf.current(s)
+		check.call(ask != null, "Offer_coins_medium", "a real tap on the offer asked nothing")
+		check.call(int(save.data["wallets"].get("gems", 0)) == 600, "Offer_coins_medium", "the tap alone spent gems")
+		if ask:
+			var yes: Control = ask.get("confirm_btn")
+			if yes:
+				await _tap(yes.get_global_rect().get_center())
+				await _wait(0.6)
+			check.call(int(save.data["wallets"].get("gems", 0)) == 100 and int(save.data["gold"]) == 777 + coins_now, "Confirm (offer)",
+				"a real tap on buy left gems %d, gold %d (want 100, %d)" % [int(save.data["wallets"].get("gems", 0)), int(save.data["gold"]), 777 + coins_now])
+			if cf.is_open(s):
+				cf.dismiss(s)
+				await _wait(0.4)
+		# short now (100 gems, 500 wanted): a real tap opens the message, its GET GEMS closes it and nothing moves
+		var gold_was := int(save.data["gold"])
+		oat = await _spot(oprice)
+		await _tap(oat)
+		await _wait(0.6)
+		var msg = cf.current(s)
+		check.call(msg != null, "Offer_coins_medium (short)", "a real tap short of gems opened no message")
+		if msg:
+			var gb: Control = msg.call("button", "gems")
+			check.call(gb != null, "Btn_gems", "the short message has no GET GEMS")
+			if gb:
+				await _tap(gb.get_global_rect().get_center())
+				await _wait(0.6)
+			check.call(not bool(cf.is_open(s)), "Btn_gems", "a real tap on GET GEMS did not close the message")
+			if cf.is_open(s):
+				cf.dismiss(s)
+				await _wait(0.4)
+		check.call(int(save.data["gold"]) == gold_was and int(save.data["wallets"].get("gems", 0)) == 100, "Offer_coins_medium (short)",
+			"a short tap moved gold or gems")
 	# the STORE tab on another hub screen: open, it asks for the Store; shut, for nothing
 	var src := "extends ScreenBase\nfunc tab_bar() -> String:\n\treturn \"battle\"\nfunc on_back() -> void:\n\tpass\n"
 	for open in [true, false]:
@@ -3925,3 +3978,7 @@ func _store_audit() -> void:
 		check.call(asked == want, "Tab_store (%s)" % ("open" if open else "shut"), "a real tap asked for %s" % str(asked))
 	st.set("store_open", keep_open)
 	save.data["gold"] = keep_gold
+	if keep_wallets == null:
+		save.data.erase("wallets")
+	else:
+		save.data["wallets"] = keep_wallets

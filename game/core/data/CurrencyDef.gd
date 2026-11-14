@@ -13,6 +13,9 @@ extends ContentDef
 @export var colour: Color = Color("c9932f")
 ## the word a sentence uses ("gold": "250 gold from your purse")
 @export var word: String = ""
+## Pass 149 (Garry: the hard currency's wallet "is only visible to Players when the Store option is turned on"): when its
+## wallet and prices may show: "always" (gold) or "store" (gems: only while the Store is open, StorePacks.is_open).
+@export var shown: String = "always"
 
 
 func kind() -> String:

@@ -994,12 +994,18 @@ func trail_had() -> Array:
 
 
 ## Records Trail node `id` as bought for `cost` (Trail.buy calls it once the price has left the purse; it spends nothing).
-func trail_buy(id: String, cost: int) -> void:
+func trail_buy(id: String, cost: int, cur: String = "") -> void:
 	var t := _trail()
 	if id == "" or (t["bought"] as Array).has(id):
 		return
 	(t["bought"] as Array).append(id)
-	t["spent"] = int(t["spent"]) + maxi(cost, 0)
+	# pass 149: `spent` is in the Trail's currency; a node priced in another (the gems) is kept apart in `spent_by`
+	if cur == "" or cur == Trail.currency():
+		t["spent"] = int(t["spent"]) + maxi(cost, 0)
+	else:
+		if not (t.get("spent_by") is Dictionary):
+			t["spent_by"] = {}
+		t["spent_by"][cur] = int((t["spent_by"] as Dictionary).get(cur, 0)) + maxi(cost, 0)
 	Trail.refresh()
 	request_save()
 
@@ -1010,6 +1016,13 @@ func trail_buy(id: String, cost: int) -> void:
 func trail_reset(forget_had: bool = false) -> int:
 	var t := _trail()
 	var back := int(t["spent"])
+	# pass 149: what was paid in other currencies goes back too
+	if t.get("spent_by") is Dictionary:
+		for c: String in (t["spent_by"] as Dictionary).keys():
+			var b := int(t["spent_by"][c])
+			if b > 0:
+				add_currency(c, b, "debug", {"why": "trail_reset"})
+		t["spent_by"] = {}
 	t["bought"] = []
 	t["spent"] = 0
 	if forget_had:

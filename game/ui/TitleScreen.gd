@@ -87,7 +87,7 @@ const WConsentScript := preload("res://ui/wanted/WConsent.gd")
 const StagesScreenScript := preload("res://ui/StagesScreen.gd")
 const CONSENT_DELAY := 0.8
 var _wash_rect: TextureRect
-var _gold_plate: PanelContainer
+var _gold_plate: Control
 var _req: PanelContainer
 var _req_text: WText
 ## Pass 129 (lane TRAIL-UI): the requirement card's chevron and its tap, shown for an outlaw a Trail node gives.
@@ -533,6 +533,7 @@ func _refresh_gold() -> void:
 	if _gold_plate:
 		for n in _gold_plate.find_children("Amount", "", true, false):
 			(n as WText).text = W.num(Save.gold())
+		WMenuHeader.refresh_wallets(_gold_plate)
 		# fewer digits: the plate shrinks to them
 		_gold_plate.reset_size()
 	# pass 123: the tab bar's mark follows the purse too
@@ -632,7 +633,8 @@ func _build_royale() -> void:
 	_menu_btn.pressed.connect(func(): UiFx.go(get_tree(), "res://ui/SettingsScreen.tscn"))
 	add_child(_menu_btn)
 	# the wallet, top right (WMenuHeader's Royale plate: the coin and the purse in white)
-	_gold_plate = WMenuHeader.gold_plate(Save.gold(), 44, 40.0, 5, 4)
+	# pass 149: the gem wallet beside the purse while the Store is open (WMenuHeader.wallets: the plate itself otherwise)
+	_gold_plate = WMenuHeader.wallets(Save.gold(), 44, 40.0)
 	_gold_plate.name = "Wallet"
 	add_child(_gold_plate)
 	# the debug arena beside ≡ (the wallet holds the top right)

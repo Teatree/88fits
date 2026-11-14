@@ -186,7 +186,8 @@ static func picker_view_height() -> float:
 
 
 func header_right() -> Control:
-	_wallet = WMenuHeader.gold_plate(Save.gold(), 44, 40.0, 5, 4)
+	# pass 149: the gem wallet beside the purse while the Store is open (WMenuHeader.wallets)
+	_wallet = WMenuHeader.wallets(Save.gold(), 44, 40.0)
 	return _wallet
 
 
@@ -884,6 +885,7 @@ func _refresh_wallet() -> void:
 		return
 	for n in _wallet.find_children("Amount", "", true, false):
 		(n as WText).text = W.num(Save.gold())
+	WMenuHeader.refresh_wallets(_wallet)
 	_wallet.reset_size()
 
 

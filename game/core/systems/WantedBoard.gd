@@ -116,6 +116,13 @@ static func currency() -> String:
 	return Currency.of(str((config().get("reward", {}) as Dictionary).get("currency", "gold")))
 
 
+## Pass 149 (Garry: the hard currency "available there as a reward, just not used"): the currency poster `contract` pays
+## in: its task's `reward_currency` when it named one (kept on the contract as "currency"), else the board's.
+static func currency_of(contract: Dictionary) -> String:
+	var c := str(contract.get("currency", ""))
+	return Currency.of(c) if c != "" else currency()
+
+
 ## The JSON entry of task type `type` in `cfg` ({} when it has none).
 static func task_cfg(cfg: Dictionary, type: String) -> Dictionary:
 	for t in cfg.get("tasks", []):
@@ -592,7 +599,9 @@ static func skulls_of(d: float) -> int:
 ## Pass 139 (lead, BALANCING 80.COINS): what a poster (a contract or its record: its `reward`) pays and shows now: its
 ## reward x PickupManager.coins_x() (25 while the temporary Coins x25 switch is on). The contract keeps the plain reward.
 static func reward_of(contract: Dictionary) -> int:
-	return maxi(int(contract.get("reward", 0)), 0) * PickupManager.coins_x()
+	# Coins x25 multiplies coins only (pass 149: a poster paying gems pays them as set)
+	var x := PickupManager.coins_x() if currency_of(contract) == Currency.DEFAULT else 1
+	return maxi(int(contract.get("reward", 0)), 0) * x
 
 
 static func reward_for(cfg: Dictionary, d: float, p: int, stage: int) -> int:
@@ -792,6 +801,11 @@ static func make_contract(cfg: Dictionary, type: String, ctx: Dictionary, rng: R
 	c["d"] = d
 	c["skulls"] = skulls_of(d)
 	c["reward"] = reward_for(cfg, d, p, k)
+	# pass 149: a task may pay in its own currency (`reward_currency`, e.g. the gems) and a fixed amount (`reward_fixed`)
+	if str(tc.get("reward_currency", "")) != "":
+		c["currency"] = str(tc["reward_currency"])
+	if float(tc.get("reward_fixed", 0)) > 0.0:
+		c["reward"] = int(round(float(tc["reward_fixed"])))
 	c["name"] = fill_text(str(tc.get("name", "{target}")), vars)
 	c["text"] = fill_text(str(tc.get("text", "")), vars)
 	return c

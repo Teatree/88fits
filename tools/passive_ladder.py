@@ -53,8 +53,9 @@ LADDER = {
     # common: 6 levels (common, uncommon, rare, epic, legendary, Evolved); 5 before
     "barrel_rush": [[E("barrel_speed", 0.3), E("barrel_seconds", 4.0)]] + [[E("barrel_speed", 0.08), E("barrel_seconds", 0.6)]] * 4
                    + [[E("barrel_speed", 0.12), E("barrel_seconds", 0.9)]],
-    "beer": [[E("might", 0.15, "mul"), E("max_hp", -0.05, "mul")]] + [[E("might", 0.1, "mul"), E("max_hp", -0.04, "mul")]] * 4
-            + [[E("might", 0.14, "mul"), E("max_hp", -0.05, "mul")]],
+    # pass 149 (Garry: "Don't modify the -5% Max HP with Upgrades. It should stay the same."): the price once, at level 1
+    "beer": [[E("might", 0.15, "mul"), E("max_hp", -0.05, "mul")]] + [[E("might", 0.1, "mul")]] * 4
+            + [[E("might", 0.14, "mul")]],
     # pass 141 (lane SMALL; Garry: "Make the Cake item spawn cakes more rarely, but they heal more"): about half the
     # chance (0.004 / 0.0025 / 0.0035 before), each slice heals 2.4x (content/pickups/cake_slice)
     "cake": [[E("heal_drop", 0.002)]] + [[E("heal_drop", 0.0013)]] * 4 + [[E("heal_drop", 0.0017)]],
@@ -148,7 +149,7 @@ TEXT = {
     "steady_hand": "+13% attack damage for every second you stand still, up to +100%. Moving drops it.",
     "vulture": "Critical hits have a 6% chance of healing you for 2% of your max HP.",
 }
-TRADE = {"beer": "−4 to −5% max HP a level"}
+TRADE = {"beer": "−5% max HP"}
 
 
 # ---- the sums

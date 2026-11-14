@@ -1165,7 +1165,7 @@ func _bounty_panel(rec: Dictionary) -> Control:
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	coins.add_child(sp)
-	var coin := WCoin.make(56.0, W.BRASS if paid_n > 0 else W.AGED, 4.0)
+	var coin := WCoin.make(56.0, W.BRASS if paid_n > 0 else W.AGED, 4.0, WantedBoard.currency_of(rec))
 	coin.name = "BountyCoin"
 	coins.add_child(coin)
 	var cn := W.slab_text("+%s" % W.num(reward_n), 52, W.BRASS if paid_n > 0 else W.INK_SOFT, HORIZONTAL_ALIGNMENT_LEFT, 56.0)

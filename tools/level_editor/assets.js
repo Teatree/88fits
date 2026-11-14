@@ -1090,12 +1090,79 @@ const Assets = (() => {
     // disk with "Use for ..." (heroes and creatures have the same panel in their look grid's stage)
     if (!['hero', 'enemy', 'boss'].includes(doc.kind) && typeof LookGrid !== 'undefined' && typeof LookGrid.iconPanel === 'function') {
       wrap.appendChild(LookGrid.iconPanel(doc.kind, doc.id, lookCode, { onChanged: async () => {
+        evolvedCache.delete(doc.id);
         await refreshRecord(doc.kind, doc.id);
         await refreshList(tabOf(doc.kind) === 'creatures' ? 'enemies' : tabOf(doc.kind));
         App.render('tab');
       } }));
     }
+    // pass 149 (lane EDITOR): a passive item's Evolved icon beside its icon
+    if (doc.kind === 'passive' && !doc.data.line && !doc.data.evolves_from && !doc.data.single) wrap.appendChild(evolvedPanel(doc));
     return wrap;
+  }
+
+  // ------------------------------------------------------------------ pass 149 (lane EDITOR): the Evolved icon
+  // Garry: "I've updated the Icon for Hot Streak, but the Evolution icon didn't update. And it's not great that I can't
+  // make those icons from Level Editor itself." A passive item with an Evolved rung wears <id>_icon_evolved.png there (or
+  // its JSON's own `icon_evolved`), its icon with a white outline (tools/evolved_icons.py), on the dark Evolved plate
+  // ringed in brass as the cards draw it. A new icon (an install, Revert icon, Use for ...) remakes it on the server
+  // unless the JSON names its own; "Remake Evolved icon from the icon" does it by hand (asking first, a copy of the old
+  // one under tools/level_editor/backups/<id>/, then the import).
+  const evolvedCache = new Map();   // id -> {key, info | promise}
+  function evolvedInfo(doc) {
+    const key = `${doc.id}|${doc.baseMtime || 0}`;
+    const hit = evolvedCache.get(doc.id);
+    if (hit && hit.key === key) return hit;
+    const rec = { key, info: null, failed: null };
+    rec.promise = getJSON(`/api/content/passive/${encodeURIComponent(doc.id)}/evolved_icon`).then((d) => { rec.info = d; }).catch((e) => { rec.failed = e.message; });
+    evolvedCache.set(doc.id, rec);
+    return rec;
+  }
+  function evolvedPanel(doc) {
+    const box = el('div', { class: 'evo-panel' });
+    const rec = evolvedInfo(doc);
+    const fill = () => {
+      clear(box);
+      if (rec.failed) { box.appendChild(el('div', { class: 'warn-text small', text: `The Evolved icon could not be read (${rec.failed}): restart the Level Editor (new in pass 149)` })); return; }
+      if (!rec.info) { box.appendChild(el('div', { class: 'muted small', text: 'Evolved icon: reading…' })); return; }
+      const info = rec.info;
+      if (!info.ok || !info.rung) { box.appendChild(el('div', { class: 'muted small', text: `No Evolved rung: ${info.why || info.error || '?'}` })); return; }
+      const plate = info.plate || { fill: '#241b14', ring: '#c9932f' };
+      const figs = el('div', { class: 'evo-figs' });
+      for (const size of [128, 64]) {
+        figs.appendChild(el('figure', { class: 'iconfig' }, el('div', { class: 'iconplate evo-plate', style: `width:${size}px;height:${size}px;background:${plate.fill};box-shadow:inset 0 0 0 ${Math.max(2, Math.round(size * 0.04))}px ${plate.ring}` },
+          info.exists ? el('img', { src: info.url, alt: '', width: Math.round(size * 0.82), height: Math.round(size * 0.82), style: `width:${Math.round(size * 0.82)}px;height:${Math.round(size * 0.82)}px`, onerror: (e) => { e.target.style.visibility = 'hidden'; } }) : el('span', { class: 'muted small', text: 'missing' })),
+          el('figcaption', { class: 'muted small', text: `${size} px` })));
+      }
+      const facts = el('div', { class: 'evo-facts' },
+        el('div', {}, el('b', { text: 'Evolved icon ' }), el('span', { class: 'mono small', text: info.file || '?' })),
+        el('div', { class: 'muted small', text: `the item's Evolved rung wears it on the dark Evolved plate (the cards' frame); made from its icon ${info.base || ''} with a white outline round the subject (tools/evolved_icons.py)` }),
+        info.own ? el('div', { class: 'warn-text small', text: `The JSON names its own Evolved icon (icon_evolved: ${info.file}): a new icon leaves it as it is; the button below asks before painting over it (a copy goes to the backups first).` }) : null,
+        !info.exists ? el('div', { class: 'warn-text small', text: `${info.file} is not on disk: the Evolved rung shows the plain icon until it is made.` }) : null,
+        info.stale ? el('div', { class: 'warn-text small', text: `Older than the icon (${info.base}): it shows the old picture. Remake it.` }) : null);
+      const b = el('button', { type: 'button', class: 'btn small' + (info.stale || !info.exists ? ' primary' : ''), text: 'Remake Evolved icon from the icon',
+        disabled: !info.base_exists || (info.own && !info.path),
+        title: !info.base_exists ? `${info.base} is not on disk` : (info.own && !info.path) ? `icon_evolved (${info.file}) is not in the item's folder: remake it by hand` : `${info.file} made again from ${info.base}: the old one is copied under tools/level_editor/backups/${doc.id}/ first, then an import` });
+      b.addEventListener('click', async () => {
+        const ask = info.own
+          ? `${doc.id}'s JSON names its own Evolved icon (${info.file}), perhaps painted by hand.\n\nPaint over it with ${info.base} and a white outline? A copy of it goes to tools/level_editor/backups/${doc.id}/ first.`
+          : `Remake ${info.file} from ${info.base} (a white outline round the subject)?\n\nThe one there now is copied to tools/level_editor/backups/${doc.id}/ first; then an import.`;
+        if (!confirm(ask)) return;
+        b.disabled = true;
+        const { status, data } = await postJSON(`/api/content/passive/${encodeURIComponent(doc.id)}/evolved_icon`, { confirm: true });
+        if (!data || !data.ok) {
+          App.status(`${doc.id}: the Evolved icon was not remade: ${(data && data.error) || `HTTP ${status}`}${status === 404 && /unknown content op/.test(String((data && data.error) || '')) ? ' (restart the Level Editor: new in pass 149)' : ''}`, 'bad');
+        } else if (data.import_ok == null && (data.lock || data.import_job)) App.saveStatus(data, `${doc.id}: Evolved icon remade (${data.file})`);
+        else App.status(data.unchanged ? `${doc.id}: ${data.file} already is the Evolved form of ${data.from}` : `${doc.id}: Evolved icon remade from ${data.from} · ${data.backup ? 'the old one kept in ' + data.backup : 'new file'}${data.job ? ' · import queued' : data.import_ok === false ? ' · the import did not run' : ''}`,
+          data.import_ok === false ? 'bad' : 'good', data.output || '');
+        evolvedCache.delete(doc.id);
+        App.render('tab');
+      });
+      box.append(figs, el('div', { class: 'evo-side' }, facts, b));
+    };
+    fill();
+    if (!rec.info && !rec.failed) rec.promise.then(() => { if (box.isConnected) fill(); });
+    return box;
   }
   /** Where the game shows a hero look's badge or cut-out (LookGrid.WHERE_SHOWN): said beside every badge and cut-out
    *  candidate button (pass 68 review: the default Live title shows no cut-out). */

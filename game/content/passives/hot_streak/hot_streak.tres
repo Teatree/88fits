@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/hot_streak/hot_streak_icon_evolved.png" id="1_174sl"]
-[ext_resource type="Texture2D" path="res://content/passives/hot_streak/hot_streak_icon.png" id="2_mvw2h"]
+[ext_resource type="Texture2D" path="res://content/passives/hot_streak/hot_streak_icon_46e9_c1.png" id="2_mvw2h"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_3b5m5"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="3_mvw2h"]
 
@@ -41,7 +41,7 @@ flavour = "It only gets hotter."
 rarity = "rare"
 weight = 6.0
 icon = ExtResource("2_mvw2h")
-icon_file = "hot_streak_icon.png"
+icon_file = "hot_streak_icon_46e9_c1.png"
 placeholder = {
 "color": "#E0542A",
 "glyph": "sun"

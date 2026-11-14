@@ -256,6 +256,9 @@ static func desc_text(t: String, size: int = R.DESC_PX, align: int = HORIZONTAL_
 	w.bold_font = R.body(BOLD_WEIGHT)
 	w.bold_numbers = true
 	w.bold_color = R.NUMBER_HI
+	# pass 149: a number that makes a stat worse in red
+	w.mark_bad = true
+	w.bad_color = R.NUMBER_BAD
 	w.name = "Desc"
 	# pass 140 (lane TEXTS): an evolution's mutations note under the words, in the note face (R.NOTE_*)
 	w.note_size = int(roundf(size * R.NOTE_FRAC))

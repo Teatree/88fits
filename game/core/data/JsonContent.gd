@@ -644,6 +644,7 @@ static func _currency(d: Dictionary) -> CurrencyDef:
 	c.order = int(d.get("order", 0))
 	c.colour = Color(str(d.get("colour", "#C9932F")))
 	c.word = str(d.get("word", ""))
+	c.shown = str(d.get("shown", "always"))
 	return c
 
 

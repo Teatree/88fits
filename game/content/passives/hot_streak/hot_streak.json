@@ -45,5 +45,16 @@
     "color": "#E0542A",
     "glyph": "sun"
   },
-  "repeat_last_level": true
+  "repeat_last_level": true,
+  "icon": "hot_streak_icon_46e9_c1.png",
+  "icon_history": [
+    {
+      "icon": "",
+      "shown": "hot_streak_icon.png",
+      "backup": "tools/level_editor/backups/hot_streak/hot_streak_icon_20261114-143446.png",
+      "to": "hot_streak_icon_46e9_c1.png",
+      "at": "2026-11-14 14:34:47",
+      "why": "install c1 of #46e9"
+    }
+  ]
 }

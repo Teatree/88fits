@@ -14,7 +14,7 @@ const Wanted = (() => {
   const M = WantedModel;
   const ART = '/api/wanted/art/';
   const S = {
-    data: null, failed: null, loading: false, items: null, heroes: null, currencies: ['gold'],
+    data: null, failed: null, loading: false, items: null, heroes: null, currencies: ['gold'], curRecs: null,
     draft: null, base: null, mtime: null, history: [], saving: false, msg: null,
     open: {},          // the task cards opened
     sim: { stage: 0, hero: '', P: 0, metAll: true, seenAll: true, unlocks: true, seed: 0, posters: [], picked: -1, exStage: 0 },
@@ -39,12 +39,19 @@ const Wanted = (() => {
       redraw();
     }).catch((e) => { S.failed = e.message; S.loading = false; redraw(); });
     // pass 111 (lane SKINS' registry): the currencies a reward may be paid in (gold alone until there are more)
-    getJSON('/api/currencies').then((cs) => { const list = Array.isArray(cs) ? cs : (cs && cs.currencies) || []; const ids = list.map((c) => c.id).filter(Boolean); if (ids.length) { S.currencies = ids; redraw(); } }).catch(() => {});
+    getJSON('/api/currencies').then((cs) => { const list = Array.isArray(cs) ? cs : (cs && cs.currencies) || []; const ids = list.map((c) => c.id).filter(Boolean); if (ids.length) { S.currencies = ids; S.curRecs = list; redraw(); } }).catch(() => {});
   }
   const dirty = () => S.draft != null && JSON.stringify(S.draft) !== JSON.stringify(S.base);
   const redraw = () => { if (typeof App !== 'undefined' && App.S.tab === 'wanted') App.render('tab'); };
   const cfg = () => M.normalized(S.draft || {});
   const playable = () => (S.heroes || []).filter((h) => !h.hidden_in_play);
+  // pass 149 (lane EDITOR): the currencies a poster may pay in (the registry: gold, the gems...), their names and icons;
+  // the checks know them only once the registry is read
+  const known = () => (S.curRecs ? S.currencies : null);
+  const issuesNow = () => M.issues(cfg(), known());
+  const curRec = (id) => (S.curRecs || []).find((c) => c && c.id === id) || { id, name: id, word: id };
+  const curWord = (id) => curRec(id).word || id;
+  const curIcon = (id) => (id === 'gold' ? `${ART}wanted/coin.png` : (curRec(id).icon_url || `/api/currencies/${encodeURIComponent(id)}/icon`));
 
   function edit(fn, quiet) {
     const before = JSON.stringify(S.draft);
@@ -59,7 +66,7 @@ const Wanted = (() => {
 
   async function save() {
     if (!S.draft || S.saving) return;
-    const iss = M.issues(cfg());
+    const iss = issuesNow();
     if (iss.errors.length) { App.status(`Cannot save the board: ${iss.errors.join(' · ')}`, 'bad'); return; }
     if (!dirty()) { App.status('Nothing to save'); return; }
     S.saving = true; redraw();
@@ -113,7 +120,7 @@ const Wanted = (() => {
     if (!S.draft) { page.appendChild(el('p', { class: 'muted', text: 'Loading the Bounty Board…' })); panel.appendChild(page); return; }
     page.appendChild(head());
     page.appendChild(el('p', { class: 'lead wtd-lead', html: 'At the start of a stage run, right after the outlaw\'s descent (from a player\'s <b>second</b> run on), <b>three Wanted posters</b> float in over the paused game on strings: the player taps one to take it (it is stamped and flies into the HUD\'s bounty plate), or taps No bounty (they blow away). Each poster is a <b>task type</b> drawn by its <b>weight</b>; its number (kills, seconds, level...) is rolled in that stage\'s range, which grows with <b>progression</b> (the stages the player has beaten); its <b>difficulty</b> is where that number fell between the range\'s easy and hard end; its <b>gold</b> comes from the difficulty. Done, it pays at the run\'s end. Only creatures the player has met and items he has seen and unlocked can be targets. Roll the posters on the right to see them as a player would.' }));
-    const iss = M.issues(cfg());
+    const iss = issuesNow();
     if (S.msg) page.appendChild(el('div', { class: 'ferr warn' }, el('span', { text: S.msg + ' ' }), el('button', { class: 'btn small', type: 'button', text: 'Reload', onclick: reload })));
     if (iss.errors.length || iss.warnings.length) {
       const box = el('div', { class: 'wtd-issues' });
@@ -208,7 +215,7 @@ const Wanted = (() => {
       row('Growth', 'each stage beaten adds this share: 0.5 = +50% a stage beaten', numBox(rw.progress_growth, set('progress_growth'), { min: 0, step: 0.05, path: 'reward.progress_growth' })),
       row('Stage ×', 'a later stage pays more for the same difficulty', ...smBoxes),
       row('Round', 'the gold is rounded to this', numBox(rw.round, set('round'), { min: 1, step: 1, path: 'reward.round' })),
-      row('Paid in', 'the currency the posters pay (gold; a currency the game does not have is paid as gold)', curSelect(rw.currency || 'gold')),
+      row('Paid in', 'the currency the posters pay (gold; a currency the game does not have is paid as gold). A task type may pay in its own currency and a fixed amount instead (open its row below: Paid in, Fixed reward)', curSelect(rw.currency || 'gold')),
       el('div', { class: 'wtd-ex-head' }, el('span', { class: 'muted small', text: 'What a poster pays' }), stSel),
       tbl);
   }
@@ -216,9 +223,30 @@ const Wanted = (() => {
   function curSelect(cur) {
     const sel = el('select', { 'data-path': 'reward.currency' });
     const ids = S.currencies.includes(cur) ? S.currencies : S.currencies.concat([cur]);
-    for (const id of ids) sel.appendChild(el('option', { value: id, text: id, selected: id === cur }));
+    for (const id of ids) sel.appendChild(el('option', { value: id, text: curRec(id).name && curRec(id).name !== id ? `${curRec(id).name} (${id})` : id, selected: id === cur }));
     sel.addEventListener('change', () => edit((d) => { d.reward = Object.assign({}, d.reward, { currency: sel.value }); }));
     return sel;
+  }
+  /** Pass 149 (lane EDITOR): a task type's own currency ("" = the board's) and its fixed reward (blank or 0 = the formula):
+   *  WantedBoard.make_contract reads `reward_currency` and `reward_fixed`. */
+  function taskPayRows(type, tc) {
+    const c = cfg();
+    const own = tc.reward_currency == null ? '' : String(tc.reward_currency);
+    const board = M.boardCurrency(c);
+    const sel = el('select', { 'data-path': `t.${type}.reward_currency` });
+    sel.appendChild(el('option', { value: '', text: `the board's (${curRec(board).name || board})`, selected: own === '' }));
+    const ids = !own || S.currencies.includes(own) ? S.currencies : S.currencies.concat([own]);
+    for (const id of ids) sel.appendChild(el('option', { value: id, text: curRec(id).name && curRec(id).name !== id ? `${curRec(id).name} (${id})` : id, selected: id === own }));
+    sel.addEventListener('change', () => setTask(type, (t) => { if (sel.value) t.reward_currency = sel.value; else delete t.reward_currency; }));
+    const fixed = numBox(tc.reward_fixed, (v) => setTask(type, (t) => { if (v == null || v <= 0) delete t.reward_fixed; else t.reward_fixed = Math.round(v); }), { min: 0, step: 5, path: `t.${type}.reward_fixed`, title: 'blank or 0 = the board\'s formula' });
+    const pay = M.taskPay(c, type);
+    const word = curWord(pay.currency);
+    const says = pay.fixed > 0 ? `every ${type} poster pays ${pay.fixed.toLocaleString('en-US')} ${word}, whatever its difficulty`
+      : `the formula's amount (the Reward card's table)${pay.own ? `, paid in ${word}` : ''}`;
+    return [
+      row('Paid in', 'the currency this task\'s posters pay (blank = the board\'s Paid in). The gems are the hard currency: a poster may pay them, nothing else in a run does', sel, el('img', { class: 'wtd-cur', src: curIcon(pay.currency), alt: '' })),
+      row('Fixed reward', 'a set amount instead of the formula (blank or 0 = the formula: base + per point x difficulty, grown by stages beaten). Coins x25 never multiplies a poster that pays another currency than gold', fixed, el('span', { class: 'muted small', text: says })),
+    ];
   }
 
   function skulls(d, cls) {
@@ -249,6 +277,14 @@ const Wanted = (() => {
     });
   }
 
+  /** Pass 149: a chip on a task's row when it pays otherwise than the board (its own currency, a fixed amount). */
+  function payChip(type) {
+    const pay = M.taskPay(cfg(), type);
+    if (!pay.own && !pay.fixed) return null;
+    return el('span', { class: 'achip wtd-paychip', title: 'this task type pays otherwise than the board (open the row: Paid in, Fixed reward)' },
+      el('img', { class: 'wtd-cur', src: curIcon(pay.currency), alt: '' }), pay.fixed ? `${pay.fixed.toLocaleString('en-US')} ${curWord(pay.currency)} fixed` : curWord(pay.currency));
+  }
+
   function taskRow(type, c, ch, ctx) {
     const tc = M.taskCfg(c, type);
     const info = M.TYPE_INFO[type];
@@ -274,7 +310,7 @@ const Wanted = (() => {
       skulls(Number(dif[1]) || 0, 'wtd-mini-sk'));
     const head = el('div', { class: 'wtd-trow' + (on ? '' : ' off') },
       cb,
-      el('span', { class: 'wtd-tname' }, el('b', { text: info.label }), el('code', { text: type })),
+      el('span', { class: 'wtd-tname' }, el('b', { text: info.label }), el('code', { text: type }), payChip(type)),
       el('span', { class: 'wtd-wcell' }, slider, wnum),
       chanceCell, difCell,
       el('button', { class: 'btn small ghost', type: 'button', text: open ? '▾' : '▸', title: 'its numbers, words and extras', onclick: () => { S.open[type] = !open; redraw(); } }));
@@ -336,6 +372,7 @@ const Wanted = (() => {
       inp.addEventListener('change', () => setTask(type, (t) => { t[key] = inp.value; }));
       return row(label, help, inp);
     };
+    for (const r of taskPayRows(type, tc)) body.appendChild(r);   // pass 149 (lane EDITOR)
     body.appendChild(txt('name', 'Name', 'the big name on the poster: {target} {hero} {stage} {boss}'));
     body.appendChild(txt('text', 'Task line', 'what to do: {n} {target} {hero} {stage} {boss} {time}'));
     return body;
@@ -392,7 +429,7 @@ const Wanted = (() => {
     pane.appendChild(board);
     const pc = sim.posters[sim.picked];
     pane.appendChild(el('div', { class: 'wtd-pick' }, pc
-      ? [el('b', { text: `${pc.name.toUpperCase()} · ` }), el('span', { text: `${pc.text}. ` }), el('span', { text: `Difficulty ${pc.d} (${pc.skulls} skull${pc.skulls === 1 ? '' : 's'}) · pays ` }), el('b', { class: 'wtd-gold', text: pc.reward.toLocaleString('en-US') }), el('span', { class: 'muted', text: ` · ${pc.type}${pc.target ? ' → ' + pc.target : ''}` })]
+      ? [el('b', { text: `${pc.name.toUpperCase()} · ` }), el('span', { text: `${pc.text}. ` }), el('span', { text: `Difficulty ${pc.d} (${pc.skulls} skull${pc.skulls === 1 ? '' : 's'}) · pays ` }), el('b', { class: 'wtd-gold', text: `${pc.reward.toLocaleString('en-US')} ${curWord(M.currencyOf(cfg(), pc))}` }), el('span', { class: 'muted', text: ` · ${pc.type}${pc.target ? ' → ' + pc.target : ''}` })]
       : el('span', { class: 'muted', text: 'Click a poster to pick it, as the player taps one.' })));
     return pane;
   }
@@ -470,7 +507,8 @@ const Wanted = (() => {
     p.appendChild(el('div', { class: 'wp-task', text: c.text }));
     p.appendChild(el('div', { class: 'wp-gap' }));
     p.appendChild(el('div', { class: 'wp-rl', text: 'REWARD' }));
-    p.appendChild(el('div', { class: 'wp-reward' }, el('img', { src: `${ART}wanted/coin.png`, alt: '' }), el('span', { text: c.reward.toLocaleString('en-US') })));
+    // pass 149: the poster's currency's icon (WPoster: the coin for gold, the currency's own icon else: the gem)
+    p.appendChild(el('div', { class: 'wp-reward' }, el('img', { src: curIcon(M.currencyOf(cfg(), c)), alt: '', title: curRec(M.currencyOf(cfg(), c)).name || '' }), el('span', { text: c.reward.toLocaleString('en-US') })));
     p.appendChild(skulls(c.d, 'wp-skulls'));
     wrap.appendChild(p);
     wrap.appendChild(el('div', { class: 'wp-nail' }));

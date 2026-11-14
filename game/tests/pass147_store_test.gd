@@ -3,6 +3,8 @@
 ## Debug version of the Settings. By default locked."): the STORE tab locked by default and opened by the debug panel's
 ## switch (Settings.store_open, held shut in prod); the Store screen's six packs read from content/store/store.json; a
 ## price tap adds no coins, writes nothing and says so; Coins x25 leaves the amounts alone; the bonus tag's rule.
+## Pass 149 (lane STORE): re-pinned to store.json version 2 by the data: the real-money packs are the GEMS section's gem
+## packs (amount, three a row), pass 149's own test (pass149_store_test.gd) has the coin offers.
 extends GdUnitTestSuite
 
 const STORE := "res://ui/StoreScreen.tscn"
@@ -143,23 +145,24 @@ func test_prod_keeps_the_store_shut() -> void:
 
 func test_the_file_holds_six_packs_at_the_common_prices() -> void:
 	assert_array(StorePacks.problems()).is_empty()
-	var packs: Array = StorePacks.packs()
+	var packs: Array = StorePacks.gem_packs()
 	assert_int(packs.size()).is_equal(6)
 	var cents: Array = []
 	for pk: Dictionary in packs:
 		cents.append(int(pk["price_cents"]))
-		assert_bool(ResourceLoader.exists(str(pk["picture"]))).override_failure_message("%s's picture" % pk["id"]).is_true()
+		# pass 149: a picture not painted yet shows the gem (StoreScreen.picture_of), so only the path's shape is pinned
+		assert_str(str(pk["picture"])).starts_with("res://art/ui/store/")
 	assert_array(cents).contains_exactly([99, 499, 999, 1999, 4999, 9999])
 	assert_str(str(packs[2]["ribbon"])).is_equal("most_popular")
 	assert_str(str(packs[5]["ribbon"])).is_equal("best_value")
-	# more coins a dollar the bigger the pack (the genre's shape), the last clearly more than the first
+	# more gems a dollar the bigger the pack (the genre's shape), the last clearly more than the first
 	var last := -1.0
 	for pk: Dictionary in packs:
-		var rate := float(pk["coins"]) / float(StorePacks.dollars(int(pk["price_cents"])))
+		var rate := float(pk["amount"]) / float(StorePacks.dollars(int(pk["price_cents"])))
 		assert_float(rate).is_greater(last)
 		last = rate
 	var first: Dictionary = packs[0]
-	assert_float(last / (float(first["coins"]) / float(StorePacks.dollars(int(first["price_cents"]))))).is_greater_equal(1.3)
+	assert_float(last / (float(first["amount"]) / float(StorePacks.dollars(int(first["price_cents"]))))).is_greater_equal(1.3)
 
 
 func test_the_bonus_tag_rule() -> void:
@@ -170,45 +173,45 @@ func test_the_bonus_tag_rule() -> void:
 	assert_int(StorePacks.bonus_for(5500, 499, 1000.0)).is_equal(10)
 	assert_int(StorePacks.bonus_for(150000, 9999, 1000.0)).is_equal(50)
 	assert_int(StorePacks.bonus_for(900, 99, 1000.0)).is_equal(0)
-	StorePacks.load_data({"show_bonus": false, "packs": [{"id": "a", "coins": 10, "price_cents": 99, "price_text": "$0.99"},
-		{"id": "b", "coins": 100, "price_cents": 499, "price_text": "$4.99"}]})
-	assert_int(int(StorePacks.pack("b")["bonus"])).is_equal(0)
-	StorePacks.load_data({"packs": [{"id": "a", "coins": 10, "price_cents": 99, "price_text": "$0.99"},
-		{"id": "b", "coins": 100, "price_cents": 499, "price_text": "$4.99"}]})
-	assert_int(int(StorePacks.pack("b")["bonus"])).is_equal(100)
-	# the checks
-	StorePacks.load_data({"packs": [{"id": "a", "coins": 0, "price_cents": 99, "price_text": "$1.99", "ribbon": "hot"},
-		{"id": "a", "coins": 5, "price_cents": 0, "price_text": ""}]})
-	assert_int(StorePacks.problems().size()).is_equal(6)
+	StorePacks.load_data({"version": 2, "gems": {"show_bonus": false, "packs": [{"id": "a", "amount": 10, "price_cents": 99,
+		"price_text": "$0.99"}, {"id": "b", "amount": 100, "price_cents": 499, "price_text": "$4.99"}]}})
+	assert_int(int(StorePacks.gem_pack("b")["bonus"])).is_equal(0)
+	StorePacks.load_data({"version": 2, "gems": {"packs": [{"id": "a", "amount": 10, "price_cents": 99, "price_text": "$0.99"},
+		{"id": "b", "amount": 100, "price_cents": 499, "price_text": "$4.99"}]}})
+	assert_int(int(StorePacks.gem_pack("b")["bonus"])).is_equal(100)
+	# the checks (pass 149: a file with no coin offers' scaling also says it names no stages)
+	StorePacks.load_data({"version": 2, "gems": {"packs": [{"id": "a", "amount": 0, "price_cents": 99, "price_text": "$1.99",
+		"ribbon": "hot"}, {"id": "a", "amount": 5, "price_cents": 0, "price_text": ""}]}})
+	assert_int(StorePacks.problems().size()).is_equal(7)
 
 
 func test_the_screen_shows_the_files_packs() -> void:
 	var s := await _store()
 	var grid := s.find_child("Grid", true, false) as GridContainer
 	assert_object(grid).is_not_null()
-	assert_int(grid.columns).is_equal(2)
+	assert_int(grid.columns).is_equal(3)
 	var d := _file()
-	var packs: Array = d["packs"]
+	var packs: Array = d["gems"]["packs"]
 	assert_int(grid.get_child_count()).is_equal(packs.size())
 	for i in packs.size():
 		var pk: Dictionary = packs[i]
 		var card := grid.get_child(i) as Control
 		assert_str(card.name).is_equal("Pack_%s" % pk["id"])
-		var coins := card.find_child("Coins", true, false) as WText
-		assert_str(coins.text).is_equal(W.num(int(pk["coins"])))
+		var coins := card.find_child("Gems", true, false) as WText
+		assert_str(coins.text).is_equal(W.num(int(pk["amount"])))
 		var price := card.get_node("Price") as WButton
 		assert_str(price.label_text()).is_equal(str(pk["price_text"]))
 		assert_str(price.role).is_equal("green")
 		assert_bool(card.has_node("Ribbon")).is_equal(str(pk.get("ribbon", "")) != "")
-		var bonus: int = StorePacks.bonus_for(int(pk["coins"]), int(pk["price_cents"]), StorePacks.base_rate())
+		var bonus: int = StorePacks.bonus_for(int(pk["amount"]), int(pk["price_cents"]), StorePacks.base_rate())
 		assert_bool(card.has_node("Bonus")).is_equal(bonus > 0)
 		if bonus > 0:
 			var words := (card.get_node("Bonus") as Control).find_child("Words", true, false) as WText
 			assert_str(words.text).is_equal(Loc.t("ui.store.bonus", {"percent": str(bonus)}).to_upper())
 	# the ribbons' words
-	var pop := (s.call("card_of", "pack_pouch") as Control).get_node("Ribbon").find_child("Words", true, false) as WText
+	var pop := (s.call("card_of", "gems_pouch") as Control).get_node("Ribbon").find_child("Words", true, false) as WText
 	assert_str(pop.text).is_equal("MOST POPULAR")
-	var best := (s.call("card_of", "pack_cart") as Control).get_node("Ribbon").find_child("Words", true, false) as WText
+	var best := (s.call("card_of", "gems_vault") as Control).get_node("Ribbon").find_child("Words", true, false) as WText
 	assert_str(best.text).is_equal("BEST VALUE")
 	assert_array(Loc.warnings()).is_empty()
 	s.visible = false
@@ -217,7 +220,8 @@ func test_the_screen_shows_the_files_packs() -> void:
 func test_the_grid_fills_the_board_between_the_header_and_the_tab_bar() -> void:
 	var s := await _store()
 	await get_tree().process_frame
-	var grid := s.find_child("Grid", true, false) as Control
+	# pass 149: the coin offers' row is the board's last
+	var grid := s.find_child("Offers", true, false) as Control
 	var foot := grid.get_global_rect().end.y
 	var bar := s.get("tab_bar_node") as Control
 	var bar_top := bar.get_global_rect().end.y - float(R.DOCK_BAR_H)
@@ -236,7 +240,7 @@ func test_a_price_tap_adds_no_coins_writes_nothing_and_says_so() -> void:
 	Save.data["gold"] = 123
 	var before := JSON.stringify(Save.data)
 	var s := await _store()
-	var card := s.call("card_of", "pack_cart") as Control
+	var card := s.call("card_of", "gems_vault") as Control
 	var price := card.get_node("Price") as WButton
 	price.pressed.emit()
 	await get_tree().process_frame
@@ -278,15 +282,20 @@ func test_a_price_tap_adds_no_coins_writes_nothing_and_says_so() -> void:
 func test_coins_x25_does_not_touch_the_amounts() -> void:
 	Settings.coins_x25 = true
 	var s := await _store()
-	for pk: Dictionary in StorePacks.packs():
+	for pk: Dictionary in StorePacks.gem_packs():
 		var card := s.call("card_of", str(pk["id"])) as Control
+		var coins := card.find_child("Gems", true, false) as WText
+		assert_str(coins.text).is_equal(W.num(int(_file_pack(str(pk["id"]))["amount"])))
+	# pass 149: and the coin offers show the rule's amounts (a new save: stage 1, Trail Level 0 = the file's), never x25
+	for o: Dictionary in StorePacks.offers():
+		var card := s.call("card_of", str(o["id"])) as Control
 		var coins := card.find_child("Coins", true, false) as WText
-		assert_str(coins.text).is_equal(W.num(int(_file_pack(str(pk["id"]))["coins"])))
+		assert_str(coins.text).is_equal(W.num(StorePacks.coins_now(o)))
 	s.visible = false
 
 
 func _file_pack(id: String) -> Dictionary:
-	for pk: Dictionary in _file()["packs"]:
+	for pk: Dictionary in _file()["gems"]["packs"]:
 		if str(pk["id"]) == id:
 			return pk
 	return {}

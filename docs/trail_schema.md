@@ -77,6 +77,7 @@ All bought nodes of one type add up into one effect per stat (source id `trail:<
 | `need` | `all` (default) or `any` of `from` |
 | `gives` | what buying it gives, below |
 | `price`, `price_mult` | an own price, or a multiplier on the curve |
+| `currency` | pass 149: the currency this node is paid in (a `content/currencies` id, e.g. `gems`); absent = the Trail's `currency` (`Trail.currency_of`) |
 | `x` | optional place across the screen, 0 to 1; absent = spread by the rule below |
 | `name`, `note` | optional words (a milestone's own name; a designer's note the game never shows) |
 

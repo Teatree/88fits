@@ -152,6 +152,12 @@ func _refresh() -> void:
 	var cx_row := _switch("Coins x25 (temporary)", "coins_x25")
 	cx_row.name = "CoinsX25Row"
 	_list.add_child(cx_row)
+	# pass 149 (lane STORE): gems for tests (nothing in the game gives them; also in Settings' Debug panel)
+	var gem_row := _row("Gems · add %s" % W.num(StorePacks.DEBUG_GRANT), W.num(Currency.balance(StorePacks.gem_currency())), func():
+		StorePacks.debug_grant()
+		_refresh())
+	gem_row.name = "AddGemsRow"
+	_list.add_child(gem_row)
 	# pass 125: the crowd's compiled loops (off: the script's, the same run, slower), read as a run starts
 	var nc_row := _switch("Compiled crowd (off: the script's, slower)", "native_crowd")
 	nc_row.name = "NativeCrowdRow"

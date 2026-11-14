@@ -1049,7 +1049,8 @@ const LookGrid = (() => {
       if (!res || !res.ok) { App.status(`${id} ${who}: ${verb} refused: ${(res && res.error) || 'no answer'}`, 'bad', (res && res.output) || ''); fillIconPanel(wrap, kind, id, code, g, o); return; }
       // pass 114 (lane EDITOR): Godot busy: the import queued, the holder named (App.importOutcome)
       if (res.import_ok == null && (res.lock || res.import_job)) App.saveStatus(res, `${id} ${who}: ${verb} done · now ${(res.icon && res.icon.shown) || res.file || '?'}`);
-      else App.status(`${id} ${who}: ${verb} done · now ${(res.icon && res.icon.shown) || res.file || '?'}${res.import_ok === false ? ' · the import did not run (the game plays the old .tres until one runs)' : res.job ? ' · import queued' : ''}`,
+      // pass 149 (lane EDITOR): a passive item's Evolved icon follows its icon (server: set_look_icon / revert_icon)
+      else App.status(`${id} ${who}: ${verb} done · now ${(res.icon && res.icon.shown) || res.file || '?'}${res.evolved && res.evolved.ok && !res.evolved.skipped && !res.evolved.unchanged ? ` · Evolved icon remade (${res.evolved.file})` : res.evolved && !res.evolved.ok ? ` · the Evolved icon was not remade: ${res.evolved.error}` : ''}${res.import_ok === false ? ' · the import did not run (the game plays the old .tres until one runs)' : res.job ? ' · import queued' : ''}`,
         res.import_ok === false ? 'bad' : 'good', res.output || '');
       if (typeof o.onChanged === 'function') await o.onChanged(res);
       else if (wrap.isConnected) iconPanelRefresh(wrap, kind, id, code, o);

@@ -2669,3 +2669,60 @@ else the Drifter, in his played look) shows his back, then his front, then dies 
 of 227 and on the Dust Bowl's real peak, a ring row on its ring, In front from the top, a Special row's and an Elite
 row's bodies, a size range, the row attribution, the pool's cut, the facing, the phases, the filter's factors
 (StageLook.filter_mults), the spawn arcs; the page's wiring and words.
+
+## Pass 149 (lane EDITOR): the gems in every price and reward, the Store tab, the Evolved icon
+
+Garry (2026-11-14): the hard currency, light blue **gems**: "This currency is not earned ... I want this currency to be
+available there as a reward [tasks and posters], just not used ... Same goes for using it as a price: for nodes in Trail,
+Revives, for Buying Outlaws, Outlaw Looks, etc." and "In the Shop there will now be 2 sections: Gems section at the top,
+Coins section underneath ... Coins are bought with Gems ... the amount of Coins they get from each offers changes as they
+progress ... in rounded steps". Every currency list comes from `game/content/currencies` (gold, gems today; a new
+currency folder shows up in every select with no code change).
+
+**Trail tab.** A node may name its own `currency` (blank = the Trail's): a select after the price multiplier in its row,
+a `currency` column after `price_mult` in the CSV (blank = the Trail's; a CSV without the column keeps every node's),
+"currency" in the bulk Set. The tile's price under it wears its currency's icon as the game draws it (a coin, or the gem
+in light blue). The Prices block has the Trail's own currency ("paid in") and sums only the nodes in the Trail's
+currency (all, required, optional, the running totals, the runs); the nodes in another currency get a line each ("3
+nodes in gems: ..."), a choice counted once at its dearest member in that currency; the price chart leaves them out.
+Checks: a currency the content lacks is an error (the page, `trail_io.py --check` and the save). `trail_model.js`
+`currencyOf` / `trailCurrency` mirror `Trail.currency_of` (change both).
+
+**Wanted tab.** A task type's row opens two more rows: **Paid in** (blank = the board's Paid in) and **Fixed reward**
+(blank or 0 = the formula), which `WantedBoard.make_contract` reads as `reward_currency` and `reward_fixed`; a chip on the
+row says when a type pays otherwise. "Try the posters" draws each poster's reward with its currency's icon and the pick
+line names the currency. Coins x25 never multiplies a poster in another currency (the game's rule). Checks: an unknown
+currency (the board's or a task's) and a negative fixed reward are errors.
+
+**Outlaws and skins.** Unchanged: an Outlaw to buy has a Currency select (the registry: gold, gems) beside his Price,
+and a skin's Currency select (pass 111) lists the same.
+
+**Store tab** (`store.js`, `store_model.js`, `store_io.py`, `store.css`; route `#store`; `game/content/store/store.json`
+version 2, `docs/store_schema.md`). Left: **Gems** (the top section: currency, bonus tags on/off, one row a pack: its
+picture, id, gems, price in cents, the words on its button, ribbon, picture path, its "+N% BONUS"; the words follow the
+cents while they still read the old price), **Coins** (gives / paid with, bonus tags, one row an offer: gems, coins at
+the start, ribbon, picture, its tag at the amounts a new player reads), **How the coins grow** (Stage x one box a stage of
+the map, Trail step, Per step, Figures) and **Paid revive** (price 0 = none, its currency, how many a run). Right: **A
+player at...** (pick the latest stage unlocked and a Trail Level: the COINS section as he reads it, the tags at those
+amounts) and **Coin offers by progress** (every offer at every stage x Trail 0, 10, 20, 40, 60 and the Trail's top; a lit
+cell moved from the one before it). The rule (`StoreModel.coinsFor`): coins x stage_mult[latest stage unlocked] x (1 +
+trail_per_step x floor(Trail Level / trail_step)), rounded to round_sig significant figures half away from zero; a
+trail_step of 0 = no Trail steps. `selftest_GEMS149.py` checks it against lane STORE's fixture
+`game/tests/fixtures/pass149_store_coins.json` (the coins, the edge scaling, nice(), the bonus tags). Save writes
+the file in its own layout (a pack or an offer a line) with a backup, keeps a key the page does not know (top level, a
+block, a pack or offer by its id) and refuses a stale page (409); a version 1 file (pass 147's packs) is offered "Start
+version 2 from the defaults" and is then replaced whole. The game reads the file when it starts.
+
+**The Evolved icon** (the lead's extra task; Garry: "I've updated the Icon for Hot Streak, but the Evolution icon didn't
+update. And it's not great that I can't make those icons from Level Editor itself"). A passive item with an Evolved rung
+(not a Card, not an evolved form, not `single`) wears `<id>_icon_evolved.png` there (or its JSON's own `icon_evolved`),
+its icon with a white outline (`tools/evolved_icons.evolved_icon`). Every change of its icon from the editor (an install
+of a re-rolled candidate, Use for ..., Revert icon, an item_icon job) now remakes it on the server, a copy of the old one
+under `tools/level_editor/backups/<id>/` first, and the import takes the new PNG; a JSON that names its own
+`icon_evolved` is left alone. The Items tab's passive page shows the Evolved icon on the dark Evolved plate ringed in
+brass (128 and 64 px) under the icon, says when it is older than the icon or missing, and has **Remake Evolved icon from
+the icon** (asks first; with an own `icon_evolved` it says so and asks before painting over that file; a copy first, then
+the import). Routes: `GET /api/content/passive/<id>/evolved_icon` (`?picture=1` the PNG), `POST .../evolved_icon
+{confirm}`. `selftest_EVO149.py`.
+
+The server has new routes (`/api/store`, `.../evolved_icon`): **restart the Level Editor** after this pass.

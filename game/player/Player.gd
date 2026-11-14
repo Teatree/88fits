@@ -1122,7 +1122,7 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 		# never under the floor (pass 61: Ironwood's delay shrinks every level; the sheet floors it as well)
 		regen_hold = maxf(sheet.get_stat("regen_delay", REGEN_HOLD_AFTER_HIT), float(StatSheet.STAT_FLOORS["regen_delay"]))
 		_siesta_hold = SIESTA_HOLD
-	_shield_wait = sheet.get_stat("shield_delay", 3.0)
+	_shield_wait = sheet.get_stat("shield_delay", 6.0)
 	# the Energy Shield: while any of it holds, the whole hit is the shield's and none of it reaches his health
 	last_outcome = "hit"
 	if shield_pts > 0.0:

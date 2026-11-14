@@ -4186,6 +4186,8 @@ def _post_install_icon(job, res):
     w = _written(t, r, ["variants"] if code else ["icon", "icon_history"])
     w["entry_keys"] = ["icon"]
     w["icon_file"] = name
+    if isinstance(r.get("evolved"), dict):
+        w["evolved"] = r["evolved"]   # pass 149 (lane EDITOR): a passive item's Evolved icon remade from the new icon (or why not)
     err = "" if r.get("ok") else str(r.get("error") or "the icon could not be written")
     top = res.get("top") or {}
     if top.get("badge") and _hook("merge_top"):
@@ -4219,6 +4221,13 @@ def _after_done(job):
     if kind in ("look", "item_icon", "install", "frames_export") and t.get("id"):   # pass 95: an export's strip needs the import too
         if kind == "look" and job.get("method") == "front_from_picture":
             return
+        if kind == "item_icon" and t.get("kind") == "passive" and _hook("remake_evolved_icon"):
+            # pass 149 (lane EDITOR): a passive item's Evolved icon follows its new icon (the import below takes the PNG);
+            # an install does it through set_look_icon
+            try:
+                _hook("remake_evolved_icon")("passive", t["id"], "after %s" % job["id"])
+            except Exception as e:   # noqa: BLE001
+                _log("jobs: the Evolved icon of %s was not remade: %s: %s" % (t["id"], type(e).__name__, e))
         tf, jp = content_path(t.get("kind", ""), t["id"])
         if tf:
             try:

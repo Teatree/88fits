@@ -104,6 +104,9 @@ const MUTATION_CUT := 0.2
 ## Pass 123 (Garry: "Make the highlighted numbers in the text be yellowish-white instead of just white"): the bold numbers
 ## in body text (WText.bold_color through W.serif_text).
 const NUMBER_HI := Color("ffe48a")
+## Pass 149 (Garry: "on items that have negative effects on any stats mark those numbers in red instead of the current
+## highlight colour"): a number that makes a stat worse (TextGen.bad_numbers_in) in body text.
+const NUMBER_BAD := Color("ff5a4a")
 const TAG_EDGE := 3
 const TAG_PX := 18
 ## The level plaque hanging off an item frame's bottom centre: blue, a navy edge, "LV n" (a plain "n" at 80 px).

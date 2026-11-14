@@ -194,7 +194,7 @@ const JobsModel = (() => {
   //   offlinePill(st)         "offline since hh:mm" from the connection state
   const ACTIVE = ['queued', 'running', 'waiting'];
   const KIND_TAB = { enemy: 'creatures', boss: 'creatures', hero: 'heroes' };
-  const TABS = ['timeline', 'settings', 'creatures', 'heroes', 'items', 'jobs', 'bossattacks', 'sim', 'drivers', 'instructions', 'wanted', 'trail'];   // pass 129: the last two (a reload came back to the Timeline); the Mirror tab went with the Upgrade board
+  const TABS = ['timeline', 'settings', 'creatures', 'heroes', 'items', 'jobs', 'bossattacks', 'sim', 'drivers', 'instructions', 'wanted', 'trail', 'store'];   // pass 149: store; pass 129: wanted, trail (a reload came back to the Timeline); the Mirror tab went with the Upgrade board
 
   /** -> {jobs, changed: [ids], removed: [ids], full, unchanged}. A record in `changed` replaces the page's whole record. */
   function merge(jobs, d) {

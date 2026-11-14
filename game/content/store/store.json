@@ -1,13 +1,27 @@
 {
-  "version": 1,
-  "currency": "gold",
-  "show_bonus": true,
-  "packs": [
-    {"id": "pack_handful", "coins": 1000, "price_cents": 99, "price_text": "$0.99", "ribbon": "", "picture": "res://art/ui/store/pack_handful.png"},
-    {"id": "pack_stack", "coins": 5500, "price_cents": 499, "price_text": "$4.99", "ribbon": "", "picture": "res://art/ui/store/pack_stack.png"},
-    {"id": "pack_pouch", "coins": 12000, "price_cents": 999, "price_text": "$9.99", "ribbon": "most_popular", "picture": "res://art/ui/store/pack_pouch.png"},
-    {"id": "pack_sack", "coins": 26000, "price_cents": 1999, "price_text": "$19.99", "ribbon": "", "picture": "res://art/ui/store/pack_sack.png"},
-    {"id": "pack_chest", "coins": 70000, "price_cents": 4999, "price_text": "$49.99", "ribbon": "", "picture": "res://art/ui/store/pack_chest.png"},
-    {"id": "pack_cart", "coins": 150000, "price_cents": 9999, "price_text": "$99.99", "ribbon": "best_value", "picture": "res://art/ui/store/pack_cart.png"}
-  ]
+  "version": 2,
+  "gems": {
+    "currency": "gems",
+    "show_bonus": true,
+    "packs": [
+      {"id": "gems_handful", "amount": 80, "price_cents": 99, "price_text": "$0.99", "ribbon": "", "picture": "res://art/ui/store/gems_handful.png"},
+      {"id": "gems_pile", "amount": 500, "price_cents": 499, "price_text": "$4.99", "ribbon": "", "picture": "res://art/ui/store/gems_pile.png"},
+      {"id": "gems_pouch", "amount": 1200, "price_cents": 999, "price_text": "$9.99", "ribbon": "most_popular", "picture": "res://art/ui/store/gems_pouch.png"},
+      {"id": "gems_box", "amount": 2500, "price_cents": 1999, "price_text": "$19.99", "ribbon": "", "picture": "res://art/ui/store/gems_box.png"},
+      {"id": "gems_chest", "amount": 6500, "price_cents": 4999, "price_text": "$49.99", "ribbon": "", "picture": "res://art/ui/store/gems_chest.png"},
+      {"id": "gems_vault", "amount": 14000, "price_cents": 9999, "price_text": "$99.99", "ribbon": "best_value", "picture": "res://art/ui/store/gems_vault.png"}
+    ]
+  },
+  "coins": {
+    "currency": "gold",
+    "pay": "gems",
+    "show_bonus": true,
+    "offers": [
+      {"id": "coins_small", "gems": 100, "coins": 1000, "ribbon": "", "picture": "res://art/ui/store/pack_handful.png"},
+      {"id": "coins_medium", "gems": 500, "coins": 5500, "ribbon": "most_popular", "picture": "res://art/ui/store/pack_sack.png"},
+      {"id": "coins_large", "gems": 1200, "coins": 14000, "ribbon": "best_value", "picture": "res://art/ui/store/pack_cart.png"}
+    ],
+    "scaling": {"stage_mult": [1.0, 3.0, 7.0, 14.0], "trail_step": 10, "trail_per_step": 0.05, "round_sig": 2}
+  },
+  "revive": {"price": 0, "currency": "gems", "per_run": 1}
 }

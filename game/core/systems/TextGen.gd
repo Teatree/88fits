@@ -233,7 +233,38 @@ static func describe_effect(e: Effect, with_name: bool = true) -> String:
 			out = (name + " = " if with_name else "= ") + format_value(e.stat, e.value)
 	if e.op != "set" and PREFIX.has(e.stat):
 		out = Loc.t(str(PREFIX[e.stat]), {"effect": out})
-	return out + _target_words(e.target)
+	out += _target_words(e.target)
+	# pass 149: a change that makes the stat worse ("−5% max HP", a longer cooldown) has its number shown in red
+	if with_name and e.op != "set" and _worse(e.stat, 0.0, e.value):
+		_note_bad(out)
+	return out
+
+
+## Pass 149 (Garry: "on items that have negative effects on any stats mark those numbers in red"): every phrase
+## describe_effect made for a change that makes a stat worse, with its number ("−5% max HP" -> "−5%"). A text that
+## holds one of these phrases shows that number in R.NUMBER_BAD (WText.mark_bad, through W.desc_text): the words stay
+## exactly as they were.
+static var _bad: Dictionary = {}
+
+
+static func _note_bad(phrase: String) -> void:
+	if _bad.has(phrase) or _bad.size() > 4000:
+		return
+	for sp in WText.number_spans(phrase):
+		if sp[1]:
+			_bad[phrase] = str(sp[0])
+			return
+
+
+## The numbers of text `t` that make a stat worse (the phrases describe_effect noted), in the order they first appear.
+static func bad_numbers_in(t: String) -> PackedStringArray:
+	var out := PackedStringArray()
+	if t == "" or _bad.is_empty():
+		return out
+	for phrase: String in _bad.keys():
+		if t.contains(phrase) and not out.has(_bad[phrase]):
+			out.append(_bad[phrase])
+	return out
 
 
 ## A count stat's name for exactly one (stat.<id>.one, else `name` without its last "s").

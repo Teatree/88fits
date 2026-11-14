@@ -4911,3 +4911,31 @@ touch_audit 2,128 of 2,128 (the Store's controls among them), then `ship.sh --qu
   fps.run 36; BUC-H shelved. Known faults: pale gloves in the front run, the bd hurt's muzzle in profile, reddish boot toes
   in a few side frames; on the model, blocky band joins on the back and the bandana painted on the nape.
   `tools/blender_pbr_bake.py` gained `name=`.
+
+Pass 148 also: a **Linux build** (export preset "Linux", `game/export/88fits.x86_64`, Godot's 4.7.2 Linux templates fetched
+into the editor's export_templates; not in ship.sh; the crowd library has no Linux build, so the script crowd runs);
+`bash tools/godot.sh --headless --path D:/_projects/88fits/game --export-release "Linux" export/88fits.x86_64`, copied to Drive by hand.
+
+## Pass 149 (2026-11-14): the gems (hard currency), the Store's two sections, red numbers, polish
+
+- **Gems** (`content/currencies/gems`, CurrencyDef `shown: "store"`, `Currency.visible` / `wallets`): Garry: coins grow on
+  both sides with progress, so a fixed dollar price of coins fails; gems are bought with dollars and coins with gems.
+  Not earned; any price or reward can name them: Trail nodes (`currency`, `Trail.currency_of`, `trail.spent_by`), poster
+  tasks (`reward_currency`, `reward_fixed`, `WantedBoard.currency_of`), outlaws and skins (pass 111), the paid revive.
+  BALANCING 92.
+- **The Store** (lane STORE, tools/dl/p149/STORE/): store.json v2 (`docs/store_schema.md`), GEMS (six packs at $0.99-$99.99,
+  80-14,000 gems, Survivor.io's tiers as remembered, not confirmed online; still "Coming soon") over COINS (100/500/1,200
+  gems for 1,000/5,500/14,000 coins at the start, a real exchange, x stage_mult [1, 3, 7, 14] by the latest stage
+  unlocked and +5% every 10 Trail Levels, rounded to 2 figures: `StorePacks.coins_for`, fixture
+  game/tests/fixtures/pass149_store_coins.json); the gem wallet beside the coins (`WMenuHeader.wallets`) on the hub
+  screens and Down! only while the Store is open; the paid revive (store.json `revive`, price 0 = off; `GetUpPaid`,
+  `Run.paid_revives`); "Add 1,000 gems" in the debug panel and the developer menu. Art (lane ART, tools/dl/p149/ART/): the
+  gem and six gem packs.
+- **The Level Editor** (lane EDITOR, tools/dl/p149/EDITOR/): currency selects on Trail nodes (CSV column `currency`, totals
+  per currency) and poster tasks (Paid in, Fixed reward), a **Store tab** (store.js, store_model.js, store_io.py: the
+  packs, the offers, the scaling, the paid revive, a player-at picker and the offers by stage x Trail Level), and a passive
+  item's **Evolved icon** remade whenever its icon changes, shown with "Remake Evolved icon from the icon". Garry's Level
+  Editor needs a restart.
+- **Polish** (BALANCING 93): numbers that make a stat worse are red (TextGen.bad_numbers_in, WText.mark_bad,
+  R.NUMBER_BAD); the shield waits 6 s (The Guardian Risen 3 s) before recharging; the Ghost Pepper's −5% max HP once;
+  Hot Streak's Evolved icon remade from Garry's new icon (his install committed with this pass).

@@ -269,7 +269,11 @@ func _finish(ok: bool) -> void:
 	if hud and not Run.sim_mode:
 		if ok:
 			hud.banner(Loc.t("banner.bounty_done"), W.SAGE, WPoster.thumb_texture(contract.get("still", {})))
-			hud.toast(Loc.t("toast.bounty_paid", {"gold": W.num(WantedBoard.reward_of(contract))}), W.TOAST_GREEN)
+			if WantedBoard.currency_of(contract) == Currency.DEFAULT:
+				hud.toast(Loc.t("toast.bounty_paid", {"gold": W.num(WantedBoard.reward_of(contract))}), W.TOAST_GREEN)
+			else:
+				hud.toast(Loc.t("toast.bounty_paid_in", {"amount": W.num(WantedBoard.reward_of(contract)),
+					"word": Currency.word_of(WantedBoard.currency_of(contract)).to_upper()}), W.TOAST_GREEN)
 			Audio.play("ui_fanfare")
 		else:
 			hud.toast(Loc.t("toast.bounty_failed"), W.ROCK)
@@ -293,7 +297,7 @@ func _settle() -> Dictionary:
 		paid = WantedBoard.reward_of(contract)
 		if paid > 0:
 			# in the posters' currency (the config's reward.currency, gold by default: Save.add_gold through Currency)
-			Currency.add(WantedBoard.currency(), paid, WantedBoard.GOLD_SOURCE, {"type": str(contract.get("type", "")),
+			Currency.add(WantedBoard.currency_of(contract), paid, WantedBoard.GOLD_SOURCE, {"type": str(contract.get("type", "")),
 				"target": str(contract.get("target", "")), "d": float(contract.get("d", 0.0))})
 			var st := WantedBoard.store()
 			st["done"] = int(st.get("done", 0)) + 1
@@ -310,7 +314,8 @@ func record() -> Dictionary:
 	return {"type": str(contract.get("type", "")), "target": str(contract.get("target", "")), "n": int(contract.get("n", 0)),
 		"d": float(contract.get("d", 0.0)), "reward": int(contract.get("reward", 0)), "P": int(contract.get("P", 0)),
 		"stage": int(contract.get("stage", 0)) + 1, "have": p.x, "need": p.y, "done": done, "failed": failed, "paid": paid,
-		"name": str(contract.get("name", "")), "text": str(contract.get("text", "")), "still": contract.get("still", {})}
+		"name": str(contract.get("name", "")), "text": str(contract.get("text", "")), "still": contract.get("still", {}),
+		"currency": WantedBoard.currency_of(contract)}
 
 
 ## The record of the run going on ({} with no contract): RunAnalytics reads it for the run's file.

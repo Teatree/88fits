@@ -91,7 +91,7 @@ func _build() -> void:
 	rr.add_theme_constant_override("separation", int(10 * k))
 	rr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# the gold coin; another currency (the config's reward.currency) shows its own icon
-	var cur := WantedBoard.currency()
+	var cur := WantedBoard.currency_of(contract)
 	if cur == Currency.DEFAULT or Currency.icon(cur) == null:
 		var coin := WCoin.make(44.0 * k, W.BRASS, 3.0)
 		coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER

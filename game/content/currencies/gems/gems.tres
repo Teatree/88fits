@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CurrencyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://art/ui/store/gem.png" id="1_eqata"]
+[ext_resource type="Script" path="res://core/data/CurrencyDef.gd" id="2_1nxy4"]
+
+[resource]
+script = ExtResource("2_1nxy4")
+order = 1
+colour = Color(0.43529412, 0.8392157, 1, 1)
+word = "gems"
+shown = "store"
+id = "gems"
+display_name = "Gems"
+flavour = "The hard currency: bought in the Store, spent on coins. Nothing in a run gives them."
+icon = ExtResource("1_eqata")
+icon_file = "res://art/ui/store/gem.png"

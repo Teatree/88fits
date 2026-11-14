@@ -210,6 +210,9 @@ static func _norm(e: Dictionary) -> Dictionary:
 		out["price"] = maxi(int(round(float(e["price"]))), 0)
 	if _is_num(e.get("x")):
 		out["x"] = clampf(float(e["x"]), 0.0, 1.0)
+	# pass 149: a node may be priced in its own currency (the gems, the hard currency), else the Trail's
+	if str(e.get("currency", "")) != "":
+		out["currency"] = str(e["currency"])
 	return out
 
 
@@ -306,6 +309,15 @@ static func group(id: String) -> Array:
 static func currency() -> String:
 	_ensure()
 	return Currency.of(str(_data.get("currency", Currency.DEFAULT)))
+
+
+## Pass 149 (Garry: the hard currency "for nodes in Trail ... it should be possible to set up the HC"): the currency node
+## `id` is paid in: its own `currency` when it names one, else the Trail's (an id the content lacks reads as gold).
+static func currency_of(id: String) -> String:
+	var n := node(id)
+	if not n.is_empty() and str(n.get("currency", "")) != "":
+		return Currency.of(str(n["currency"]))
+	return currency()
 
 
 ## The backdrop's sections by their first level: [{from, name, top, bottom (hex without #), motif}].
@@ -582,7 +594,7 @@ static func from_of(id: String) -> Array:
 
 ## Whether node `id` can be bought now: open, and the purse holds its price.
 static func can_buy(id: String) -> bool:
-	return state(id) == "open" and Currency.can_afford(currency(), price(id))
+	return state(id) == "open" and Currency.can_afford(currency_of(id), price(id))
 
 
 ## Buys node `id`: only an open one the purse can pay; the price leaves the purse (reason "trail"), the save records the
@@ -602,9 +614,12 @@ static func buy(id: String) -> bool:
 		"what": str(g.get("upgrade", "")) if type == "upgrade" else str(n["gift"]).trim_prefix(type + ":"), "price": cost}
 	if type == "upgrade":
 		info["value"] = _num(g.get("value"), 0.0)
-	if not Currency.spend(currency(), cost, SINK, info):
+	var cur := currency_of(id)
+	if cur != currency():
+		info["currency"] = cur
+	if not Currency.spend(cur, cost, SINK, info):
 		return false
-	sv.call("trail_buy", id, cost)
+	sv.call("trail_buy", id, cost, cur)
 	refresh()
 	var an := _tree_node("Analytics")
 	if an and an.has_method("track"):
@@ -617,10 +632,9 @@ static func any_affordable() -> bool:
 	_ensure_states()
 	if _nodes.is_empty():
 		return false
-	var purse := Currency.balance(currency())
 	for n: Dictionary in _nodes:
 		var id := str(n["id"])
-		if state(id) == "open" and price(id) <= purse:
+		if state(id) == "open" and price(id) <= Currency.balance(currency_of(id)):
 			return true
 	return false
 

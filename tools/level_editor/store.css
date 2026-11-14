@@ -1,0 +1,61 @@
+/* Pass 149 (lane EDITOR): the Store tab (store.js). The page's tokens (style.css); the gems' light blue for what is theirs. */
+.sto { padding: 12px 16px 40px; max-width: 1700px; --gem: #9fe6ff; --gem-edge: #3d8fb0; }
+.sto-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.sto-head h2 { margin: 0; font-size: 1.25rem; }
+.sto-file { color: var(--muted); font-size: 0.8rem; }
+.sto-head .spacer { flex: 1; }
+.sto-lead { max-width: 1100px; color: var(--ink-2); line-height: 1.45; margin: 4px 0 10px; }
+.sto-issues { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+.sto-grid { display: grid; grid-template-columns: minmax(640px, 1.25fr) minmax(420px, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 1250px) { .sto-grid { grid-template-columns: 1fr; } }
+.sto-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.sto-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px 12px; }
+.sto-card-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.sto-card-head h3 { margin: 0; font-size: 1.02rem; }
+.sto-sub { margin: 14px 0 4px; font-size: 0.92rem; color: var(--ink-2); }
+.sto-formula { margin: 2px 0 8px; color: var(--ink-2); font-size: 0.88rem; }
+.sto .fctl { flex-wrap: wrap; min-width: 0; }
+.sto-hint { margin-left: 8px; white-space: normal; flex: 1 1 260px; min-width: 0; }
+.sto-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; }
+.sto-cur { width: 18px; height: 18px; object-fit: contain; vertical-align: middle; flex: none; }
+
+/* the packs and offers: one row each */
+.sto-table { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; }
+.sto-tr { display: grid; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 6px; background: var(--surface-2); border-left: 3px solid transparent; }
+.sto-tr.err { border-left-color: var(--crit); } .sto-tr.warn { border-left-color: var(--warn); }
+.sto-th { background: none; color: var(--muted); font-size: 0.76rem; padding-top: 0; padding-bottom: 0; }
+.sto-packs .sto-tr { grid-template-columns: 40px 108px 90px 66px 66px 102px minmax(90px, 1fr) 96px 74px; }
+.sto-offers .sto-tr { grid-template-columns: 40px 108px 90px 100px 102px minmax(90px, 1fr) 96px 74px; }
+.sto-tr input.txt, .sto-tr input.num, .sto-tr select { width: 100%; min-width: 0; box-sizing: border-box; }
+.sto-tr input.id { font-family: ui-monospace, Consolas, monospace; font-size: 0.82rem; }
+.sto-amt { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.sto-amt .sto-cur { width: 16px; height: 16px; }
+.sto-bonus { color: #7ee07e; font-weight: 650; font-size: 0.76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sto-acts { display: flex; gap: 2px; justify-content: flex-end; }
+.sto-thumb { width: 38px; height: 38px; border-radius: 6px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.sto-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.sto-thumb.none { opacity: 0.6; }
+.sto-sm { display: inline-flex; flex-direction: column; gap: 1px; margin-right: 6px; }
+.sto-sm small { color: var(--muted); font-size: 0.72rem; white-space: nowrap; }
+.sto-sm.err input { border-color: var(--crit); } .sto-sm.warn input { border-color: var(--warn); }
+
+/* "a player at": the COINS section as the player reads it */
+.sto-l { display: flex; flex-direction: column; gap: 2px; font-size: 0.82rem; color: var(--ink-2); }
+.sto-lv { flex: 1; min-width: 220px; }
+.sto-range { width: 100%; }
+.sto-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 8px; }
+.sto-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 8px 10px; border-radius: 10px; background: linear-gradient(#2a3150, #1a1f35); border: 2px solid #3b4670; }
+.sto-tile .sto-thumb { width: 72px; height: 72px; background: none; }
+.sto-ribbon { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: #d6453d; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 1px 8px; border-radius: 4px; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.03em; }
+.sto-tile-amt { display: flex; align-items: center; gap: 5px; font-size: 1.15rem; color: #ffe9b0; }
+.sto-tile-bonus { color: #7ee07e; font-size: 0.76rem; font-weight: 700; }
+.sto-tile-buy { display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; padding: 4px 0; border-radius: 7px; background: #2f9b3c; color: #fff; font-weight: 700; }
+
+/* the preview table: every offer at every stage x Trail level */
+.sto-pv { border-collapse: collapse; width: 100%; font-size: 0.84rem; }
+.sto-pv th, .sto-pv td { padding: 3px 7px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.sto-pv tr:first-child th { color: var(--muted); font-weight: 500; }
+.sto-pv-offer th { text-align: left; color: var(--gem); font-weight: 650; padding-top: 9px; border-bottom: 1px solid var(--gem-edge); }
+.sto-pv-st { text-align: left !important; color: var(--ink-2); }
+.sto-pv-c { color: #ffe9b0; font-variant-numeric: tabular-nums; }
+.sto-pv-c.up { background: rgba(126, 224, 126, 0.10); }

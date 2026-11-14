@@ -26,11 +26,13 @@
         "op": "mul",
         "value": 0.1,
         "target": "player"
-      },
+      }
+    ],
+    [
       {
-        "stat": "max_hp",
+        "stat": "might",
         "op": "mul",
-        "value": -0.04,
+        "value": 0.1,
         "target": "player"
       }
     ],
@@ -40,12 +42,6 @@
         "op": "mul",
         "value": 0.1,
         "target": "player"
-      },
-      {
-        "stat": "max_hp",
-        "op": "mul",
-        "value": -0.04,
-        "target": "player"
       }
     ],
     [
@@ -53,26 +49,6 @@
         "stat": "might",
         "op": "mul",
         "value": 0.1,
-        "target": "player"
-      },
-      {
-        "stat": "max_hp",
-        "op": "mul",
-        "value": -0.04,
-        "target": "player"
-      }
-    ],
-    [
-      {
-        "stat": "might",
-        "op": "mul",
-        "value": 0.1,
-        "target": "player"
-      },
-      {
-        "stat": "max_hp",
-        "op": "mul",
-        "value": -0.04,
         "target": "player"
       }
     ],
@@ -82,17 +58,11 @@
         "op": "mul",
         "value": 0.14,
         "target": "player"
-      },
-      {
-        "stat": "max_hp",
-        "op": "mul",
-        "value": -0.05,
-        "target": "player"
       }
     ]
   ],
   "repeat_last_level": true,
-  "trade": "−4 to −5% max HP a level",
+  "trade": "−5% max HP",
   "art_prompt": "one big wrinkled glossy bright red ghost pepper chilli, its skin bumpy and crinkled, a short curled green stem on top, a few small orange flames and pale wisps of heat curling off it",
   "placeholder": {
     "color": "#D8282A",

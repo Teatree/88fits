@@ -349,7 +349,23 @@ const WantedModel = (() => {
     vars.n = numText(n);
     Object.assign(c, { n, d, skulls: skullsOf(d), reward: rewardFor(cfg, d, p, k),
       name: fillText(tc.name != null ? tc.name : '{target}', vars), text: fillText(tc.text || '', vars) });
+    // pass 149 (lane EDITOR), WantedBoard.make_contract: a task may pay in its own currency (`reward_currency`, kept on the
+    // contract as `currency`: the gems) and a fixed amount (`reward_fixed` above 0) instead of the formula
+    if (String(tc.reward_currency == null ? '' : tc.reward_currency) !== '') c.currency = String(tc.reward_currency);
+    if (num(tc.reward_fixed, 0) > 0) c.reward = Math.round(num(tc.reward_fixed, 0));
     return c;
+  }
+
+  /** Pass 149: WantedBoard.currency(): the board's currency (reward.currency, gold by default). */
+  function boardCurrency(cfg) { const c = isObj(cfg) && isObj(cfg.reward) ? cfg.reward.currency : null; return typeof c === 'string' && c ? c : 'gold'; }
+  /** Pass 149: WantedBoard.currency_of(contract): the poster's own currency (its task's reward_currency), else the
+   *  board's. (The game reads an id the content lacks as gold; issues() calls it an error here.) */
+  function currencyOf(cfg, contract) { const c = isObj(contract) ? contract.currency : null; return typeof c === 'string' && c ? c : boardCurrency(cfg); }
+  /** Pass 149: what task type `type` pays in and how: {currency, fixed (0 = the formula), own (its own currency set)}. */
+  function taskPay(cfg, type) {
+    const tc = taskCfg(cfg, type);
+    const own = String(tc.reward_currency == null ? '' : tc.reward_currency);
+    return { currency: own || boardCurrency(cfg), fixed: num(tc.reward_fixed, 0) > 0 ? Math.round(num(tc.reward_fixed, 0)) : 0, own: own !== '' };
   }
 
   function roll(cfg, ctx, rnd) {
@@ -595,8 +611,13 @@ const WantedModel = (() => {
 
   // ------------------------------------------------------------------ the checks the tab shows
 
-  function issues(cfg) {
+  /** `currencies` (pass 149, optional): the ids of content/currencies; with it the board's and every task's currency
+   *  must be one of them. */
+  function issues(cfg, currencies) {
     const errors = [], warnings = [];
+    const known = Array.isArray(currencies) && currencies.length ? currencies : null;
+    const bc = isObj(cfg.reward) ? cfg.reward.currency : undefined;
+    if (known && bc != null && !known.includes(String(bc))) errors.push(`reward.currency "${bc}" is not in content/currencies (${known.join(', ')})`);
     if (!Array.isArray(cfg.tasks)) errors.push('tasks must be a list');
     const seenT = {};
     let anyOn = false;
@@ -617,6 +638,12 @@ const WantedModel = (() => {
         if (num(t.step, 1) < 1) warnings.push(`${type}: a step under 1 rounds to 1`);
       }
       if (!String(t.text || '').trim()) warnings.push(`${type}: no task line`);
+      // pass 149 (lane EDITOR): a task's own currency and fixed reward
+      if (t.reward_currency != null && t.reward_currency !== '') {
+        if (typeof t.reward_currency !== 'string' || !/^[a-z0-9_]+$/.test(t.reward_currency)) errors.push(`${type}: reward_currency is a currency id (gems), or blank for the board's`);
+        else if (known && !known.includes(t.reward_currency)) errors.push(`${type}: reward_currency "${t.reward_currency}" is not in content/currencies (${known.join(', ')})`);
+      }
+      if (t.reward_fixed != null && t.reward_fixed !== '' && !(num(t.reward_fixed, -1) >= 0)) errors.push(`${type}: reward_fixed is a number of 0 or more (0 or blank = the formula)`);
     }
     for (const type of TYPE_ORDER) if (!seenT[type]) warnings.push(`${type} is not in the list (it never comes)`);
     if (!anyOn) errors.push('every task type is off or weighs 0: the board could never post anything');
@@ -630,6 +657,7 @@ const WantedModel = (() => {
 
   return { TYPES, TYPE_ORDER, TYPE_INFO, DEFAULTS, MAX_CHOICES, normalized, taskCfg, union, targetsOf, eligibleTypes, typeChances,
     scaledRange, snapN, rollN, difficultyOf, skullsOf, rewardFor, fillText, clockOf, makeContract, roll, mulberry32,
+    boardCurrency, currencyOf, taskPay,   // pass 149 (lane EDITOR)
     rowWaveTimes, contextFrom, startWeaponFor, issues, choicesOf,
     TARGET_FIRST, ELEMENT_NAMES, HEAL_STATS, targetRange, ladderTop, passiveHeals, elementOf };   // pass 113 (lane TASKS)
 })();

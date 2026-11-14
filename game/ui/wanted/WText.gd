@@ -77,6 +77,14 @@ var bold_color := Color(0, 0, 0, 0):
 	set(v):
 		bold_color = v
 		queue_redraw()
+## Pass 149 (Garry: negative effects' numbers in red): with `mark_bad`, a bold number that makes a stat worse
+## (TextGen.bad_numbers_in: "−5%" of "−5% max HP") is drawn in `bad_color` instead of bold_color. W.desc_text turns it on.
+var mark_bad := false:
+	set(v):
+		mark_bad = v
+		_ranges_of = ""
+		queue_redraw()
+var bad_color := Color("ff5a4a")
 
 ## Pass 140 (lane TEXTS; Garry: "'All your mutations still apply' - should be written in a different cursive, less visible
 ## font"): with `note_size` > 0 the text's last line, when it is an evolution's mutations note (TextGen.is_note), is set
@@ -105,6 +113,7 @@ var _lines: Array = []   # for runs: [[TextLine, colour], ...]
 var _dirty := true
 var _shaped_w := -2.0
 var _ranges: Array = []
+var _bad_ranges: Array = []
 var _ranges_of := ""
 
 
@@ -358,9 +367,10 @@ func _paint_numbers(i: int, ci: RID, pos: Vector2, asc: float) -> void:
 		for r: Vector2i in ranges:
 			if start >= r.x and start < r.y:
 				var off: Vector2 = g["offset"]
+				var col := bad_color if _bad_ranges.has(r) else bold_color
 				for k in int(g["repeat"]):
 					ts.font_draw_glyph(g["font_rid"], ci, int(g["font_size"]),
-						Vector2(x + float(g["advance"]) * k + off.x, base + off.y), int(g["index"]), bold_color)
+						Vector2(x + float(g["advance"]) * k + off.x, base + off.y), int(g["index"]), col)
 				break
 		x += adv
 
@@ -370,11 +380,15 @@ func _number_ranges() -> Array:
 	if _ranges_of != text:
 		_ranges_of = text
 		_ranges.clear()
+		_bad_ranges.clear()
+		var bad := TextGen.bad_numbers_in(text) if mark_bad else PackedStringArray()
 		var at := 0
 		for sp in number_spans(text):
 			var n := str(sp[0]).length()
 			if sp[1]:
 				_ranges.append(Vector2i(at, at + n))
+				if bad.has(str(sp[0])):
+					_bad_ranges.append(Vector2i(at, at + n))
 			at += n
 	return _ranges
 

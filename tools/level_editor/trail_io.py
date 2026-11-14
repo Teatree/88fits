@@ -175,8 +175,21 @@ def picks(srv):
     for cid, d in _folders(srv, "pickups"):
         out["powerups"].append({"id": cid, "name": str(d.get("name", cid)), "icon": "/icon/pickup/%s" % cid, "hidden": bool(d.get("hidden", False))})
     out["currencies"] = [cid for cid, _ in _folders(srv, "currencies")] or ["gold"]
+    # pass 149 (lane EDITOR): each currency's name and icon, for a node's price in the preview and the row's select
+    out["currency_info"] = [{"id": cid, "name": str(d.get("name", cid)), "word": str(d.get("word", cid)), "colour": str(d.get("colour", "")),
+                             "icon": "/api/currencies/%s/icon" % cid} for cid, d in sorted(_folders(srv, "currencies"), key=lambda x: (_order(x[1]), x[0]))]         or [{"id": "gold", "name": "Gold", "word": "gold", "colour": "#C9932F", "icon": "/api/currencies/gold/icon"}]
     out["locks"] = locks(srv)   # pass 130 (lane LE): the hint box's "what it was locked behind"
     return out
+
+
+def _order(d):
+    o = d.get("order", 0)
+    return o if _num(o) else 0
+
+
+def currency_ids(srv):
+    """Pass 149: the ids content/currencies holds (["gold"] when it holds none, as the game falls back)."""
+    return [cid for cid, _ in _folders(srv, "currencies")] or ["gold"]
 
 
 def read(srv):
@@ -192,9 +205,10 @@ def read(srv):
     return dict(base, json=d, exists=True, mtime=srv.mtime_of(p))
 
 
-def check(obj):
+def check(obj, currencies=None):
     """'' when `obj` has the shape the game reads, else why not (the first fault). The rules a designer breaks (a level
-    without a required node, a node out of reach...) are the page's checks, trail_model.js `check`."""
+    without a required node, a node out of reach...) are the page's checks, trail_model.js `check`. Pass 149: with
+    `currencies` (the ids of content/currencies) the Trail's and every node's own currency must be one of them."""
     if not isinstance(obj, dict):
         return "the Trail is a JSON object"
     pr = obj.get("price")
@@ -202,6 +216,8 @@ def check(obj):
         return "price is {base, k, power, round}, four numbers"
     if not isinstance(obj.get("currency"), str) or not _ID_RE.match(obj["currency"]):
         return "currency is a currency id (gold)"
+    if currencies is not None and obj["currency"] not in currencies:
+        return "currency %s is not in content/currencies (%s)" % (obj["currency"], ", ".join(currencies))
     secs = obj.get("sections")
     if not isinstance(secs, list) or not all(isinstance(s, dict) and isinstance(s.get("from"), int) and not isinstance(s.get("from"), bool) for s in secs):
         return "sections is a list of {from, name, top, bottom, motif}"
@@ -241,6 +257,13 @@ def check(obj):
         for k in ("price", "price_mult", "x"):
             if k in n and not _num(n[k]):
                 return "%s: %s is a number" % (nid, k)
+        # pass 149 (lane EDITOR): a node's own currency (the gems); absent or "" = the Trail's
+        if "currency" in n:
+            c = n["currency"]
+            if not isinstance(c, str) or (c and not _ID_RE.match(c)):
+                return "%s: currency is a currency id (gems), or absent for the Trail's" % nid
+            if c and currencies is not None and c not in currencies:
+                return "%s: currency %s is not in content/currencies (%s)" % (nid, c, ", ".join(currencies))
     end = obj.get("end")
     if end is not None and not isinstance(end, dict):
         return "end is {text}"
@@ -278,7 +301,7 @@ def dump(obj):
 
 def save(srv, new_obj, base_mtime=None):
     """POST /api/trail/save."""
-    err = check(new_obj)
+    err = check(new_obj, currency_ids(srv))
     if err:
         return {"ok": False, "error": err, "status": 400}
     p = path_of(srv)
@@ -362,7 +385,7 @@ def _main(argv):
         return 2
     target = argv[1] if len(argv) > 1 else path_of(_Srv)
     try:
-        shape = check(json.loads(cio.read_text(target)))
+        shape = check(json.loads(cio.read_text(target)), currency_ids(_Srv))
     except (OSError, ValueError) as e:
         print("ERROR %s: %s" % (target, e))
         return 1

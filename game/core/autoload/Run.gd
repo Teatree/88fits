@@ -68,6 +68,8 @@ var extracted := false
 var last_result: Dictionary = {}
 var died := false
 var revives_used := 0
+## Pass 149 (lane STORE): the paid revives taken this run (Down!'s "paid": StorePacks.revive_for's per_run).
+var paid_revives := 0
 var thumb_lifted := false
 var no_lift_time := 0.0
 var max_level_reached := 1
@@ -325,6 +327,7 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	extracted = false
 	died = false
 	revives_used = 0
+	paid_revives = 0
 	phoenix_used = false
 	phoenix_spent = 0
 	grind_used = {}

@@ -557,7 +557,7 @@ def server_checks(check, server):
             with urllib.request.urlopen(base + "/api/puppet/buck", timeout=30) as r:
                 d = json.loads(r.read().decode("utf-8"))
             g = {x["name"]: x for x in d.get("guides", [])}
-            check(d["ok"] and d["glb"].startswith("/dl/puppet/buck/buck_puppet.glb?v=") and all(d["stages"].values()) and d["played"] == "BUC-H"
+            check(d["ok"] and d["glb"].startswith("/dl/puppet/buck/buck_puppet.glb?v=") and all(d["stages"].values()) and d["played"] == json.load(open(os.path.join(ROOT, "game", "content", "characters", "buck", "buck.json"), encoding="utf-8")).get("variant")   # pass 149: the look he plays, from his JSON (BUC-I since pass 148)
                   and d["screen"] == "green" and "buck_puppet_run" in g and g["buck_puppet_run"]["frame"] == "soles" and g["buck_puppet_run"]["ratios"].get("side")
                   and any(l["code"] == "BUC-F" and l["stills"].get("side") for l in d["looks"]) and "running.fbx" in d["clips"],
                   "PLE server: /api/puppet/buck: Jezyk's GLB, his stages, the guides with their framing and ratios, every look's stills, the clips")

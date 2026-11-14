@@ -220,7 +220,7 @@ PLAYER_DEFAULTS = {
     "turn_rate": 180.0, "rerolls": 1.0, "skips": 2.0, "banishes": 1.0, "crit_chance": 0.01, "crit_damage": 2.0,
     "execute_frac": 0.0, "thorns": 0.0, "adrenaline_speed": 0.0, "adrenaline_might": 0.0, "overkill": 0.0,
     "cooldown_on_kill": 0.0, "xp_gain": 1.0, "ricochet": 0.0, "homing_turn": 1.0, "haste": 1.0, "evade": 0.0,
-    "evade_invuln": 0.0, "shield_max": 0.0, "shield_delay": 3.0, "shield_rate": 0.5, "regen_delay": 3.0,
+    "evade_invuln": 0.0, "shield_max": 0.0, "shield_delay": 6.0, "shield_rate": 0.5, "regen_delay": 3.0,
     "lifesteal_cap": 0.03, "heal_drop": 0.0, "coin_drop": 0.0, "hit_invuln": 0.25, "revive_hp": 0.4, "desperado": 0.0,
     "debuff_duration": 1.0, "difficulty": 0.0, "still_regen": 0.0, "still_might": 0.0, "barrel_speed": 0.0,
     "barrel_seconds": 0.0, "xp_drop_chance": 0.0, "elite_damage": 0.0, "phoenix_revive": 0.0, "hurt_speed": 0.0,

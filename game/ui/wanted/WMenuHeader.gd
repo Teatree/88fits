@@ -132,9 +132,10 @@ static func gold_plate(gold: int, px: int = 44, coin_px: float = 40.0, shadow: i
 ## R.WALLET_PAD inside (14 left, 20 right), the coin `coin_px` and the number R.WALLET_GAP apart, the number white Ultra at
 ## R.WALLET_SCALE of the Wanted size (44 -> 34; the Shop's 56 -> 43) with the mock's soft drop. The number is "Amount", as
 ## under Wanted, so the screens that update it find it the same way.
-static func _wallet_royale(gold: int, px: int, coin_px: float) -> PanelContainer:
+static func _wallet_royale(gold: int, px: int, coin_px: float, cur: String = "gold") -> PanelContainer:
 	var p := PanelContainer.new()
-	p.name = "Wallet"
+	p.name = "Wallet" if cur == Currency.DEFAULT else "Wallet_%s" % cur
+	p.set_meta("currency", cur)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var npx := maxi(int(round(px * R.WALLET_SCALE)), R.ULTRA_MIN)
 	var h := maxf(float(R.WALLET_H), coin_px + 16.0)
@@ -144,7 +145,7 @@ static func _wallet_royale(gold: int, px: int, coin_px: float) -> PanelContainer
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", R.WALLET_GAP)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var coin := WCoin.make(coin_px)
+	var coin := WCoin.make(coin_px, W.BRASS, 3.0, cur)
 	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(coin)
 	var n := W.slab_text(W.num(gold), npx, W.INK, HORIZONTAL_ALIGNMENT_LEFT, float(npx))
@@ -153,8 +154,66 @@ static func _wallet_royale(gold: int, px: int, coin_px: float) -> PanelContainer
 	n.shadow = R.WALLET_DROP
 	n.shadow_color = R.WALLET_DROP_COLOR
 	n.shadow_straight = true
-	n.name = "Amount"
+	# gold's number is "Amount" (every screen updates it by that name); another currency's "Amount_<id>"
+	n.name = "Amount" if cur == Currency.DEFAULT else "Amount_%s" % cur
 	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(n)
 	p.add_child(row)
 	return p
+
+
+## The gap between two wallets side by side (pass 149).
+const WALLETS_GAP := 12
+
+
+## Pass 149 (lane STORE; Garry: the gem wallet "is only visible to Players when the Store option is turned on ... otherwise
+## would be visible wherever Players can spend it"): the purse a hub shows top-right. With only gold showing
+## (Currency.wallets(): the gems only while the Store is open) it IS gold_plate's plate, exactly as before; else an HBox
+## "Wallets" holding gold's plate ("Wallet", its number "Amount", which the screens update as before) and, after it, a
+## plate for each other currency showing ("Wallet_<id>", its icon, its number "Amount_<id>": refresh_wallets).
+static func wallets(gold: int, px: int = 44, coin_px: float = 40.0) -> Control:
+	var g := gold_plate(gold, px, coin_px)
+	var others: Array = Currency.wallets().filter(func(i: String) -> bool: return i != Currency.DEFAULT)
+	if others.is_empty():
+		return g
+	var row := HBoxContainer.new()
+	row.name = "Wallets"
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", WALLETS_GAP)
+	row.add_child(g)
+	for id: String in others:
+		row.add_child(currency_plate(id, Currency.balance(id), px, coin_px))
+	return row
+
+
+## One currency's wallet plate (gold's is gold_plate): its icon and its balance, the same black plate.
+static func currency_plate(cur: String, n: int, px: int = 44, coin_px: float = 40.0) -> PanelContainer:
+	return _wallet_royale(n, px, coin_px, cur)
+
+
+## The balances of every non-gold plate under `n` (a wallets() row, a screen) again, from the save; the plates shrink or
+## grow to their digits. Gold's "Amount" is the screen's own to update (as before pass 149).
+static func refresh_wallets(n: Node) -> void:
+	if n == null or not is_instance_valid(n):
+		return
+	for p: Node in n.find_children("Wallet_*", "PanelContainer", true, false):
+		var cur := str(p.get_meta("currency", str(p.name).trim_prefix("Wallet_")))
+		var a := p.find_child("Amount_%s" % cur, true, false) as WText
+		if a:
+			a.text = W.num(Currency.balance(cur))
+		(p as Control).reset_size()
+	if n is Control:
+		(n as Control).reset_size()
+	if n.get_parent() is WMenuHeader:
+		(n.get_parent() as WMenuHeader).relay_right()
+
+
+## Pass 149: the top-right piece laid again at its own size (its digits changed): flush right, the name refitted.
+func relay_right() -> void:
+	if right == null or not is_instance_valid(right):
+		return
+	var ms := right.get_combined_minimum_size()
+	right.offset_right = 0
+	right.offset_left = -ms.x
+	right.offset_bottom = right.offset_top + ms.y
+	_fit_title()

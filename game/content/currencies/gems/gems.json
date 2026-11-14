@@ -1,0 +1,10 @@
+{
+  "id": "gems",
+  "name": "Gems",
+  "flavour": "The hard currency: bought in the Store, spent on coins. Nothing in a run gives them.",
+  "order": 1,
+  "icon": "res://art/ui/store/gem.png",
+  "colour": "#6FD6FF",
+  "word": "gems",
+  "shown": "store"
+}

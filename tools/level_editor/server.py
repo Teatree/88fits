@@ -157,6 +157,7 @@ import skins_io as SKINIO  # noqa: E402  (pass 111, lane SKINS: a hero's looks s
 import wanted_io as WIO  # noqa: E402  (pass 111, lane WANTED: the Bounty Board's config, /api/wanted...)
 import trail_io as TRAILIO  # noqa: E402  (pass 129, lane TRAIL-EDITOR: the Trail tab, /api/trail...)
 import strings_io as STRIO  # noqa: E402  (pass 137, lane LOCKIT: the Texts tab, /api/strings...)
+import store_io as STOREIO  # noqa: E402  (pass 149, lane EDITOR: the Store tab, /api/store...)
 
 _write_lock = threading.Lock()
 # a test hook: a module-like object standing in for jobs.py (selftest_S.py); None = import jobs.py when it is there
@@ -2948,6 +2949,127 @@ def _icon_refusal(kind, cid, d, info, new_name, new_url, label, verb="change"):
                      "confirm: true to go on" % (name, what, who, info["shown"], new_name or "?", "; ".join(bits), info["shown"])}
 
 
+# ---------------------------------------------------------------- pass 149 (lane EDITOR): the Evolved icon follows the icon
+
+# Garry, 2026-11-14: "Hot Streak - I've updated the Icon for Hot Streak, but the Evolution icon didn't update. And it's not
+# great that I can't make those icons from Level Editor itself." A passive item with an Evolved rung (not a line, not an
+# evolved form, not `single`: the filter of tools/evolved_icons.items()) wears <id>_icon_evolved.png on that rung (or the
+# file its JSON's `icon_evolved` names; JsonContent), made from its icon by tools/evolved_icons.evolved_icon (a white
+# outline round the subject). Every change of the base icon (an install, Revert icon, Use for ..., an item_icon job)
+# remakes it when the JSON names no `icon_evolved` of its own; "Remake Evolved icon from the icon" (POST
+# /api/content/passive/<id>/evolved_icon) does it by hand and asks first (confirm) when the JSON names its own. The
+# picture it replaces is copied under backups/<id>/ first (keep_icon_copy, as the icon's own); the PNG import follows.
+
+def evolved_rung_why(d):
+    """'' when a passive item's JSON has an Evolved rung, else why not (tools/evolved_icons.items()'s filter)."""
+    if not isinstance(d, dict):
+        return "no JSON"
+    if d.get("line"):
+        return "a Card (a line) evolves into an item of its own, which has its own icon"
+    if d.get("evolves_from"):
+        return "an evolved form (it is the Evolved item itself)"
+    if d.get("single"):
+        return "a one-shot item (single) has one level and no Evolved rung"
+    return ""
+
+
+def evolved_icon_info(kind, cid, d=None, folder=None):
+    """What the page shows of a passive item's Evolved icon: {ok, rung, why, own (the JSON names `icon_evolved`), file,
+    path (the file a remake writes, None when the JSON names a picture outside the item's folder), exists, url (the
+    picture, cache-busted), base, base_exists, stale (the icon is newer than the Evolved icon)}."""
+    if kind != "passive":
+        return {"ok": True, "rung": False, "why": "only a passive item has an Evolved rung", "own": False}
+    if d is None or folder is None:
+        tfolder, path = content_path(kind, cid)
+        if path is None:
+            return {"ok": False, "status": 404, "error": "no passive %s" % cid}
+        folder, d = os.path.dirname(path), _load_or_empty(path)
+    why = evolved_rung_why(d)
+    own_key = d.get("icon_evolved")
+    own = isinstance(own_key, str) and own_key != ""
+    name = str(own_key) if own else cid + "_icon_evolved.png"
+    if name.startswith("res://"):
+        full = os.path.abspath(os.path.join(GAME, name[len("res://"):].replace("/", os.sep)))
+        if not full.startswith(os.path.abspath(GAME) + os.sep) or not full.lower().endswith(".png"):
+            full = None
+        target = full if full and os.path.dirname(full) == os.path.abspath(folder) and FILENAME_RE.match(os.path.basename(full)) else None
+    else:
+        target = os.path.join(folder, os.path.basename(name)) if FILENAME_RE.match(os.path.basename(name)) else None
+        full = target
+    exists = bool(full) and os.path.isfile(full)
+    base_name = str(d.get("icon") or cid + "_icon.png")
+    base_full = resolve_file(folder, base_name)
+    stale = bool(exists and base_full and os.path.getmtime(base_full) > os.path.getmtime(full) + 1.0)
+    url = ("/api/content/passive/%s/evolved_icon?picture=1&v=%d" % (cid, int(os.path.getmtime(full)))) if exists else None
+    return {"ok": True, "rung": why == "", "why": why, "own": own, "file": os.path.basename(name), "path": rel(target) if target else None,
+            "picture": rel(full) if exists else None, "exists": exists, "url": url, "base": os.path.basename(base_name), "base_exists": bool(base_full), "stale": stale,
+            "plate": {"fill": "#241b14", "ring": "#c9932f"}}
+
+
+def _evolved_made(res):
+    """Whether a remake wrote a picture (the import then needs the PNG step)."""
+    return isinstance(res, dict) and bool(res.get("ok")) and not res.get("skipped") and not res.get("unchanged")
+
+
+def remake_evolved_icon(kind, cid, why="", confirm=None, auto=False):
+    """The Evolved icon of passive item `cid` made again from its icon (tools/evolved_icons.evolved_icon). `auto` (a base
+    icon change): only when the item has an Evolved rung and its JSON names no `icon_evolved` of its own, else {ok,
+    skipped: why}. By hand: an item without the rung is refused (400); one whose JSON names its own needs `confirm: True`
+    (else 409 with confirm_needed) and a file in its own folder. The picture it replaces is copied under backups/<id>/
+    first; the same bytes again change nothing (unchanged). No import here (the caller's)."""
+    info = evolved_icon_info(kind, cid)
+    if not info.get("ok"):
+        return info
+    if not info["rung"]:
+        return {"ok": True, "skipped": info["why"]} if auto else {"ok": False, "status": 400, "error": "%s has no Evolved rung: %s" % (cid, info["why"])}
+    if info["own"]:
+        if auto:
+            return {"ok": True, "skipped": "its JSON names its own Evolved icon (icon_evolved: %s): left as it is" % info["file"]}
+        if confirm is not True:
+            return {"ok": False, "status": 409, "confirm_needed": True, "file": info["file"], "info": info,
+                    "error": "%s's JSON names its own Evolved icon (%s): a remake paints over it (a copy goes to backups/%s/ first); send confirm: true to go on" % (cid, info["file"], cid)}
+        if not info["path"]:
+            return {"ok": False, "status": 400, "error": "%s's icon_evolved (%s) is not a file in its own folder: remake it by hand" % (cid, info["file"])}
+    if not info["base_exists"]:
+        return {"ok": False, "status": 404, "error": "%s's icon %s is not on disk: nothing to make the Evolved icon from" % (cid, info["base"])}
+    try:
+        import evolved_icons as EVI
+        from PIL import Image
+    except Exception as e:   # noqa: BLE001  (no Pillow in this Python: say so, never fail the icon change that called)
+        return {"ok": False, "status": 500, "error": "tools/evolved_icons.py could not be loaded: %s: %s" % (type(e).__name__, e)}
+    tfolder, path = content_path(kind, cid)
+    folder = os.path.dirname(path)
+    base_full = resolve_file(folder, info["base"] if info["base"] else cid + "_icon.png")
+    target = _abs_path(info["path"])
+    existed = os.path.isfile(target)
+    copy = keep_icon_copy(cid, target) if existed else ""
+    tmp = target + ".tmp"
+    with Image.open(base_full) as im:
+        EVI.evolved_icon(im).save(tmp, "PNG")
+    same = existed and _same_bytes(tmp, target)
+    if same:
+        os.remove(tmp)
+    else:
+        os.replace(tmp, target)
+    EV.emit("icon", "evolved", look=EV.look_of(kind, cid, ""), file=os.path.basename(target), base=info["base"], why=str(why or ""), icon_backup=copy)
+    return {"ok": True, "kind": kind, "id": cid, "file": os.path.basename(target), "from": info["base"], "backup": copy,
+            "unchanged": same, "new_file": not existed, "auto": bool(auto), "why": str(why or "")}
+
+
+def evolved_icon_op(kind, cid, body=None):
+    """POST /api/content/<kind>/<id>/evolved_icon {confirm}: "Remake Evolved icon from the icon" (the Items tab), then the
+    import with the PNG step (an import job)."""
+    body = body if isinstance(body, dict) else {}
+    res = remake_evolved_icon(kind, cid, "Remake Evolved icon from the icon", confirm=True if body.get("confirm") is True else None)
+    if not res.get("ok") or res.get("unchanged"):
+        if res.get("unchanged"):
+            res.update(import_ok=None, output="no change: %s already is the Evolved form of %s" % (res.get("file"), res.get("from")), job=None)
+        return res
+    import_ok, output, job = _icon_import(kind, cid, True, "the Evolved icon remade")
+    res.update(import_ok=import_ok, output=output, job=job, evolved=evolved_icon_info(kind, cid))
+    return res
+
+
 def set_look_icon(kind, cid, code, file, why="", confirm=None, need_file=True):
     """THE one place an icon changes (pass 76, lane ICON): the look's icon set to `file`, a plain PNG name in the asset's
     folder (`need_file`: it must be on disk; a job's landing names the file its tool just wrote). A look (any code but the
@@ -3017,9 +3139,21 @@ def set_look_icon(kind, cid, code, file, why="", confirm=None, need_file=True):
         d2 = json.loads(text)
     EV.emit("icon", "set", look=EV.look_of(kind, cid, info["code"]), file=name, was=info["shown"], base=is_base, why=str(why or ""),   # pass 97 (lane PROGRESS, WF-02)
             icon_backup=copy, backup=backup_rel)
-    return {"ok": True, "kind": kind, "id": cid, "code": info["code"], "base": is_base, "file": name, "was": info["shown"],
-            "icon_backup": copy, "backup": backup_rel, "layout": "entry", "history": len(history),
-            "entry": None if is_base else (d2.get("variants") or {}).get(code), "icon": look_icon_info(kind, cid, folder, d2, code)}
+    out = {"ok": True, "kind": kind, "id": cid, "code": info["code"], "base": is_base, "file": name, "was": info["shown"],
+           "icon_backup": copy, "backup": backup_rel, "layout": "entry", "history": len(history),
+           "entry": None if is_base else (d2.get("variants") or {}).get(code), "icon": look_icon_info(kind, cid, folder, d2, code)}
+    if is_base and kind == "passive":
+        # pass 149 (lane EDITOR): the Evolved icon follows a passive item's new icon (never failing the icon change)
+        out["evolved"] = _remake_evolved_quietly(kind, cid, "the icon became %s (%s)" % (name, why or "set"))
+    return out
+
+
+def _remake_evolved_quietly(kind, cid, why):
+    """remake_evolved_icon(auto=True) for a base icon change: whatever goes wrong is said in the answer, never raised."""
+    try:
+        return remake_evolved_icon(kind, cid, why, auto=True)
+    except Exception as e:   # noqa: BLE001
+        return {"ok": False, "error": "the Evolved icon was not remade: %s: %s" % (type(e).__name__, e)}
 
 
 def _picture_in_folder(cid, folder, name, copy_rel, dry=False):
@@ -3049,12 +3183,12 @@ def _picture_in_folder(cid, folder, name, copy_rel, dry=False):
     return want, True
 
 
-def _icon_import(kind, cid, new_png):
+def _icon_import(kind, cid, new_png, why="an icon put back"):
     """After an icon op: a PNG new to the folder needs Godot's --import before import_json can name it (an `import` job:
     --import, lossy_imports, --import, import_json); one already imported only the JSON -> .tres import."""
     target = "%s/%s" % (KIND_FOLDERS[kind], cid)
     if new_png:
-        r = _enqueue("import", {"kind": "content", "id": target}, {"targets": [target]}, "import %s (an icon put back)" % target)
+        r = _enqueue("import", {"kind": "content", "id": target}, {"targets": [target]}, "import %s (%s)" % (target, why))
         return None, ("import queued (the PNG first)" if r.get("job") else "import not queued: %s" % r.get("error")), r.get("job")
     ok, out = run_import(target)
     return ok, out, None
@@ -3142,10 +3276,15 @@ def revert_icon(kind, cid, code, confirm=None):
         backup_rel = backup(cid, path)
         cio.write_atomic(path, text)
         d2 = json.loads(text)
-    import_ok, output, job = _icon_import(kind, cid, put_back)
+    # pass 149 (lane EDITOR): the Evolved icon follows a passive item's icon back too
+    evo = _remake_evolved_quietly(kind, cid, "Revert icon") if is_base and kind == "passive" else None
+    import_ok, output, job = _icon_import(kind, cid, put_back or _evolved_made(evo))
     now = look_icon_info(kind, cid, folder, d2, code)
-    return {"ok": True, "op": "revert_icon", "kind": kind, "id": cid, "code": info["code"], "base": is_base, "was": info["shown"],
-            "file": now["shown"], "put_back": put_back, "backup": backup_rel, "icon": now, "import_ok": import_ok, "output": output, "job": job}
+    out = {"ok": True, "op": "revert_icon", "kind": kind, "id": cid, "code": info["code"], "base": is_base, "was": info["shown"],
+           "file": now["shown"], "put_back": put_back, "backup": backup_rel, "icon": now, "import_ok": import_ok, "output": output, "job": job}
+    if evo is not None:
+        out["evolved"] = evo
+    return out
 
 
 def _gallery_ref(cid, full):
@@ -3223,7 +3362,8 @@ def use_icon(kind, cid, code, ref, confirm=None):
     if res.get("unchanged") and not put_back:
         res.update(import_ok=None, output="no change: %s already shows %s" % (info["code"] or cid, name), job=None)
         return res
-    import_ok, output, job = _icon_import(kind, cid, put_back)
+    # pass 149: a remade Evolved icon is a changed PNG: the import job with the PNG step
+    import_ok, output, job = _icon_import(kind, cid, put_back or _evolved_made(res.get("evolved")))
     res.update(op="use_icon", put_back=put_back, import_ok=import_ok, output=output, job=job)
     return res
 
@@ -3375,6 +3515,12 @@ class Hooks:
     def snapshot_icons(self, kind, cid):
         """pass 76 (lane ICON): the asset's icons copied into backups/<id>/ before a job that may paint over one runs."""
         return snapshot_icons(kind, cid)
+
+    def remake_evolved_icon(self, kind, cid, why=""):
+        """pass 149 (lane EDITOR): a passive item's Evolved icon made again from its icon after a job painted the icon
+        (an item_icon job; an install goes through set_look_icon, which does it itself). Only when it has the rung and its
+        JSON names no icon_evolved of its own; never raises."""
+        return _remake_evolved_quietly(kind, cid, why)
 
     def look_records(self, kind, cid):
         tfolder, path = content_path(kind, cid)
@@ -4306,6 +4452,9 @@ class Handler(BaseHTTPRequestHandler):
         if parts[:1] == ["trail"]:
             # pass 129 (lane TRAIL-EDITOR): the Trail's file, its pick lists and the upgrade icons (trail_io.py)
             return TRAILIO.api_get(self, sys.modules[__name__], parts[1:], query)
+        if parts[:1] == ["store"]:
+            # pass 149 (lane EDITOR): the Store's file (gem packs, coin offers, the paid revive) and its pictures (store_io.py)
+            return STOREIO.api_get(self, sys.modules[__name__], parts[1:], query)
         if len(parts) == 2 and parts[0] == "templates":
             if parts[1] not in EDIT_KINDS:
                 return self._error(404, "unknown kind %s" % parts[1])
@@ -4330,6 +4479,15 @@ class Handler(BaseHTTPRequestHandler):
             if parts[3] == "icons":
                 # pass 76 (lane ICON): every icon picture on disk and every look's icon now (the gallery, Revert icon)
                 return self._result(icon_gallery(kind, cid))
+            if parts[3] == "evolved_icon":
+                # pass 149 (lane EDITOR): a passive item's Evolved icon ({rung, own, file, stale...}; ?picture=1 the PNG)
+                info = evolved_icon_info(kind, cid)
+                if query.get("picture"):
+                    full = _abs_path(info.get("picture")) if info.get("picture") else None
+                    if not full or not os.path.isfile(full):
+                        return self._error(404, "no Evolved icon")
+                    return self._file(full, "image/png", cache="no-store")
+                return self._result(info)
             if parts[3] == "next_codes":
                 n = query.get("n", ["1"])[0]
                 try:
@@ -4684,6 +4842,9 @@ class Handler(BaseHTTPRequestHandler):
             if parts[:2] == ["api", "trail"]:
                 # pass 129 (lane TRAIL-EDITOR): the Trail saved (trail_io.py)
                 return TRAILIO.api_post(self, sys.modules[__name__], parts[2:])
+            if parts[:2] == ["api", "store"]:
+                # pass 149 (lane EDITOR): the Store saved (store_io.py)
+                return STOREIO.api_post(self, sys.modules[__name__], parts[2:])
             return self._error(404, "unknown API path")
         except Exception as e:
             import traceback
@@ -4721,6 +4882,9 @@ class Handler(BaseHTTPRequestHandler):
             if op == "icon":
                 # pass 76 (lane ICON): {op: revert | use, code ("" = the base), ref, confirm}
                 return self._result(icon_op(kind, cid, str(data.get("code") or ""), str(data.get("op") or ""), data))
+            if op == "evolved_icon":
+                # pass 149 (lane EDITOR): "Remake Evolved icon from the icon" {confirm}
+                return self._result(evolved_icon_op(kind, cid, data))
             if op == "make_path":
                 if kind != "weapon":
                     return self._error(400, "make_path is for weapons")

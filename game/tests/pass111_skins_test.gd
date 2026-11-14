@@ -93,7 +93,8 @@ func _gems() -> CurrencyDef:
 
 func test_the_currency_registry_holds_gold_only() -> void:
 	assert_bool(Registry.currencies.has("gold")).is_true()
-	assert_array(Currency.ids()).contains_exactly(["gold"])
+	# pass 149 (re-pinned): the gems, the hard currency, after gold
+	assert_array(Currency.ids()).contains_exactly(["gold", "gems"])
 	assert_str(Currency.name_of("gold")).is_equal("Gold")
 	assert_object(Currency.icon("gold")).is_not_null()
 	# an id the content lacks reads as gold

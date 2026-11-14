@@ -11407,3 +11407,122 @@ one rock each, no pebbles, and gen_art's outline taken off every downward edge o
 is stone meeting sand. The pebbles are not put back. props.json kept every size, pivot and collider; `shadow` measured
 again by `tools/prop_shadows.py` (narrower: the pebbles had widened the feet). The old paintings are in
 tools/dl/p148/ROCKS/before/.
+
+## 92. Pass 149: the hard currency (gems), the Store's two sections, coin offers that grow, the paid revive
+
+Garry (2026-11-14): "there is a problem with Coins scaling. As Players progress they both earn more coins and are required
+more coins to progress. This means that having static $ cost of Coins is not feasible. Solution for this will be such: we
+create a Hard Currency ... light blue gems ... In the Shop there will now be 2 sections: Gems section at the top, Coins
+section underneath: Gems are bought with $, use denomination from Survivor.io ... Coins are bought with Gems. As the
+Player progresses the amount of Coins they get from each offers changes ... in rounded steps ... Latest Stage currently
+unlocked ... a bigger weight ... Their Trail Power Level ... a lower weight"; "Gem wallet is only visible to Players when
+the Store option is turned on".
+
+**92.GEMS.** The currency `gems` (`content/currencies/gems`, the light blue gem `art/ui/store/gem.png`, `"shown":
+"store"`): nothing in a run or a reward gives it (the Store's gem packs buy nothing yet), it lives in the save's
+`wallets`. It can be set as a price or a reward wherever a currency can (the lead's lines on the Trail, the posters, the
+outlaws and the skins follow below).
+- **Trail nodes**: a node may carry `"currency": "<id>"` (`Trail.currency_of`: the node's own, else the Trail's `currency`);
+  its price, its tile, the dock's BUY and the confirm show that currency's icon; buying spends it. A node paid in another
+  currency than the Trail's is kept in the save's `trail.spent_by[<id>]` (`trail.spent` stays the Trail currency's);
+  the developer menu's Trail reset pays both back. Every node of the game's Trail is in coins today.
+- **Wanted posters**: a task of `content/wanted/wanted.json` may carry `"reward_currency": "<id>"` (blank = the board's
+  `reward.currency`) and `"reward_fixed": <n>` (a fixed reward instead of the formula; 0 or none = the formula). The
+  contract keeps `currency`; Coins x25 multiplies a coin reward only; the poster, the paid toast ("BOUNTY +25 GEMS",
+  `toast.bounty_paid_in`), the Results row and the run record's bounty follow it. Every task pays coins today.
+- **Outlaws** (`currency_type`) and **skins** (`skin.currency_type`) take any currency (pass 111); all are coins today.
+- A price set in gems shows and charges gems even while the Store is shut (only the wallet hides).
+
+**92.STORE.** The Store (`ui/StoreScreen.gd`, the file `content/store/store.json` version 2, `docs/store_schema.md`; rules
+in `core/systems/StorePacks.gd`) has two sections on its board: **GEMS** on top, six gem packs three a row, priced in real
+money, and **COINS** underneath, three coin offers in one row, priced in gems (the gem on the green button). The cards fill
+the board between the header and the tab bar (a card's height = the board's visible height less the headings, the coin
+line and the gaps, over three rows, 320-560 px; a short window scrolls). The gem packs (Survivor.io's tiers as the lead
+remembers them, not checked online; Garry's to edit):
+
+| pack | gems | price | gems a whole dollar | bonus tag | ribbon |
+|---|---|---|---|---|---|
+| gems_handful | 80 | $0.99 | 80 | none | |
+| gems_pile | 500 | $4.99 | 100 | +25% | |
+| gems_pouch | 1,200 | $9.99 | 120 | +50% | Most popular |
+| gems_box | 2,500 | $19.99 | 125 | +56% | |
+| gems_chest | 6,500 | $49.99 | 130 | +63% | |
+| gems_vault | 14,000 | $99.99 | 140 | +75% | Best value |
+
+A gem pack's price tap is pass 147's "Coming soon" (`StorePacks.buy_gems`: nothing added, saved, recorded or sent). The
+bonus tag is pass 147's rule on the gems (88.STORE).
+
+**92.COINS.** A coin offer gives `coins_now(offer) = nice(offer.coins x stage_mult[s] x (1 + trail_per_step x floor(T /
+trail_step)), round_sig)` (`StorePacks.coins_for` / `coins_now`):
+- `s` = the latest stage unlocked for the player: the highest index of the first map's stages `Save.stage_unlocked` lets
+  him play (0 on a new save); past the end of `stage_mult` its last value holds. The bigger weight: x1, x3, x7, x14
+  (Sundown, Nightfall, the Dust Bowl, the Blood Moon: the posters' accepted stage pay).
+- `T` = the **Trail Level** (`Trail.level()`). Garry's "Trail Power Level" is read as the Trail Level: the Trail is the
+  one permanent progression and its level is what the player sees; it is not HeroPower. The smaller weight: +5% of the
+  stage's amount every 10 levels (`trail_step` 10, `trail_per_step` 0.05), +40% at level 83.
+- `nice(v, 2)` rounds to two significant figures, half away from zero (17,325 -> 17,000; 1,050 -> 1,100), so the amounts
+  move in steps, never by a coin at a time. The rounding is the only reason a small offer can step +10% where the rule
+  says +5%.
+- Coins x25 never multiplies a Store amount.
+
+Coins at Trail Level 0 (and the medium offer along the Trail):
+
+| offer | gems | Sundown | Nightfall | Dust Bowl | Blood Moon |
+|---|---|---|---|---|---|
+| coins_small | 100 | 1,000 | 3,000 | 7,000 | 14,000 |
+| coins_medium | 500 | 5,500 | 17,000 | 39,000 | 77,000 |
+| coins_large | 1,200 | 14,000 | 42,000 | 98,000 | 200,000 |
+| coins_medium at Trail 10 / 35 / 83 | 500 | 5,800 / 6,300 / 7,700 | 17,000 / 19,000 / 23,000 | 40,000 / 44,000 / 54,000 | 81,000 / 89,000 / 110,000 |
+
+The fixture `game/tests/fixtures/pass149_store_coins.json` pins these for the game and the Level Editor's mirror. At
+Sundown 100 gems buy 1,000 coins, what $0.99 bought in pass 147 (100 gems cost $0.71-$1.24 by pack). A coin offer's
+bonus tag compares its coins a gem with the offer with the fewest gems **at the amounts shown** (10% and 17% at the start;
+the rounding moves them a point or two later: 8% and 18% at the Blood Moon and Trail 40).
+
+Buying: a tap on an offer asks "Buy 5,500 coins for 500 gems?" (the buy button the gem and the price); yes spends the gems
+(`Currency.spend`, reason `store`) and adds the coins (`Currency.add`, source `store`, the offer, stage and Trail Level in
+the event), both wallets count again and a toast says "+5,500 coins". Short of gems: "Not enough gems / You need N more
+gems." with NOT NOW and GET GEMS (back up to the gem packs); nothing moves.
+
+**92.WALLET.** The gem wallet (the gem and the balance, the wallet's black plate) stands beside the coin purse, gold first,
+on the main menu, the Outlaws, Trail and Store screens (`WMenuHeader.wallets`) and on Down! (over GET UP on the right; top
+right under the debug buttons when the hit log shows), **only while** the Store is open (`Currency.visible`: the debug
+Settings' Store switch, never in prod). With the Store shut nothing about gems shows and each header is the plain purse
+it was; a price set in gems still shows with the gem where that thing is sold and charges gems.
+
+**92.REVIVE.** store.json `revive` {price, currency, per_run}; **price 0 (the default) = no paid revive, Down! exactly as
+before.** With a price, once the Outlaw falls with no free chance left (the run's one and the Trail's Extra Life ones spent) and fewer than
+`per_run` paid revives taken this run (`Run.paid_revives`), Down! still offers GET UP for the price ("GET UP · [gem] 50" in
+gold, in the ad's place) under "NO FREE CHANCES LEFT", and STAY DOWN. A wallet short of the price shows the button locked
+with the price in red and "N short" over it; a tap only says no. Paying spends the price there (reason `revive`) and
+decides "paid", a revive like the ad's (the same health, blast and banner; it counts in `revives_used` and
+`Run.paid_revives`); it is a recorded decision, so a replay plays it back and spends nothing. The bot never pays (it only
+takes the ad's GET UP), so the sim and the Watch are unchanged. A free chance left: the screen as before.
+
+**92.DEBUG.** The Settings screen's debug panel (the player's debug mode) has "Add 1,000 gems (you have N)" with a +1,000
+button under "Store", and the developer menu "Gems · add 1,000" (`StorePacks.debug_grant`, source `debug`; nothing in the
+production build).
+
+## 93. Pass 149: red numbers, the shield's wait, the Ghost Pepper's price, Evolved icons
+
+**93.RED.** Garry: "on items that have negative effects on any stats mark those numbers in red instead of the current
+highlight colour". A phrase TextGen.describe_effect writes for a change that makes its stat worse (TextGen._worse: a
+smaller number, or a larger one for LOWER_BETTER stats: cooldown, shield_delay, regen_delay, ...) is noted; any body
+text (W.desc_text: cards, the pause screen, the Collection, the outlaw sheet) that holds that phrase draws its number in
+`R.NUMBER_BAD` (#ff5a4a) instead of `R.NUMBER_HI` (WText.mark_bad). The words never change. A cooldown cut stays yellow;
+"−5% max HP" and a longer shield wait are red. A sentence written by hand in a JSON (an item's own line) is not marked.
+
+**93.SHIELD.** Garry: "double the time it takes for the shield to start recharging. It feels a bit too op right now."
+`shield_delay` 3 -> **6 s** (StatSheet.PLAYER_DEFAULTS, Player's fallback), The Guardian Risen's (`aegis`) set 1.5 -> **3 s**;
+the recharge rate is unchanged. The Guardian's card says "recharges after 6 s untouched".
+
+**93.PEPPER.** Garry: "Ghost Pepper - Don't modify the -5% Max HP with Upgrades. It should stay the same." The Ghost
+Pepper (`beer`) takes −5% max HP at level 1 only; levels 2-6 add attack damage alone (+10% x4, +14%), as before. Its
+trade reads "−5% max HP" (tools/passive_ladder.py's table follows).
+
+**93.EVOLVED.** A passive item's Evolved icon is made from its icon (tools/evolved_icons.py: a white outline round the
+subject). Hot Streak's was remade from the icon Garry installed (the old one in tools/dl/p149/LEAD/). From this pass the
+Level Editor remakes `<id>_icon_evolved.png` whenever a passive item's icon changes (install, Use for, Revert, an icon
+job; the old one backed up), unless the item's JSON names its own `icon_evolved`; the Items tab shows it with "Remake
+Evolved icon from the icon".
+

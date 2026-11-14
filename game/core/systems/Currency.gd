@@ -57,6 +57,21 @@ static func def(id: String) -> CurrencyDef:
 	return (reg.get("currencies") as Dictionary).get(id)
 
 
+## Pass 149: whether currency `id`'s wallet and prices may show now: a currency whose `shown` is "store" (the gems, the
+## hard currency) only while the Store is open (StorePacks.is_open: the debug Settings' Store switch, never in prod);
+## every other one always. A price set in a hidden currency still charges it (Garry: "possible to set up the HC").
+static func visible(id: String) -> bool:
+	var d := def(of(id))
+	if d == null or d.shown != "store":
+		return true
+	return StorePacks.is_open()
+
+
+## The currencies whose wallets show now, in order (gold first).
+static func wallets() -> Array:
+	return ids().filter(func(i: String) -> bool: return visible(i))
+
+
 ## Whether the content has currency `id`.
 static func known(id: String) -> bool:
 	return def(id) != null or id == DEFAULT

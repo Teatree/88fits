@@ -59,7 +59,8 @@ func test_a_card_text_keeps_its_numbers_plain() -> void:
 	assert_str(Registry.passive("prospector").text).contains("6% chance a level")
 	assert_str(Registry.passive("slow_burn").text).contains("20% longer a level")
 	assert_str(Registry.passive("ducktape").text).contains("15% longer a level")
-	assert_str(Registry.passive("energy_shield").text).contains("3 s untouched")
+	# pass 149 (Garry: "double the time it takes for the shield to start recharging"): 6 s
+	assert_str(Registry.passive("energy_shield").text).contains("6 s untouched")
 	assert_str(Registry.passive("hot_sauce").text).contains("+25% difficulty a level")
 
 

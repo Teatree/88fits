@@ -28,9 +28,9 @@ target = "player"
 
 [sub_resource type="Resource" id="Resource_7ljsl"]
 script = ExtResource("3_s45at")
-stat = "max_hp"
+stat = "might"
 op = "mul"
-value = -0.04
+value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_6p8su"]
@@ -42,58 +42,23 @@ target = "player"
 
 [sub_resource type="Resource" id="Resource_uni1t"]
 script = ExtResource("3_s45at")
-stat = "max_hp"
+stat = "might"
 op = "mul"
-value = -0.04
+value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_tg84j"]
 script = ExtResource("3_s45at")
 stat = "might"
 op = "mul"
-value = 0.1
-target = "player"
-
-[sub_resource type="Resource" id="Resource_y76q6"]
-script = ExtResource("3_s45at")
-stat = "max_hp"
-op = "mul"
-value = -0.04
-target = "player"
-
-[sub_resource type="Resource" id="Resource_tkcmx"]
-script = ExtResource("3_s45at")
-stat = "might"
-op = "mul"
-value = 0.1
-target = "player"
-
-[sub_resource type="Resource" id="Resource_awoud"]
-script = ExtResource("3_s45at")
-stat = "max_hp"
-op = "mul"
-value = -0.04
-target = "player"
-
-[sub_resource type="Resource" id="Resource_i2ogv"]
-script = ExtResource("3_s45at")
-stat = "might"
-op = "mul"
 value = 0.14
-target = "player"
-
-[sub_resource type="Resource" id="Resource_wvke3"]
-script = ExtResource("3_s45at")
-stat = "max_hp"
-op = "mul"
-value = -0.05
 target = "player"
 
 [resource]
 script = ExtResource("4_7ljsl")
-levels = [[SubResource("Resource_nrwge"), SubResource("Resource_34vbs")], [SubResource("Resource_s45at"), SubResource("Resource_7ljsl")], [SubResource("Resource_6p8su"), SubResource("Resource_uni1t")], [SubResource("Resource_tg84j"), SubResource("Resource_y76q6")], [SubResource("Resource_tkcmx"), SubResource("Resource_awoud")], [SubResource("Resource_i2ogv"), SubResource("Resource_wvke3")]]
+levels = [[SubResource("Resource_nrwge"), SubResource("Resource_34vbs")], [SubResource("Resource_s45at")], [SubResource("Resource_7ljsl")], [SubResource("Resource_6p8su")], [SubResource("Resource_uni1t")], [SubResource("Resource_tg84j")]]
 max_level = 6
-trade = "−4 to −5% max HP a level"
+trade = "−5% max HP"
 evolved_icon = ExtResource("1_nrwge")
 id = "beer"
 display_name = "Ghost Pepper"

@@ -16,7 +16,7 @@ line = true
 levels = [[SubResource("Resource_mvh5s")]]
 max_level = 4
 evolves_into = "aegis"
-text = "A blue shield over your health takes hits for you and recharges after 3 s untouched."
+text = "A blue shield over your health takes hits for you and recharges after 6 s untouched."
 variants = {
 "A": {
 "icon": "res://content/passives/energy_shield/energy_shield_icon.png",

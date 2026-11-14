@@ -50,8 +50,18 @@ def read(srv):
     return {"ok": True, "json": d, "exists": True, "file": srv.rel(p), "mtime": srv.mtime_of(p), "types": TYPES}
 
 
-def check(obj):
-    """'' when `obj` is a config the game can read, else why not."""
+def currency_ids(srv):
+    """Pass 149: the ids content/currencies holds (the vocab's registry; ["gold"] when the folder holds none)."""
+    try:
+        import vocab
+        return vocab.currency_ids(srv.CONTENT)
+    except Exception:   # noqa: BLE001  (no registry: the shape check alone)
+        return None
+
+
+def check(obj, currencies=None):
+    """'' when `obj` is a config the game can read, else why not. Pass 149: a task's `reward_currency` (an id, or absent
+    for the board's) and `reward_fixed` (a number of 0 or more); with `currencies` every currency named must be one."""
     if not isinstance(obj, dict):
         return "the config is a JSON object"
     tasks = obj.get("tasks")
@@ -76,6 +86,16 @@ def check(obj):
         n = t.get("n")
         if n is not None and not (isinstance(n, list) and all(isinstance(e, list) and len(e) == 2 for e in n)):
             return "%s: n is one [min, max] per stage" % ty
+        # pass 149 (lane EDITOR): the task's own currency and fixed reward (WantedBoard.make_contract)
+        rc = t.get("reward_currency")
+        if rc is not None and rc != "":
+            if not isinstance(rc, str) or not re.match(r"^[a-z0-9_]+$", rc):
+                return "%s: reward_currency is a currency id (gems), or absent for the board's" % ty
+            if currencies is not None and rc not in currencies:
+                return "%s: reward_currency %s is not in content/currencies (%s)" % (ty, rc, ", ".join(currencies))
+        rf = t.get("reward_fixed")
+        if rf is not None and (not isinstance(rf, (int, float)) or isinstance(rf, bool) or rf < 0):
+            return "%s: reward_fixed is a number of 0 or more (0 = the formula)" % ty
     for k in ("enabled", "creatures_met_only", "items_seen_only"):
         if k in obj and not isinstance(obj[k], bool):
             return "%s is true or false" % k
@@ -85,6 +105,8 @@ def check(obj):
     cur = (obj.get("reward") or {}).get("currency", "gold")
     if not isinstance(cur, str) or not re.match(r"^[a-z0-9_]+$", cur):
         return "reward.currency is a currency id (gold)"
+    if currencies is not None and cur not in currencies:
+        return "reward.currency %s is not in content/currencies (%s)" % (cur, ", ".join(currencies))
     return ""
 
 
@@ -113,7 +135,7 @@ def dump(obj):
 
 def save(srv, new_obj, base_mtime=None):
     """POST /api/wanted/save."""
-    err = check(new_obj)
+    err = check(new_obj, currency_ids(srv))
     if err:
         return {"ok": False, "error": err, "status": 400}
     p = path_of(srv)

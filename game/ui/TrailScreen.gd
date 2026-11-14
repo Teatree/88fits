@@ -93,7 +93,7 @@ var _track: Control
 var _canvas: Control
 var _head: Control
 var _dock: Control
-var _wallet: PanelContainer
+var _wallet: Control
 var _level_pill: Control
 var _toasts: WToasts
 var _banner: WBanner
@@ -149,7 +149,8 @@ func board_bottom() -> float:
 
 
 func header_right() -> Control:
-	_wallet = WMenuHeader.gold_plate(Currency.balance(Trail.currency()), 44, 40.0, 5, 4)
+	# pass 149: the gem wallet beside the purse while the Store is open (WMenuHeader.wallets)
+	_wallet = WMenuHeader.wallets(Currency.balance(Trail.currency()), 44, 40.0)
 	return _wallet
 
 
@@ -510,6 +511,7 @@ func _set_tile(t: Tile, n: Dictionary, side: float) -> void:
 	t.optional = str(n["kind"]) == "optional"
 	t.named = str(n.get("name", ""))
 	t.price = Trail.price(id) if t.state == "open" else -1
+	t.currency = Trail.currency_of(id)
 	t.short = t.state == "open" and not Trail.can_buy(id)
 	var g: Dictionary = n["gives"]
 	t.picture = str(g.get("type", "")) == "stage" or str(g.get("type", "")) == "map"
@@ -754,7 +756,7 @@ func press_buy() -> void:
 		lines.append(Loc.t("ui.trail.closes", {"nodes": join(sib)}))
 	if warn != "":
 		lines.append(warn)
-	var cur := Trail.currency()
+	var cur := Trail.currency_of(selected)
 	WConfirm.open(self, Loc.t("ui.trail.confirm_title", {"node": name_of(n)}), " ".join(lines), Loc.t("ui.trail.confirm_buy"), Loc.t("ui.trail.not_now"), func() -> void: buy_selected(),
 		Callable(), "buy", WButton.price_parts(Trail.price(selected), Loc.t("ui.trail.buy"), R.MODAL_BUTTON_PX, cur))
 
@@ -817,6 +819,7 @@ func _fill_head() -> void:
 	if _wallet:
 		for a in _wallet.find_children("Amount", "", true, false):
 			(a as WText).text = W.num(Currency.balance(Trail.currency()))
+		WMenuHeader.refresh_wallets(_wallet)
 		_wallet.reset_size()
 	if header == null:
 		return
@@ -902,7 +905,7 @@ func _fill_dock() -> void:
 	line.size = Vector2(room, 92.0)
 	if st == "open":
 		var cost := Trail.price(selected)
-		var cur := Trail.currency()
+		var cur := Trail.currency_of(selected)
 		var short := maxi(cost - Currency.balance(cur), 0)
 		var b := WButton.price(cost, Loc.t("ui.trail.buy"), WButton.GREEN, 36, short, cur, false, 100.0)
 		b.name = "Buy"
@@ -1319,6 +1322,8 @@ class Tile extends WTap:
 	var ring := false
 	var price := -1
 	var short := false
+	## pass 149: the currency its price is in (Trail.currency_of: the node's own, else the Trail's)
+	var currency := "gold"
 	## A wide picture (a stage's) fills the face; an icon keeps its room.
 	var picture := false
 	var inert := false
@@ -1525,7 +1530,7 @@ class Tile extends WTap:
 		var r := Rect2((side - w) * 0.5, y, w, h)
 		_over.draw_style_box(TrailScreen.box(R.NAVY, 10), r.grow(3.0))
 		_over.draw_style_box(TrailScreen.box(Color("454e66") if short else Color("141a2e"), 8), r)
-		var tex := WCoin.art_of(Trail.currency())
+		var tex := WCoin.art_of(currency)
 		if tex:
 			_over.draw_texture_rect(tex, Rect2(r.position + Vector2(10.0, (h - coin) * 0.5), Vector2(coin, coin)), false,
 				Color(0.7, 0.7, 0.74) if short else Color.WHITE)

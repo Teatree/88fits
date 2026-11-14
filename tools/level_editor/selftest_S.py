@@ -771,7 +771,7 @@ def vocab_checks(check, server):
           "player stats + the four the code reads without a default; TextGen names")
     check(all(a["telegraph"] in vocab.TELEGRAPHS for a in t["attacks"].values()) and t["attacks"]["boulder"]["needs_ring_at_hero"] and not t["attacks"]["slam"]["needs_ring_at_hero"],
           "every attack's default telegraph is a telegraph; ring_at_hero needs marked")
-    check(json.dumps(t) and t["quest_types"]["kill_boss"] == ["map", "stage"] and t["currencies"] == ["gold"], "the table is JSON and names the quest keys")
+    check(json.dumps(t) and t["quest_types"]["kill_boss"] == ["map", "stage"] and t["currencies"][:1] == ["gold"] and t["currencies"] == vocab.currency_ids(server.CONTENT), "the table is JSON and names the quest keys (pass 149: the currencies from content/currencies, gold first)")
     check(vocab.check_against_source(os.path.join(server.GAME, "nowhere")) != [], "a wrong game folder fails loudly")
 
 

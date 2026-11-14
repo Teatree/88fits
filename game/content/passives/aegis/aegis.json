@@ -17,7 +17,7 @@
       {
         "stat": "shield_delay",
         "op": "set",
-        "value": 1.5,
+        "value": 3.0,
         "target": "player"
       },
       {

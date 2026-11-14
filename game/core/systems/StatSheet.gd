@@ -20,7 +20,7 @@ const PLAYER_DEFAULTS := {
 	"haste": 1.0,
 	# the protective lines and drops (pass 33.2): Evade and Ghost Step, the Energy Shield and Aegis, Second Wind's
 	# shorter wait, Bloodthirst's higher lifesteal cap, Cake and Pickpocket
-	"evade": 0.0, "evade_invuln": 0.0, "shield_max": 0.0, "shield_delay": 3.0, "shield_rate": 0.5,
+	"evade": 0.0, "evade_invuln": 0.0, "shield_max": 0.0, "shield_delay": 6.0, "shield_rate": 0.5,
 	# (pass 126, lane ITEMS: Garry: "Lifesteal stat - Reduce the Effectiveness ... about 25% less": the cap 4% -> 3%, Run.LIFESTEAL_CAP)
 	"regen_delay": 3.0, "lifesteal_cap": 0.03, "heal_drop": 0.0, "coin_drop": 0.0,
 	# pass 46: the untouchable seconds after a hit, the share of max HP a revive stands up with (pass 115: 40%, which the

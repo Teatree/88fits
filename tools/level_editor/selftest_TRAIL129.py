@@ -156,7 +156,7 @@ const edited = lines.slice();
 edited[1] = edited[1].replace(/,40,40$/, ',99999,1');                         // the read-only columns scribbled on
 edited[2] = edited[2].replace('health,0.05', 'health,6%');                    // a spreadsheet's percent
 edited.splice(5, 1);                                                          // n005 gone
-edited.push(',19,node,,,,upgrade,might,0.04,,,,New top,,,');                 // no id
+edited.push(',19,node,,,,upgrade,might,0.04,,,,,New top,,,');                // no id (pass 149: the currency column after price_mult)
 const res = M.fromCsv(edited.join('\r\n') + '\r\n', d);
 const diff = M.diffNodes(d.nodes, res.nodes);
 out.csv = {
@@ -312,9 +312,9 @@ def _check_checks(check, r):
 
 def _csv_checks(check, r):
     c = r["csv"]
-    check(c["bom"] and c["head"] == "id,level,kind,group,from,need,gives_type,gives_what,value,price,price_mult,x,name,note,resolved_price,cumulative" and c["n"] == 31,
+    check(c["bom"] and c["head"] == "id,level,kind,group,from,need,gives_type,gives_what,value,price,price_mult,currency,x,name,note,resolved_price,cumulative" and c["n"] == 31,
           "TRAIL129 csv: the header and one row per node (%s rows)" % (c["n"] - 1))
-    check(c["first"] == "n001,1,node,,,,upgrade,might,0.03,,,,,,40,40" and c["stage"] == "n011,8,node,,n009 n010,all,stage,red_canyon/dust,,,,,The Dust Bowl opens,,140,1100",
+    check(c["first"] == "n001,1,node,,,,upgrade,might,0.03,,,,,,,40,40" and c["stage"] == "n011,8,node,,n009 n010,all,stage,red_canyon/dust,,,,,,The Dust Bowl opens,,140,1100",
           "TRAIL129 csv: a row as written (%s)" % c["stage"])
     check('"a designer\'s note, with a comma and ""quotes"""' in c["quoted"] and c["cumulative"], "TRAIL129 csv: a note with a comma and quotes is quoted; the last cumulative is the total")
     check(c["round"] and c["problems"] == 0 and c["keysKept"] == "id,level,kind,from,need,gives,name", "TRAIL129 csv: out and back equal, each node's own key order kept (%s)" % c["keysKept"])

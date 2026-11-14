@@ -8,10 +8,17 @@
 ## crown for an Elite, a gear for a special, a bow for a ranged shot, a heart for a heal; a plain bite wears none), the
 ## creature's name in its own colour, what it cost or gave back, and a drawn red X on the hit that ended it; a copy
 ## button and a hold for the count beside it. The free revive lives in the developer menu (free_revive_button).
+## Pass 149 (lane STORE; Garry: the hard currency "for ... Revives ... it should be possible to set up the HC"): the paid
+## revive. With a price in store.json's `revive` (StorePacks.revive_for: none by default) and no free chance left, GET UP
+## asks that price in its currency ("GET UP · [gem] 50", "GetUpPaid", in place of the ad's) under "NO FREE CHANCES LEFT";
+## a wallet short of it shows the price in red, locked, with "N short" over it, and a tap only says no. Paying spends it
+## here (Currency.spend, reason "revive") and decides "paid", a revive like the ad's (a recorded decision: a replay plays
+## the decision and spends nothing). While the gem wallet shows (Currency.visible: the Store open) its plate sits top
+## right ("Wallet_gems").
 class_name ReviveScreen
 extends WModal
 
-signal decided(kind: String)   # "ad" | "give_up" | "timeout" | "debug" | "replay" (pass 120: a replay's safety net) ("gold" is no longer offered, pass 77)
+signal decided(kind: String)   # "ad" | "paid" (pass 149) | "give_up" | "timeout" | "debug" | "replay" (pass 120: a replay's safety net) ("gold" is no longer offered, pass 77)
 
 const SECONDS := 8.0
 const GOLD_COST := 150
@@ -37,6 +44,12 @@ var _gold_coin: WCoin
 var _gold_line: WText
 var _hold_btn2: WButton
 var _ad_btn: WButton
+## Pass 149: GET UP for a price (the paid revive), its "N short" line, what it costs ({price, currency}; {} = not offered),
+## and the wallets' plates top right (the gems while the Store is open).
+var _paid_btn: WButton
+var _paid_short: WText
+var _paid: Dictionary = {}
+var _wallets: HBoxContainer
 var _quit_btn: WButton
 var _debug_btn2: WButton
 var _log_panel: PanelContainer
@@ -218,6 +231,28 @@ func _build_royale() -> void:
 	_ad_btn.name = "GetUp"
 	_ad_btn.pressed.connect(func(): _try("ad"))
 	col.add_child(_ad_btn)
+	# pass 149: GET UP for a price, in the ad's place when offered (its parts set by open)
+	_paid_btn = WButton.make([Loc.t("ui.revive.get_up")], 48, WButton.PRIMARY, 4, 8, 29.0, 30.0, 48.0)
+	_paid_btn.name = "GetUpPaid"
+	_paid_btn.visible = false
+	_paid_btn.pressed.connect(func(): _try("paid"))
+	col.add_child(_paid_btn)
+	_paid_short = W.short_text(0, 26)
+	_paid_short.align = HORIZONTAL_ALIGNMENT_CENTER
+	_paid_short.name = "PaidShort"
+	_paid_short.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_paid_short.offset_bottom = col.offset_top - 10.0
+	_paid_short.offset_top = _paid_short.offset_bottom - 34.0
+	_paid_short.visible = false
+	add_child(_paid_short)
+	_wallets = HBoxContainer.new()
+	_wallets.name = "Wallets"
+	_wallets.alignment = BoxContainer.ALIGNMENT_END
+	_wallets.add_theme_constant_override("separation", WMenuHeader.WALLETS_GAP)
+	_wallets.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_wallets.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_wallets.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	add_child(_wallets)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 24)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -305,15 +340,23 @@ func _word(t: String) -> String:
 ## `gold` is the run's gold, `chances` how many revives are left (0 leaves only staying down), `killer` the hit that
 ## ended it ({by, kind, role, colour}) for the line under the count, `rows` the hero's last 30 s (Player.damage_log,
 ## oldest first) for the list, and `log_text` the same as text for the copy button (Player.damage_log_text). An older
-## caller that passes only the text sees it in the panel as it is.
-func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {}, rows: Array = []) -> void:
+## caller that passes only the text sees it in the panel as it is. `paid` (pass 149: StorePacks.revive_for) is the paid
+## revive on offer, {price, currency}, or {} (none: the screen as before).
+func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {}, rows: Array = [], paid: Dictionary = {}) -> void:
 	_t = 0.0
 	_open = true
 	_held = false
 	_asking = false
 	var can := chances > 0
-	header.star_line.get_child(1).text = Loc.t("ui.revive.chances_left", {"count": "%d" % chances}) if can else Loc.t("ui.revive.no_chances")
+	_paid = paid if not can and int(paid.get("price", 0)) > 0 else {}
+	if can:
+		header.star_line.get_child(1).text = Loc.t("ui.revive.chances_left", {"count": "%d" % chances})
+	elif not _paid.is_empty():
+		header.star_line.get_child(1).text = Loc.t("ui.revive.no_free_chances")
+	else:
+		header.star_line.get_child(1).text = Loc.t("ui.revive.no_chances")
 	_ad_btn.locked = not can
+	_show_paid()
 	_count.text = str(int(ceil(SECONDS)))
 	if killer.is_empty():
 		killer = fatal_row(rows)
@@ -345,6 +388,7 @@ func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {
 	for b: WButton in [_debug_btn2, _hold_btn2]:
 		b.offset_top = top
 		b.offset_bottom = top + 72.0
+	_show_wallets(top + (88.0 if debug else 0.0), not _log_panel.visible)
 	_hold_btn2.set_parts(["hold time"])
 	_log_text = log_text if log_text != "" else Player.log_text(rows)
 	if _log_panel.visible:
@@ -544,8 +588,70 @@ func _row(e: Dictionary, t_ref: float) -> PanelContainer:
 	return row
 
 
-## A revive that is not on offer (no chance left) says so instead of acting.
+## Pass 149: the paid revive's button: in the ad's place when offered, "GET UP · [icon] price" in gold; a wallet short of the
+## price locks it (the price in red, "N short" over it). Otherwise the ad's button as before.
+func _show_paid() -> void:
+	var on := not _paid.is_empty()
+	_ad_btn.visible = not on
+	_paid_btn.visible = on
+	_paid_short.visible = false
+	if not on:
+		return
+	var price := int(_paid["price"])
+	var cur := Currency.of(str(_paid.get("currency", "gems")))
+	var short := maxi(price - Currency.balance(cur), 0)
+	_paid_btn.ink_override = R.SHORT_INK if short > 0 else Color(0, 0, 0, 0)
+	_paid_btn.set_role(WButton.LOCKED if short > 0 else WButton.GOLD)
+	_paid_btn.set_parts([Loc.t("ui.revive.get_up") + " ", {"coin": ROYALE_AD_PX, "fill": W.BRASS, "currency": cur}, W.num(price)])
+	_paid_btn.locked = short > 0
+	_paid_btn.set_meta("price", price)
+	_paid_btn.set_meta("short", short)
+	if short > 0:
+		_paid_short.text = Loc.t("ui.kit.short", {"short": W.num(short)})
+		_paid_short.visible = true
+
+
+## Pass 149: the plates of the wallets that show besides gold's (the gems while the Store is open: Currency.wallets): at
+## the right just over GET UP (`low`; the star line over DOWN! is too wide to share the top), else (the hit log fills that
+## room: debug) top right `top` px down; none otherwise. Built again each open (once a fall).
+func _show_wallets(top: float, low: bool = true) -> void:
+	for c in _wallets.get_children():
+		_wallets.remove_child(c)
+		c.queue_free()
+	for id: String in Currency.wallets():
+		if id != Currency.DEFAULT:
+			_wallets.add_child(WMenuHeader.currency_plate(id, Currency.balance(id)))
+	_wallets.visible = _wallets.get_child_count() > 0
+	var ms := _wallets.get_combined_minimum_size()
+	if low:
+		_wallets.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		_wallets.offset_right = -48.0
+		_wallets.offset_left = -48.0 - ms.x
+		_wallets.offset_bottom = _paid_short.offset_bottom - 2.0
+		_wallets.offset_top = _wallets.offset_bottom - ms.y
+		return
+	_wallets.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_wallets.offset_right = -24.0
+	_wallets.offset_left = -24.0 - ms.x
+	_wallets.offset_top = top
+	_wallets.offset_bottom = top + ms.y
+
+
+## A revive that is not on offer (no chance left) says so instead of acting. Pass 149: the paid one pays its price here
+## (a wallet short of it: no), then decides "paid".
 func _try(kind: String) -> void:
+	if kind == "paid":
+		if _paid.is_empty() or not _paid_btn.visible:
+			Audio.play("ui_locked")
+			return
+		var price := int(_paid["price"])
+		var cur := Currency.of(str(_paid.get("currency", "gems")))
+		if not Currency.can_afford(cur, price) or not Currency.spend(cur, price, "revive", {"price": price}):
+			Audio.play("ui_locked")
+			_show_paid()
+			return
+		_decide("paid")
+		return
 	if kind != "ad" or _ad_btn.locked:
 		Audio.play("ui_locked")
 		return
