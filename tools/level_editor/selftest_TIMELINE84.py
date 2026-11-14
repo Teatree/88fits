@@ -216,8 +216,8 @@ def checks(check, run_node, server):
     # ---------------------------------------------------------------- fields.js
     fl = res["fields"]
     secs = fl["sections"]
-    # pass 110 (lane BOSS): "Boss fights" after the spawn rows
-    check([s["id"] for s in secs] == ["controls", "onscreen", "challenge", "composition", "spawned", "rows", "bossfight", "events", "curves", "warnings"],
+    # pass 110 (lane BOSS): "Boss fights" after the spawn rows; pass 150 (lane EDITOR): "Endless" under it
+    check([s["id"] for s in secs] == ["controls", "onscreen", "challenge", "composition", "spawned", "rows", "bossfight", "endless", "events", "curves", "warnings"],
           "TIMELINE84: the sections top to bottom: %s" % [s["id"] for s in secs])
     kinds = {s["id"]: s["kind"] for s in secs}
     check(all(kinds[k] == "view" for k in ["onscreen", "challenge", "composition", "spawned", "warnings"]) and all(kinds[k] == "edit" for k in ["controls", "rows", "bossfight", "events", "curves"]),

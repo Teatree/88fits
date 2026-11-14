@@ -256,9 +256,38 @@ static func _note_bad(phrase: String) -> void:
 			return
 
 
-## The numbers of text `t` that make a stat worse (the phrases describe_effect noted), in the order they first appear.
+## Pass 150 (Garry: "Red text for chilly pepper ... This is the item that I had in mind. It's still not red."): an item's
+## `trade` (its price, "−5% max HP", "cooldowns 8% longer a level") is shown as its JSON words, never through
+## describe_effect, so its number was red only once some screen had described that effect first. Every passive item's
+## trade is noted as a phrase that makes a stat worse, once, the first time a text asks (its JSON words, and without
+## " a level" and a full stop, as the cards and the pause screen cut it).
+static var _trades_noted := false
+
+
+static func _note_trades() -> void:
+	var reg := _registry()
+	if reg == null:
+		return
+	_trades_noted = true
+	var ps = reg.get("passives")
+	if not (ps is Dictionary):
+		return
+	for pd in (ps as Dictionary).values():
+		if not (pd is PassiveDef):
+			continue
+		var price := str((pd as PassiveDef).trade).strip_edges()
+		if price == "":
+			continue
+		for phrase: String in [price, price.trim_suffix("."), price.trim_suffix(" a level"), price.trim_suffix(".").trim_suffix(" a level")]:
+			_note_bad(phrase)
+
+
+## The numbers of text `t` that make a stat worse (the phrases describe_effect noted, every item's trade), in the order
+## they first appear.
 static func bad_numbers_in(t: String) -> PackedStringArray:
 	var out := PackedStringArray()
+	if not _trades_noted:
+		_note_trades()
 	if t == "" or _bad.is_empty():
 		return out
 	for phrase: String in _bad.keys():

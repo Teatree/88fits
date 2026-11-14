@@ -73,8 +73,9 @@ main { flex: 1 1 auto; min-height: 0; display: flex; }
 .tab-panel[hidden] { display: none; }
 #tab-timeline { flex-direction: row; }
 .timeline { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-.inspector { flex: 0 0 430px; border-left: 1px solid var(--border); background: var(--surface); overflow-y: auto; padding: 10px 14px 30px; }
-@media (max-width: 1440px) { .inspector { flex-basis: 370px; } }
+/* pass 150 (lane EDITOR; Garry: "make the selected row section 25% wider"): 430 -> 538 px, 370 -> 463 px under 1440 */
+.inspector { flex: 0 0 538px; border-left: 1px solid var(--border); background: var(--surface); overflow-y: auto; padding: 10px 14px 30px; }
+@media (max-width: 1440px) { .inspector { flex-basis: 463px; } }
 
 /* ------------------------------------------------------------ the calendar */
 .tl-scroll { flex: 1 1 auto; overflow: auto; position: relative; background: var(--page); }
@@ -1260,3 +1261,24 @@ b.zone-hard { color: #ff6b6b; background: none; }
 .onscreen-hdr > span { color: var(--muted); font-size: 0.78rem; border-bottom: 1px solid var(--grid); }
 .onscreen-name { overflow: hidden; text-overflow: ellipsis; }
 .onscreen-foot { margin-top: 10px; }
+
+/* ------------------------------------------------------------ pass 150 (lane EDITOR): a row's variation tabs */
+.vtabs { display: flex; flex-wrap: wrap; align-items: stretch; gap: 4px; margin: 6px 0 4px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.vtab { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px 6px 0 0; color: var(--ink-2); font: inherit; font-size: 0.84rem; padding: 4px 8px; cursor: pointer; }
+.vtab:hover { color: var(--ink); border-color: var(--border-2); }
+.vtab.active { color: var(--ink); background: var(--surface-3); border-color: var(--sel); border-bottom-color: var(--sel); font-weight: 600; }
+.vtab .vpct { font-variant-numeric: tabular-nums; color: var(--sel); font-weight: 600; }
+.vtab .vx { background: none; border: 0; color: var(--muted); font: inherit; padding: 0 0 0 2px; cursor: pointer; line-height: 1; }
+.vtab .vx:hover { color: var(--s8); }
+.vtab.add { color: var(--muted); border-style: dashed; }
+.vtab-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.84rem; color: var(--ink-2); margin: 2px 0 8px; }
+.vtab-bar input[type="number"] { width: 72px; }
+.vtab-note { color: var(--muted); font-size: 0.8rem; }
+/* a shared field in a variation's tab: the Original's value, marked yellow; an edit changes every tab */
+.frow.vinherit { border-left: 3px solid var(--sel); padding-left: 6px; background: rgba(255,209,102,0.06); }
+.frow.vinherit > .flabel { color: var(--sel); }
+.frow.vinherit input, .frow.vinherit select { color: var(--sel); border-color: rgba(255,209,102,0.55); }
+.frow.vinherit .vinherit-tag { display: block; color: var(--sel); font-size: 0.72rem; font-weight: 600; margin-top: 2px; }
+.chip-vars rect { fill: rgba(255,209,102,0.22); stroke: rgba(255,209,102,0.8); }
+.chip-vars .chip-text { fill: var(--sel); font-weight: 600; }
+.chip-cycle rect { fill: rgba(57,135,229,0.25); stroke: rgba(57,135,229,0.8); }

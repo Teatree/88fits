@@ -628,10 +628,21 @@ const App = (() => {
     // s}: the block, or a stand-in for a stage that has none yet, so its card can offer one)
     if (s.kind === 'bossrow') return bossRows(s.s)[s.i] || null;
     if (s.kind === 'bossfight') return bossBlock(s.s) || (s.s != null && s.s >= 0 && s.s < stages() ? { kind: 'bossfight', s: s.s, none: true } : null);
+    // pass 150 (lane EDITOR): an Endless window's row ({kind: 'endlessrow', s, i}) and a window's card ({kind: 'endless',
+    // s}); a row's variation tab rides on the selection as `v` (1-based; absent = the original), the item stays the row
+    if (s.kind === 'endlessrow') return winRows('endless', s.s)[s.i] || null;
+    if (s.kind === 'endless') return winBlock('endless', s.s) || (s.s != null && s.s >= 0 && s.s < stages() ? { kind: 'endless', s: s.s, none: true } : null);
     return { kind: s.kind };
   }
 
+  /** Pass 150 (lane EDITOR): whether a selection names a spawn row (a roster row, a boss fight or an Endless window's). */
+  const isRowSel = (s) => !!s && (s.kind === 'roster' || s.kind === 'bossrow' || s.kind === 'endlessrow');
+  /** The same row, whatever its tab. */
+  const sameRow = (a, b) => isRowSel(a) && isRowSel(b) && a.kind === b.kind && a.i === b.i && (a.s == null ? null : a.s) === (b.s == null ? null : b.s);
+
   function select(sel, opts) {
+    // pass 150: the same row picked again (its bar, its button) keeps the variation tab it had open
+    if (sel && sel.v == null && S.sel && S.sel.v != null && sameRow(sel, S.sel)) sel = Object.assign({}, sel, { v: S.sel.v });
     S.sel = sel;
     render('selection');
     if (sel && opts && opts.scroll && Timeline.scrollToSelection) Timeline.scrollToSelection();
@@ -644,8 +655,58 @@ const App = (() => {
     if (!s) return '';
     if (s.kind === 'bossrow') return `bossrow:${s.s}:${s.i}`;
     if (s.kind === 'bossfight') return `bossfight:${s.s}`;
+    // pass 150 (lane EDITOR): an Endless window's row and card
+    if (s.kind === 'endlessrow') return `endlessrow:${s.s}:${s.i}`;
+    if (s.kind === 'endless') return `endless:${s.s}`;
     return s.i == null ? s.kind : `${s.kind}:${s.i}`;
   };
+
+  /** Pass 150 (lane EDITOR): the selected row's open variation tab (1-based), 0 for the original or when that tab is gone. */
+  function selTab() {
+    const s = S.sel;
+    if (!isRowSel(s) || s.v == null) return 0;
+    const r = selected();
+    const n = M.variationList(r).length;
+    const v = Math.trunc(Number(s.v) || 0);
+    return v >= 1 && v <= n ? v : 0;
+  }
+  /** Open tab `v` of the selected row (0 = the original). */
+  function selectTab(v) {
+    if (!isRowSel(S.sel)) return;
+    const n = M.variationList(selected()).length;
+    const k = Math.max(0, Math.min(n, Math.trunc(Number(v) || 0)));
+    S.sel = Object.assign({}, S.sel);
+    if (k) S.sel.v = k; else delete S.sel.v;
+    render('selection');
+  }
+  /** A new variation tab on the selected row (a copy of the original at 50%, the others scaled to the other 50), opened. */
+  function addRowVariation() {
+    const r = selected();
+    if (!isRowSel(S.sel) || !r) return;
+    let tab = 0;
+    apply(() => { tab = M.addVariation(r); S.sel = Object.assign({}, S.sel, { v: tab }); });
+    toast(`Variation ${tab}: a copy of the Original at 50% (the other tabs share the other 50%). From, Until and the pacing stay the Original's`, { undo: true });
+  }
+  /** Variation tab `tab` (1-based) of the selected row removed; its share goes back to the Original. */
+  function removeRowVariation(tab) {
+    const r = selected();
+    if (!isRowSel(S.sel) || !r || !(tab >= 1)) return;
+    apply(() => {
+      M.removeVariation(r, tab);
+      const v = S.sel.v == null ? 0 : Number(S.sel.v);
+      S.sel = Object.assign({}, S.sel);
+      if (v === tab) delete S.sel.v;
+      else if (v > tab) S.sel.v = v - 1;
+      if (S.sel.v != null && S.sel.v > M.variationList(r).length) delete S.sel.v;
+    });
+    toast(`Removed variation ${tab}: its share went back to the Original`, { undo: true });
+  }
+  /** Tab `tab`'s share of the selected row set to `p` percent (the others scaled to fill the rest). */
+  function setRowVariationPercent(tab, p) {
+    const r = selected();
+    if (!isRowSel(S.sel) || !r || !M.hasVariations(r)) return;
+    apply(() => { M.setVariationPercent(r, tab, p); });
+  }
 
   // ------------------------------------------------------------------ new items
 
@@ -778,52 +839,70 @@ const App = (() => {
   // roster rows on the fight's own clock (0 = the boss arrives). The Timeline's "Boss fights" section draws them
   // (boss_fights.js), the inspector edits a row with the roster row's form.
 
-  /** Stage s's window (the block, on or off), null when it has none. */
-  const bossBlock = (s) => M.bossFight(tl(), s);
-  /** Stage s's window rows ([] without a window). */
-  const bossRows = (s) => M.bossFightRows(bossBlock(s));
-  /** Stage s's window rows open at fight second ct, with their shares (model.js bossFightRowsAt). */
-  const bossRowsAt = (s, ct) => M.bossFightRowsAt(bossBlock(s), ct, lateT());
+  // Pass 150 (lane EDITOR): the same for an Endless window (stage_list[s].endless_window {enabled, length, max_count,
+  // max_count_growth, roster}, rows on the Endless clock: 0 = the portal closes). Every function below takes the window's
+  // kind ('boss' | 'endless', model.js WINDOW_KINDS); the boss* names are the boss fight window's.
 
-  /** A window for stage s ({length 120, max_count 40, no rows}); on a map without a stage list one is written first. */
-  function addBossFight(s) {
-    if (bossBlock(s)) { select({ kind: 'bossfight', s }); return; }
+  /** Stage s's window of a kind (the block, on or off), null when it has none. */
+  const winBlock = (kind, s) => M.windowBlock(tl(), s, kind);
+  /** Stage s's window rows of a kind ([] without a window). */
+  const winRows = (kind, s) => M.bossFightRows(winBlock(kind, s));
+  /** Stage s's window rows open at second ct of a cycle, with their shares (model.js windowRowsAt). */
+  const winRowsAt = (kind, s, ct) => M.windowRowsAt(winBlock(kind, s), ct, lateT(), kind);
+  /** Stage s's boss fight window (the block, on or off), null when it has none. */
+  const bossBlock = (s) => winBlock('boss', s);
+  /** Stage s's boss fight window rows ([] without a window). */
+  const bossRows = (s) => winRows('boss', s);
+  /** Stage s's boss fight window rows open at fight second ct, with their shares (model.js bossFightRowsAt). */
+  const bossRowsAt = (s, ct) => winRowsAt('boss', s, ct);
+
+  /** A window of a kind for stage s (the kind's defaults, no rows); on a map without a stage list one is written first. */
+  function addWindow(kind, s) {
+    const K = M.windowKind(kind);
+    if (winBlock(kind, s)) { select({ kind: K.sel, s }); return; }
     apply((d) => {
       if (typeof StageModel !== 'undefined') StageModel.ensureList(d);
       const e = M.bossFightEntry(d, s);
       if (!e) return;
-      e.boss_fight = M.newBossFight();
-      S.sel = { kind: 'bossfight', s };
+      e[K.key] = M.newWindow(kind);
+      S.sel = { kind: K.sel, s };
     });
-    toast(`Stage ${s + 1} has a boss fight window now: + Row adds what spawns while its boss lives (nothing else does)`, { undo: true });
+    toast(K.kind === 'endless' ? `Stage ${s + 1} has an Endless window now: + Row adds what spawns in its Endless (the old Endless waves stop)` : `Stage ${s + 1} has a boss fight window now: + Row adds what spawns while its boss lives (nothing else does)`, { undo: true });
   }
+  const addBossFight = (s) => addWindow('boss', s);
 
-  /** Stage s's window gone (its fight plays as before: the stage's last rows at boss_cap_frac of the cap). */
-  function removeBossFight(s) {
-    if (!bossBlock(s)) return;
+  /** Stage s's window of a kind gone (a fight plays as before: the stage's last rows at boss_cap_frac of the cap; Endless
+   *  plays its old waves). */
+  function removeWindow(kind, s) {
+    const K = M.windowKind(kind);
+    if (!winBlock(kind, s)) return;
     apply((d) => {
       const e = M.bossFightEntry(d, s);
-      if (e) delete e.boss_fight;
-      if (S.sel && (S.sel.kind === 'bossrow' || S.sel.kind === 'bossfight') && S.sel.s === s) S.sel = null;
+      if (e) delete e[K.key];
+      if (S.sel && (S.sel.kind === K.rowSel || S.sel.kind === K.sel) && S.sel.s === s) S.sel = null;
     });
-    toast(`Removed stage ${s + 1}'s boss fight window: its fight plays as before`, { undo: true });
+    toast(K.kind === 'endless' ? `Removed stage ${s + 1}'s Endless window: its Endless plays the old waves` : `Removed stage ${s + 1}'s boss fight window: its fight plays as before`, { undo: true });
   }
+  const removeBossFight = (s) => removeWindow('boss', s);
 
-  /** One key of stage s's window (enabled, length, max_count); null removes it (the game's default then). */
-  function setBossFight(s, key, value) {
-    if (!bossBlock(s)) return;
+  /** One key of stage s's window of a kind (enabled, length, max_count, max_count_growth); null removes it (the game's
+   *  default then). */
+  function setWindow(kind, s, key, value) {
+    if (!winBlock(kind, s)) return;
     apply(() => {
-      const b = bossBlock(s);
+      const b = winBlock(kind, s);
       if (value == null || value === '') delete b[key]; else b[key] = value;
     });
   }
+  const setBossFight = (s, key, value) => setWindow('boss', s, key, value);
 
-  /** + Row in a window: a continuous row, a waves row or a once row at fight second t (default 0), presence held to the
-   *  cycle's end; its creature the roster's first (as + Row on the Rows lane). */
-  function newBossRow(s, kind, t) {
-    const b0 = bossBlock(s);
+  /** + Row in a window: a continuous row, a waves row or a once row at second t of the cycle (default 0), presence held to
+   *  the cycle's end; its creature the roster's first (as + Row on the Rows lane). */
+  function newWindowRow(kind, s, pace, t) {
+    const K = M.windowKind(kind);
+    const b0 = winBlock(kind, s);
     if (!b0) return;
-    const len = M.bossFightLen(b0);
+    const len = M.windowLen(b0, kind);
     const at = Math.max(0, Math.min(Math.round(Number(t) || 0), Math.max(0, Math.floor(len) - 1)));
     const id = firstCreatureId();
     const presets = {
@@ -831,35 +910,39 @@ const App = (() => {
       waves: () => ({ enemy: id, weights: [[at, 1], [len, 1]], pace: 'waves', every: 30, count: 6, role: 'fodder' }),
       once: () => ({ name: `${creatureName(id)} wave`, enemy: id, weights: [[at, 1], [len, 1]], pace: 'once', count: 8, pattern: 'ring', role: 'swarm' }),
     };
-    const make = presets[kind] || presets.continuous;
+    const make = presets[pace] || presets.continuous;
     apply((d) => {
-      const b = M.bossFight(d, s);
+      const b = M.windowBlock(d, s, kind);
       if (!b) return;
       if (!Array.isArray(b.roster)) b.roster = [];
-      b.roster.push(Object.assign({ id: M.newBossRowId(d, s), t: at }, make()));
-      S.sel = { kind: 'bossrow', s, i: b.roster.length - 1 };
+      b.roster.push(Object.assign({ id: M.newBossRowId(d, s, kind), t: at }, make()));
+      S.sel = { kind: K.rowSel, s, i: b.roster.length - 1 };
     });
-    toast(`Added a ${kind === 'once' ? 'once' : kind === 'waves' ? 'waves' : 'continuous'} row to stage ${s + 1}'s boss fight at ${fmtT(at)} of its cycle`);
+    toast(`Added a ${pace === 'once' ? 'once' : pace === 'waves' ? 'waves' : 'continuous'} row to stage ${s + 1}'s ${K.kind === 'endless' ? 'Endless' : 'boss fight'} at ${fmtT(at)} of its cycle`);
   }
+  const newBossRow = (s, pace, t) => newWindowRow('boss', s, pace, t);
 
   /** Move window row i of stage s to place `to` (the order is for the page only: the game draws by weight). */
-  function moveBossRowTo(s, from, to) {
-    const rows = bossRows(s);
+  function moveWindowRowTo(kind, s, from, to) {
+    const K = M.windowKind(kind);
+    const rows = winRows(kind, s);
     if (from < 0 || from >= rows.length) return;
     const dest = Math.max(0, Math.min(rows.length - 1, to));
     if (dest === from) return;
     apply(() => {
       const [r] = rows.splice(from, 1);
       rows.splice(dest, 0, r);
-      S.sel = { kind: 'bossrow', s, i: dest };
+      S.sel = { kind: K.rowSel, s, i: dest };
     });
   }
-  const moveBossRow = (s, i, delta) => moveBossRowTo(s, i, i + delta);
+  const moveWindowRow = (kind, s, i, delta) => moveWindowRowTo(kind, s, i, i + delta);
+  const moveBossRowTo = (s, from, to) => moveWindowRowTo('boss', s, from, to);
+  const moveBossRow = (s, i, delta) => moveWindowRowTo('boss', s, i, i + delta);
 
-  /** Move window row i of stage s by dt seconds on the fight clock (its until and presence points with it), kept inside
-   *  the cycle. Not an undo step of its own: the caller's apply / drag makes it one. */
-  function shiftBossRow(s, r, dt) {
-    const len = M.bossFightLen(bossBlock(s));
+  /** Move a window row of stage s by dt seconds on its clock (its until and presence points with it), kept inside the
+   *  cycle. Not an undo step of its own: the caller's apply / drag makes it one. */
+  function shiftWindowRow(kind, s, r, dt) {
+    const len = M.windowLen(winBlock(kind, s), kind);
     const t0 = Number(r.t) || 0;
     const hasUntil = r.until != null && r.until !== '';
     const span = hasUntil ? Number(r.until) - t0 : 0;
@@ -871,17 +954,21 @@ const App = (() => {
     if (Array.isArray(r.weights)) for (const p of r.weights) if (Array.isArray(p)) p[0] = Math.max(0, Math.min(len, Math.round((Number(p[0]) || 0) + moved)));
     return moved;
   }
+  const shiftBossRow = (s, r, dt) => shiftWindowRow('boss', s, r, dt);
+
+  /** Pass 150: the window kind of a row selection ('boss' | 'endless'), null for anything else. */
+  const winKindOf = (s) => (s && s.kind === 'bossrow' ? 'boss' : s && s.kind === 'endlessrow' ? 'endless' : null);
 
   function deleteSelected() {
     const s = S.sel;
     if (!s || s.i == null) return;
-    // pass 110: a boss fight window's row
-    if (s.kind === 'bossrow') {
-      const rows = bossRows(s.s);
+    // pass 110: a boss fight window's row (pass 150: or an Endless window's)
+    if (winKindOf(s)) {
+      const rows = winRows(winKindOf(s), s.s);
       const item = rows[s.i];
       if (!item) return;
       apply(() => { rows.splice(s.i, 1); S.sel = null; });
-      toast(`Deleted the boss fight row ${item.name || creatureName(Array.isArray(item.enemy) ? item.enemy[0] : item.enemy)}`, { undo: true });
+      toast(`Deleted the ${winKindOf(s) === 'endless' ? 'Endless' : 'boss fight'} row ${item.name || creatureName(Array.isArray(item.enemy) ? item.enemy[0] : item.enemy)}`, { undo: true });
       return;
     }
     const list = s.kind === 'roster' ? 'roster' : s.kind === 'wave' ? 'waves' : s.kind === 'event' ? 'events' : null;
@@ -895,15 +982,16 @@ const App = (() => {
   function duplicateSelected() {
     const s = S.sel;
     if (!s || s.i == null) return;
-    // pass 110: a boss fight window's row (a fresh id, right under it)
-    if (s.kind === 'bossrow') {
-      const rows = bossRows(s.s);
+    // pass 110: a boss fight window's row (a fresh id, right under it; pass 150: or an Endless window's)
+    if (winKindOf(s)) {
+      const kind = winKindOf(s);
+      const rows = winRows(kind, s.s);
       if (!rows[s.i]) return;
       apply((d) => {
         const copy = clone(rows[s.i]);
-        copy.id = M.newBossRowId(d, s.s);
+        copy.id = M.newBossRowId(d, s.s, kind);
         rows.splice(s.i + 1, 0, copy);
-        S.sel = { kind: 'bossrow', s: s.s, i: s.i + 1 };
+        S.sel = { kind: s.kind, s: s.s, i: s.i + 1 };
       });
       toast('Duplicated');
       return;
@@ -939,10 +1027,10 @@ const App = (() => {
   function nudge(dt) {
     const s = S.sel;
     if (!s || s.i == null) return;
-    // pass 110: a boss fight window's row moves on the fight clock, inside the cycle
-    if (s.kind === 'bossrow') {
-      const r = bossRows(s.s)[s.i];
-      if (r) apply(() => { shiftBossRow(s.s, r, dt); });
+    // pass 110: a boss fight window's row moves on the fight clock, inside the cycle (pass 150: an Endless window's on its)
+    if (winKindOf(s)) {
+      const r = winRows(winKindOf(s), s.s)[s.i];
+      if (r) apply(() => { shiftWindowRow(winKindOf(s), s.s, r, dt); });
       return;
     }
     apply((d) => {
@@ -1072,43 +1160,60 @@ const App = (() => {
     // no channel check: a window has one limit), then the windows' own (model.js bossFightChecks: the block's numbers,
     // the rows' times inside the cycle, the ids)
     for (const w of M.stageList(d)) {
-      const b = w.entry && U.isObj(w.entry.boss_fight) ? w.entry.boss_fight : null;
-      if (!b) continue;
-      M.bossFightRows(b).forEach((r, i) => { if (U.isObj(r)) rowChecks(r, `bossrow:${w.i}:${i}`, i, { hard, ids: null, d, end: M.bossFightLen(b), boss: true }); });
+      // pass 150 (lane EDITOR): the Endless windows' rows the same way
+      for (const kind of M.WINDOW_KIND_IDS) {
+        const K = M.windowKind(kind);
+        const b = w.entry && U.isObj(w.entry[K.key]) ? w.entry[K.key] : null;
+        if (!b) continue;
+        M.bossFightRows(b).forEach((r, i) => { if (U.isObj(r)) rowChecks(r, `${K.rowSel}:${w.i}:${i}`, i, { hard, ids: null, d, end: M.windowLen(b, kind), boss: true }); });
+      }
     }
-    for (const m of M.bossFightChecks(d)) mark(m.key, m.level, m.msg);
-    /** One spawn row's checks (a roster row, or pass 110 a boss fight window's row: `o.boss`, its cycle `o.end`). */
+    for (const kind of M.WINDOW_KIND_IDS) for (const m of M.windowChecks(d, kind)) mark(m.key, m.level, m.msg);
+    /** One spawn row's checks (a roster row, or pass 110 a boss fight window's row: `o.boss`, its cycle `o.end`). Pass 150:
+     *  a row's variations (model.js variationChecks), and each variation's merged row through these same checks with its
+     *  words led by "Variation k: " (`o.pre`; no id check: a variation plays under its row's id); from / until cycle on a
+     *  roster row means nothing. */
     function rowChecks(r, key, i, o) {
+      // the original's words, kept so a variation does not say them again (its shared keys are the original's)
+      const seen = o.seen || new Set();
+      const mk = o.pre ? (k2, l2, m2) => { if (!seen.has(l2 + '|' + m2)) mark(k2, l2, o.pre + m2); } : (k2, l2, m2) => { seen.add(l2 + '|' + m2); mark(k2, l2, m2); };
       // pass 84 (INTERFACES.md): `enemy` may be "roster" (the coloured-elite draw) or a list with weights
       if (r.enemy === 'roster') {
-        if (r.variant) mark(key, 'warn', 'an art variant means nothing on the roster draw (each creature comes in its own row\'s look)');
+        if (r.variant) mk(key, 'warn', 'an art variant means nothing on the roster draw (each creature comes in its own row\'s look)');
       } else if (Array.isArray(r.enemy)) {
-        if (!r.enemy.length) mark(key, 'error', 'an empty list of creatures');
-        for (const id of r.enemy) if (!creature(id)) mark(key, 'error', `unknown creature "${id || ''}"`);
-        if (r.variant && !r.enemy.every((id) => variantOk(id, r.variant))) mark(key, 'error', `art variant "${r.variant}" is not one of every listed creature's`);
-        if (r.weights_list != null && (!Array.isArray(r.weights_list) || r.weights_list.length !== r.enemy.length)) mark(key, 'warn', 'the list\'s weights do not match its creatures');
-      } else if (!creature(r.enemy)) mark(key, 'error', `unknown creature "${r.enemy || ''}"`);
-      else if (!variantOk(r.enemy, r.variant)) mark(key, 'error', `${U.theName(creatureName(r.enemy))} has no art variant "${r.variant}"`);
-      rowKeyIssues(r, key, mark);
-      if (r.until != null && Number(r.until) <= (Number(r.t) || 0)) mark(key, 'error', `until (${fmtT(r.until)}) is not after t (${fmtT(r.t)})`);
-      if ((Number(r.t) || 0) < 0) mark(key, 'error', 't is negative');
-      if (r.weight != null && Number(r.weight) < 0) mark(key, 'error', 'a negative weight');
+        if (!r.enemy.length) mk(key, 'error', 'an empty list of creatures');
+        for (const id of r.enemy) if (!creature(id)) mk(key, 'error', `unknown creature "${id || ''}"`);
+        if (r.variant && !r.enemy.every((id) => variantOk(id, r.variant))) mk(key, 'error', `art variant "${r.variant}" is not one of every listed creature's`);
+        if (r.weights_list != null && (!Array.isArray(r.weights_list) || r.weights_list.length !== r.enemy.length)) mk(key, 'warn', 'the list\'s weights do not match its creatures');
+      } else if (!creature(r.enemy)) mk(key, 'error', `unknown creature "${r.enemy || ''}"`);
+      else if (!variantOk(r.enemy, r.variant)) mk(key, 'error', `${U.theName(creatureName(r.enemy))} has no art variant "${r.variant}"`);
+      rowKeyIssues(r, key, mk);
+      if (r.until != null && Number(r.until) <= (Number(r.t) || 0)) mk(key, 'error', `until (${fmtT(r.until)}) is not after t (${fmtT(r.t)})`);
+      if ((Number(r.t) || 0) < 0) mk(key, 'error', 't is negative');
+      if (r.weight != null && Number(r.weight) < 0) mk(key, 'error', 'a negative weight');
       if (r.weights != null) {
-        if (!Array.isArray(r.weights) || r.weights.some((p) => !isPair(p))) mark(key, 'error', 'a presence point is not [seconds, weight]');
+        if (!Array.isArray(r.weights) || r.weights.some((p) => !isPair(p))) mk(key, 'error', 'a presence point is not [seconds, weight]');
         else {
-          if (r.weights.some((p) => Number(p[1]) < 0)) mark(key, 'error', 'a negative presence weight');
-          if (!inOrder(r.weights)) mark(key, 'warn', 'the presence points are not in time order (Save sorts them)');
-          if (r.weights.length && r.weights.every((p) => Number(p[1]) === 0)) mark(key, 'warn', 'every presence point is 0: the row never spawns');
+          if (r.weights.some((p) => Number(p[1]) < 0)) mk(key, 'error', 'a negative presence weight');
+          if (!inOrder(r.weights)) mk(key, 'warn', 'the presence points are not in time order (Save sorts them)');
+          if (r.weights.length && r.weights.every((p) => Number(p[1]) === 0)) mk(key, 'warn', 'every presence point is 0: the row never spawns');
         }
       }
       if (typeof r.id === 'string' && o.ids) {
-        if (o.ids.has(r.id)) mark(key, 'error', `the row id "${r.id}" is used twice (rows ${o.ids.get(r.id) + 1} and ${i + 1})`);
+        if (o.ids.has(r.id)) mk(key, 'error', `the row id "${r.id}" is used twice (rows ${o.ids.get(r.id) + 1} and ${i + 1})`);
         else o.ids.set(r.id, i);
       }
-      if (!o.boss && r.channel === 'hell' && !(d.hell_cap || []).some((h) => Number(h) > 0)) mark(key, 'warn', 'a hell row, but hell_cap is 0 on every stage: it never spawns');
-      statsIssues(r.stats, key, mark, '');
-      paceIssues(r, key, mark, o.hard, o.end);
-      intervalIssues(r, key, mark);
+      if (!o.boss && r.channel === 'hell' && !(d.hell_cap || []).some((h) => Number(h) > 0)) mk(key, 'warn', 'a hell row, but hell_cap is 0 on every stage: it never spawns');
+      statsIssues(r.stats, key, mk, '');
+      paceIssues(r, key, mk, o.hard, o.end);
+      intervalIssues(r, key, mk);
+      if (o.pre) return;
+      if (!o.boss && (r.from_cycle != null || r.until_cycle != null)) mk(key, 'warn', 'From cycle / Until cycle mean something only on a boss fight or Endless window row: a stage row ignores them');
+      for (const m of M.variationChecks(r)) mk(key, m.level, m.msg);
+      M.variationList(r).forEach((v, k) => {
+        const vr = U.isObj(v) ? M.variationRow(r, k + 1) : null;
+        if (vr && vr.enemy != null && vr.enemy !== '') rowChecks(vr, key, i, Object.assign({}, o, { ids: null, pre: `Variation ${k + 1}: `, seen }));
+      });
     }
     (d.waves || []).forEach((w, i) => {
       const key = `wave:${i}`;
@@ -1229,11 +1334,16 @@ const App = (() => {
     if (Array.isArray(d.floor_curve)) sortPoints(d.floor_curve);
     for (const r of d.roster || []) {
       if (Array.isArray(r.weights) && r.weights.length) { sortPoints(r.weights); delete r.weight; delete r.weight_late; }
+      // pass 150 (lane EDITOR): a variation keeps none of the original's shared keys
+      if (U.isObj(r)) M.tidyVariations(r);
     }
-    // pass 110: the boss fight windows' rows too
+    // pass 110: the boss fight windows' rows too (pass 150: and the Endless windows')
     for (const w of M.stageList(d)) {
-      for (const r of M.bossFightRows(w.entry && w.entry.boss_fight)) {
-        if (U.isObj(r) && Array.isArray(r.weights) && r.weights.length) { sortPoints(r.weights); delete r.weight; delete r.weight_late; }
+      for (const kind of M.WINDOW_KIND_IDS) {
+        for (const r of M.bossFightRows(w.entry && w.entry[M.windowKind(kind).key])) {
+          if (U.isObj(r) && Array.isArray(r.weights) && r.weights.length) { sortPoints(r.weights); delete r.weight; delete r.weight_late; }
+          if (U.isObj(r)) M.tidyVariations(r);
+        }
       }
     }
     for (const k of ['hp_curve', 'damage_curve']) if (U.isObj(d[k])) sortPoints(d[k].points);
@@ -1650,10 +1760,10 @@ const App = (() => {
         moveRow(S.sel.i, e.key === 'ArrowUp' ? -1 : 1);
         return;
       }
-      // pass 110: and a boss fight window's row within its window
-      if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && S.sel && S.sel.kind === 'bossrow') {
+      // pass 110: and a boss fight window's row within its window (pass 150: an Endless window's in its)
+      if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && S.sel && winKindOf(S.sel)) {
         e.preventDefault();
-        moveBossRow(S.sel.s, S.sel.i, e.key === 'ArrowUp' ? -1 : 1);
+        moveWindowRow(winKindOf(S.sel), S.sel.s, S.sel.i, e.key === 'ArrowUp' ? -1 : 1);
         return;
       }
       if (e.key === 'Escape') { select(null); return; }
@@ -1679,6 +1789,9 @@ const App = (() => {
     route, applyRoute,   // pass 97 (lane LIVE): the hash routes
     // pass 110 (lane BOSS): the boss fight windows
     bossBlock, bossRows, bossRowsAt, addBossFight, removeBossFight, setBossFight, newBossRow, moveBossRow, moveBossRowTo, shiftBossRow, lateT,
+    // pass 150 (lane EDITOR): a window of either kind ('boss' | 'endless'), and a row's variation tabs
+    winBlock, winRows, winRowsAt, addWindow, removeWindow, setWindow, newWindowRow, moveWindowRow, moveWindowRowTo, shiftWindowRow, winKindOf,
+    isRowSel, selTab, selectTab, addRowVariation, removeRowVariation, setRowVariationPercent,
     spawned, spawnOpts, setAssume, turnoverSource, setSimLife, setUseSimLife,
   };
 })();

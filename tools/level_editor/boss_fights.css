@@ -41,3 +41,8 @@
 .bf-total td { font-weight: 700; color: var(--ink); }
 .bf-help { border-left: 3px solid rgba(217,179,106,0.55); padding-left: 8px; }
 .bf-note { margin: 2px 0 6px; }
+/* pass 150 (lane EDITOR): the Endless section's panels (the same drawing, a blue edge) */
+.bf-panel.en-panel { border-left-color: rgba(57,135,229,0.6); }
+.bf-panel.en-panel.none { border-left-color: var(--axis); }
+.bf-panel.en-panel.has-error { border-left-color: var(--crit); }
+.bf-panel.en-panel.has-warn { border-left-color: var(--warn); }

@@ -794,6 +794,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 134: `hidden` and `chance` too, mended in WaveTimeline.relocate_cfg)
 	var rlc = t.get("relocate", {})
 	w.relocate = rlc if rlc is Dictionary else {}
+	# pass 150 (lane ENDLESS): the slow after a bite (WaveTimeline.BITE_SLOW_DEFAULTS fill gaps)
+	var bsl = t.get("bite_slow", {})
+	w.bite_slow = bsl if bsl is Dictionary else {}
 	# pass 112 (lane BARREL): the barrels' respawn clock and both barrel types' contents (BarrelSpawns' defaults fill gaps)
 	var brl = t.get("barrels", {})
 	w.barrels = brl if brl is Dictionary else {}

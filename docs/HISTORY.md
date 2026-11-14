@@ -4939,3 +4939,40 @@ into the editor's export_templates; not in ship.sh; the crowd library has no Lin
 - **Polish** (BALANCING 93): numbers that make a stat worse are red (TextGen.bad_numbers_in, WText.mark_bad,
   R.NUMBER_BAD); the shield waits 6 s (The Guardian Risen 3 s) before recharging; the Ghost Pepper's −5% max HP once;
   Hot Streak's Evolved icon remade from Garry's new icon (his install committed with this pass).
+
+## Pass 150 (2026-11-14): Endless windows, row variations, power-ups rarer, the slow after a bite, the pepper in red
+
+Garry's list (four items; one lead and one lane, EDITOR, forked with the schema fixed first).
+
+- **Power-ups a quarter rarer everywhere** (BALANCING 94.POWERUP): the per-kill roll 0.0045 -> 0.003375, the Power-up
+  barrel's share 0.132 -> 0.099 (the rest to EXP and Coins barrels by their weights), the Hammer Giant's Rage 0.12 -> 0.09.
+- **The Ghost Pepper's price in red** (94.PEPPER): the card writes an item's `trade` from its JSON, which pass 149's rule
+  (phrases the stat writer had produced) missed on a first card; every passive's trade is now noted as bad
+  (TextGen._note_trades).
+- **The slow after a bite** (94.BITE): a biter walks 25% slower for 1 s (map `bite_slow`; not a boss, not a charge; a
+  stronger slow is left alone; no dust). It rides on the existing slow (slow_t / slow_f), which the compiled crowd already
+  hands back to the script, so native/ is unchanged.
+- **Row variations** (94.VARIATION, docs/waves_schema.md "Pass 150"): `variations` on any spawn row, each a full copy of
+  the row with its `percent`, rolled once a spawn decision (WaveDirector.row_variation; BossFightWindow too), the row's
+  clock shared (WaveTimeline.VARIATION_SHARED). Garry asked for From and Until to be inherited; the lead extended that to
+  every key that says WHEN a row comes (pace, every, offset, interval, presence, chance, jitter, trickle, channel, the
+  cycles), since a roll per spawn cannot change the clock that made the spawn.
+- **Endless windows** (94.ENDLESS): `stage_list[k].endless_window` played by core/systems/EndlessWindow.gd (BossFightWindow's
+  rules on Endless's clock; `max_count_growth`; `from_cycle` / `until_cycle` on any window row); the old Endless waves and
+  fill play only with the window off. A window's coloured Elite wave takes the window's numbers (WaveDirector._spawn_elite
+  `src_in`). The four cycles are tools/dl/p150/ENDLESS/make_endless.py (the map before it in tools/dl/p150/ENDLESS/before/).
+  Probe: game/tools/_p150_ENDLESS_probe.gd (`old=1` plays the old Endless).
+- **The Level Editor** (lane EDITOR): the Endless section under Boss fights (boss_fights.js is now a factory,
+  `WindowPanels('boss' | 'endless')`; app.js's window functions are generic), variation tabs on every row's form (the open
+  tab is `sel.v`; the form edits a Proxy over the variation whose shared keys read and write the original, drawn yellow),
+  the inspector 25% wider (538 px, 463 under 1440), `bite_slow` under Settings -> Scaling, the estimates and Show on screen
+  splitting a row by its tabs' shares (the run charts still model Endless as the old waves, as they model a boss fight
+  without its window); selftest_P150.py; 17,262 checks pass. No server change: a page reload is enough
+  (docs/level_editor.md "Pass 150"). The rings of the four windows (50-60 at once, Respect the cap off) carry the editor's
+  existing "N at once on top of the cap" warning, as Garry's own rings do.
+- **Measured** (game/tools/_p150_ENDLESS_probe.gd, the Drifter at level 30-35 with the probe's b2/b3 builds, 130 s of
+  Endless, the outlaw never dying): every row, tab, first wave and horde wave came; one special a cycle; Elite arrivals at
+  0:30 and 1:30; Max count stepping up at 2:00. Against the old Endless (`old=1`, same build and seed): the Dust Bowl
+  6.2 max HP lost a minute against 5.8, Nightfall 1.3 against 4.2 (the old one opened with ~250 lesser scorpions), the
+  crowd about half (100-160 against 200-300) and varied, 2-4 chests in 130 s from elite-modded creatures (the old Endless
+  had no Elites).

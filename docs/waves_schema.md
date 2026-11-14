@@ -1488,3 +1488,53 @@ row does not say); JsonContent reads the block as it is; `WaveDirector._apply_mu
 Level Editor: Settings, the **Relocation** card (nine rows `relocate.*`, a line that reads the block back, warnings); a
 row's card, Where and how, **Relocates when far** (the effective value and where it comes from); `Model.relocateCfg`,
 `rowRelocate`, `setRowRelocate`; `tools/level_editor/selftest_BLOB128.py`.
+
+## Pass 150: a row's variations, the Endless window, the slow after a bite (the game: the lead; the editor: lane EDITOR)
+
+**Variations** (any spawn row: `roster[]`, `stage_list[k].boss_fight.roster[]`, `stage_list[k].endless_window.roster[]`):
+
+```json
+"variations": [ { "percent": 30, "name": "Red werewolves", "enemy": "werewolf", "pack": 4, "pattern": "scatter",
+                  "stats": { "hp_mult": 1.0, "tint": { "hue": [350, 360], "sat": 0.9, "val": 0.85, "amount": 0.4 } } } ]
+```
+
+- A variation is a full copy of the row's own keys (the Level Editor makes it from the original when a tab is added) plus
+  `percent` (0..100). It plays its own keys and only those: a key it lacks it lacks.
+- Shared keys, always the original's and never read from a variation (`WaveTimeline.VARIATION_SHARED`): `id, t, until,
+  pace, every, offset, interval, weights, chance, t_jitter, trickle, channel, from_cycle, until_cycle`. The row's clock
+  (when it comes) is one; a variation decides what comes.
+- The original's share is 100 − Σ percent (each at least 0). Past 100 the variations are scaled to 100 and the original
+  never comes (the editor warns).
+- One roll a spawn decision (`WaveDirector.row_variation`, the spawn dice; no roll for a row without variations): each
+  pack the continuous draw or the floor takes from the row, each wave of a waves or once row (its whole count, what it
+  still owes too), each elite row's wave. A variation fixes its numbers apart from the original's (its own key:
+  `<row key>~v<j>`).
+
+**The Endless window** (`stage_list[k].endless_window`, the boss-fight window's twin for Endless):
+
+```json
+"endless_window": { "enabled": true, "length": 120, "max_count": 150, "max_count_growth": 25, "roster": [ ...rows... ] }
+```
+
+- From Endless's first second (the portal's countdown ran out) only its rows spawn, instead of the old Endless waves and
+  fill (`first_wave`, `wave_size`, `wave_growth`, `cap`, `roster_window` rest while a window plays; `enabled: false` plays
+  them again). Every other `endless` number still plays: the growth step every `every` seconds (hp, atk, speed and their
+  growths, on every row's numbers: a row's creatures are fixed from the stage's end, then times the step, afresh at
+  every step), `xp_share`, `coin_chance`, the knock resistance, `open_task_growth`.
+- `length` one cycle's seconds (default 180; it loops while Endless lasts, every row afresh each cycle), `max_count` the
+  most bodies alive (default 100; -1 = the hard cap), `max_count_growth` bodies added each later cycle (default 0; never
+  past the hard cap).
+- Rows: the boss-fight rows' keys and rules (`docs/waves_schema.md` "Pass 110"), on Endless's clock (0:00 = Endless
+  starts). A window's coloured Elite wave (an elite row without a pattern) takes the window's numbers too.
+- `from_cycle` (1-based, default 1) and `until_cycle` (inclusive, absent = for good) open a window row (a boss fight's
+  too) only in those cycles.
+
+**The slow after a bite** (`timeline_data.bite_slow`, `WaveTimeline.BITE_SLOW_DEFAULTS`):
+
+```json
+"bite_slow": { "frac": 0.25, "seconds": 1.0 }
+```
+
+After a bite lands on the Outlaw (not a boss's, not a charging creature's) the biter walks `frac` slower for `seconds`.
+A slow at least as strong already on is left alone; a weaker one becomes the bite's for the longer of the two times;
+not stretched by Ducktape; no dust at its feet. `frac` 0 = off; a map without the block plays the defaults.

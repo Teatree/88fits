@@ -85,6 +85,38 @@ const OnScreenModel = (() => {
     return ids.map((id, k) => ({ id, share: ws[k] / total })).filter((x) => x.share > 0);
   }
 
+  /** Pass 150 (lane EDITOR): a row's creature ids over all its variation tabs, each share x its tab's share (`vm` the
+   *  page's Model: variationPercents, variationRow, hasVariations; without it, or for a row without tabs, rowIds). */
+  function rowIdsAll(r, vm) {
+    if (!vm || !isObj(r) || !vm.hasVariations(r)) return rowIds(r);
+    const by = new Map();
+    vm.variationPercents(r).forEach((p, j) => {
+      if (!(p > 0)) return;
+      const m = vm.variationRow(r, j);
+      for (const x of rowIds(m)) by.set(x.id, (by.get(x.id) || 0) + x.share * (p / 100));
+    });
+    return Array.from(by.entries()).map(([id, share]) => ({ id, share }));
+  }
+
+  /** Pass 150: the tab of row `row` a body of `id` came from, drawn by each tab's share x its share of `id` (the row
+   *  itself without tabs, or when no tab brings it). */
+  function tabRow(row, id, vm, r) {
+    if (!vm || !isObj(row) || !vm.hasVariations(row)) return row;
+    const cands = [];
+    vm.variationPercents(row).forEach((p, j) => {
+      if (!(p > 0)) return;
+      const m = vm.variationRow(row, j);
+      if (!m) return;
+      for (const x of rowIds(m)) if (x.id === id) cands.push({ m, w: p * x.share });
+    });
+    if (!cands.length) return row;
+    let W = 0;
+    for (const c of cands) W += c.w;
+    let pick = r.randf() * W;
+    for (const c of cands) { if (pick < c.w) return c.m; pick -= c.w; }
+    return cands[cands.length - 1].m;
+  }
+
   /** The row open at second t (its window [t, until)). */
   function rowOpen(r, t) {
     const t0 = num(r && r.t, 0), t1 = r && r.until != null && r.until !== '' ? num(r.until, Infinity) : Infinity;
@@ -94,9 +126,9 @@ const OnScreenModel = (() => {
   /** How many bodies of `id` each row gets: the rows that spawn it weighed by what they spawned in the past window
    *  (`srcNow` - `srcBefore`, each row's tally x its share of the id), else by their presence now, else the first row of
    *  it; [{ri, w}] (empty: the id has no row). */
-  function rowWeights(id, rows, srcNow, srcBefore, t) {
+  function rowWeights(id, rows, srcNow, srcBefore, t, vm) {
     const cands = [];
-    rows.forEach((r, ri) => { for (const x of rowIds(r)) if (x.id === id) cands.push({ ri, share: x.share }); });
+    rows.forEach((r, ri) => { for (const x of rowIdsAll(r, vm)) if (x.id === id) cands.push({ ri, share: x.share }); });
     if (!cands.length) return [];
     const recent = cands.map((c) => ({ ri: c.ri, w: Math.max(num(srcNow['roster:' + c.ri], 0) - num(srcBefore['roster:' + c.ri], 0), 0) * c.share }));
     if (recent.some((x) => x.w > 1e-9)) return recent.filter((x) => x.w > 1e-9);
@@ -186,7 +218,9 @@ const OnScreenModel = (() => {
     const rings = new Map();   // a ring row's rings: ri -> [{age, start, n, k}]
     for (const c of counts) {
       const cr = byIdMap[c.id] || null;
-      const ws = rowWeights(c.id, list, srcNow, srcBefore, t);
+      // pass 150 (lane EDITOR): `o.variations` (the page's Model) lets a row's variation tabs bring their own creatures
+      const vm = o.variations && typeof o.variations.variationPercents === 'function' ? o.variations : null;
+      const ws = rowWeights(c.id, list, srcNow, srcBefore, t, vm);
       let W = 0;
       for (const w of ws) W += w.w;
       const tally = by[c.id];
@@ -197,7 +231,7 @@ const OnScreenModel = (() => {
         // the row
         let ri = -1;
         if (W > 0) { let pick = r.randf() * W; for (const w of ws) { if (pick < w.w) { ri = w.ri; break; } pick -= w.w; } if (ri < 0) ri = ws[ws.length - 1].ri; }
-        const row = ri >= 0 ? list[ri] : {};
+        const row = ri >= 0 ? tabRow(list[ri], c.id, vm, r) : {};
         const st = isObj(row.stats) ? row.stats : {};
         // the flags
         const forcedSp = !!row.special;
@@ -348,7 +382,7 @@ const OnScreenModel = (() => {
   }
 
   const api = { SPAWN_NEAR, SPAWN_FAR, RING_RADIUS, ATTRIB_WINDOW, ELITE_SCALE, HERO_RADIUS, HERO_SIZE, TURNOVER_DEF, PHASES, PHASE_SECONDS, DEPTH, ACTORS_DEFAULT,
-    rng, rollCount, rowIds, rowOpen, rowWeights, sizeOf, specialOf, spawnAngle, layout, relax, worstOverlap, facingOf, phaseAt, project, filterMults };
+    rng, rollCount, rowIds, rowIdsAll, tabRow, rowOpen, rowWeights, sizeOf, specialOf, spawnAngle, layout, relax, worstOverlap, facingOf, phaseAt, project, filterMults };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;
 })();

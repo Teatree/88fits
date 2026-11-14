@@ -1043,6 +1043,170 @@ func boss_fight_rows(i: int) -> Array:
 	return (ro as Array).filter(func(r) -> bool: return r is Dictionary) if ro is Array else []
 
 
+## Pass 150 (lane ENDLESS; Garry, 2026-11-14: "I want the Endless Mode to really feel endless, different enemies
+## (randomized), some colour variation, Elites, Specials, Elitted normal enemies ... For Endless Mode specifically I want
+## similar type of Controls as the Boss Fights has"): a stage entry's `endless_window` block, the boss-fight window's twin
+## for Endless:
+##   enabled           false keeps the block but plays the old Endless (its waves and its fill; default true)
+##   length            seconds of one cycle (default ENDLESS_WINDOW_DEF.length, at least 1); it loops for as long as
+##                     Endless lasts, each cycle every row afresh (BossFightWindow's rules)
+##   max_count         the most creatures alive (BODIES, whatever their cap share) while the window spawns; -1 = no limit
+##                     but the hard cap
+##   max_count_growth  bodies added to max_count each later cycle (cycle c, 0-based: max_count + growth x c, never past
+##                     the hard cap; default 0)
+##   roster            spawn rows with the roster's keys on ENDLESS'S clock (0 = the portal's countdown ran out), plus
+##                     `from_cycle` / `until_cycle` (row_cycle_open; the boss-fight rows take them too)
+## From Endless's start (WaveDirector.start_endless) the window spawns instead of the old Endless waves and fill (its keys
+## first_wave, wave_size, wave_growth, cap and roster_window rest); every other `endless` number still plays: the growth
+## steps every `every` seconds (hp, atk, speed and their growths on every creature's fixed numbers, WaveDirector.
+## source_for), xp_share, coin_chance, the knock resistance, open_task_growth.
+const ENDLESS_WINDOW_DEF := {"length": 180.0, "max_count": 100, "max_count_growth": 0.0}
+
+
+## Stage `i`'s Endless window as the map has it, {} when it has none or it is switched off (enabled false).
+func endless_window(i: int) -> Dictionary:
+	var ew = _stage_raw(i).get("endless_window")
+	if not (ew is Dictionary) or not bool((ew as Dictionary).get("enabled", true)):
+		return {}
+	return ew
+
+
+## Whether stage `i`'s Endless plays its own window.
+func has_endless_window(i: int) -> bool:
+	return not endless_window(i).is_empty()
+
+
+## Seconds of one cycle of stage `i`'s Endless window, never under 1.
+func endless_window_length(i: int) -> float:
+	return maxf(float(endless_window(i).get("length", ENDLESS_WINDOW_DEF["length"])), 1.0)
+
+
+## The most bodies alive in the window's first cycle (-1 = no limit but the hard cap).
+func endless_window_max_count(i: int) -> int:
+	return maxi(int(endless_window(i).get("max_count", ENDLESS_WINDOW_DEF["max_count"])), -1)
+
+
+## Bodies the window's max_count gains each later cycle.
+func endless_window_growth(i: int) -> float:
+	return maxf(float(endless_window(i).get("max_count_growth", ENDLESS_WINDOW_DEF["max_count_growth"])), 0.0)
+
+
+## Stage `i`'s Endless window rows (the Dictionaries only), [] without a window.
+func endless_window_rows(i: int) -> Array:
+	var ro = endless_window(i).get("roster", [])
+	return (ro as Array).filter(func(r) -> bool: return r is Dictionary) if ro is Array else []
+
+
+## Pass 150: whether a window row (a boss fight's, an Endless window's) is open in cycle `cycle1` (1-based):
+## from_cycle (default 1) <= cycle1 <= until_cycle (absent = for good).
+static func row_cycle_open(r: Dictionary, cycle1: int) -> bool:
+	if cycle1 < int(r.get("from_cycle", 1)):
+		return false
+	var u = r.get("until_cycle")
+	return u == null or cycle1 <= int(u)
+
+
+# ---------------------------------------------------------------- a row's variations (pass 150, lane ENDLESS)
+
+## Garry (2026-11-14): "add ability to add tabs at the top. Each tab represents a variation of the enemies that this node
+## will spawn. Each tab shows the % probability of that variations spawning ... the From and Until numbers marked yellow
+## as they are (inherited) from the original, meaning if I change those it changes for all variations. All other
+## parameters can be adjusted as User wants. When creating a new tab it always copies all data from the original." Any
+## spawn row (the roster's, a boss fight's, an Endless window's) may carry `variations`: [{percent, ...the row's own keys
+## as a full copy}]. A variation plays its own keys and only those (a key it lacks it lacks), except VARIATION_SHARED,
+## which are always the original's: the row's clock (when it comes) is one; a variation decides what comes. The original's
+## share is 100 - the variations' percents (each at least 0); past 100 the variations are scaled to 100 and the original
+## never comes. The director rolls once a spawn decision (WaveDirector.row_variation): each pack the continuous draw or
+## the floor takes from the row, each wave of a waves or once row (its whole count, what it still owes too), each elite
+## row's wave. A variation fixes its numbers apart from the original's (its own key, "<row key>~v<j>").
+const VARIATION_SHARED := ["id", "t", "until", "pace", "every", "offset", "interval", "weights", "chance", "t_jitter",
+	"trickle", "channel", "from_cycle", "until_cycle", "variations", "percent"]
+
+
+## Whether row `r` carries at least one variation.
+static func row_has_variations(r) -> bool:
+	if not (r is Dictionary):
+		return false
+	var v = (r as Dictionary).get("variations")
+	if not (v is Array):
+		return false
+	for x in v:
+		if x is Dictionary:
+			return true
+	return false
+
+
+## Row `r`'s variation entries (the Dictionaries only, in order), [] without any.
+static func row_variations(r: Dictionary) -> Array:
+	var v = r.get("variations")
+	return (v as Array).filter(func(x) -> bool: return x is Dictionary) if v is Array else []
+
+
+## The shares (percent) of row `r`'s tabs: [original, variation 1, ...], summing to 100 ([100] without variations).
+static func variation_percents(r: Dictionary) -> PackedFloat32Array:
+	var vs := row_variations(r)
+	var out := PackedFloat32Array()
+	out.resize(vs.size() + 1)
+	var sum := 0.0
+	for j in range(vs.size()):
+		var p := maxf(float((vs[j] as Dictionary).get("percent", 0.0)), 0.0)
+		out[j + 1] = p
+		sum += p
+	if sum > 100.0:
+		for j in range(vs.size()):
+			out[j + 1] = out[j + 1] * 100.0 / sum
+		out[0] = 0.0
+	else:
+		out[0] = 100.0 - sum
+	return out
+
+
+## Which tab a roll `u` (0..1) lands on: 0 the original, j the j-th variation.
+static func variation_pick(r: Dictionary, u: float) -> int:
+	var ps := variation_percents(r)
+	var x := clampf(u, 0.0, 0.999999) * 100.0
+	# the variations first, the original last (its share is what is left), so a 0% original never comes
+	for j in range(1, ps.size()):
+		if x < ps[j]:
+			return j
+		x -= ps[j]
+	return 0
+
+
+## The row tab `j` of row `r` plays: j 0 is `r` itself; a variation is its entry (a deep copy, without `percent`) with the
+## original's VARIATION_SHARED keys (absent where the original has none).
+static func variation_row(r: Dictionary, j: int) -> Dictionary:
+	var vs := row_variations(r)
+	if j <= 0 or j > vs.size():
+		return r
+	var out: Dictionary = (vs[j - 1] as Dictionary).duplicate(true)
+	for k: String in VARIATION_SHARED:
+		if r.has(k) and k != "variations" and k != "percent":
+			out[k] = r[k]
+		else:
+			out.erase(k)
+	return out
+
+
+# ---------------------------------------------------------------- the slow after a bite (pass 150, lane ENDLESS)
+
+## Garry (2026-11-14): "fast enemies have a problem where after they attack they don't slow down and instead keep
+## damaging the Player outlaw ... I don't want the enemy to stop after they attack, I'd prefer it if they slow down by
+## 25% for just a second so Player has a chance to get away." The map's `bite_slow` block: {frac, seconds}: after a bite
+## lands on the outlaw (EnemyManager._tick_bite: not a boss's, not a charge's) the creature walks `frac` slower for
+## `seconds`; a slow at least as strong already on is left alone (a pin stays a pin, its seconds unchanged). frac 0 = off.
+@export var bite_slow: Dictionary = {}
+const BITE_SLOW_DEFAULTS := {"frac": 0.25, "seconds": 1.0}
+
+
+## One bite-slow number: the map's, else BITE_SLOW_DEFAULTS.
+func bite_slow_value(key: String) -> float:
+	var v = bite_slow.get(key)
+	if v is float or v is int:
+		return float(v)
+	return float(BITE_SLOW_DEFAULTS.get(key, 0.0))
+
+
 ## The rows of `rows` open at fight second `ct` of a cycle (t <= ct < until; no until = open to the cycle's end).
 static func boss_fight_open(rows: Array, ct: float) -> Array:
 	var out: Array = []

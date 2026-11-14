@@ -98,6 +98,15 @@ var creature_hp_mult := 1.0
 const COLOUR_NEVER := 1 << 30
 var colour_after_kills := COLOUR_NEVER
 var contact_cap := 0.0
+## Pass 150 (lane ENDLESS; Garry: "fast enemies ... after they attack they don't slow down and instead keep damaging the
+## Player outlaw ... I'd prefer it if they slow down by 25% for just a second so Player has a chance to get away"): after
+## a bite lands on the outlaw (_tick_bite; not a boss's, not a charge's) the creature walks bite_slow_frac slower for
+## bite_slow_seconds (bite_slow). Set by the director from the map's `bite_slow` (WaveTimeline.BITE_SLOW_DEFAULTS); 0 = off,
+## so a crowd without a director (the tests, the tools) plays as before.
+var bite_slow_frac := 0.0
+var bite_slow_seconds := 0.0
+## pass 150: the creatures whose slow now is a bite's (no dust at their feet: a weapon's slow kicks it up), index -> true
+var _bite_slowed: Dictionary = {}
 ## Pass 54 (Garry: the creatures hit 25% harder), set by the director from the timeline through set() (lane WD): every
 ## hostile damage, a bite, a shot, a blast, a boss's or a caster's attack, is `creature_damage_mult` times its number
 ## (1.25 on Red Canyon, 1 in the arena) and `damage_time_mult` times, the timeline's damage curve now (1 without one).
@@ -1676,6 +1685,8 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	stun_t[i] = 0.0
 	onlook[i] = 0
 	slow_t[i] = 0.0; slow_f[i] = 0.0; mark_t[i] = 0.0; mark_mult[i] = 1.0; spin_t[i] = 0.0; hold_t[i] = 0.0
+	if not _bite_slowed.is_empty():
+		_bite_slowed.erase(i)
 	hamper_t[i] = 0.0; hamper_f[i] = 0.0; status_t[i] = 0.0; fire_blue[i] = 0; undying[i] = 0
 	home[i] = pos[i]
 	dummy_mode[i] = DUMMY_STAND; dummy_roam[i] = 0; patrol_dir[i] = 1.0
@@ -2466,6 +2477,23 @@ func slow(i: int, frac: float, seconds: float, scaled: bool = true) -> void:
 		seconds *= debuff_mult()
 	slow_f[i] = maxf(slow_f[i] if slow_t[i] > 0.0 else 0.0, frac)
 	slow_t[i] = maxf(slow_t[i], seconds)
+	# pass 150: a weapon's slow kicks up its dust again
+	if not _bite_slowed.is_empty():
+		_bite_slowed.erase(i)
+
+
+## Pass 150 (lane ENDLESS): the slow after creature `i`'s bite (bite_slow_frac for bite_slow_seconds). A slow at least as
+## strong already on is left alone (a pin stays a pin, its seconds unchanged); a weaker one becomes the bite's for the
+## longer of the two times. Not stretched by Ducktape (it is the creature's own recovery, not a debuff). No dust.
+func bite_slow(i: int) -> void:
+	if i < 0 or i >= pool_max or alive[i] == 0 or bite_slow_frac <= 0.0 or bite_slow_seconds <= 0.0:
+		return
+	if slow_t[i] > 0.0 and slow_f[i] >= bite_slow_frac:
+		return
+	if slow_t[i] <= 0.0:
+		_bite_slowed[i] = true
+	slow_f[i] = bite_slow_frac
+	slow_t[i] = maxf(slow_t[i], bite_slow_seconds)
 
 
 ## A slow of moves AND attacks (pass 48: Curare, the Tarantula Hawk): its walk through slow(), and its attack clocks (a
@@ -4856,6 +4884,9 @@ func _tick_bite(i: int, ti: int, ppos: Vector3) -> void:
 	# pass 89: a bite is a regular attack, a boss's too: it no longer pushes him (Player.knock_share)
 	binfo["special_knock"] = false
 	player.take_damage(touch, pos[i], binfo)
+	# pass 150 (lane ENDLESS): the biter walks slower a moment, so the outlaw can get away (not a boss, not a charge)
+	if bite_slow_frac > 0.0 and state[i] != STATE_CHARGE and i != boss_index and (types[ti]["def"] as EnemyDef).archetype != "boss":
+		bite_slow(i)
 
 
 ## The draw runs once per shown frame, and only when a tick has moved something since the last one (pass 33.8: it ran
@@ -4902,9 +4933,12 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 		slow_t[i] -= dt
 		# 1.0 is a pin (pass 46: the Spear's Pinning Throw): it stands where it was struck; every other slow is a third or less
 		spd *= 1.0 - clampf(slow_f[i], 0.0, 1.0)
-		# a slowed creature kicks up dust at its feet
-		if game and int(slow_t[i] * 3.0) != int((slow_t[i] + dt) * 3.0):
-			game.fx_burst(pos[i] + Vector3(0, 0.15, 0), Color(0.85, 0.72, 0.5), 0.45)
+		# a slowed creature kicks up dust at its feet (pass 150: not after a bite, _bite_slowed)
+		if _bite_slowed.is_empty() or not _bite_slowed.has(i):
+			if game and int(slow_t[i] * 3.0) != int((slow_t[i] + dt) * 3.0):
+				game.fx_burst(pos[i] + Vector3(0, 0.15, 0), Color(0.85, 0.72, 0.5), 0.45)
+		elif slow_t[i] <= 0.0:
+			_bite_slowed.erase(i)
 	if mark_t[i] > 0.0:
 		mark_t[i] -= dt
 		# the brand glows while the mark lasts

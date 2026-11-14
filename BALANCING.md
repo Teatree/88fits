@@ -11526,3 +11526,65 @@ Level Editor remakes `<id>_icon_evolved.png` whenever a passive item's icon chan
 job; the old one backed up), unless the item's JSON names its own `icon_evolved`; the Items tab shows it with "Remake
 Evolved icon from the icon".
 
+
+## 94. Pass 150: power-ups a quarter rarer, the Ghost Pepper's price in red, the slow after a bite, Endless windows, row variations
+
+**94.POWERUP.** Garry: "Reduce likelihood of Power-ups drops everywhere by 25%". Every chance a power-up comes, x0.75:
+the map's per-kill roll `pickups.per_kill` 0.0045 -> **0.003375** (every creature's kill; the creature's own
+`pickup_chance_mult`, the Pocket Watch and the Salt's luck multiply it as before); the Power-up barrel's share of the
+barrels `barrels.powerup.weight` 0.132 -> **0.099** (its 0.033 to the other two by their weights: EXP 0.648 -> 0.6726, Coins
+0.22 -> 0.2284; a Power-up barrel still always throws one); the Hammer Giant's own Rage drop `drops.pickup.chance` 0.12 ->
+**0.09**. A perk that makes its own power-up (the Supply Drop, Pip's Timeout) and the drop items (the Cake's slices,
+Pickpocket's bags) are not drops and are unchanged.
+
+**94.PEPPER.** Garry: "Red text for chilly pepper ... It's still not red." The card wrote the Ghost Pepper's price from
+its JSON words ("Trade: −5% max HP."), and 93.RED only knew phrases the stat writer had produced in that session, so a
+first card showed it in yellow. Now every passive item's `trade` is a phrase that makes a stat worse (TextGen._note_trades,
+once): its number is red on the cards, the pause screen and the Collection from the first time (Ghost Pepper, Bloodthirst,
+Bristle, Cactus Hide, ...).
+
+**94.BITE.** Garry: "fast enemies ... after they attack they don't slow down and instead keep damaging the Player
+outlaw ... I'd prefer it if they slow down by 25% for just a second". After a bite lands (EnemyManager._tick_bite) the
+creature walks **25% slower for 1 s** (map `bite_slow` {frac 0.25, seconds 1.0}; frac 0 = off). Not a boss's bite, not a
+charge that connects. A slow at least as strong already on is left alone (a pin stays a pin, its time unchanged); a
+weaker one becomes 25% for the longer of the two times. Ducktape does not stretch it; it kicks up no dust. A creature in
+contact bites again on its own cooldown (0.6 s by default), so one that keeps up keeps being slowed; the 1 s lets the
+Outlaw step out of a fast creature's reach.
+
+**94.VARIATION.** Garry: "add ability to add tabs at the top. Each tab represents a variation of the enemies that this
+node will spawn. Each tab shows the % probability of that variations spawning ... From and Until ... (inherited) from the
+original". A row's `variations` (docs/waves_schema.md "Pass 150"): each a full copy of the row's keys with its `percent`;
+the original takes what is left of 100. **One roll a spawn decision**: each pack the draw (or the floor) takes from the
+row, each wave of a waves or once row (the whole wave, what it still owes too), each elite wave. **The row's clock is
+shared** (From, Until, Pace, Every, Offset, Interval, Presence, Chance, Jitter, Trickle, Channel, From/Until cycle):
+a variation changes what comes (creature, look, count, pack, pattern, ring, elite, special, stats, banner, relocation),
+never when. Its numbers are fixed apart from the original's. A row without variations rolls nothing (the spawn dice
+unchanged for every row Garry wrote before).
+
+**94.ENDLESS.** Garry: "I'd want the Endless Mode to really feel endless, different enemies (randomized), some colour
+variation, Elites, Specials, Elitted normal enemies ... similar type of Controls as the Boss Fights has". Each stage's
+`endless_window` (EndlessWindow.gd: BossFightWindow's rules on Endless's clock) plays from Endless's first second instead
+of the old waves and fill; the growth step every 10 s, the XP share, the rare coins, the knock resistance and the
+poster's slower growth are unchanged (the creatures' numbers: the stage's end x the growth step, afresh every 10 s, the
+window's coloured Elite arrivals too). New keys: `max_count_growth` (bodies a cycle), `from_cycle` / `until_cycle` on a
+window row (a boss fight's too). The four windows (tools/dl/p150/ENDLESS/make_endless.py; rows `ew<stage>-..`):
+
+- **One 120 s cycle**, looping; every row's numbers are the stage's last minutes' (its late rows' stats mirrored).
+- **Cycle 1 only:** the first wave at 0:00, a ring of the stage's signature creature on top of Max count (Sundown 50
+  werewolves, Nightfall 60 goblins, the Dust Bowl 50 scarecrows, Blood Moon 40 red werewolves; a 30% tab another creature).
+- **Every cycle:** a horde wave every 10 s (12-18 of the staple, filling to Max count; a 30% tab the second staple), two
+  continuous hordes in two chapters (0:00-1:05, 0:55-2:00) and a staple all cycle, a ring at 0:08 and at 1:35 (on top of
+  Max count), a ranged row every 15-25 s, a forced special at 0:45 (its chest; tabs: three creatures), coloured Elite
+  arrivals at 0:30 and 1:30 (one creature of the window's mix, a random modifier, its elite format), a Monk squad at
+  1:05-1:10, tanks from 1:20 (giants, mummies, toads), a beetle charge at 1:48.
+- **From cycle 2:** a crowned Elite at 0:50 (Scorpion, Prophet or Golem at the stage's elite-event HP: 1.0 / 0.8 / 0.75 /
+  0.407), an elite-modded wave every 40 s from 0:20 (3-4 of a staple), a sharpshooter at 1:52 (Saiga Sniper, Vulture
+  Raider or Harpooner); Blood Moon also a shielded Cyclopean Mummy at 1:20.
+- **From cycle 3:** a third ring at 0:40 (a 25-30% tab of it all Speedy).
+- **Colour:** tabs of another played look (RG-C, CC-D, SK-F, KN-D, BB-E/BB-F, DB-D, BD-B, MK-B/MK-C, HG-E, DM-J, LS-B, ANT-E)
+  or a tint (red, gold, night blue, dust, violet); **elite-modded packs** as 5-6% tabs of the hordes (2 a pack).
+- **Max count** Sundown 150 (+25 a cycle), Nightfall 120 (+20), the Dust Bowl 120 (+20), Blood Moon 160 (+25), never past
+  the hard cap; the pool of 320 holds.
+
+Every elite-modded creature drops its chest as before, so Endless gives a few more chests than the old Endless (which
+had no Elites): measured below. Coins stay at the old rule (`coin_chance` 0.05 of the usual roll).

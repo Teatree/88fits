@@ -317,11 +317,13 @@ const Timeline = (() => {
     const sel = App.S.sel;
     // pass 110 (lane BOSS): a boss fight window or its row: its section opened, its stage's panel in view (the stage tab
     // switched to the window's stage when another stage's tab is open)
-    if (sel && (sel.kind === 'bossrow' || sel.kind === 'bossfight')) {
+    // pass 150 (lane EDITOR): an Endless window or its row the same way
+    const winSec = sel && (sel.kind === 'bossrow' || sel.kind === 'bossfight') ? 'bossfight' : sel && (sel.kind === 'endlessrow' || sel.kind === 'endless') ? 'endless' : null;
+    if (winSec) {
       const vs = App.viewStage();
       if (vs != null && vs !== sel.s) { App.setStageView(sel.s); fit(); }
-      if (isCollapsed('bossfight')) { delete secState.bossfight; saveSecState(); render(); }
-      const panel = root ? root.querySelector(`[data-bf-stage="${sel.s}"]`) : null;
+      if (isCollapsed(winSec)) { delete secState[winSec]; saveSecState(); render(); }
+      const panel = root ? root.querySelector(`[data-${winSec === 'endless' ? 'en' : 'bf'}-stage="${sel.s}"]`) : null;
       if (panel && panel.scrollIntoView) panel.scrollIntoView({ block: 'nearest' });
       return;
     }
@@ -398,6 +400,10 @@ const Timeline = (() => {
     // pass 110 (lane BOSS): the boss fight windows
     if (open('bossfight') && bfHost && typeof BossFights !== 'undefined') {
       try { BossFights.render(bfHost); } catch (e) { console.error('boss fights', e); }
+    }
+    // pass 150 (lane EDITOR): the Endless windows
+    if (open('endless') && enHost && typeof EndlessWindows !== 'undefined') {
+      try { EndlessWindows.render(enHost); } catch (e) { console.error('endless windows', e); }
     }
     if (open('events')) { renderEvents(w); renderSpecials(w); renderPaths(w); }
     if (open('curves')) {
@@ -587,8 +593,14 @@ const Timeline = (() => {
       bfHost = el('div', { class: 'tl-strip tl-bossfights', 'data-bossfights': '1' });
       s.body.appendChild(bfHost);
     }
+    // pass 150 (lane EDITOR): each stage's Endless window on the Endless clock (boss_fights.js's EndlessWindows)
+    if (id === 'endless') {
+      enHost = el('div', { class: 'tl-strip tl-bossfights tl-endless', 'data-endless': '1' });
+      s.body.appendChild(enHost);
+    }
   }
   let bfHost = null;
+  let enHost = null;
 
   /** "lifetimes from the Sim": the estimate lets each creature the shown Sim measured live its measured seconds (lane
    *  SPAWN's opts.life) instead of the kill rate (pass 84). */
@@ -615,6 +627,26 @@ const Timeline = (() => {
     if (!todo.length) { App.toast('Every row has a role already'); return; }
     App.apply((tl) => { for (const x of todo) tl.roster[x.i].role = x.role; });
     App.toast(`Gave ${todo.length} row${todo.length === 1 ? '' : 's'} a role (Ctrl+Z undoes)`, { undo: true });
+  }
+
+  /** Pass 150 (lane EDITOR): a row's variation chip ("⧉ 2": its tabs beside the Original) and its tooltip: each tab's %
+   *  and what it brings (creature, look, elite, special). */
+  function variationChipText(r) { return `⧉ ${Model.variationList(r).length}`; }
+  function variationTip(r) {
+    const pct = Model.variationPercents(r);
+    const lines = [`${Model.variationList(r).length} variation${Model.variationList(r).length === 1 ? '' : 's'}: each spawn of this row rolls one tab (its timing stays the Original's)`];
+    pct.forEach((p, j) => {
+      const m = Model.variationRow(r, j);
+      if (!m) return;
+      const bits = [enemyWords(m)];
+      if (m.variant) bits.push(`look ${m.variant}`);
+      if (m.elite != null && m.elite !== '') bits.push(`★ ${m.elite === 'random' ? 'elite' : m.elite}`);
+      if (m.special === true) bits.push('◆ special');
+      if (m.count != null && Model.rowPaced(m)) bits.push(`${m.count} a wave`);
+      if (m.stats && Object.keys(m.stats).length) bits.push('overrides');
+      lines.push(`${j === 0 ? 'Original' : `Variation ${j}`} ${fmtN(p, 1)}%: ${bits.join(' · ')}`);
+    });
+    return lines.join('\n');
   }
 
   /** The first creature a row names ('' for the roster draw). */
@@ -688,6 +720,7 @@ const Timeline = (() => {
       }
       if (id === 'warnings') { const ws = warningsOf(); return ws.length ? `${ws.length} found: ${ws.slice(0, 2).map((x) => x.short || x.text).join(' · ')}${ws.length > 2 ? ' …' : ''}` : 'nothing found'; }
       if (id === 'bossfight' && typeof BossFights !== 'undefined') return BossFights.summary();
+      if (id === 'endless' && typeof EndlessWindows !== 'undefined') return EndlessWindows.summary();
     } catch (e) { console.error('section summary', id, e); }
     return '';
   }
@@ -1627,7 +1660,11 @@ const Timeline = (() => {
       s.appendChild(svg('rect', { x: x(be), y: 0, width: Math.max(0, x(pe) - x(be)), height: 20, class: 'band portal-band' }));
       s.appendChild(svg('text', { x: x(be) + 6, y: 14, class: 'band-text', text: `portal ${fmtT(App.portalSeconds())}` }, svg('title', {}, 'after the boss: the portal opens with a timer and only EXTRACT; when it runs out, Endless starts')));
       s.appendChild(svg('rect', { x: x(pe), y: 0, width: Math.max(0, x(end) - x(pe)) + 60, height: 20, class: 'band endless' }));
-      s.appendChild(svg('text', { x: x(pe) + 6, y: 14, class: 'band-text', text: `Endless: ${Model.endlessWaveSize(App.tl(), 1, vs)} at once, then a wave every ${fmtN(Model.endlessValue(App.tl(), 'every', vs), 0)} s, each tougher` }));
+      // pass 150 (lane EDITOR): a stage with an Endless window plays its rows (the Endless section below)
+      const ew = Model.windowOn(App.tl(), vs, 'endless') ? Model.windowBlock(App.tl(), vs, 'endless') : null;
+      s.appendChild(svg('text', { x: x(pe) + 6, y: 14, class: 'band-text', text: ew
+        ? `Endless: its window's ${Model.bossFightRows(ew).length} rows, a ${fmtT(Model.windowLen(ew, 'endless'))} cycle, each step tougher (the Endless section)`
+        : `Endless: ${Model.endlessWaveSize(App.tl(), 1, vs)} at once, then a wave every ${fmtN(Model.endlessValue(App.tl(), 'every', vs), 0)} s, each tougher` }));
     }
     const step = tickStep();
     // a stage tab ticks the stage run's own clock (0:00 at its window's start); All, the map's
@@ -2424,6 +2461,8 @@ const Timeline = (() => {
       const tr = Model.tintRange(r.stats && r.stats.tint);
       if (tr) chips.push({ hue: tr, cls: 'chip-hue', title: `coloured ${Math.round(tr.h0)}°–${Math.round(tr.h1)}° at ${Math.round(tr.amount * 100)}%` });
       if (r.stats && Object.keys(r.stats).length) chips.push({ glyph: 'wrench', cls: 'chip-wrench' });
+      // pass 150 (lane EDITOR): its variation tabs
+      if (Model.hasVariations(r)) chips.push({ text: variationChipText(r), cls: 'chip-vars', title: variationTip(r) });
       for (const ch of chips) tx = chip(inner, tx, y0 + 2, ch);
       // pass 81 (lane PACE): the yellow etches along the bar's foot, when its creatures come
       rowEtches(inner, r, t, tEnd, y0 + bh);
@@ -3710,6 +3749,8 @@ const Timeline = (() => {
     // pass 84 (lane TIMELINE): the cursor's last second (split at cursor), the sections, the Sim overlay, the warnings
     get cursorT() { return lastCursorT; }, isCollapsed, setCollapsed, setAll, loadSimList, warningsOf, get view() { return view; }, get sim() { return simOv; },
     rowSpawnsPerSecond, firstEnemy, enemyWords, startNumbers,
+    // pass 150 (lane EDITOR): a row's variation chip and tooltip
+    variationChipText, variationTip,
     // pass 85 (lane TOOLS): the right-button pan of the Spawn rows
     panTo, get panning() { return !!pan; } };
 })();

@@ -1180,7 +1180,9 @@ const Model = (() => {
     // every roster row with its creature, in the timeline's order (the game reads them in that order); `key` names it in
     // the per-source tallies (pass 58: the Actual HP x / ATK x lanes weigh each row by what it spawned)
     const roster = [];
-    (Array.isArray(tl.roster) ? tl.roster : []).forEach((r, ri) => {
+    // pass 150 (lane EDITOR): a row with variations plays as one row per tab, each its share (expandVariations), every one
+    // under its parent's key
+    expandVariations(tl.roster).forEach(({ r, i: ri }) => {
       if (!isObj(r)) return;
       // pass 84 (lane SPAWN): a list row's creatures by their enemy_weights shares (defOf each); a "roster" row draws
       // from the mix rows live at the moment (rowPicks), so it has no def of its own
@@ -2413,99 +2415,406 @@ const Model = (() => {
     for (const o of open) if (o.drawn) o.norm = o.w / total;
     return open;
   }
-  /** Every id the windows' rows use (a Set). */
+  /** Every id the windows' rows use (a Set): the boss fight windows' and, pass 150, the Endless windows'. */
   function bossRowIds(tl) {
     const used = new Set();
     for (const w of hasStageList(tl) ? stageList(tl) : []) {
-      for (const r of bossFightRows(w.entry && w.entry.boss_fight)) if (isObj(r) && typeof r.id === 'string' && r.id !== '') used.add(r.id);
+      for (const kind of WINDOW_KIND_IDS) {
+        for (const r of bossFightRows(w.entry && w.entry[WINDOW_KINDS[kind].key])) if (isObj(r) && typeof r.id === 'string' && r.id !== '') used.add(r.id);
+      }
     }
     return used;
   }
-  /** A fresh id for a window row of stage s: "bf<stage>-<n>", used by no window row and no roster row. */
-  function newBossRowId(tl, s) {
+  /** A fresh id for a window row of stage s: "bf<stage>-<n>" (pass 150: "en<stage>-<n>" for an Endless window), used by
+   *  no window row and no roster row. */
+  function newBossRowId(tl, s, kind) {
     const used = bossRowIds(tl);
     for (const r of Array.isArray(tl && tl.roster) ? tl.roster : []) if (isObj(r) && typeof r.id === 'string') used.add(r.id);
-    const pre = `bf${Math.max(0, Math.floor(num(s, 0))) + 1}-`;
+    const pre = `${windowKind(kind).idPre}${Math.max(0, Math.floor(num(s, 0))) + 1}-`;
     let n = 1;
     while (used.has(pre + n)) n++;
     return pre + n;
   }
 
-  /** The windows' own checks (a row's common checks, the creature, its pacing, its overrides, are the page's: app.js runs
-   *  every window row through the roster row's): [{key ('bossfight:<s>' | 'bossrow:<s>:<i>'), level, msg}]. */
-  function bossFightChecks(tl) {
+  // ------------------------------------------------------------------ pass 150 (lane EDITOR): Endless windows
+  //
+  // Garry (2026-11-14): "For Endless Mode specifically I want similar type of Controls as the Boss Fights has. Add another
+  // section underneath 'Boss fights' and allow for adding enemy rows there as many as I like." A stage's Endless window is
+  // its stage_list entry's `endless_window` block {enabled (default on), length (seconds of one cycle, 180), max_count (the
+  // most bodies alive, 100; -1 = the hard cap only), max_count_growth (bodies added to max_count each later cycle, 0; never
+  // past the hard cap), roster (rows on Endless's own clock: 0:00 = the portal closes and Endless starts)}. It plays from
+  // the moment Endless starts instead of the old Endless waves and fill (first_wave, wave_size, wave_growth, cap and
+  // roster_window are unused while it is on); every other `endless` number still applies. Its rows follow the boss fight
+  // window's rules exactly (BossFightWindow.gd), and a window row (boss or Endless) may carry from_cycle (1-based, default
+  // 1) and until_cycle (inclusive, none = forever). The game's rule: the lead's EndlessWindow (docs/waves_schema.md
+  // "Pass 150").
+
+  /** A new Endless window's numbers (the game's defaults for a block that leaves one out). */
+  const ENDLESS_WINDOW_DEF = { length: 180, max_count: 100, max_count_growth: 0 };
+  /** The keys of an endless_window block. */
+  const ENDLESS_WINDOW_KEYS = ['enabled', 'length', 'max_count', 'max_count_growth', 'roster'];
+  /** The two kinds of window: their block key on a stage_list entry, their defaults, their selection kinds and issue keys,
+   *  their new rows' id prefix and their words. */
+  const WINDOW_KINDS = {
+    boss: { kind: 'boss', key: 'boss_fight', def: BOSS_FIGHT_DEF, sel: 'bossfight', rowSel: 'bossrow', idPre: 'bf', name: 'boss fight window', clock: 'the fight clock', bodyOfBoss: 1, cycles: 2 },
+    endless: { kind: 'endless', key: 'endless_window', def: ENDLESS_WINDOW_DEF, sel: 'endless', rowSel: 'endlessrow', idPre: 'en', name: 'Endless window', clock: 'the Endless clock', bodyOfBoss: 0, cycles: 3 },
+  };
+  const WINDOW_KIND_IDS = ['boss', 'endless'];
+  /** A kind's record ('boss' when the name is unknown or missing). */
+  const windowKind = (kind) => WINDOW_KINDS[kind] || WINDOW_KINDS.boss;
+  /** Stage s's window of a kind as the file has it (on or off), null when it has none. */
+  function windowBlock(tl, s, kind) {
+    const e = bossFightEntry(tl, s);
+    const K = windowKind(kind);
+    return e && isObj(e[K.key]) ? e[K.key] : null;
+  }
+  /** Whether stage s's window of a kind plays (a block not switched off). */
+  const windowOn = (tl, s, kind) => { const b = windowBlock(tl, s, kind); return !!b && b.enabled !== false; };
+  /** A block's cycle in seconds (its `length`, else the kind's default, at least 1). */
+  const windowLen = (b, kind) => Math.max(num(isObj(b) ? b.length : null, windowKind(kind).def.length), 1);
+  /** A block's Max count in bodies (else the kind's default; -1 = no limit but the hard cap). */
+  const windowMax = (b, kind) => Math.trunc(num(isObj(b) ? b.max_count : null, windowKind(kind).def.max_count));
+  /** An Endless block's growth: bodies added to Max count each later cycle (0 for a boss fight window). */
+  const windowGrowth = (b, kind) => (windowKind(kind).kind === 'endless' ? Math.max(num(isObj(b) ? b.max_count_growth : null, 0), 0) : 0);
+  /** Max count in cycle `c` (0-based): max_count + growth x c, never past the hard cap; -1 stays -1. */
+  function windowMaxAt(b, kind, c, hard) {
+    const m = windowMax(b, kind);
+    if (m < 0) return -1;
+    const h = num(hard, Infinity) > 0 ? num(hard, Infinity) : Infinity;
+    return Math.min(m + Math.floor(windowGrowth(b, kind) * Math.max(Math.floor(num(c, 0)), 0)), h);
+  }
+  /** A new window: the kind's defaults and no rows. */
+  function newWindow(kind) {
+    if (windowKind(kind).kind === 'boss') return newBossFight();
+    return { length: ENDLESS_WINDOW_DEF.length, max_count: ENDLESS_WINDOW_DEF.max_count, max_count_growth: ENDLESS_WINDOW_DEF.max_count_growth, roster: [] };
+  }
+  /** Where a window row stops on its clock: its until, else the cycle's end; never past the cycle's end. */
+  function windowRowEnd(b, r, kind) {
+    const len = windowLen(b, kind);
+    const u = r && r.until != null && r.until !== '' ? num(r.until, len) : len;
+    return Math.min(u, len);
+  }
+  /** A window row's cycles: {from (1-based), until (inclusive, Infinity = forever)}. */
+  function rowCycles(r) {
+    const from = Math.max(Math.trunc(num(r && r.from_cycle, 1)), 1);
+    const until = r && r.until_cycle != null && r.until_cycle !== '' ? Math.trunc(num(r.until_cycle, Infinity)) : Infinity;
+    return { from, until };
+  }
+  /** Whether a window row is open in cycle `cycle` (1-based) by its from_cycle / until_cycle. */
+  function rowInCycle(r, cycle) {
+    const c = rowCycles(r);
+    const k = Math.max(Math.trunc(num(cycle, 1)), 1);
+    return k >= c.from && k <= c.until;
+  }
+  /** The window's rows open at second `ct` of a cycle, as bossFightRowsAt gives them; `cycle` (1-based, optional) leaves
+   *  out the rows its from_cycle / until_cycle close. */
+  function windowRowsAt(b, ct, lateT, kind, cycle) {
+    const len = windowLen(b, kind);
+    const open = [];
+    bossFightRows(b).forEach((r, i) => {
+      if (!isObj(r)) return;
+      if (cycle != null && !rowInCycle(r, cycle)) return;
+      const start = num(r.t, 0), until = r.until == null || r.until === '' ? Infinity : num(r.until, Infinity);
+      if (ct >= start && ct < until && ct < len) open.push({ row: r, i, w: rowWeight(r, ct, lateT), paced: rowPaced(r), drawn: rowDrawn(r), hell: false, norm: 0 });
+    });
+    const total = open.filter((o) => o.drawn).reduce((a, o) => a + o.w, 0) || 1;
+    for (const o of open) if (o.drawn) o.norm = o.w / total;
+    return open;
+  }
+
+  /** The windows' own checks of a kind (a row's common checks, the creature, its pacing, its overrides, are the page's:
+   *  app.js runs every window row through the roster row's): [{key ('bossfight:<s>' | 'bossrow:<s>:<i>', pass 150
+   *  'endless:<s>' | 'endlessrow:<s>:<i>'), level, msg}]. */
+  function windowChecks(tl, kind) {
+    const K = windowKind(kind);
+    const endless = K.kind === 'endless';
     const out = [];
     if (!hasStageList(tl)) return out;
     const hardN = num(tl.hard_cap, Infinity);
     const hard = hardN > 0 ? hardN : Infinity;
     const ids = new Map();
+    const where = endless ? 'in Endless' : 'in the fight';
     for (const w of stageList(tl)) {
       const e = w.entry;
-      if (!e || e.boss_fight == null) continue;
-      const s = w.i, key = `bossfight:${s}`, b = e.boss_fight;
+      if (!e || e[K.key] == null) continue;
+      const s = w.i, key = `${K.sel}:${s}`, b = e[K.key];
       const push = (k, level, msg) => out.push({ key: k, level, msg });
-      if (!isObj(b)) { push(key, 'error', 'boss_fight must be a block {enabled, length, max_count, roster}'); continue; }
+      if (!isObj(b)) { push(key, 'error', `${K.key} must be a block {enabled, length, max_count, ${endless ? 'max_count_growth, ' : ''}roster}`); continue; }
       if (b.enabled != null && typeof b.enabled !== 'boolean') push(key, 'error', 'On is on or off (enabled true / false)');
       if (b.length != null && !(typeof b.length === 'number' && isFinite(b.length) && b.length >= 1)) push(key, 'error', `the cycle's length is a number of seconds, at least 1 (got ${JSON.stringify(b.length)})`);
       if (b.max_count != null && !(typeof b.max_count === 'number' && Number.isInteger(b.max_count) && b.max_count >= -1)) push(key, 'error', `Max count is a whole number of creatures, -1 for no limit but the hard cap (got ${JSON.stringify(b.max_count)})`);
-      else if (bossFightMax(b) === 0) push(key, 'warn', 'Max count 0: only rows with Respect the cap off spawn in the fight');
-      else if (bossFightMax(b) > hard) push(key, 'warn', `Max count ${bossFightMax(b)} is above the hard cap (${hard} bodies): the hard cap binds first`);
+      else if (windowMax(b, kind) === 0 && !(endless && windowGrowth(b, kind) > 0)) push(key, 'warn', `Max count 0: only rows with Respect the cap off spawn ${where}`);
+      else if (windowMax(b, kind) > hard) push(key, 'warn', `Max count ${windowMax(b, kind)} is above the hard cap (${hard} bodies): the hard cap binds first`);
+      if (endless && b.max_count_growth != null && !(typeof b.max_count_growth === 'number' && isFinite(b.max_count_growth) && b.max_count_growth >= 0)) push(key, 'error', `Growth / cycle is a number of bodies, 0 or more (got ${JSON.stringify(b.max_count_growth)})`);
+      if (!endless && b.max_count_growth != null) push(key, 'warn', 'Growth / cycle (max_count_growth) means nothing in a boss fight window: only an Endless window grows');
       if (b.roster != null && !Array.isArray(b.roster)) { push(key, 'error', 'the window\'s rows must be a list'); continue; }
-      const len = bossFightLen(b);
+      const len = windowLen(b, kind);
       const rows = bossFightRows(b);
-      if (b.enabled !== false && !rows.length) push(key, 'warn', 'no rows: nothing spawns in the fight but the boss\'s own summons (+ Row adds one)');
+      if (b.enabled !== false && !rows.length) push(key, 'warn', endless ? 'no rows: nothing spawns in Endless (+ Row adds one; switch the window off for the old Endless waves)' : 'no rows: nothing spawns in the fight but the boss\'s own summons (+ Row adds one)');
       rows.forEach((r, i) => {
-        const rk = `bossrow:${s}:${i}`;
+        const rk = `${K.rowSel}:${s}:${i}`;
         if (!isObj(r)) { push(rk, 'error', 'a row must be a block {t, enemy, ...}'); return; }
         const t = num(r.t, 0);
         if (t >= len) push(rk, 'warn', `it starts at ${clockText(t)}, at or after the cycle's end (${clockText(len)}): it never spawns`);
         if (r.until != null && r.until !== '' && num(r.until, 0) > len + 1e-9) push(rk, 'warn', `until (${clockText(num(r.until, 0))}) is past the cycle's end (${clockText(len)}): the row stops there and starts again with the next cycle`);
         if (Array.isArray(r.weights) && r.weights.some((p) => Array.isArray(p) && (num(p[0], 0) < 0 || num(p[0], 0) > len + 1e-9))) push(rk, 'warn', `a presence point outside the cycle (0:00–${clockText(len)}): only the line inside the cycle counts`);
-        if (r.channel != null && r.channel !== '' && r.channel !== 'regular') push(rk, 'warn', `Channel (${r.channel}) means nothing in a boss fight window: every row counts against its Max count`);
+        if (r.channel != null && r.channel !== '' && r.channel !== 'regular') push(rk, 'warn', `Channel (${r.channel}) means nothing in ${endless ? 'an Endless' : 'a boss fight'} window: every row counts against its Max count`);
+        for (const m of cycleKeyIssues(r)) push(rk, m.level, m.msg);
         if (typeof r.id === 'string' && r.id !== '') {
-          if (ids.has(r.id)) push(rk, 'error', `the row id "${r.id}" is used twice in the boss fight windows`);
+          if (ids.has(r.id)) push(rk, 'error', `the row id "${r.id}" is used twice in the ${endless ? 'Endless' : 'boss fight'} windows`);
           else ids.set(r.id, rk);
         }
       });
     }
     return out;
   }
+  /** The windows' own checks of the boss fight windows (pass 110). */
+  const bossFightChecks = (tl) => windowChecks(tl, 'boss');
+  /** A window row's from_cycle / until_cycle checks: [{level, msg}]. */
+  function cycleKeyIssues(r) {
+    const out = [];
+    if (!isObj(r)) return out;
+    const isInt = (v) => typeof v === 'number' && Number.isInteger(v);
+    if (r.from_cycle != null && r.from_cycle !== '' && !(isInt(r.from_cycle) && r.from_cycle >= 1)) out.push({ level: 'error', msg: `From cycle is a whole number, 1 or more (got ${JSON.stringify(r.from_cycle)})` });
+    if (r.until_cycle != null && r.until_cycle !== '') {
+      if (!(isInt(r.until_cycle) && r.until_cycle >= 1)) out.push({ level: 'error', msg: `Until cycle is a whole number, 1 or more (got ${JSON.stringify(r.until_cycle)})` });
+      else if (r.until_cycle < rowCycles(r).from) out.push({ level: 'warn', msg: `Until cycle ${r.until_cycle} is before From cycle ${rowCycles(r).from}: the row never spawns` });
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------------ pass 150 (lane EDITOR): row variations
+  //
+  // Garry (2026-11-14): "add ability to add tabs at the top. Each tab represents a variation of the enemies that this
+  // node will spawn. Each tab shows the % probability of that variations spawning. Each tab, when created by default has
+  // 50% probability and the From and Until numbers marked yellow as they are (inherited) from the original, meaning if I
+  // change those it changes for all variations. All other parameters can be adjusted as User wants. When creating a new
+  // tab it always copies all data from the original. Tabs can be removed, Original cannot." A spawn row (the roster's, a
+  // boss fight window's, an Endless window's) may carry `variations`: [{percent, ...a full copy of the row's own keys}].
+  // A variation stores no SHARED key: those are always the original's (its timing: from, until, pacing, presence, the
+  // row's dice and channel, its cycles). The original's share is 100 - the variations' percents (each at least 0); past
+  // 100 the variations are scaled to 100 and the original gets 0. The game rolls once per spawn decision (each pack the
+  // draw or the floor takes, each wave with what it still owes, each elite-row wave) and spawns the drawn tab's merged row:
+  // the variation's keys plus the original's SHARED ones (WaveTimeline.VARIATION_SHARED, the same list).
+
+  /** The keys a variation never holds: the original's, for every tab. */
+  const VARIATION_SHARED = ['id', 't', 'until', 'pace', 'every', 'offset', 'interval', 'weights', 'chance', 't_jitter', 'trickle', 'channel', 'from_cycle', 'until_cycle', 'variations', 'percent'];
+  const VARIATION_SHARED_SET = new Set(VARIATION_SHARED);
+  /** The shared keys the form shows in a variation's tab (marked as the original's): every shared key but the bookkeeping. */
+  const VARIATION_FORM_SHARED = VARIATION_SHARED.filter((k) => k !== 'variations' && k !== 'percent' && k !== 'id');
+  /** A row's variations as the file has them ([] without). */
+  const variationList = (r) => (isObj(r) && Array.isArray(r.variations) ? r.variations : []);
+  /** Whether a row has a variation. */
+  const hasVariations = (r) => variationList(r).length > 0;
+  /** Each tab's share in percent, the original first: [original, v1, v2, ...] (sums to 100). */
+  function variationPercents(r) {
+    const vs = variationList(r).map((v) => (isObj(v) ? Math.max(num(v.percent, 0), 0) : 0));
+    const sum = vs.reduce((a, p) => a + p, 0);
+    if (sum > 100) return [0].concat(vs.map((p) => (p * 100) / sum));
+    return [100 - sum].concat(vs);
+  }
+  /** Tab j's row as it plays: j = 0 the row itself; j >= 1 variation j's keys (a copy, without percent) with the
+   *  original's SHARED keys (left out where the original has none); null for a tab that is not there. */
+  function variationRow(r, j) {
+    if (!isObj(r)) return null;
+    const k = Math.trunc(num(j, 0));
+    if (k <= 0) return r;
+    const v = variationList(r)[k - 1];
+    if (!isObj(v)) return null;
+    const m = deep(v);
+    for (const key of VARIATION_SHARED) {
+      if (key === 'variations' || key === 'percent') { delete m[key]; continue; }
+      if (Object.prototype.hasOwnProperty.call(r, key) && r[key] !== undefined) m[key] = deep(r[key]); else delete m[key];
+    }
+    return m;
+  }
+  /** A new tab's variation: a copy of the original's own keys (no shared key), `percent` first (0 until it is set). */
+  function newVariation(r) {
+    const v = { percent: 0 };
+    if (!isObj(r)) return v;
+    for (const k of Object.keys(r)) if (!VARIATION_SHARED_SET.has(k) && r[k] !== undefined) v[k] = deep(r[k]);
+    return v;
+  }
+  const round1 = (x) => Math.round(x * 10) / 10;
+  /** Tab `tab`'s share set to `p` percent (0 = the original, k = variation k); the other tabs, the original among them,
+   *  are scaled together to fill the rest (all at 0: the original takes it, or the variations share it evenly when the
+   *  original is the tab set). Each variation's percent is stored to 0.1; the variations never add up past 100. */
+  function setVariationPercent(r, tab, p) {
+    const vl = variationList(r);
+    if (!vl.length) return;
+    const cur = variationPercents(r);
+    const n = cur.length;
+    const t = Math.max(0, Math.min(n - 1, Math.trunc(num(tab, 0))));
+    const target = clamp(num(p, 0), 0, 100);
+    const others = cur.map((x, k) => (k === t ? 0 : x));
+    const sumO = others.reduce((a, x) => a + x, 0);
+    const rest = 100 - target;
+    let next;
+    if (sumO > 1e-9) next = others.map((x) => (x * rest) / sumO);
+    else {
+      next = others.map(() => 0);
+      if (t !== 0) next[0] = rest;
+      else for (let k = 1; k < n; k++) next[k] = rest / (n - 1);
+    }
+    next[t] = target;
+    const vals = next.slice(1).map(round1);
+    let excess = round1(vals.reduce((a, x) => a + x, 0) - 100);
+    let guard = 0;
+    while (excess > 1e-9 && guard++ < 64) {
+      // take the rounding's excess off the largest variation that is not the tab being set (else off that one)
+      let big = -1;
+      for (let k = 0; k < vals.length; k++) if (k !== t - 1 && vals[k] > 0 && (big < 0 || vals[k] > vals[big])) big = k;
+      if (big < 0) big = Math.max(t - 1, 0);
+      const cut = Math.min(vals[big], excess);
+      if (!(cut > 0)) break;
+      vals[big] = round1(vals[big] - cut);
+      excess = round1(excess - cut);
+    }
+    vl.forEach((v, k) => { if (isObj(v)) v.percent = vals[k]; });
+  }
+  /** A new tab on row `r` (a copy of the original, 50%, the other tabs scaled to the other 50); returns its tab number. */
+  function addVariation(r) {
+    if (!isObj(r)) return 0;
+    const v = newVariation(r);
+    if (!Array.isArray(r.variations)) r.variations = [];
+    r.variations.push(v);
+    setVariationPercent(r, r.variations.length, 50);
+    return r.variations.length;
+  }
+  /** Tab `tab` (1-based: a variation) removed; its share goes back to the original. The original cannot be removed. */
+  function removeVariation(r, tab) {
+    const vl = variationList(r);
+    const k = Math.trunc(num(tab, 0)) - 1;
+    if (k < 0 || k >= vl.length) return false;
+    vl.splice(k, 1);
+    if (!vl.length) delete r.variations;
+    return true;
+  }
+  /** Variation `tab` (1-based) seen as a row by the row form: its own keys read and written on the variation, the shared
+   *  ones (From, Until, the pacing, the presence, the row's dice, channel and cycles) read and written on the original, so
+   *  an edit of them changes every tab. null for a tab that is not there. */
+  function variationView(r, tab) {
+    const v = variationList(r)[Math.trunc(num(tab, 0)) - 1];
+    if (!isObj(v)) return null;
+    const shared = (k) => typeof k === 'string' && VARIATION_SHARED_SET.has(k) && k !== 'percent' && k !== 'variations';
+    const hidden = (k) => k === 'percent' || k === 'variations';
+    const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+    return new Proxy(v, {
+      get(t, k) { if (k === '__variationOf') return r; if (k === '__variationTab') return Math.trunc(num(tab, 0)); if (hidden(k)) return undefined; return shared(k) ? r[k] : t[k]; },
+      set(t, k, val) { if (hidden(k)) return true; if (shared(k)) r[k] = val; else t[k] = val; return true; },
+      deleteProperty(t, k) { if (hidden(k)) return true; if (shared(k)) delete r[k]; else delete t[k]; return true; },
+      has(t, k) { if (hidden(k)) return false; return shared(k) ? k in r : k in t; },
+      ownKeys(t) {
+        const own = Reflect.ownKeys(t).filter((k) => !shared(k) && !hidden(k));
+        for (const k of VARIATION_SHARED) if (shared(k) && has(r, k) && r[k] !== undefined && !own.includes(k)) own.push(k);
+        return own;
+      },
+      getOwnPropertyDescriptor(t, k) {
+        if (hidden(k)) return undefined;
+        const src = shared(k) ? r : t;
+        if (!has(src, k)) return undefined;
+        return { value: src[k], writable: true, enumerable: true, configurable: true };
+      },
+    });
+  }
+  /** A row's variation checks: [{level, msg}] (each variation's merged row also gets a row's checks, app.js). */
+  function variationChecks(r) {
+    const out = [];
+    if (!isObj(r) || r.variations == null) return out;
+    if (!Array.isArray(r.variations)) { out.push({ level: 'error', msg: 'variations must be a list of tabs' }); return out; }
+    let sum = 0;
+    r.variations.forEach((v, k) => {
+      const n = `Variation ${k + 1}`;
+      if (!isObj(v)) { out.push({ level: 'error', msg: `${n} is not a block` }); return; }
+      if (v.percent == null || v.percent === '' || typeof v.percent !== 'number' || !isFinite(v.percent)) out.push({ level: 'error', msg: `${n}: its % is not a number` });
+      else if (v.percent < 0) out.push({ level: 'error', msg: `${n}: a negative % (${v.percent})` });
+      else sum += v.percent;
+      if (v.enemy == null || v.enemy === '' || (Array.isArray(v.enemy) && !v.enemy.length)) out.push({ level: 'error', msg: `${n} has no creature` });
+      const extra = Object.keys(v).filter((key) => VARIATION_SHARED_SET.has(key) && key !== 'percent');
+      if (extra.length) out.push({ level: 'warn', msg: `${n} holds ${extra.join(', ')}: those are the Original's for every tab (the game ignores them here; Save drops them)` });
+    });
+    if (sum > 100 + 1e-6) out.push({ level: 'warn', msg: `the variations add up to ${round1(sum)}% (over 100): the Original never comes and the variations are scaled to 100%` });
+    return out;
+  }
+  /** Save's tidy: a variation drops any shared key it was given by hand. */
+  function tidyVariations(r) {
+    for (const v of variationList(r)) if (isObj(v)) for (const k of VARIATION_SHARED) if (k !== 'percent' && k in v) delete v[k];
+  }
+  /** A tab's merged row with its share folded in, for the estimates: a paced row's chance x share (the estimates read
+   *  chance as an expected share of each wave), a drawn row's presence x share (its part of the draw); share 1 = the row
+   *  as it is. */
+  function scaleRowShare(m, share) {
+    if (!(share < 1 - 1e-12)) return m;
+    const c = Object.assign({}, m);
+    if (rowPaced(c)) c.chance = clamp(num(c.chance, 1), 0, 1) * share;
+    if (rowDrawn(c)) {
+      if (Array.isArray(c.weights)) c.weights = c.weights.map((p) => (Array.isArray(p) ? [p[0], num(p[1], 0) * share].concat(p.slice(2)) : p));
+      if (c.weight != null && c.weight !== '') c.weight = num(c.weight, 0) * share;
+      if (c.weight_late != null && c.weight_late !== '') c.weight_late = num(c.weight_late, 0) * share;
+    }
+    return c;
+  }
+  /** The rows the estimates play: each row as it is, or, with variations, one row per tab with a share above 0 (its
+   *  merged row with its share folded in, scaleRowShare); [{r, i (the parent's index), tab, share}]. */
+  function expandVariations(rows) {
+    const out = [];
+    (Array.isArray(rows) ? rows : []).forEach((r, i) => {
+      if (!isObj(r)) return;
+      if (!hasVariations(r)) { out.push({ r, i, tab: 0, share: 1 }); return; }
+      const pct = variationPercents(r);
+      pct.forEach((p, j) => {
+        if (!(p > 1e-9)) return;
+        const m = j === 0 ? Object.assign({}, r) : variationRow(r, j);
+        if (!m) return;
+        delete m.variations;
+        out.push({ r: scaleRowShare(m, p / 100), i, tab: j, share: p / 100 });
+      });
+    });
+    return out;
+  }
 
   /** The steps a second of the cycle estimate plays. */
   const BOSS_CYCLE_HZ = 10;
-  /** What stage s's window brings over `cycles` cycles (default 2), an estimate in expected numbers like the Spawned so
-   *  far lane's, played by the game's rules (BossFightWindow.gd) on the fight's clock from the boss's arrival: the hero
-   *  kills `turnover` of the crowd a second (default EST_DEF.turnover); the fight starts with only the boss alive (`start`
-   *  more bodies left over from the stage, default 0); the boss counts as a body against Max count. Each step: the waves
-   *  and once rows fall due (t + offset + k × every, the middle of a range; a presence of 0 holds a wave; a chance below 1
-   *  scales it), bring `count` cut to the hard cap, the creature's max_alive and (Respect the cap) the room under Max
-   *  count, at least one while there is any, the rest owed until the next wave; coloured-elite rows (elite without a
-   *  pattern) come on top; at each spawn check (every spawn_interval from the boss's arrival, or a row's own Draw every
-   *  from when it opens) the drawn rows bring a mean burst ((burst_min + burst_max) / 2 creatures) times their share of the
-   *  drawn rows' weight, cut to the room. At each new cycle every row starts afresh (what a wave owed is dropped). A
+  /** What stage s's window of a kind brings over `cycles` cycles (default 2 for a boss fight, 3 for Endless), an estimate
+   *  in expected numbers like the Spawned so far lane's, played by the game's rules (BossFightWindow.gd) on the window's
+   *  clock: the hero kills `turnover` of the crowd a second (default EST_DEF.turnover); the window starts with nothing
+   *  alive but the boss (`start` more bodies left over, default 0); a boss counts as a body against Max count (an Endless
+   *  window has none). Each step: the waves and once rows fall due (t + offset + k × every, the middle of a range; a
+   *  presence of 0 holds a wave; a chance below 1 scales it), bring `count` cut to the hard cap, the creature's max_alive
+   *  and (Respect the cap) the room under Max count, at least one while there is any, the rest owed until the next wave;
+   *  coloured-elite rows (elite without a pattern) come on top; at each spawn check (every spawn_interval, or a row's own
+   *  Draw every from when it opens) the drawn rows bring a mean burst ((burst_min + burst_max) / 2 creatures) times their
+   *  share of the drawn rows' weight, cut to the room. At each new cycle every row starts afresh (what a wave owed is
+   *  dropped), the rows its from_cycle / until_cycle close sit it out, and an Endless window's Max count grows by its
+   *  max_count_growth (pass 150). A row's variations play as one row per tab, each its share (expandVariations). A
    *  creature named by id must be in `byId` (the page's creature list) for its pack and max_alive; a list counts as its
-   *  first. {length, max, cycles, turnover, alive [bodies a second, the boss in], spawned [per cycle], peak, full (seconds
-   *  at Max count), rows [{i, id, enemy, pace, waves [per cycle], spawned [per cycle], perWave}]}; null without a window. */
-  function bossFightCycle(tl, s, byId, opts) {
-    const b = bossFight(tl, s);
+   *  first. {length, max, maxBy [per cycle], cycles, turnover, alive [bodies a second, the boss in], spawned [per cycle],
+   *  peak, full (seconds at Max count), rows [{i, id, enemy, pace, waves [per cycle], spawned [per cycle], perWave}] (one
+   *  per window row, its tabs summed)}; null without a window. */
+  function windowCycle(tl, s, byId, opts, kind) {
+    const K = windowKind(kind);
+    const b = windowBlock(tl, s, K.kind);
     if (!b) return null;
     const o = isObj(opts) ? opts : {};
     const by = isObj(byId) ? byId : {};
-    const len = bossFightLen(b), max = bossFightMax(b);
+    const len = windowLen(b, K.kind), max = windowMax(b, K.kind);
     const hardN = num(tl.hard_cap, 300);
     const hard = hardN > 0 ? hardN : 300;
+    const boss = K.bodyOfBoss;
     const si = num(tl.spawn_interval, 0.5) > 0 ? num(tl.spawn_interval, 0.5) : 0.5;
     const lo = Math.max(Math.trunc(num(tl.burst_min, 5)), 0), hi = Math.max(Math.trunc(num(tl.burst_max, 20)), lo);
     const burstMean = (lo + hi) / 2;
     const lateT = num(tl.weight_late_t, DEF.weight_late_t);
     const tv = Math.max(num(o.turnover, EST_DEF.turnover), 0);
-    const cycles = Math.max(1, Math.min(10, Math.trunc(num(o.cycles, 2))));
+    const cycles = Math.max(1, Math.min(10, Math.trunc(num(o.cycles, K.cycles))));
     const dt = 1 / BOSS_CYCLE_HZ;
     const steps = Math.round(cycles * len * BOSS_CYCLE_HZ);
     const checkSteps = Math.max(1, Math.round(si * BOSS_CYCLE_HZ));
+    const maxBy = [];
+    for (let c = 0; c < cycles; c++) maxBy.push(windowMaxAt(b, K.kind, c, hard));
     const rows = [];
-    bossFightRows(b).forEach((r, i) => {
-      if (!isObj(r)) return;
+    for (const xr of expandVariations(bossFightRows(b))) {
+      const r = xr.r, i = xr.i;
       const id = Array.isArray(r.enemy) ? String(r.enemy[0] || '') : r.enemy === ROW_ENEMY_ROSTER ? '' : String(r.enemy == null ? '' : r.enemy);
       const c = by[id] || null;
       const st = isObj(r.stats) ? r.stats : {};
@@ -2516,15 +2825,16 @@ const Model = (() => {
         own: rowHasInterval(r), ivSteps: rowHasInterval(r) ? Math.max(1, Math.round(rowDrawInterval(r, si) * BOSS_CYCLE_HZ)) : 0,
         perWave: rowWaveCount(r, c), wk: -1, owed: 0, next: null, left: 0, seen: false,
         waves: new Array(cycles).fill(0), spawned: new Array(cycles).fill(0) });
-    });
+    }
     let alive = Math.max(num(o.start, 0), 0);
     const aliveBy = {};
     const spawned = new Array(cycles).fill(0);
     const series = [];
-    let peak = 1 + alive, full = 0;
+    let peak = boss + alive, full = 0;
     let cyc = 0;
-    const room = () => (max < 0 ? Infinity : max - (alive + 1));
-    const hardRoom = () => hard - (alive + 1);
+    let maxNow = maxBy[0];
+    const room = () => (maxNow < 0 ? Infinity : maxNow - (alive + boss));
+    const hardRoom = () => hard - (alive + boss);
     const put = (x, n) => {
       if (!(n > 0)) return;
       alive += n;
@@ -2534,7 +2844,7 @@ const Model = (() => {
     };
     const owedSpawn = (x) => {
       let n = x.owed;
-      n = x.r.respect_hard_cap === false ? Math.min(n, Math.max(MAX_BODIES - alive - 1, 0)) : Math.min(n, Math.max(hardRoom(), 0));
+      n = x.r.respect_hard_cap === false ? Math.min(n, Math.max(MAX_BODIES - alive - boss, 0)) : Math.min(n, Math.max(hardRoom(), 0));
       if (x.maxAlive > 0) n = Math.min(n, Math.max(x.maxAlive - (aliveBy[x.id] || 0), 0));
       if (n > 0 && x.r.respect_cap !== false) {
         const rm = room();
@@ -2548,18 +2858,19 @@ const Model = (() => {
     for (let k = 0; k <= steps; k++) {
       const ft = k * dt;
       const c2 = Math.min(Math.floor(ft / len + 1e-9), cycles - 1);
-      if (k === steps) { series.push(alive + 1); break; }
+      if (k === steps) { series.push(alive + boss); break; }
       if (c2 !== cyc || k === 0) {
         cyc = c2;
+        maxNow = maxBy[cyc];
         for (const x of rows) { x.wk = -1; x.owed = 0; x.next = null; x.left = 0; x.seen = false; }
       }
       const ct = ft - cyc * len;
-      if (k % BOSS_CYCLE_HZ === 0) series.push(alive + 1);
+      if (k % BOSS_CYCLE_HZ === 0) series.push(alive + boss);
       // the hero's kills this step
       const f = Math.min(tv * dt, 1);
       alive *= 1 - f;
       for (const id of Object.keys(aliveBy)) aliveBy[id] *= 1 - f;
-      const isOpen = (x) => ct >= x.t && ct < x.until && ct < len;
+      const isOpen = (x) => ct >= x.t && ct < x.until && ct < len && rowInCycle(x.r, cyc + 1);
       // the waves and once rows
       for (const x of rows) {
         if (!x.paced || !isOpen(x) || !(x.p > 0)) continue;
@@ -2605,14 +2916,23 @@ const Model = (() => {
           if (n > 0) for (const x of due) put(x, n * rowWeight(x.r, ct, lateT) / part);
         }
       }
-      peak = Math.max(peak, alive + 1);
-      if (max >= 0 && alive + 1 >= max - 0.5) full += dt;
+      peak = Math.max(peak, alive + boss);
+      if (maxNow >= 0 && alive + boss >= maxNow - 0.5) full += dt;
     }
-    return {
-      length: len, max, cycles, turnover: tv, alive: series, spawned, peak, full: round(full, 1),
-      rows: rows.map((x) => ({ i: x.i, id: x.id, enemy: x.r.enemy, pace: rowPaced(x.r) ? String(x.r.pace) : 'continuous', perWave: x.perWave, waves: x.waves, spawned: x.spawned })),
-    };
+    // one entry per window row: its tabs summed (the waves are the most any of its tabs fired)
+    const per = new Map();
+    for (const x of rows) {
+      const e = per.get(x.i);
+      if (!e) {
+        per.set(x.i, { i: x.i, id: x.id, enemy: x.r.enemy, pace: rowPaced(x.r) ? String(x.r.pace) : 'continuous', perWave: x.perWave, waves: x.waves.slice(), spawned: x.spawned.slice() });
+        continue;
+      }
+      for (let c = 0; c < cycles; c++) { e.waves[c] = Math.max(e.waves[c], x.waves[c]); e.spawned[c] += x.spawned[c]; }
+    }
+    return { length: len, max, maxBy, cycles, turnover: tv, alive: series, spawned, peak, full: round(full, 1), rows: Array.from(per.values()).sort((a, c) => a.i - c.i) };
   }
+  /** Stage s's boss fight window over its cycles (pass 110; windowCycle). */
+  const bossFightCycle = (tl, s, byId, opts) => windowCycle(tl, s, byId, opts, 'boss');
 
   // ------------------------------------------------------------------ pass 111 (lane ENEMY): far creatures walk faster
   /** WaveTimeline.FAR_SPEED_DEFAULTS: the map's `far_speed` block's keys and the game's values for the missing ones. */
@@ -2957,6 +3277,14 @@ const Model = (() => {
   Object.assign(api, {
     BOSS_FIGHT_DEF, BOSS_FIGHT_KEYS, BOSS_CYCLE_HZ, bossFightEntry, bossFight, bossFightOn, bossFightLen, bossFightMax, bossFightRows,
     newBossFight, bossRowEnd, bossFightRowsAt, bossRowIds, newBossRowId, bossFightChecks, bossFightCycle,
+  });
+  // pass 150 (lane EDITOR): the Endless windows (stage_list[k].endless_window), a window of either kind, a window row's
+  // cycles, and the row variations (a row's `variations` tabs)
+  Object.assign(api, {
+    ENDLESS_WINDOW_DEF, ENDLESS_WINDOW_KEYS, WINDOW_KINDS, WINDOW_KIND_IDS, windowKind, windowBlock, windowOn, windowLen, windowMax,
+    windowGrowth, windowMaxAt, newWindow, windowRowEnd, rowCycles, rowInCycle, windowRowsAt, windowChecks, cycleKeyIssues, windowCycle,
+    VARIATION_SHARED, VARIATION_FORM_SHARED, variationList, hasVariations, variationPercents, variationRow, newVariation,
+    setVariationPercent, addVariation, removeVariation, variationView, variationChecks, tidyVariations, scaleRowShare, expandVariations,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

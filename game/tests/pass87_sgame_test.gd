@@ -436,7 +436,14 @@ func test_a_window_without_a_boss_event_brings_the_stage_boss() -> void:
 
 func test_the_boss_down_opens_a_countdown_then_endless_waves_grow() -> void:
 	var w := _world()
-	var tl := _tl()
+	# pass 150 (lane ENDLESS): this pins the old Endless (its waves and fill); Red Canyon's stages play an Endless window
+	# now (pass150_ENDLESS_test), so stage 2's is switched off on a copy of the map
+	var m: MapDef = Run.map.duplicate()
+	m.timeline = Run.map.timeline.duplicate()
+	m.timeline.stage_list = Run.map.timeline.stage_list.duplicate(true)
+	(m.timeline.stage_list[1]["endless_window"] as Dictionary)["enabled"] = false
+	Run.map = m
+	var tl: WaveTimeline = m.timeline
 	var em: EnemyManager = w["em"]
 	Run.start_stage(1)
 	var d := _director(w["g"])

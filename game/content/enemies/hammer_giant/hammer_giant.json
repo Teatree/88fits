@@ -23,7 +23,7 @@
     "chest": 0.0002,
     "pickup": {
       "id": "rage",
-      "chance": 0.12
+      "chance": 0.09
     }
   },
   "frame_px": 256,

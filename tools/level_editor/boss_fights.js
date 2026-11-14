@@ -4,18 +4,28 @@
 // spawning. Basically I will be able to set them up as I always do with the knowledge that as long as the Boss Fight is
 // continuing it will be those enemies at that pace that will be spawning."
 //
+// Pass 150 (lane EDITOR): the same panels for the "Endless" section under it. Garry (2026-11-14): "For Endless Mode
+// specifically I want similar type of Controls as the Boss Fights has. Add another section underneath 'Boss fights' and
+// allow for adding enemy rows there as many as I like." One factory, WindowPanels(kind), draws either: BossFights =
+// WindowPanels('boss') (stage_list[s].boss_fight, the fight clock: 0:00 = the boss arrives), EndlessWindows =
+// WindowPanels('endless') (stage_list[s].endless_window, the Endless clock: 0:00 = the portal closes and Endless starts;
+// its Max count may grow every cycle, max_count_growth). model.js WINDOW_KINDS holds what differs (the block's key, the
+// defaults, the selection kinds, the words).
+//
 // One panel per stage in view (the All tab: every stage; a stage tab: its own): the stage's boss, the window's switch,
-// its cycle length and its Max count (bodies), + Row (continuous / waves / once), and its rows as bars on the fight's own
-// clock (0:00 = the boss arrives, the cycle's end where it loops), with the presence fill and the yellow etches the Rows
+// its cycle length and its Max count (bodies; Endless: its growth a cycle), + Row (continuous / waves / once), and its rows
+// as bars on the window's own clock (the cycle's end where it loops), with the presence fill and the yellow etches the Rows
 // lane draws. A bar is dragged to move it, its ends to set its start and its until (whole seconds, 5 s with Snap on, Alt
-// for a free drag); a click opens it in the inspector with the roster row's own form (inspector.js bossEnv). Under the
-// rows, the window's cycle estimate: alive over two cycles against Max count (model.js bossFightCycle). The window lives
-// in timeline_data.stage_list[s].boss_fight {enabled, length, max_count, roster}; the game's rule is
-// game/core/systems/BossFightWindow.gd (docs/waves_schema.md "Pass 110", docs/level_editor.md "Pass 110").
+// for a free drag); a click opens it in the inspector with the roster row's own form (inspector.js windowEnv). Under the
+// rows, the window's cycle estimate: alive over its cycles against Max count (model.js windowCycle). The game's rules:
+// game/core/systems/BossFightWindow.gd (docs/waves_schema.md "Pass 110", "Pass 150"; docs/level_editor.md).
 'use strict';
 
-const BossFights = (() => {
+const WindowPanels = (kind) => {
   const { el, svg, fmtT, fmtN, clear } = U;
+  const K = Model.windowKind(kind);
+  const ENDLESS = K.kind === 'endless';
+  const DATA_STAGE = ENDLESS ? 'data-en-stage' : 'data-bf-stage';
   const LEFT = 220;         // the label column inside the panel's drawing (icon and name)
   const PAD_R = 18;
   const AXIS_H = 24, ROW_H = 30, SPARK_H = 54;
@@ -37,9 +47,11 @@ const BossFights = (() => {
   /** The collapsed section's line: each stage's window in a few words. */
   function summary() {
     return App.stageList().map((w) => {
-      const b = Model.bossFight(App.tl(), w.i);
-      if (!b) return `${w.name}: no window`;
-      return `${w.name}: ${Model.bossFightRows(b).length} rows, max ${Model.bossFightMax(b) < 0 ? 'none' : Model.bossFightMax(b)}${b.enabled === false ? ' (off)' : ''}`;
+      const b = Model.windowBlock(App.tl(), w.i, kind);
+      if (!b) return `${w.name}: ${ENDLESS ? 'old Endless waves' : 'no window'}`;
+      const mx = Model.windowMax(b, kind);
+      const gr = Model.windowGrowth(b, kind);
+      return `${w.name}: ${Model.bossFightRows(b).length} rows, max ${mx < 0 ? 'none' : mx}${gr > 0 && mx >= 0 ? ` +${fmtN(gr, 1)} a cycle` : ''}${b.enabled === false ? ' (off)' : ''}`;
     }).join(' · ');
   }
 
@@ -48,9 +60,15 @@ const BossFights = (() => {
   function render(host) {
     lastHost = host;
     clear(host);
-    host.appendChild(el('div', { class: 'bf-intro muted small' },
-      el('b', { text: 'What spawns while the boss lives. ' }),
-      'A stage with a window: from its boss\'s arrival until it dies only the window\'s rows spawn, as a cycle on the fight\'s own clock (0:00 = the boss arrives) that starts again every cycle, kept under the window\'s Max count (bodies alive: the boss, its summons and the stage\'s leftovers count too). The boss\'s own summons still come. A stage without one plays its fight as before: the stage\'s rows still open at its end, into boss_cap_frac of the cap. Drag a bar or its ends; click it to edit it with the usual row form. The line under the rows is the window\'s own estimate (alive over two cycles); the run charts above (On screen, Spawned so far) still draw a boss fight without its window.'));
+    if (ENDLESS) {
+      host.appendChild(el('div', { class: 'bf-intro muted small' },
+        el('b', { text: 'What spawns in Endless. ' }),
+        'A stage with an Endless window: from the moment its portal closes and Endless starts, only the window\'s rows spawn (the old Endless waves stop), as a cycle on the Endless clock (0:00 = Endless starts) that starts again every cycle, kept under the window\'s Max count (bodies alive), which grows by Growth / cycle every new cycle (never past the hard cap). The creatures still get tougher every few seconds by Settings → Endless (HP, ATK and speed growth), and their numbers are fixed from the stage\'s end. A row\'s From cycle / Until cycle bring it only in those cycles (new threats on later loops). A stage without one plays the old Endless: a big first wave, then a stronger wave every few seconds from the stage\'s late rows. Drag a bar or its ends; click it to edit it with the usual row form. The line under the rows is the window\'s own estimate (alive over three cycles); the run charts above still draw Endless without its window.'));
+    } else {
+      host.appendChild(el('div', { class: 'bf-intro muted small' },
+        el('b', { text: 'What spawns while the boss lives. ' }),
+        'A stage with a window: from its boss\'s arrival until it dies only the window\'s rows spawn, as a cycle on the fight\'s own clock (0:00 = the boss arrives) that starts again every cycle, kept under the window\'s Max count (bodies alive: the boss, its summons and the stage\'s leftovers count too). The boss\'s own summons still come. A stage without one plays its fight as before: the stage\'s rows still open at its end, into boss_cap_frac of the cap. Drag a bar or its ends; click it to edit it with the usual row form. The line under the rows is the window\'s own estimate (alive over two cycles); the run charts above (On screen, Spawned so far) still draw a boss fight without its window.'));
+    }
     for (const w of stagesInView()) host.appendChild(panel(w));
   }
 
@@ -65,53 +83,63 @@ const BossFights = (() => {
   function panel(w) {
     const s = w.i;
     const tl = App.tl();
-    const b = Model.bossFight(tl, s);
+    const b = Model.windowBlock(tl, s, kind);
     const bossId = bossOf(s);
     const selKey = App.selKey();
-    const iss = App.issuesFor(`bossfight:${s}`);
-    const box = el('div', { class: 'bf-panel' + (b ? '' : ' none') + (b && b.enabled === false ? ' off' : '') + (selKey === `bossfight:${s}` ? ' selected' : '') + (iss ? ' has-' + iss.level : ''), 'data-bf-stage': String(s) });
+    const iss = App.issuesFor(`${K.sel}:${s}`);
+    const box = el('div', { class: 'bf-panel' + (ENDLESS ? ' en-panel' : '') + (b ? '' : ' none') + (b && b.enabled === false ? ' off' : '') + (selKey === `${K.sel}:${s}` ? ' selected' : '') + (iss ? ' has-' + iss.level : ''), [DATA_STAGE]: String(s) });
     // the head: the stage and its boss (a click opens the window's card), the switch, the numbers, + Row, Remove
-    const name = el('button', { class: 'bf-name', type: 'button', title: 'open this window\'s card in the inspector (what it does, its rows, its cycle estimate)', onclick: () => App.select({ kind: 'bossfight', s }) },
+    const name = el('button', { class: 'bf-name', type: 'button', title: 'open this window\'s card in the inspector (what it does, its rows, its cycle estimate)', onclick: () => App.select({ kind: K.sel, s }) },
       el('b', { text: `Stage ${s + 1} · ${w.name}` }),
       bossId && App.creature(bossId) ? el('img', { src: App.iconFor(bossId), width: 20, height: 20, alt: '' }) : null,
-      el('span', { text: bossId ? `vs ${App.creatureName(bossId)}` : 'no boss' }),
+      el('span', { text: ENDLESS ? (bossId ? `Endless after ${App.creatureName(bossId)}` : 'Endless') : (bossId ? `vs ${App.creatureName(bossId)}` : 'no boss') }),
       iss ? el('span', { class: 'bf-iss ' + iss.level, title: iss.msgs.join('\n'), text: '!' }) : null);
     const head = el('div', { class: 'bf-head' }, name);
     if (!b) {
-      const frac = tl.boss_cap_frac == null ? 0.3 : Number(tl.boss_cap_frac);
-      const cap = Math.floor(App.capAt(Math.max(w.end - 1e-3, 0)) * frac);
-      head.appendChild(el('span', { class: 'muted small bf-today', text: `No window: this fight spawns the stage's rows still open at ${fmtT(w.end)}, into ${frac} of the cap (≈${cap} load), for as long as the boss lives.` }));
-      head.appendChild(el('button', { class: 'btn small', type: 'button', text: 'Add a boss fight window', title: 'a 2:00 cycle with Max count 40 and no rows yet: from then on only its rows spawn while this stage\'s boss lives', onclick: () => App.addBossFight(s) }));
+      if (ENDLESS) {
+        const ev = (k) => Model.endlessValue(tl, k, s);
+        head.appendChild(el('span', { class: 'muted small bf-today', text: `No window: this Endless plays the old waves: ${fmtN(ev('first_wave'), 0)} at once, then a wave every ${fmtN(ev('every'), 0)} s (${fmtN(ev('wave_size'), 0)}, +${fmtN(ev('wave_growth'), 0)} a wave) from the stage's rows open in its last ${fmtN(ev('roster_window'), 0)} s, the crowd kept at ${fmtN(ev('cap'), 2)} of the stage-end cap.` }));
+        head.appendChild(el('button', { class: 'btn small', type: 'button', text: 'Add an Endless window', title: `a ${fmtT(Model.ENDLESS_WINDOW_DEF.length)} cycle with Max count ${Model.ENDLESS_WINDOW_DEF.max_count} and no rows yet: from then on only its rows spawn in this stage's Endless`, onclick: () => App.addWindow(kind, s) }));
+      } else {
+        const frac = tl.boss_cap_frac == null ? 0.3 : Number(tl.boss_cap_frac);
+        const cap = Math.floor(App.capAt(Math.max(w.end - 1e-3, 0)) * frac);
+        head.appendChild(el('span', { class: 'muted small bf-today', text: `No window: this fight spawns the stage's rows still open at ${fmtT(w.end)}, into ${frac} of the cap (≈${cap} load), for as long as the boss lives.` }));
+        head.appendChild(el('button', { class: 'btn small', type: 'button', text: 'Add a boss fight window', title: 'a 2:00 cycle with Max count 40 and no rows yet: from then on only its rows spawn while this stage\'s boss lives', onclick: () => App.addWindow(kind, s) }));
+      }
       box.appendChild(head);
       return box;
     }
-    const len = Model.bossFightLen(b);
-    const on = el('input', { type: 'checkbox', title: 'off keeps the window and its rows but plays the fight as before (for comparing)' });
+    const len = Model.windowLen(b, kind);
+    const on = el('input', { type: 'checkbox', title: ENDLESS ? 'off keeps the window and its rows but plays the old Endless waves (for comparing)' : 'off keeps the window and its rows but plays the fight as before (for comparing)' });
     on.checked = b.enabled !== false;
-    on.addEventListener('change', () => App.setBossFight(s, 'enabled', on.checked ? null : false));
+    on.addEventListener('change', () => App.setWindow(kind, s, 'enabled', on.checked ? null : false));
     head.appendChild(el('label', { class: 'bf-ctl', title: on.title }, on, 'On'));
-    head.appendChild(numBox(s, b, 'length', 'Cycle', 's', 'seconds of one cycle: the rows\' times run from 0:00 to this, then the cycle starts again (empty: 120)', Model.BOSS_FIGHT_DEF.length, 1, false));
-    head.appendChild(numBox(s, b, 'max_count', 'Max count', '', 'the most creatures alive during the fight, counted as bodies: the boss, its summons and what is left of the stage\'s crowd count too; -1 = no limit but the hard cap (empty: 40)', Model.BOSS_FIGHT_DEF.max_count, -1, true));
+    head.appendChild(numBox(s, b, 'length', 'Cycle', 's', `seconds of one cycle: the rows' times run from 0:00 to this, then the cycle starts again (empty: ${K.def.length})`, K.def.length, 1, false));
+    head.appendChild(numBox(s, b, 'max_count', 'Max count', '', ENDLESS ? `the most creatures alive in Endless, counted as bodies (everything alive counts); -1 = no limit but the hard cap (empty: ${K.def.max_count})` : 'the most creatures alive during the fight, counted as bodies: the boss, its summons and what is left of the stage\'s crowd count too; -1 = no limit but the hard cap (empty: 40)', K.def.max_count, -1, true));
+    if (ENDLESS) head.appendChild(numBox(s, b, 'max_count_growth', 'Growth / cycle', '', 'bodies added to Max count at each new cycle (cycle 3 = Max count + 2 x this), never past the hard cap; 0 = the same every cycle', 0, 0, false));
     const adds = el('span', { class: 'bf-adds' }, el('span', { class: 'muted small', text: '+ Row' }));
-    for (const [k, label, help] of [['continuous', 'continuous', 'drawn by its weight at every spawn check, keeping the fight topped up to Max count'], ['waves', 'waves', 'a wave every 30 s (Every), 6 a wave (Per wave)'], ['once', 'once', 'one wave a cycle, 8 in a ring']]) {
-      adds.appendChild(el('button', { class: 'btn small', type: 'button', text: label, title: `add a ${label} row at 0:00 of the cycle: ${help}`, onclick: () => App.newBossRow(s, k, 0) }));
+    for (const [k, label, help] of [['continuous', 'continuous', ENDLESS ? 'drawn by its weight at every spawn check, keeping Endless topped up to Max count' : 'drawn by its weight at every spawn check, keeping the fight topped up to Max count'], ['waves', 'waves', 'a wave every 30 s (Every), 6 a wave (Per wave)'], ['once', 'once', 'one wave a cycle, 8 in a ring']]) {
+      adds.appendChild(el('button', { class: 'btn small', type: 'button', text: label, title: `add a ${label} row at 0:00 of the cycle: ${help}`, onclick: () => App.newWindowRow(kind, s, k, 0) }));
     }
     head.appendChild(adds);
     head.appendChild(el('span', { class: 'spacer' }));
-    head.appendChild(el('button', { class: 'btn small danger', type: 'button', text: 'Remove window', title: 'delete this window and its rows: the fight plays as before (Ctrl+Z undoes)', onclick: () => { if (confirm(`Remove stage ${s + 1}'s boss fight window and its ${Model.bossFightRows(b).length} rows? The fight then plays as before (Ctrl+Z undoes).`)) App.removeBossFight(s); } }));
+    head.appendChild(el('button', { class: 'btn small danger', type: 'button', text: 'Remove window', title: ENDLESS ? 'delete this window and its rows: Endless plays the old waves (Ctrl+Z undoes)' : 'delete this window and its rows: the fight plays as before (Ctrl+Z undoes)', onclick: () => {
+      const n = Model.bossFightRows(b).length;
+      if (confirm(ENDLESS ? `Remove stage ${s + 1}'s Endless window and its ${n} rows? Its Endless then plays the old waves (Ctrl+Z undoes).` : `Remove stage ${s + 1}'s boss fight window and its ${n} rows? The fight then plays as before (Ctrl+Z undoes).`)) App.removeWindow(kind, s);
+    } }));
     box.appendChild(head);
-    if (b.enabled === false) box.appendChild(el('div', { class: 'bf-offnote small', text: 'Off: the fight plays as before (the stage\'s rows still open at its end, boss_cap_frac of the cap); the rows below are kept for later.' }));
+    if (b.enabled === false) box.appendChild(el('div', { class: 'bf-offnote small', text: ENDLESS ? 'Off: Endless plays the old waves (a big first wave, then one every few seconds from the stage\'s late rows); the rows below are kept for later.' : 'Off: the fight plays as before (the stage\'s rows still open at its end, boss_cap_frac of the cap); the rows below are kept for later.' }));
     box.appendChild(drawRows(s, b, len, drawWidth(lastHost)));
     box.appendChild(drawSpark(s, b, len, drawWidth(lastHost)));
     return box;
   }
 
-  /** A number box of the window's head (length, max_count); empty = the game's default. */
+  /** A number box of the window's head (length, max_count, max_count_growth); empty = the game's default. */
   function numBox(s, b, k, label, unit, help, def, min, intOnly) {
     const inp = el('input', { type: 'number', class: 'num tiny', step: intOnly ? 1 : 'any', min, value: b[k] == null ? '' : b[k], placeholder: String(def), title: help, 'data-bf': k });
     inp.addEventListener('change', () => {
       const v = U.parseNum(inp.value);
-      App.setBossFight(s, k, v == null ? null : (intOnly ? Math.round(v) : v));
+      App.setWindow(kind, s, k, v == null ? null : (intOnly ? Math.round(v) : v));
     });
     inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') inp.blur(); });
     return el('label', { class: 'bf-ctl', title: help }, label, inp, unit ? el('span', { class: 'muted small', text: unit }) : null);
@@ -144,8 +172,8 @@ const BossFights = (() => {
     }
     s0.appendChild(svg('line', { x1: x(len), x2: x(len), y1: 0, y2: H, class: 'bf-loop' }));
     s0.appendChild(svg('text', { x: Math.max(LEFT + 4, x(len) - 4), y: 11, 'text-anchor': 'end', class: 'bf-loop-text', text: `↻ ${fmtT(len)}: the cycle starts again` }));
-    s0.appendChild(svg('text', { x: 6, y: 11, class: 'tick-text', text: 'fight clock (0:00 = the boss arrives)' }));
-    if (!rows.length) s0.appendChild(svg('text', { x: LEFT + 6, y: AXIS_H + 19, class: 'hint-text', text: 'no rows: nothing spawns in the fight but the boss\'s own summons ("+ Row" adds one)' }));
+    s0.appendChild(svg('text', { x: 6, y: 11, class: 'tick-text', text: ENDLESS ? 'Endless clock (0:00 = the portal closes)' : 'fight clock (0:00 = the boss arrives)' }));
+    if (!rows.length) s0.appendChild(svg('text', { x: LEFT + 6, y: AXIS_H + 19, class: 'hint-text', text: ENDLESS ? 'no rows: nothing spawns in Endless ("+ Row" adds one)' : 'no rows: nothing spawns in the fight but the boss\'s own summons ("+ Row" adds one)' }));
     // one presence scale for the window
     let maxW = 1;
     for (const r of rows) if (U.isObj(r)) { if (Array.isArray(r.weights) && r.weights.length) for (const p of r.weights) maxW = Math.max(maxW, Number(p[1]) || 0); else maxW = Math.max(maxW, App.rowWeight(r, Number(r.t) || 0)); }
@@ -155,10 +183,10 @@ const BossFights = (() => {
     const selKey = App.selKey();
     rows.forEach((r, i) => {
       if (!U.isObj(r)) return;
-      const key = `bossrow:${s}:${i}`;
+      const key = `${K.rowSel}:${s}:${i}`;
       const y0 = AXIS_H + i * ROW_H + 3, bh = ROW_H - 6;
       const t = Math.max(0, Number(r.t) || 0);
-      const tEnd = Math.max(t, Model.bossRowEnd(b, r));
+      const tEnd = Math.max(t, Model.windowRowEnd(b, r, kind));
       const x0 = x(t), x1 = Math.max(x0 + 6, x(tEnd));
       const fid = Timeline.firstEnemy(r);
       const c = App.creature(fid);
@@ -173,11 +201,11 @@ const BossFights = (() => {
       if (fid && c) lab.appendChild(svg('image', { href: App.iconFor(fid, r.variant), x: 7, y: y0 + 2, width: 20, height: 20, preserveAspectRatio: 'xMidYMid meet' }));
       const nm = `${r.name ? r.name + ': ' : ''}${Timeline.enemyWords(r)}`;
       lab.appendChild(svg('text', { x: 32, y: y0 + 15, class: 'bar-text', text: nm.length > 26 ? nm.slice(0, 25) + '…' : nm }, svg('title', {}, `${nm}${r.id ? ` (${r.id})` : ''}: click to edit`)));
-      lab.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; e.stopPropagation(); App.select({ kind: 'bossrow', s, i }); });
+      lab.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; e.stopPropagation(); App.select({ kind: K.rowSel, s, i }); });
       s0.appendChild(lab);
       const g = svg('g', { class: 'bar bf-bar pace-' + pace + (role ? ' role-' + role : ' untagged') + (selKey === key ? ' selected' : '') + (iss ? ' has-' + iss.level : ''), 'data-key': key });
       g.appendChild(svg('rect', { x: x0, y: y0, width: x1 - x0, height: bh, rx: 4, class: 'bar-body', style: `stroke:${col}` }));
-      // the presence fill (its keyframes on the fight clock)
+      // the presence fill (its keyframes on the window's clock)
       const yb = y0 + bh - 3, ysp = bh - 6;
       const yW = (v) => yb - (Math.max(0, v) / maxW) * ysp;
       const ws = Array.isArray(r.weights) ? r.weights.filter((p) => Array.isArray(p)).map((p) => [Number(p[0]) || 0, Number(p[1]) || 0]).sort((a, c2) => a[0] - c2[0]) : [];
@@ -189,12 +217,17 @@ const BossFights = (() => {
       // what it brings, as on the Rows lane
       let tx = x0 + 6;
       tx = chip(g, tx, y0 + 2, TimelineModel.quantityText(r, Model.rowWaveCount(r, c), null), 'chip-qty' + (pace !== 'continuous' ? ' paced' : ''), pace === 'continuous' ? 'continuous: drawn at every spawn check into the room under Max count' : pace === 'once' ? 'one wave a cycle' : 'paced as waves');
+      // pass 150: the cycles it comes in
+      const cyc = Model.rowCycles(r);
+      if (cyc.from > 1 || cyc.until < Infinity) tx = chip(g, tx, y0 + 2, cyc.until < Infinity ? (cyc.from === cyc.until ? `cycle ${cyc.from} only` : `cycles ${cyc.from}–${cyc.until}`) : `from cycle ${cyc.from}`, 'chip-cycle', `it spawns only in ${cyc.until < Infinity ? `cycles ${cyc.from} to ${cyc.until}` : `cycle ${cyc.from} and every one after`} (From cycle / Until cycle)`);
       if (r.elite != null && r.elite !== '') tx = chip(g, tx, y0 + 2, `★ ${r.elite === 'random' ? 'elite' : r.elite}`, 'chip-elite');
       if (r.special === true) tx = chip(g, tx, y0 + 2, '◆ special', 'chip-special');
       if (r.respect_cap === false && pace !== 'continuous') tx = chip(g, tx, y0 + 2, 'no cap', 'chip-nocap', 'on top of Max count (the hard cap still holds)');
       if (r.variant) tx = chip(g, tx, y0 + 2, r.variant, 'chip-variant');
       if (r.pattern && r.pattern !== 'pack') tx = chip(g, tx, y0 + 2, r.pattern === 'in_front' ? 'In front' : r.pattern, 'chip-pattern');
-      if (r.stats && Object.keys(r.stats).length) chip(g, tx, y0 + 2, 'overrides', 'chip-wrench');
+      if (r.stats && Object.keys(r.stats).length) tx = chip(g, tx, y0 + 2, 'overrides', 'chip-wrench');
+      // pass 150: its variation tabs
+      if (Model.hasVariations(r)) chip(g, tx, y0 + 2, Timeline.variationChipText(r), 'chip-vars', Timeline.variationTip(r));
       // the yellow etches: each wave that comes; a tick at each draw of a drawn row
       const et = svg('g', { class: 'etches' + (Model.rowPaced(r) ? ' paced' : '') });
       const spp = len / Math.max(span, 1);
@@ -231,24 +264,32 @@ const BossFights = (() => {
     return s0;
   }
 
-  /** The window's cycle estimate under its rows: alive (the boss in) over two cycles against Max count (dashed). */
+  /** The window's cycle estimate under its rows: alive (a boss in) over its cycles against Max count (dashed; an Endless
+   *  window's steps up a cycle by its growth). */
   function drawSpark(s, b, len, W) {
     const cy = cycleOf(s);
     const wrap = el('div', { class: 'bf-spark' });
     if (!cy) return wrap;
     const span = W - LEFT - PAD_R;
     const n = cy.alive.length;
-    const top = Math.max(cy.peak, cy.max > 0 ? cy.max : 0, 5) * 1.12;
+    const maxes = (cy.maxBy || [cy.max]).filter((v) => v >= 0);
+    const top = Math.max(cy.peak, maxes.length ? Math.max(...maxes) : 0, 5) * 1.12;
     const s0 = svg('svg', { class: 'bf-spark-svg', width: W, height: SPARK_H, viewBox: `0 0 ${W} ${SPARK_H}` });
     const x = (k) => LEFT + (k / Math.max(n - 1, 1)) * span;
     const y = (v) => SPARK_H - 6 - (v / top) * (SPARK_H - 14);
-    s0.appendChild(svg('line', { x1: x((n - 1) / 2), x2: x((n - 1) / 2), y1: 4, y2: SPARK_H - 4, class: 'bf-loop' }));
-    if (cy.max >= 0) s0.appendChild(svg('line', { x1: LEFT, x2: LEFT + span, y1: y(cy.max), y2: y(cy.max), class: 'bf-max' }, svg('title', {}, `Max count ${cy.max}`)));
+    for (let c = 1; c < cy.cycles; c++) { const xc = x(((n - 1) * c) / cy.cycles); s0.appendChild(svg('line', { x1: xc, x2: xc, y1: 4, y2: SPARK_H - 4, class: 'bf-loop' })); }
+    (cy.maxBy || [cy.max]).forEach((m, c) => {
+      if (!(m >= 0)) return;
+      const xa = x(((n - 1) * c) / cy.cycles), xb = x(((n - 1) * (c + 1)) / cy.cycles);
+      s0.appendChild(svg('line', { x1: xa, x2: xb, y1: y(m), y2: y(m), class: 'bf-max' }, svg('title', {}, `Max count ${m}${cy.cycles > 1 ? ` in cycle ${c + 1}` : ''}`)));
+    });
     s0.appendChild(svg('polyline', { points: cy.alive.map((v, k) => `${x(k).toFixed(1)},${y(v).toFixed(1)}`).join(' '), class: 'bf-alive' }));
-    s0.appendChild(svg('text', { x: 6, y: 14, class: 'tick-text', text: 'estimate: alive over two cycles' }));
-    s0.appendChild(svg('text', { x: 6, y: 28, class: 'tick-text', text: `peak ≈${fmtN(cy.peak, 0)}${cy.max >= 0 ? ` · max ${cy.max}` : ''}` }));
-    s0.appendChild(svg('text', { x: 6, y: 42, class: 'tick-text', text: `≈${fmtN(cy.spawned[cy.cycles - 1], 0)} spawned a cycle` }));
-    s0.appendChild(svg('title', {}, `What the window brings, an estimate: the outlaw kills ${Math.round(cy.turnover * 100)}% of the crowd a second, the fight starts with only the boss alive (the stage's leftovers and the boss's summons are not in it). Dashed: Max count. The line in the middle: where the second cycle starts. The run charts above still model the fight without its window.`));
+    s0.appendChild(svg('text', { x: 6, y: 14, class: 'tick-text', text: `estimate: alive over ${cy.cycles} cycles` }));
+    s0.appendChild(svg('text', { x: 6, y: 28, class: 'tick-text', text: `peak ≈${fmtN(cy.peak, 0)}${cy.max >= 0 ? ` · max ${cy.max}${cy.maxBy && cy.maxBy[cy.cycles - 1] !== cy.max ? `→${cy.maxBy[cy.cycles - 1]}` : ''}` : ''}` }));
+    s0.appendChild(svg('text', { x: 6, y: 42, class: 'tick-text', text: `≈${fmtN(cy.spawned[cy.cycles - 1], 0)} spawned in cycle ${cy.cycles}` }));
+    s0.appendChild(svg('title', {}, ENDLESS
+      ? `What the window brings, an estimate: the outlaw kills ${Math.round(cy.turnover * 100)}% of the crowd a second, Endless starts with nobody alive (what is left of the stage's crowd is not in it). Dashed: Max count, a step up a cycle by its growth. The lines: where each cycle starts. The run charts above still model Endless without its window.`
+      : `What the window brings, an estimate: the outlaw kills ${Math.round(cy.turnover * 100)}% of the crowd a second, the fight starts with only the boss alive (the stage's leftovers and the boss's summons are not in it). Dashed: Max count. The line in the middle: where the second cycle starts. The run charts above still model the fight without its window.`));
     wrap.appendChild(s0);
     return wrap;
   }
@@ -260,14 +301,14 @@ const BossFights = (() => {
     const a = App.S.assume || {};
     const tv = typeof a.turnover === 'number' ? a.turnover : (App.S.fit && typeof App.S.fit.turnover === 'number' ? App.S.fit.turnover : Model.EST_DEF.turnover);
     const tl = App.tl();
-    const key = JSON.stringify([App.S.mapId, App.S.enemiesRev, s, tv, Model.bossFight(tl, s), tl.hard_cap, tl.spawn_interval, tl.burst_min, tl.burst_max, tl.weight_late_t]);
+    const key = JSON.stringify([App.S.mapId, App.S.enemiesRev, s, tv, Model.windowBlock(tl, s, kind), tl.hard_cap, tl.spawn_interval, tl.burst_min, tl.burst_max, tl.weight_late_t]);
     if (cache.key === key) return cache.v;
-    const v = Model.bossFightCycle(tl, s, App.S.byId, { turnover: tv, cycles: 2 });
+    const v = Model.windowCycle(tl, s, App.S.byId, { turnover: tv }, kind);
     cache = { key, v };
     return v;
   }
 
-  // ------------------------------------------------------------------ dragging (its own: the fight clock, not the run's)
+  // ------------------------------------------------------------------ dragging (its own: the window's clock, not the run's)
 
   function startDrag(e, s, i, mode, span, len) {
     if (e.button !== 0) return;
@@ -275,7 +316,7 @@ const BossFights = (() => {
     e.preventDefault();
     const ae = document.activeElement;
     if (ae && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName) && typeof ae.blur === 'function') ae.blur();
-    const r = App.bossRows(s)[i];
+    const r = App.winRows(kind, s)[i];
     if (!r) return;
     drag = {
       s, i, mode, x0: e.clientX, moved: false, before: App.snapshot(), spp: len / Math.max(span, 1), len,
@@ -286,9 +327,9 @@ const BossFights = (() => {
     document.body.classList.add('dragging');
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp, { once: true });
-    // pressed: selected at once, so the inspector follows the drag (the Rows lane's rule)
-    if (App.selKey() !== `bossrow:${s}:${i}`) {
-      App.S.sel = { kind: 'bossrow', s, i };
+    // pressed: selected at once, so the inspector follows the drag (the Rows lane's rule; pass 150: its open tab kept)
+    if (App.selKey() !== `${K.rowSel}:${s}:${i}`) {
+      App.S.sel = { kind: K.rowSel, s, i };
       try { Inspector.render(document.getElementById('inspector')); } catch (err) { console.error('the inspector could not be drawn for the drag', err); }
     }
   }
@@ -304,7 +345,7 @@ const BossFights = (() => {
     const dx = e.clientX - drag.x0;
     if (!drag.moved && Math.abs(dx) < 3) return;
     drag.moved = true;
-    const r = App.bossRows(drag.s)[drag.i];
+    const r = App.winRows(kind, drag.s)[drag.i];
     if (!r) return;
     const len = drag.len;
     const dt = dx * drag.spp;
@@ -315,7 +356,7 @@ const BossFights = (() => {
       const moved = nt - drag.t0;
       r.t = nt;
       if (drag.until0 != null) r.until = Math.min(len, Math.max(nt + 1, drag.until0 + moved));
-      // its presence keyframes travel with it (fight-clock times), never out of the cycle
+      // its presence keyframes travel with it (the window's clock), never out of the cycle
       if (drag.w0) r.weights = drag.w0.map((p) => (Array.isArray(p) ? [Math.max(0, Math.min(len, p[0] + moved)), p[1]] : p));
       drag.tag = `from ${fmtT(nt)}`;
     } else if (drag.mode === 'start') {
@@ -339,11 +380,12 @@ const BossFights = (() => {
     document.body.classList.remove('dragging');
     if (!drag) return;
     const d = drag; drag = null;
-    const sel = { kind: 'bossrow', s: d.s, i: d.i };
+    const sel = { kind: K.rowSel, s: d.s, i: d.i };
     if (d.moved) {
-      const r = App.bossRows(d.s)[d.i];
+      const r = App.winRows(kind, d.s)[d.i];
       if (r && Array.isArray(r.weights)) App.sortPoints(r.weights);
-      App.S.sel = sel;
+      // pass 150: the tab that was open stays open
+      App.S.sel = App.S.sel && App.S.sel.kind === K.rowSel && App.S.sel.s === d.s && App.S.sel.i === d.i ? App.S.sel : sel;
       App.pushHistory(d.before);
       App.render('all');
     } else {
@@ -351,5 +393,10 @@ const BossFights = (() => {
     }
   }
 
-  return { render, summary, stagesInView, LEFT, get dragging() { return !!drag; } };
-})();
+  return { kind, render, summary, stagesInView, LEFT, get dragging() { return !!drag; } };
+};
+
+/** The Timeline's "Boss fights" section (pass 110). */
+const BossFights = WindowPanels('boss');
+/** The Timeline's "Endless" section (pass 150). */
+const EndlessWindows = WindowPanels('endless');

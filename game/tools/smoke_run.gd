@@ -413,13 +413,22 @@ func _tick_run(dt: float) -> void:
 		var w: int = _run.endless_wave()
 		if w > _endless_waves:
 			_endless_waves = w
-			# the wave's own numbers were fixed (a source per row it drew, "@w<k>"), at the wave's multiplier
+			# the wave's own numbers were fixed (a source per row it drew, "@w<k>"), at the wave's multiplier. Pass 150
+			# (lane ENDLESS): an Endless window spawns on its rows' clock, not all at the wave's first frame, so with one
+			# the wave before is checked (unless the window was full: no room, nothing to fix)
+			var ewin = _game.director.get("endless_window")
+			var win_on: bool = ewin != null and bool(ewin.active)
+			var cw := w - 1 if win_on else w
 			var srcs := 0
 			for k in _game.director._src.keys():
 				if str(k).ends_with("@w%d" % w):
 					srcs += 1
-			if srcs == 0:
-				_errors.append("Endless wave %d fixed no numbers" % w)
+			var checked := 0
+			for k in _game.director._src.keys():
+				if str(k).ends_with("@w%d" % cw):
+					checked += 1
+			if cw >= 1 and checked == 0 and not (win_on and int(ewin.room()) <= 0):
+				_errors.append("Endless wave %d fixed no numbers" % cw)
 			var m: Dictionary = _game.director.timeline.endless_mults(w, _run.stage)
 			_endless_hp.append(float(m["hp"]))
 			print("smoke_run: Endless wave %d, %d alive, %d rows fixed, hp x %.2f, speed x %.2f" % [w, _game.enemies.alive_count(), srcs, float(m["hp"]), float(_game.enemies.stage_speed_mult)])

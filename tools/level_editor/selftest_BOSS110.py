@@ -243,15 +243,17 @@ def checks(check, run_node, server):
     check(0 < a < b2, "BOSS110: index.html loads boss_fights.js after timeline.js")
     check('href="boss_fights.css"' in idx, "BOSS110: index.html links boss_fights.css")
     bfj = _read("boss_fights.js")
-    for frag in ["Add a boss fight window", "Max count", "counted as bodies", "Remove window", "the cycle starts again", "fight clock (0:00 = the boss arrives)", "estimate: alive over two cycles", "still draw a boss fight without its window"]:
+    for frag in ["Add a boss fight window", "Max count", "counted as bodies", "Remove window", "the cycle starts again", "fight clock (0:00 = the boss arrives)", "estimate: alive over ${cy.cycles} cycles", "still draw a boss fight without its window"]:
         check(frag in bfj, "BOSS110: boss_fights.js says \"%s\"" % frag)
     ins = _read("inspector.js")
-    for frag in ["function bossEnv(", "function bossFightForm(", "function bossPaceNote(", "function bossCycleNote(", "Boss fight row", "Once a cycle: ", "Channel: none in a boss fight window"]:
+    # pass 150 (lane EDITOR): one window env, card and cycle note for both window kinds (windowEnv, windowForm, windowCycleNote)
+    for frag in ["function windowEnv(kind, s, i, r0)", "const bossEnv = ", "function windowForm(container, s, kind)", "const bossFightForm = ", "function bossPaceNote(", "function windowCycleNote(s, i, kind)", "Boss fight row", "Once a cycle: ", "'a boss fight window'", "Channel: none in ${wn}"]:
         check(frag in ins, "BOSS110: inspector.js has %s" % frag)
     tlj = _read("timeline.js")
     check("BossFights.render(bfHost)" in tlj and "BossFights.summary()" in tlj and "sel.kind === 'bossrow'" in tlj, "BOSS110: timeline.js draws the section, its summary and scrolls to a window row")
     app = _read("app.js")
-    for frag in ["s.kind === 'bossrow'", "bossrow:${s.s}:${s.i}", "M.bossFightChecks(d)", "rowChecks(r, `bossrow:${w.i}:${i}`"]:
+    # pass 150 (lane EDITOR): the windows' checks for both kinds (M.windowChecks, rowChecks with the kind's row key)
+    for frag in ["s.kind === 'bossrow'", "bossrow:${s.s}:${s.i}", "M.windowChecks(d, kind)", "rowChecks(r, `${K.rowSel}:${w.i}:${i}`"]:
         check(frag in app, "BOSS110: app.js has %s" % frag)
     doc = _read(os.path.join("..", "..", "docs", "level_editor.md"))
     check("## Pass 110: boss fight windows" in doc, "BOSS110: docs/level_editor.md has its Pass 110 section")

@@ -236,7 +236,9 @@ const OnScreen = (() => {
     const tl = App.tl();
     const spd = Model.speedOf(tl, { speed: 1 }, {}, state.t);
     const L = O.layout(p, before, tl.roster || [], App.S.byId, { seed: state.seed + state.t * 131, turnover: turnoverAt(state.opts, state.t, state.stage, state.w),
-      sides: tl.spawn_sides, specialDefaults: tl.special_defaults, speedMult: spd.spd > 0 ? spd.spd : 1, maxBodies: Model.MAX_BODIES });
+      sides: tl.spawn_sides, specialDefaults: tl.special_defaults, speedMult: spd.spd > 0 ? spd.spd : 1, maxBodies: Model.MAX_BODIES,
+      // pass 150 (lane EDITOR): a row's variation tabs bring their own creatures, looks and settings
+      variations: Model });
     state.point = p;
     state.layout = L;
     // the looks the scene needs

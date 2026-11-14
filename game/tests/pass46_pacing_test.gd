@@ -202,7 +202,8 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 			assert_float(tl.hp_mult_at(tl.stage_length * m)).is_greater(1.0)
 	# what does not run on the clock stays: the bursts, the drops, the level scaling
 	assert_float(tl.spawn_interval).is_equal_approx(0.7, 0.0001)
-	assert_float(float(tl.pickups.get("per_kill", 0.0))).is_equal_approx(0.0045, 0.00001)
+	# (pass 150, BALANCING 94.POWERUP: power-ups a quarter rarer, 0.0045 x 0.75)
+	assert_float(float(tl.pickups.get("per_kill", 0.0))).is_equal_approx(0.003375, 0.00001)
 	assert_float(tl.level_hp_per_level).is_equal_approx(0.05, 0.0001)
 	# and the pass's new numbers
 	assert_int(tl.colour_after_kills).is_equal(50)

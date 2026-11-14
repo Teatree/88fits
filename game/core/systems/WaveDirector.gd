@@ -78,6 +78,11 @@ const SWARM_COLOR := Color(0.94, 0.63, 0.35)
 ## Pass 110 (lane BOSS): the stage's boss-fight window as this fight plays it (BossFightWindow; active from the boss's
 ## arrival to its death when the stage has one: then only its rows spawn, under its own max_count; boss_window_on).
 var boss_window := BossFightWindow.new()
+## Pass 150 (lane ENDLESS): the stage's Endless window (EndlessWindow), played from Endless's start when the stage has one
+## (stage_list[k].endless_window): then only its rows spawn, under its own max_count, instead of the old waves and fill.
+var endless_window := EndlessWindow.new()
+## Pass 150: the rows a variation plays (WaveTimeline.variation_row with its key), made once a run: "<row key>~v<j>" -> row.
+var _var_cache: Dictionary = {}
 
 
 func start(p_map: MapDef) -> void:
@@ -111,6 +116,9 @@ func start(p_map: MapDef) -> void:
 	_starve84.clear()
 	# pass 110 (lane BOSS): no boss-fight window plays until this run's boss arrives
 	boss_window.stop()
+	# pass 150 (lane ENDLESS): nor an Endless window before Endless; the variations' rows are made afresh
+	endless_window.stop()
+	_var_cache.clear()
 	# pass 87 (lane SGAME): no countdown, no Endless yet; a stage run starts at its window (what came before it never comes)
 	_portal_left = -1.0
 	_endless_wave = 0
@@ -139,6 +147,7 @@ func stop() -> void:
 	running = false
 	elite_index = -1
 	boss_window.stop()
+	endless_window.stop()
 
 
 ## Pass 110 (lane BOSS): whether the boss fight in play spawns from its stage's window (BossFightWindow) instead of the
@@ -180,6 +189,9 @@ func _apply_mults() -> void:
 	em.creature_hp_mult = timeline.creature_hp_mult
 	em.colour_after_kills = 0 if Run.arena else timeline.colour_after_kills
 	em.contact_cap = timeline.contact_cap
+	# pass 150 (lane ENDLESS): the slow after a bite (WaveTimeline.bite_slow)
+	em.bite_slow_frac = clampf(timeline.bite_slow_value("frac"), 0.0, 0.95)
+	em.bite_slow_seconds = maxf(timeline.bite_slow_value("seconds"), 0.0)
 	# pass 54: every hostile damage times the timeline's creature_damage_mult (1.25 on Red Canyon) and the damage
 	# curve's value now (1 without one); the arena plays creatures at their data's damage. EnemyManager carries the two
 	# (lane C); set() is a quiet no-op on a manager that has not got them yet
@@ -248,6 +260,9 @@ func current_cap() -> int:
 			return boss_window.cap_value()
 		return int(cap * timeline.boss_cap_frac)
 	if phase == Phase.ENDLESS:
+		# pass 150 (lane ENDLESS): an Endless that plays its stage's window keeps the window's own max_count (bodies)
+		if endless_window.active:
+			return endless_window.cap_value()
 		# pass 87 (lane SGAME): the crowd Endless keeps up between its waves, x the stage-end cap (the frozen clock's)
 		return int(float(cap) * maxf(timeline.endless_value("cap", Run.stage), 0.0))
 	if phase == Phase.PORTAL:
@@ -299,6 +314,9 @@ func _process(delta: float) -> void:
 		tick_portal_countdown(delta)
 	elif phase == Phase.ENDLESS:
 		_tick_endless(delta)
+		# pass 150 (lane ENDLESS): the window's clock, its waves and its own-interval rows
+		if endless_window.active:
+			endless_window.tick(delta)
 	elif boss_window_on():
 		# pass 110 (lane BOSS): the fight clock of the stage's boss-fight window, its waves and its own-interval rows
 		boss_window.tick(delta)
@@ -317,7 +335,11 @@ func _process(delta: float) -> void:
 		_spawn_t = timeline.spawn_interval
 		# pass 87: Endless keeps its crowd up from the stage's late roster (_endless_fill) instead of the roster's draw
 		if phase == Phase.ENDLESS:
-			_endless_fill()
+			# pass 150 (lane ENDLESS): the window's spawn check instead of the old fill
+			if endless_window.active:
+				endless_window.spawn_check()
+			else:
+				_endless_fill()
 		elif boss_window_on():
 			boss_window.spawn_check()
 		elif not pat_hold:
@@ -693,6 +715,9 @@ func source_state(key: String) -> Dictionary:
 ## the fix round: two rows of a hand-made JSON that share an id kept one snapshot), "row#<index>" for a row without an id,
 ## else (a row built by hand: the tests) "row:<id>" or its creature and start.
 func row_key(r: Dictionary) -> String:
+	# pass 150 (lane ENDLESS): a variation's row carries its own key (row_variation)
+	if r.has("_vkey"):
+		return str(r["_vkey"])
 	var id := str(r.get("id", ""))
 	if timeline:
 		for k in range(timeline.roster.size()):
@@ -701,6 +726,25 @@ func row_key(r: Dictionary) -> String:
 	if id != "":
 		return "row:" + id
 	return "row?%s@%s" % [str(r.get("enemy", "")), str(r.get("t", 0.0))]
+
+
+## Pass 150 (lane ENDLESS): the row a spawn decision of row `r` plays (WaveTimeline's variations): `r` itself when it has
+## none or the roll lands on the original, else the variation's row (made once a run, carrying `_vkey` = `key` + "~v<j>",
+## so its numbers are fixed apart from the original's: row_key, the windows' keys). One roll of the spawn dice (_rng)
+## only for a row that has variations, so a map without them plays the dice it always did.
+func row_variation(r: Dictionary, key: String) -> Dictionary:
+	if not WaveTimeline.row_has_variations(r):
+		return r
+	var j := WaveTimeline.variation_pick(r, _rng.randf())
+	if j <= 0:
+		return r
+	var ck := "%s~v%d" % [key, j]
+	var m = _var_cache.get(ck)
+	if not (m is Dictionary):
+		m = WaveTimeline.variation_row(r, j)
+		m["_vkey"] = ck
+		_var_cache[ck] = m
+	return m
 
 
 ## A roster row's fixed numbers (pass 58): from its `t` (0 when it has none) and its own stats.
@@ -1128,11 +1172,16 @@ func start_endless() -> void:
 	Run.endless_growth_lag = 0.0
 	Run.endless_time_lag = 0.0
 	_endless_wave = 0
-	_endless_pool = endless_rows()
+	# pass 150 (lane ENDLESS): a stage with an Endless window plays it; the old pool only without one
+	_endless_pool = [] if endless_window.begin(self, Run.stage) else endless_rows()
 	if game.get("pickups") and game.pickups:
 		game.pickups.set("endless_coin_chance", clampf(timeline.endless_value("coin_chance", Run.stage), 0.0, 1.0))
 	endless_started.emit()
 	_tick_endless(0.0)
+	# pass 150 (lane ENDLESS): the window's first second at once (its rows at 0:00: the first wave, the fill)
+	if endless_window.active:
+		endless_window.tick(0.0)
+		endless_window.spawn_check()
 
 
 ## Endless's clock (from _process): every `every` seconds the next wave, its numbers that much tougher (source_for), its
@@ -1152,7 +1201,9 @@ func _tick_endless(delta: float) -> void:
 	_apply_mults()
 	# pass 106 (lane ENDLESS): the wave's speed reaches every creature already on the sand too, not only the new ones
 	game.enemies.set_endless_speed(_endless_speed)
-	spawn_endless_wave(w)
+	# pass 150 (lane ENDLESS): a window brings its own rows; the wave is then only the growth step (and its toast)
+	if not endless_window.active:
+		spawn_endless_wave(w)
 	endless_wave_started.emit(w)
 
 
@@ -1235,6 +1286,9 @@ func spawn_endless_wave(w: int) -> int:
 	while left > 0 and guard < 256:
 		guard += 1
 		var row := _endless_pick()
+		# pass 150 (lane ENDLESS): a pool row's variation
+		if WaveTimeline.row_has_variations(row):
+			row = row_variation(row, row_key(row))
 		var def: EnemyDef = _row_def(row)
 		if def == null:
 			break
@@ -1261,6 +1315,9 @@ func _endless_fill() -> void:
 	while burst > 0.0 and bodies > 0 and guard < 32:
 		guard += 1
 		var row := _endless_pick()
+		# pass 150 (lane ENDLESS): a pool row's variation
+		if WaveTimeline.row_has_variations(row):
+			row = row_variation(row, row_key(row))
 		var def: EnemyDef = _row_def(row)
 		if def == null:
 			return
@@ -1356,6 +1413,9 @@ func _burst_from(roster: Array, room: float, bodies: int, due: Array = []) -> in
 			pick -= float(ws[k])
 			if pick <= 0.0:
 				break
+		# pass 150 (lane ENDLESS): the pack's variation (rolled for this pack; the weights stay the row's)
+		if WaveTimeline.row_has_variations(chosen):
+			chosen = row_variation(chosen, row_key(chosen))
 		# the row's creature with its overrides (pass 53): its cap_share, pack and numbers may be the row's own; pass 84
 		# (lane SPAWN): a list or "roster" row's creature is drawn here (_row_pick84, kept in _pick84 for the spawn)
 		var def: EnemyDef = _row_def(chosen) if WaveTimeline.row_single_enemy(chosen) else _row_pick_def84(chosen)
@@ -2197,7 +2257,7 @@ func _spawn_elite_ring(id: String, n: int, mod: EliteModDef, variant: String, st
 ## whole pack every one wearing the modifier, or as a ring of `pack` of them round the hero; one toast whichever way.
 ## Before the run's `colour_after_kills`-th kill it is held, not dropped (pass 46): _process_events lets it out once
 ## colour is open.
-func _spawn_elite(enemy_id: String, mod_id: String, variant := "", stats := {}, now := false) -> void:
+func _spawn_elite(enemy_id: String, mod_id: String, variant := "", stats := {}, now := false, src_in := {}) -> void:
 	# `now` (pass 120): a forced-special row's elite wave comes at once, never held (colour_open_for)
 	if not colour_open() and not now:
 		_elite_held.append({"enemy": enemy_id, "mod": mod_id, "variant": variant, "stats": stats})
@@ -2231,7 +2291,11 @@ func _spawn_elite(enemy_id: String, mod_id: String, variant := "", stats := {}, 
 	# an elite event's numbers are the moment it comes (pass 58, R1), or, the fix round, a row's that brings the same
 	# creature then (event_numbers); one drawn from a row with the row's own stats comes on that row's numbers
 	var src: Dictionary
-	if row_stats:
+	# pass 150 (lane ENDLESS): a window's elite wave hands its own fixed numbers (BossFightWindow._elite_wave: the window's
+	# rule, from the stage's end, with Endless's growth in an Endless window)
+	if not src_in.is_empty():
+		src = src_in
+	elif row_stats:
 		src = _row_src(row)
 	else:
 		var en := event_numbers(enemy_id, variant, stats)
@@ -2332,6 +2396,9 @@ func row_roll(k: int) -> Dictionary:
 func _row_new84(r: Dictionary, k: int) -> bool:
 	if not WaveTimeline.row_in_mix(r) or WaveTimeline.row_timer(r) or r.has("ring_radius") or r.has("banner"):
 		return true
+	# pass 150 (lane ENDLESS): a row with variations rolls them on the pass 84 path
+	if WaveTimeline.row_has_variations(r):
+		return true
 	return k >= 0 and _row_roll.has(_row_key_at(r, k))
 
 
@@ -2388,15 +2455,20 @@ func _tick_row84(r: Dictionary, k: int, t: float) -> void:
 			return
 	st["owed"] = 0
 	st["bannered"] = false
+	st.erase("var")
 	if _roster_weight(r, wave_t) <= 0.0:
 		return
 	st["waves"] = int(st["waves"]) + 1
-	if elite != "" and not r.has("pattern"):
-		_row_elite_wave(r, st)
+	# pass 150 (lane ENDLESS): the wave's variation, rolled once for the whole wave (what it owes too: _row_spawn84)
+	var rv: Dictionary = row_variation(r, key)
+	if not is_same(rv, r):
+		st["var"] = rv
+	if WaveTimeline.row_elite(rv) != "" and not rv.has("pattern"):
+		_row_elite_wave(rv, st)
 		return
 	var pick: Dictionary = {}
-	if str(r.get("enemy", "")) != WaveTimeline.ROW_ENEMY_ROSTER or r.get("enemy") is Array:
-		pick = _row_pick84(r)
+	if str(rv.get("enemy", "")) != WaveTimeline.ROW_ENEMY_ROSTER or rv.get("enemy") is Array:
+		pick = _row_pick84(rv)
 		if pick.is_empty():
 			return
 	st["pick"] = pick
@@ -2404,7 +2476,7 @@ func _tick_row84(r: Dictionary, k: int, t: float) -> void:
 	if not pick.is_empty():
 		pdef = Registry.enemy_with(str(pick["id"]), str(pick["variant"]), pick["stats"])
 	# (pass 112, lane MONK: a squad creature's wave owes one squad's size drawn, squad_pack)
-	st["owed"] = WaveTimeline.row_wave_count(r, squad_pack(pdef) if pdef else 1)
+	st["owed"] = WaveTimeline.row_wave_count(rv, squad_pack(pdef) if pdef else 1)
 	_row_spawn84(r, k, st)
 
 
@@ -2490,9 +2562,11 @@ func _pick_numbers84(r: Dictionary, pick: Dictionary) -> Dictionary:
 ## only, the swarm events' rule), the creature's max_alive and, with respect_cap
 ## (the default), its channel's room (at least one while there is any: pass 81's rule); a "roster" row draws each
 ## creature (grouped by the row drawn). The rest stays owed. Returns how many came.
-func _row_spawn84(r: Dictionary, k: int, st: Dictionary) -> int:
+func _row_spawn84(r0: Dictionary, k: int, st: Dictionary) -> int:
 	var em: EnemyManager = game.enemies
-	var key := _row_key_at(r, k) if k >= 0 else row_key(r)
+	var key := _row_key_at(r0, k) if k >= 0 else row_key(r0)
+	# pass 150 (lane ENDLESS): the wave's variation (rolled at the wave, _tick_row84), else the row itself
+	var r: Dictionary = st.get("var", r0)
 	var n := int(st["owed"])
 	# respect_hard_cap false: only the body limit (EnemyManager.MAX: em.spawn stops there), as the swarm events were
 	if bool(r.get("respect_hard_cap", true)):
@@ -2683,9 +2757,11 @@ func _floor_fill() -> void:
 	var brought := 0
 	while lack > 0 and room > 0.0 and bodies > 0 and brought < FLOOR_FILL_MAX and guard < 32 and not rows.is_empty():
 		guard += 1
-		var row := _weighted_row(rows)
-		if row.is_empty():
+		var drawn := _weighted_row(rows)
+		if drawn.is_empty():
 			break
+		# pass 150 (lane ENDLESS): the pack's variation (the draw and the exclusions stay the row's)
+		var row: Dictionary = row_variation(drawn, row_key(drawn)) if WaveTimeline.row_has_variations(drawn) else drawn
 		var def: EnemyDef = _row_def(row) if WaveTimeline.row_single_enemy(row) else _row_pick_def84(row)
 		if def == null:
 			break
@@ -2698,12 +2774,12 @@ func _floor_fill() -> void:
 		if def.max_alive > 0:
 			n = mini(n, def.max_alive - em.alive_of(def.id))
 			if n <= 0:
-				rows = rows.filter(func(x) -> bool: return not is_same(x, row))
+				rows = rows.filter(func(x) -> bool: return not is_same(x, drawn))
 				continue
 		# pass 112 (lane MONK): one whole squad (squad_take); a squad that does not fit leaves the row out of this fill
 		var sq_n := squad_take(def, row, 0, mini(bodies, int(floor(room / share))))
 		if sq_n == 0:
-			rows = rows.filter(func(x) -> bool: return not is_same(x, row))
+			rows = rows.filter(func(x) -> bool: return not is_same(x, drawn))
 			continue
 		if sq_n > 0:
 			n = sq_n

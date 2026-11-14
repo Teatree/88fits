@@ -22,6 +22,10 @@
 ##   - Numbers (pass 58's rule): each row's creatures are fixed at its first spawn of the run from the run clock at the
 ##     fight (the stage's end: the HP and ATK curves there) and the hero's level then (WaveDirector.source_for), times
 ##     the stage multiplier at the spawn and the row's overrides: like a roster row that starts at the stage's end.
+##   - Pass 150 (lane ENDLESS): a row's `from_cycle` / `until_cycle` (1-based) open it only in those cycles
+##     (WaveTimeline.row_cycle_open); a row's `variations` are rolled once a spawn decision (WaveDirector.row_variation:
+##     each pack of the draw, each wave of a waves or once row, each elite wave). EndlessWindow plays an Endless window
+##     through the same rules.
 class_name BossFightWindow
 extends RefCounted
 
@@ -48,6 +52,8 @@ var cycles := 0
 var _st: Dictionary = {}
 var _roll: Dictionary = {}
 var _draw_left: Dictionary = {}
+## pass 150 (lane ENDLESS): the word the director's spawn log takes for this window's spawns
+var log_kind := "bossfight"
 
 
 ## The fight of stage `p_stage` begins (the boss has just arrived): true when the stage has a window (it then plays it),
@@ -91,6 +97,11 @@ func key_of(r: Dictionary, k: int) -> String:
 ## Seconds into the cycle in play.
 func cycle_time() -> float:
 	return clock - float(maxi(cycle, 0)) * length
+
+
+## Pass 150: whether window row `r` is open in the cycle in play (its from_cycle / until_cycle).
+func cycle_open(r: Dictionary) -> bool:
+	return WaveTimeline.row_cycle_open(r, maxi(cycle, 0) + 1)
 
 
 ## The cap the director reports while the window plays (WaveDirector.current_cap): max_count, the hard cap for -1.
@@ -159,7 +170,7 @@ func _new_cycle(c: int) -> void:
 	_draw_left.clear()
 	for k in range(rows.size()):
 		var r: Dictionary = rows[k]
-		if not WaveTimeline.row_paced(r):
+		if not WaveTimeline.row_paced(r) or not cycle_open(r):
 			continue
 		var chance := float(r.get("chance", 1.0))
 		var jitter := float(r.get("t_jitter", 0.0))
@@ -196,7 +207,7 @@ func row_state(k: int) -> Dictionary:
 func _tick_paced(ct: float) -> void:
 	for k in range(rows.size()):
 		var r: Dictionary = rows[k]
-		if not WaveTimeline.row_paced(r):
+		if not WaveTimeline.row_paced(r) or not cycle_open(r):
 			continue
 		var key := key_of(r, k)
 		var roll: Dictionary = _roll.get(key, {})
@@ -229,21 +240,27 @@ func _tick_paced(ct: float) -> void:
 		st["owed"] = 0
 		st["bannered"] = false
 		st.erase("pick")
+		st.erase("var")
 		if dir._roster_weight(r, wave_t) <= 0.0:
 			continue
 		st["waves"] = int(st["waves"]) + 1
-		if elite != "" and not r.has("pattern"):
-			_elite_wave(r, key, st)
+		# pass 150 (lane ENDLESS): the wave's variation, rolled once for the whole wave (what it owes too)
+		var rv: Dictionary = dir.row_variation(r, key)
+		if not is_same(rv, r):
+			st["var"] = rv
+		var vkey := str(rv.get("_vkey", key))
+		if WaveTimeline.row_elite(rv) != "" and not rv.has("pattern"):
+			_elite_wave(rv, key, st)
 			continue
 		var pick: Dictionary = {}
-		if not _is_roster(r):
-			pick = _pick_of(r, key)
+		if not _is_roster(rv):
+			pick = _pick_of(rv, vkey)
 			if pick.is_empty():
 				continue
 		st["pick"] = pick
 		var pdef: EnemyDef = _def_of(pick) if not pick.is_empty() else null
-		st["owed"] = WaveTimeline.row_wave_count(r, pdef.pack_size if pdef else 1)
-		_spawn_owed(r, key, st)
+		st["owed"] = WaveTimeline.row_wave_count(rv, pdef.pack_size if pdef else 1)
+		_spawn_owed(rv, key, st)
 
 
 ## What the waves still owe, at every spawn check, ahead of the continuous draw; a row that closed drops its rest.
@@ -260,7 +277,8 @@ func _owed_all(ct: float) -> void:
 		if r.get("until") != null and rt >= float(r["until"]):
 			st["owed"] = 0
 			continue
-		_spawn_owed(r, key, st)
+		# pass 150: the wave's own variation
+		_spawn_owed(st.get("var", r), key, st)
 
 
 ## A wave's owed creatures now: cut to the hard cap (unless respect_hard_cap is false: the body limit only), the creature's
@@ -289,7 +307,7 @@ func _spawn_owed(r: Dictionary, key: String, st: Dictionary) -> int:
 		# the "roster" creature: drawn creature by creature, each group as the row it was drawn from spawns it
 		var groups: Array = []
 		for _j in range(n):
-			var p := _roster_pick(r)
+			var p := _roster_pick(r, key)
 			if p.is_empty():
 				break
 			var g: Dictionary = {}
@@ -329,7 +347,7 @@ func _elite_wave(r: Dictionary, key: String, st: Dictionary) -> void:
 		if e is Array:
 			id = dir._pick_id(e, r.get("enemy_weights", []))
 		elif str(e) == WaveTimeline.ROW_ENEMY_ROSTER:
-			var p := _roster_pick(r)
+			var p := _roster_pick(r, key)
 			if p.is_empty():
 				continue
 			id = str(p["id"])
@@ -341,7 +359,9 @@ func _elite_wave(r: Dictionary, key: String, st: Dictionary) -> void:
 			id = str(e)
 		if id == "" or Registry.enemy(id) == null:
 			continue
-		dir._spawn_elite(id, mod_id, variant, stats)
+		# pass 150 (lane ENDLESS): the window's numbers (from the stage's end; Endless's growth in an Endless window)
+		var ekey := str(r.get("_vkey", key)) + "|elite|" + id
+		dir._spawn_elite(id, mod_id, variant, stats, false, dir.source_for(ekey, t0_run, stats))
 	var came := maxi(em.alive_count() - before, 0)
 	st["came"] = int(st["came"]) + came
 	came_by[key] = int(came_by.get(key, 0)) + came
@@ -357,7 +377,7 @@ func _tick_intervals(delta: float, ct: float) -> void:
 	var due: Array = []
 	for k in range(rows.size()):
 		var r: Dictionary = rows[k]
-		if not dir.row_has_interval(r) or not WaveTimeline.row_drawn(r):
+		if not dir.row_has_interval(r) or not WaveTimeline.row_drawn(r) or not cycle_open(r):
 			continue
 		if ct < float(r.get("t", 0.0)) or (r.get("until") != null and ct >= float(r["until"])):
 			continue
@@ -383,7 +403,7 @@ func _draw(ct: float, due: Array) -> void:
 	var open_k: Array = []
 	for k in range(rows.size()):
 		var r: Dictionary = rows[k]
-		if not WaveTimeline.row_drawn(r):
+		if not WaveTimeline.row_drawn(r) or not cycle_open(r):
 			continue
 		if ct < float(r.get("t", 0.0)) or (r.get("until") != null and ct >= float(r["until"])):
 			continue
@@ -432,9 +452,10 @@ func _draw(ct: float, due: Array) -> void:
 			pick_w -= float(ws[j])
 			if pick_w <= 0.0:
 				break
-		var chosen: Dictionary = draw[ci]
-		var key := key_of(chosen, int(draw_k[ci]))
-		var pick := _pick_of(chosen, key)
+		var key := key_of(draw[ci], int(draw_k[ci]))
+		# pass 150 (lane ENDLESS): the pack's variation (its own creature, look, pack, pattern, elite, numbers)
+		var chosen: Dictionary = dir.row_variation(draw[ci], key)
+		var pick := _pick_of(chosen, str(chosen.get("_vkey", key)))
 		if pick.is_empty():
 			break
 		var def := _def_of(pick)
@@ -473,7 +494,7 @@ func _pick_of(r: Dictionary, key: String) -> Dictionary:
 			return {}
 		return {"id": lid, "variant": variant, "stats": stats, "key": key + "|" + lid}
 	if str(e) == WaveTimeline.ROW_ENEMY_ROSTER:
-		return _roster_pick(r)
+		return _roster_pick(r, key)
 	if Registry.enemy(str(e)) == null:
 		return {}
 	return {"id": str(e), "variant": variant, "stats": stats, "key": key}
@@ -482,12 +503,12 @@ func _pick_of(r: Dictionary, key: String) -> Dictionary:
 ## The "roster" creature of a window row: one of the window's mix rows open now (one creature, no elite, not special,
 ## not once; its creature under its max_alive and able to be an Elite) drawn by its Elite weight, coming as that row
 ## spawns it unless `r` sets its own variant or stats; {} when none is open.
-func _roster_pick(r: Dictionary) -> Dictionary:
+func _roster_pick(r: Dictionary, key := "") -> Dictionary:
 	var ct := cycle_time()
 	var mix: Array = []
 	for k in range(rows.size()):
 		var x: Dictionary = rows[k]
-		if WaveTimeline.row_in_mix(x) and ct >= float(x.get("t", 0.0)) and (x.get("until") == null or ct < float(x["until"])):
+		if WaveTimeline.row_in_mix(x) and cycle_open(x) and ct >= float(x.get("t", 0.0)) and (x.get("until") == null or ct < float(x["until"])):
 			mix.append(x)
 	var cands: Array = dir.elite_candidates(dir._roster_open(mix))
 	if cands.is_empty():
@@ -497,9 +518,11 @@ func _roster_pick(r: Dictionary) -> Dictionary:
 	var own := not stats.is_empty()
 	var variant := str(r.get("variant", ""))
 	var id := str(drawn.get("enemy", ""))
+	# pass 150: a variation's own key (key_of finds only the window's own rows by identity)
+	var own_key := str(r.get("_vkey", key if key != "" else key_of(r, _index_of(r))))
 	return {"id": id, "variant": variant if variant != "" else str(drawn.get("variant", "")),
 		"stats": stats if own else dir._stats_of(drawn),
-		"key": (key_of(r, _index_of(r)) + "|" + id) if own else key_of(drawn, _index_of(drawn))}
+		"key": (own_key + "|" + id) if own else key_of(drawn, _index_of(drawn))}
 
 
 ## Row `r`'s place in the window's rows (by identity: two rows alike are still two rows), -1 when it is not one of them.
@@ -558,5 +581,5 @@ func _spawn(r: Dictionary, key: String, pick: Dictionary, n: int) -> int:
 	if came > 0:
 		came_by[key] = int(came_by.get(key, 0)) + came
 		came_total += came
-		dir._log84("bossfight", id, came)
+		dir._log84(log_kind, id, came)
 	return came

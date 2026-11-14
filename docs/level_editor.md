@@ -2726,3 +2726,52 @@ the import). Routes: `GET /api/content/passive/<id>/evolved_icon` (`?picture=1` 
 {confirm}`. `selftest_EVO149.py`.
 
 The server has new routes (`/api/store`, `.../evolved_icon`): **restart the Level Editor** after this pass.
+
+## Pass 150 (lane EDITOR): the Endless section, variation tabs on every row, a wider row form
+
+Garry (2026-11-14): "Give me tools in the Level Editor Timeline Tab which would allow me to set a kind of a pace with
+deciding how they would spawn ... For Endless Mode specifically I want similar type of Controls as the Boss Fights has.
+Add another section underneath 'Boss fights' and allow for adding enemy rows there as many as I like." And: "For All of
+enemy rows, make the selected row section 25% wider and add ability to add tabs at the top. Each tab represents a
+variation of the enemies that this node will spawn."
+
+**The Endless section** (under Boss fights; `boss_fights.js` draws both from one factory, `WindowPanels('endless')`). One
+panel a stage, the same as a boss fight panel: **On**, **Cycle** (seconds, 3:00 by default), **Max count** (the most
+creatures alive, as bodies; -1 = only the hard cap), **Growth / cycle** (bodies added to Max count at each new cycle,
+never past the hard cap), **+ Row** continuous / waves / once, the rows as bars on the **Endless clock** (0:00 = the
+portal closes and Endless starts), drag a bar or its ends, click it for the usual row form, Remove window, and the
+cycle estimate under the rows (alive over three cycles, the dashed Max count stepping up by its growth). A stage
+without a window shows what its Endless does today (the old waves) and **Add an Endless window**. With a window, only its
+rows spawn in that stage's Endless (the old first wave, waves and the crowd between them stop); every growth number on
+Settings → Endless still makes the creatures tougher every "A wave every" seconds, and their numbers are fixed from the
+stage's end. Click the stage's name for the window's card (its rules in words, its rows, the estimate per cycle).
+
+**From cycle / Until cycle** (a boss fight or Endless row only): the row comes only in those cycles. Until cycle 1 = the
+first cycle only (an opening wave); From cycle 3 = a new threat from the third loop on. The bar says it ("cycle 1 only",
+"from cycle 3").
+
+**Variation tabs** (every row: the stage's spawn rows, a boss fight's, an Endless window's). Over the row form:
+`Original 50%` `Variation 1 50%` `+ Variation`. **+ Variation** copies the Original's creature, look, numbers and
+settings into a new tab at 50% (the other tabs share the other 50%). The open tab's **% box** sets its share; the other
+tabs (the Original among them) are scaled together so the total stays 100. A tab's **×** removes it (its share goes back
+to the Original); the Original cannot be removed. In a variation's tab you change anything about what it brings
+(creature, look, Elite modifier, Special, pattern, pack, per wave, overrides, ...); the **yellow** fields are the
+Original's and are the same for every tab (From, Until, the pacing, Every, Offset, Draw every, the presence, Chance,
+Jitter, Also continuous, Channel, From / Until cycle): an edit there changes the Original and so every tab. Each spawn of
+the row (a pack the draw takes, a wave with what it still owes) rolls one tab by these shares. A bar with tabs has a
+yellow `⧉ N` chip; hover it for each tab's share and what it brings. The JSON window in a variation's tab shows that
+tab's own JSON. Checks: tabs adding up past 100% (the Original never comes), a tab without a creature, a negative %, and
+each tab's creature, look and numbers like a row's (its words start "Variation N:").
+
+**Estimates.** The On screen / Composition / Spawned so far estimate, Show on screen and the window cycle estimates play
+a row's tabs by their shares (a drawn row's presence split by the shares, a paced row's waves by chance). The run charts
+still draw a boss fight and Endless without their windows.
+
+**The row form is 25% wider** (538 px; 463 px on a screen under 1440 px).
+
+**Settings → Scaling: Slow after a bite** (`bite_slow` {frac, seconds}: 25% for 1 s): after a creature bites the
+outlaw it walks that much slower for that long (not a boss, not in a charge; a stronger slow already on it is left
+alone).
+
+Data: `docs/waves_schema.md` "Pass 150" (the game's rules: `WaveTimeline.VARIATION_SHARED`, the Endless window). The page
+needs a reload (no server change); `selftest_P150.py` holds the checks.
