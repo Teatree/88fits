@@ -4,20 +4,20 @@
 [ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_i.png" id="2_r747c"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_ihfma"]
 
-[sub_resource type="Resource" id="Resource_4jnfx"]
+[sub_resource type="Resource" id="Resource_r747c"]
 script = ExtResource("1_r747c")
 stat = "area"
 op = "mul"
 value = 0.25
 
-[sub_resource type="Resource" id="Resource_ihfma"]
+[sub_resource type="Resource" id="Resource_4jnfx"]
 script = ExtResource("1_r747c")
 stat = "move_speed"
 op = "mul"
 value = 0.006
 target = "player"
 
-[sub_resource type="Resource" id="Resource_nb70y"]
+[sub_resource type="Resource" id="Resource_ihfma"]
 script = ExtResource("1_r747c")
 stat = "move_speed"
 op = "mul"
@@ -26,15 +26,15 @@ target = "player"
 
 [resource]
 script = ExtResource("3_ihfma")
-trait_effects = [SubResource("Resource_nb70y")]
-level_trait = [SubResource("Resource_ihfma")]
+trait_effects = [SubResource("Resource_ihfma")]
+level_trait = [SubResource("Resource_4jnfx")]
 order = 7
 trait_name = "Full Tilt"
 trait_text = "Starts 15% slower. While he is not hit his charge climbs over 10 s to +80% speed, +60% attack damage and +20% evade chance; a hit that lands knocks off half of it."
 pronoun = "he"
 favourite_weapon = "salt"
 favourite_bonus = {
-"effects": [SubResource("Resource_4jnfx")],
+"effects": [SubResource("Resource_r747c")],
 "type": "effects"
 }
 start_weapon = "frisbee"
