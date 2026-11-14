@@ -11371,3 +11371,39 @@ task now (open from the start; its `from_stage` still keeps it to the Blood Moon
 unlocked by the task **Fire Bug** (`content/quests/unlock_counterpunch`: deal 100,000 fire damage over all runs, the same
 condition, name and place in the ladder: Solenne's Oasis skin task still waits for it). `unlock_brimstone_brand` is gone;
 a save that had done it has done `unlock_counterpunch` (Save.RENAMED_QUESTS, every load).
+
+## 91. Pass 148: the painted rocks sit in the ground (a shader foot, repainted at the game's pitch)
+
+Garry (2026-11-13): the 2D rocks "feel a little detached from the ground", and the little rocks at the foot of the big
+ones sit at a different angle from the 3D view; (2026-11-14) "Let's try 1 and 2 of your suggestions."
+
+**The foot** (any painted prop; `art/sprites/props/props.json` `foot`, read by `PropField.foot_of` (a variant without its
+own reads its kind's) and laid on the painting's material by `PropField._set_foot_uniforms` as
+`core/shaders/prop_billboard.gdshader`'s `foot_*` uniforms). **Absent = off**: every painting without a `foot` draws as
+before, to the pixel, at no cost (one uniform test). The keys:
+
+- `sink` (0..0.5, share of the painting's height): the painting stands that far below its spot, straight down; the sand in
+  front of it hides the bottom of the picture by depth (on flat ground a level line; the collider, the shadow and the
+  spot do not move).
+- `band` (share of the height, measured as world height above the spot's ground): the band over which the foot blends.
+- `tone` (0..1) and `color` [r, g, b] (sRGB 0..1; `color_hell` in a hell stage): the band goes that far towards the sand's
+  tone at the ground line, easing out to the painting's own colour at the band's top (sand drifted against the stone).
+- `noise`: how ragged the band's top is (two sines along the painting's width, phased by the instance).
+- `fade` (0..1): that share of the band dithers away instead (a 4x4 ordered dither on the screen's pixels, the sand itself
+  showing through); `dark` (0..1): a contact darkening of the painting at the ground line. Both tried and kept as keys,
+  neither used by the rocks (the dither reads as dots on Sundown's pale sand; the darkening read as dirt).
+
+The four rocks (`rock_small`, `rock_big`, `boulder`, `boulder_b`) carry `{"sink": 0.08, "band": 0.08, "tone": 0.8,
+"color": [0.6, 0.49, 0.35], "color_hell": [0.54, 0.45, 0.38], "noise": 0.4}`. The colours are the sand **in the ground
+shadow** (each prop stands on its shadow, so the base meets shaded sand: a band towards the lit sand read as a pale line
+against the shadow), at Sundown and under the Blood Moon's hell tint; the stage filters tint the sand and the scenery
+alike, so Nightfall and the Dust Bowl need none of their own. Other kinds would gain too (the barrel cactus most: its
+painted pebbles go under the sand; capture tools/dl/p148/ROCKS/review/other_kinds.png), but only the rocks have it until
+Garry says.
+
+**The repaint.** The four rock paintings are painted again from low-poly Blender models seen from the game's pitch (48
+degrees, `tools/blender_rocks.py smooth=1`), Klein over the grey render (`tools/gen_rocks_pitch.py --clay --denoise 0.9`),
+one rock each, no pebbles, and gen_art's outline taken off every downward edge of the lower part (`open_base`), so the base
+is stone meeting sand. The pebbles are not put back. props.json kept every size, pivot and collider; `shadow` measured
+again by `tools/prop_shadows.py` (narrower: the pebbles had widened the feet). The old paintings are in
+tools/dl/p148/ROCKS/before/.

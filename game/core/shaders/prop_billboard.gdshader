@@ -50,8 +50,29 @@ uniform vec4 glint_color : source_color = vec4(1.0, 0.97, 0.86, 1.0);
 // it, so every scenery prop compiles without it and costs nothing) INSTANCE_CUSTOM.y is the hit flash 0..1 in place of
 // the sway (a barrel's sway was always 0): the painted pixels go that far to white, as enemy_billboard's `v_flash`.
 
+// Pass 148 (lane ROCKS; Garry: the painted rocks "feel a little detached from the ground"): a painting's foot, so its
+// bottom meets the sand. Every default is off (foot_band 0, foot_sink 0: the shader as before, nothing computed); a kind
+// opts in by its props.json `foot` (PropField._set_foot_uniforms; BALANCING 91):
+//   foot_sink   the painting sinks this far (of its quad's height) below its spot, straight down: the sand in front of it
+//               hides the bottom of the picture (the painted pebbles and the dark line along the base) by depth.
+//   foot_band   the band (world height above the spot's ground, of the quad's height) over which the foot blends in.
+//   foot_fade   0..1: how much of that band dithers away (a 4x4 ordered dither on the screen's pixels: the sand itself shows
+//               through, whatever colour the stage gives it); the alpha cut stays, so depth sorting is as before.
+//   foot_color  the tone the band goes towards (the sand's), .a how far at the ground line (0: no tone).
+//   foot_dark   a contact darkening on the painting at the ground line, easing out over the band.
+//   foot_noise  how ragged the band's top is (a few sines along the painting's width and the instance's phase).
+uniform float foot_sink = 0.0;
+uniform float foot_band = 0.0;
+uniform float foot_fade = 0.0;
+uniform vec4 foot_color : source_color = vec4(0.8, 0.66, 0.48, 0.0);
+uniform float foot_dark = 0.0;
+uniform float foot_noise = 0.0;
+
 varying vec2 v_uv;
 varying vec4 v_roll;
+// pass 148: the pixel's height above its spot's ground, of the quad's height (the foot's band); v_phase the instance's
+varying float v_above;
+varying float v_phase;
 varying float v_glint;
 #ifdef HIT_FLASH
 varying float v_flash;
@@ -142,7 +163,12 @@ void vertex() {
 	float ly = VERTEX.y + 0.5;
 	// wind: the top of a plant leans a few degrees back and forth, the base stays put
 	float lean = sin(TIME * wind_speed + phase) * sway * ly * ly * wind_mult * (1.0 + wind_gust * sin(TIME * 0.61 + phase * 0.5));
+	// pass 148: the foot's sink, straight down; PropField.add lays the spot 0.06 m above the ground
+	float ground_y = origin.y - 0.06;
+	origin.y -= foot_sink * sy;
 	vec3 world = origin + right * (VERTEX.x * sx + lean * sy) + up * ly * sy;
+	v_above = (world.y - ground_y) / max(sy, 0.001);
+	v_phase = phase;
 #ifdef HIT_FLASH
 	// Pass 141 (lane GRAV): a barrel in the Gravity Gun's grip tumbles: INSTANCE_CUSTOM.w is its roll in radians (a
 	// barrel has no tint, so w was always 0), the painting turned about its middle in the picture's plane.
@@ -181,6 +207,25 @@ void fragment() {
 	if (c.a < alpha_cut && rim_out < 0.5) {
 		discard;
 	}
+	// pass 148: the foot (0 below the band's ragged top, 1 above it); off unless foot_band > 0
+	float foot_t = 1.0;
+	if (foot_band > 0.0) {
+		float n = foot_noise * (0.6 * sin(v_uv.x * 17.0 + v_phase * 3.0) + 0.4 * sin(v_uv.x * 41.0 + v_phase * 7.0 + 1.3));
+		foot_t = clamp(v_above / foot_band + n, 0.0, 1.0);
+		if (foot_fade > 0.0) {
+			vec2 q = mod(floor(FRAGCOORD.xy), 4.0);
+			// the 4x4 Bayer matrix, worked out from the pixel's place (no table)
+			float bx = mod(q.x, 2.0);
+			float by = mod(q.y, 2.0);
+			float hx = floor(q.x * 0.5);
+			float hy = floor(q.y * 0.5);
+			// 2x2: 2 |x - y| + y (0 2 / 3 1); 4x4: 4 x the low bits' + the high bits'
+			float bayer = (4.0 * (2.0 * abs(bx - by) + by) + (2.0 * abs(hx - hy) + hy)) / 16.0;
+			if (mix(1.0, foot_t, foot_fade) < bayer + 0.03) {
+				discard;
+			}
+		}
+	}
 	if (rim_out > 0.5) {
 		ALBEDO = rim_color.rgb;
 	} else {
@@ -192,6 +237,10 @@ void fragment() {
 		float lum = dot(c.rgb, vec3(0.3, 0.59, 0.11));
 		vec3 albedo = mix(c.rgb, vec3(lum), mute) * (1.0 - mute * 0.3);
 		ALBEDO = mix(albedo, rim_color.rgb, rim_in * rim * 0.45);
+		if (foot_band > 0.0) {
+			float g = 1.0 - smoothstep(0.0, 1.0, foot_t);
+			ALBEDO = mix(ALBEDO, foot_color.rgb, foot_color.a * g) * (1.0 - foot_dark * g * g);
+		}
 		if (v_glint >= 0.0) {
 			float s = v_glint * 1.6 - 0.3;
 			float u = (v_uv.x + (1.0 - v_uv.y)) * 0.5;

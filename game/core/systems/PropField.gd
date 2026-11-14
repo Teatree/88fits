@@ -100,6 +100,7 @@ func setup(manifest_path: String = "res://art/sprites/props/props.json", p_stage
 		mat.shader = _shader
 		mat.set_shader_parameter("sprite", tex)
 		_set_tint_uniforms(mat, str(id))
+		_set_foot_uniforms(mat, str(id))
 		mmi.material_override = mat
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
@@ -718,3 +719,38 @@ func _set_tint_uniforms(mat: ShaderMaterial, id: String) -> void:
 		mat.set_shader_parameter("tint_hs_%d" % k, Vector4(h.x, h.y, sv.x, sv.y))
 		var v := _pair(r, "v", Vector2.ONE)
 		mat.set_shader_parameter("tint_v_%d" % k, Vector4(v.x, v.y, float(r.get("link", 0.5)), 1.0 if on else 0.0))
+
+
+## Pass 148 (lane ROCKS; Garry: the painted rocks "feel a little detached from the ground"): a painting's foot, its
+## manifest `foot` (else its kind's; absent = off, the shader as before), laid on its material (prop_billboard.gdshader's
+## foot_* uniforms; BALANCING 91):
+##   sink   the painting sinks this share of its height below its spot (the sand hides the picture's bottom)
+##   band   the band above the ground line, a share of the height, over which the foot blends in (0 = no blend)
+##   fade   0..1 how much of the band dithers away (the sand shows through)
+##   color  [r, g, b] 0..1, the sand's tone the band goes towards; `color_hell` in a hell stage; `tone` how far (0..1)
+##   dark   a contact darkening on the painting at the ground line
+##   noise  how ragged the band's top edge is
+func foot_of(id: String) -> Dictionary:
+	var row = manifest.get(id)
+	var f = (row as Dictionary).get("foot") if row is Dictionary else null
+	if f == null and kind_of(id) != id:
+		var krow = manifest.get(kind_of(id))
+		f = (krow as Dictionary).get("foot") if krow is Dictionary else null
+	return f if f is Dictionary else {}
+
+
+func _set_foot_uniforms(mat: ShaderMaterial, id: String) -> void:
+	var f := foot_of(id)
+	if f.is_empty():
+		return
+	mat.set_shader_parameter("foot_sink", clampf(float(f.get("sink", 0.0)), 0.0, 0.5))
+	mat.set_shader_parameter("foot_band", maxf(float(f.get("band", 0.0)), 0.0))
+	mat.set_shader_parameter("foot_fade", clampf(float(f.get("fade", 0.0)), 0.0, 1.0))
+	mat.set_shader_parameter("foot_dark", clampf(float(f.get("dark", 0.0)), 0.0, 1.0))
+	mat.set_shader_parameter("foot_noise", maxf(float(f.get("noise", 0.0)), 0.0))
+	var col = f.get("color_hell") if stage_hell and f.get("color_hell") is Array else f.get("color")
+	var c := Color(0.8, 0.66, 0.48)
+	if col is Array and (col as Array).size() >= 3:
+		c = Color(float(col[0]), float(col[1]), float(col[2]))
+	c.a = clampf(float(f.get("tone", 0.0)), 0.0, 1.0)
+	mat.set_shader_parameter("foot_color", c)
