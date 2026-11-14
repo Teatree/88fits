@@ -524,7 +524,7 @@
    "pack": 1,
    "pattern": "scatter",
    "t": 257,
-   "until": 315
+   "until": 289
   },
   "r15": {
    "enemy": "bull_beetle",
@@ -537,7 +537,7 @@
   "r16": {
    "count": 5,
    "enemy": "cyclopean_mummy",
-   "every": 5,
+   "every": 10,
    "pace": "waves",
    "pack": 7,
    "pattern": "scatter",
@@ -717,6 +717,16 @@
    "pattern": "scatter",
    "t": 911,
    "until": 1030
+  },
+  "r33": {
+   "count": 60,
+   "enemy": "carrion_crow",
+   "every": 10,
+   "pace": "waves",
+   "pack": 60,
+   "pattern": "ring",
+   "t": 373,
+   "until": 430
   },
   "r4": {
    "enemy": "bull_beetle",
