@@ -1,23 +1,23 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_r747c"]
-[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_h.png" id="2_r747c"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_i.png" id="2_r747c"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_ihfma"]
 
-[sub_resource type="Resource" id="Resource_r747c"]
+[sub_resource type="Resource" id="Resource_4jnfx"]
 script = ExtResource("1_r747c")
 stat = "area"
 op = "mul"
 value = 0.25
 
-[sub_resource type="Resource" id="Resource_4jnfx"]
+[sub_resource type="Resource" id="Resource_ihfma"]
 script = ExtResource("1_r747c")
 stat = "move_speed"
 op = "mul"
 value = 0.006
 target = "player"
 
-[sub_resource type="Resource" id="Resource_ihfma"]
+[sub_resource type="Resource" id="Resource_nb70y"]
 script = ExtResource("1_r747c")
 stat = "move_speed"
 op = "mul"
@@ -26,15 +26,15 @@ target = "player"
 
 [resource]
 script = ExtResource("3_ihfma")
-trait_effects = [SubResource("Resource_ihfma")]
-level_trait = [SubResource("Resource_4jnfx")]
+trait_effects = [SubResource("Resource_nb70y")]
+level_trait = [SubResource("Resource_ihfma")]
 order = 7
 trait_name = "Full Tilt"
 trait_text = "Starts 15% slower. While he is not hit his charge climbs over 10 s to +80% speed, +60% attack damage and +20% evade chance; a hit that lands knocks off half of it."
 pronoun = "he"
 favourite_weapon = "salt"
 favourite_bonus = {
-"effects": [SubResource("Resource_r747c")],
+"effects": [SubResource("Resource_4jnfx")],
 "type": "effects"
 }
 start_weapon = "frisbee"
@@ -48,8 +48,8 @@ momentum = {
 }
 availability = "purchase"
 price = 3500
-sprite_path = "res://content/characters/buck/buck_sprite_h.png"
-sprite_file = "buck_sprite_h.png"
+sprite_path = "res://content/characters/buck/buck_sprite_i.png"
+sprite_file = "buck_sprite_i.png"
 anims = {
 "cheer": 1.0,
 "die": 5.0,
@@ -342,14 +342,48 @@ variants = {
 "frame_px": 256,
 "icon": "res://content/characters/buck/buck_icon_h.png",
 "note": "pass 143 (lane HORSE): the Horseman, a lean man with a chestnut horse head in an indigo serape poncho; his stills are Klein edits of BUC-F's (the pose, build and size kept, the head and the clothes swapped). Follow-up (Garry: \"Head should be bigger when running to the side. And no need for that Naruto run, do a normal run\"): a normal run (front and bd on run_arms50, the Running clip with the arms swinging half as far so the poncho hangs; fd and side on run; back on run_spread_lvl), the side body at run_scale 0.93 and its head enlarged 1.25x about the neck (tools/dl/p143/HORSE/scripts/head_grow.py, recipe head_grow), the polish (green specks brown, the pale lining dark) and loose specks cleared (scripts/polish.py, specks.py)",
-"shelved": false,
+"shelved": true,
 "sprite": "res://content/characters/buck/buck_sprite_h.png",
 "sprite_file": "buck_sprite_h.png",
 "strip_cols": 62,
 "title": "hero_buck_h.png"
+},
+"BUC-I": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": "res://content/characters/buck/buck_icon_i.png",
+"note": "pass 148: the Horseman from Garry's T-pose picture as a textured 3D model first (horseman.glb at the repo root: Hunyuan3D 2mv shape, Hunyuan3D-2.1 Paint PBR, a normal map baked from the raw shape; the back's mirrored shirt strip, the side slit and the missing white blaze repainted on the texture), then the puppet method: the model rigged in an arms-down rest with its poncho pressed from wings into a blanket (tools/dl/p148/HORSE/scripts/rig_horse.py), Mixamo Running retargeted in place with the arms swinging half as far (BUC-H's normal run, the poncho hanging); the stills are Klein paintings of renders of the textured model in each view (green screen; the cheer an edit of the painted back; the hurts edits of the painted views with the horse head held word for word), walked on the puppet's depth guides (buck_horse_run_depth, Wan 2.2 Fun Control) sized by its silhouette (run_fit, run_scale = the 25 / 8 degree standing ratio), polished (green to brown)",
+"shelved": false,
+"sprite": "res://content/characters/buck/buck_sprite_i.png",
+"sprite_file": "buck_sprite_i.png",
+"strip_cols": 62,
+"title": "hero_buck_i.png"
 }
 }
-variant = "BUC-H"
+variant = "BUC-I"
 id = "buck"
 display_name = "Horseman"
 flavour = "Slow out of the gate. Impossible to stop."

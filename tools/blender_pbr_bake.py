@@ -2,7 +2,7 @@
 # material and a NORMAL MAP baked from the detailed shape (the raw Hunyuan3D mesh, ~270k faces) onto the painted
 # 40k-face mesh (Cycles, selected to active). Then sized like tools/blender_glb_finish.py: `height` m tall, feet at 0.
 #   "$BLENDER" -b --python tools/blender_pbr_bake.py -- obj=<textured.obj> high=<raw shape .glb> out=<abs .glb>
-#       [prev=<abs prefix>] [height=2] [size=2048] [extrusion=0.012] [ray=0.03]
+#       [prev=<abs prefix>] [name=Bull] [height=2] [size=2048] [extrusion=0.012] [ray=0.03]
 # All paths absolute. The textures are read from the OBJ's folder (textured.jpg, textured_metallic.jpg,
 # textured_roughness.jpg); the baked normal map is written beside them as textured_normal.png.
 import bpy, sys, os, math
@@ -66,7 +66,7 @@ high.location = (l0 + l1) / 2 - (h0 + h1) / 2
 bpy.ops.object.transform_apply(location=True)
 
 # the material: albedo, metallic, roughness from the painter, the normal map baked below
-mat = bpy.data.materials.new("Bull")
+mat = bpy.data.materials.new(a.get("name", "Bull"))   # pass 148: name= (the Horseman)
 mat.use_nodes = True
 nt = mat.node_tree
 bsdf = nt.nodes["Principled BSDF"]
@@ -123,7 +123,7 @@ bpy.ops.object.transform_apply(scale=True)
 l0, l1 = box(low)
 low.location = (-(l0.x + l1.x) / 2, -(l0.y + l1.y) / 2, -l0.z)
 bpy.ops.object.transform_apply(location=True)
-low.name = "Bull"
+low.name = a.get("name", "Bull")
 print("size", [round(x, 3) for x in low.dimensions], "faces", len(low.data.polygons))
 bpy.ops.export_scene.gltf(filepath=a["out"], export_format="GLB", use_selection=True, export_animations=False,
                           export_image_format="JPEG", export_jpeg_quality=92)

@@ -4889,3 +4889,25 @@ two flakes: pass62_it's Pocket Watch drop ratio (it seeded `_rng` while the drop
 revive read 0 HP; its recorded run differs every time since the wave dice take a fresh seed each run; it passed alone,
 left as it is: look into it if it comes back). Between the two runs every test passed; smoke_run OK, arena_check OK,
 touch_audit 2,128 of 2,128 (the Store's controls among them), then `ship.sh --quick` built and copied.
+
+## Pass 148 (2026-11-14): Counterpunch behind Fire Bug, the rocks in the sand, the Horseman from a 3D model
+
+- **Brimstone Brand open, Counterpunch behind Fire Bug** (Garry: a new player has no evade outlaw yet): the task moved
+  to `content/quests/unlock_counterpunch` (same name, condition and ladder place; Solenne's Oasis task requires it);
+  `unlock_brimstone_brand` removed; `Save.RENAMED_QUESTS` / `_rename_quests` carries an old save's completion over.
+  Brimstone keeps its `from_stage` (the Blood Moon's cards). BALANCING 90.
+- **The rocks sit in the sand** (Garry picked options 1 + 2 of the pass 146 rocks question; lane ROCKS,
+  tools/dl/p148/ROCKS/): a data **foot** for any painted prop (props.json `foot` {sink, band, tone, color, color_hell,
+  noise, fade, dark}; prop_billboard `foot_*` uniforms, off by default; PropField.foot_of), on for rock_small, rock_big,
+  boulder, boulder_b only (the barrel cactus would gain next). The four rocks repainted by Klein over smooth Blender
+  renders at the game's 48 degree pitch (tools/blender_rocks.py, tools/gen_rocks_pitch.py: no side-on pebbles, no base
+  outline; the old paintings in tools/dl/p148/ROCKS/before/), shadows re-measured. The boulder is a new design (stacked
+  slabs); rock_small and boulder_b kept most of their old composition. BALANCING 91.
+- **The Horseman's look BUC-I** (lane HORSE, tools/dl/p148/HORSE/): `horseman.glb` at the repo root from Garry's picture
+  (Hunyuan3D 2mv shape, 2.1 Paint PBR, a normal map baked from the ~600k-face raw shape; three albedo faults repaired by
+  script), draped (arms down 78 degrees, the poncho wings pressed into a blanket, poncho weighted to Spine2 with up to 30%
+  upper arm), Mixamo Running in place at half arm swing, puppet guides `buck_horse_run(_depth)`; front, bd and back walk on
+  depth, side and fd on the pose guide (depth turned the poncho gold); run_scale to BUC-H's run height; side head x1.25;
+  fps.run 36; BUC-H shelved. Known faults: pale gloves in the front run, the bd hurt's muzzle in profile, reddish boot toes
+  in a few side frames; on the model, blocky band joins on the back and the bandana painted on the nape.
+  `tools/blender_pbr_bake.py` gained `name=`.

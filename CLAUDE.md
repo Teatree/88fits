@@ -683,9 +683,11 @@ Pass 146: **the Stranger breathes and falls** (a structure's painted strip `para
 
 Pass 147: **Pip** (`fadeaway`, The Robot until now: a huge black bull in a red #22 kit, look FAD-I by the puppet method on bull_basketball.glb walked on the new driver `creature_walk` (Mixamo's mutant walk from Garry's creature pack, tools/dl/mixamo/creature_walk.fbx; `pose_driver.py inplace=1`; `puppet_blender.py anim walk_name= align=0 inplace= extra=`), every older look shelved; every older line here that names The Robot or FAD-H as played is history); **the Store** (ui/StoreScreen.gd, core/systems/StorePacks.gd, content/store/store.json, docs/store_schema.md: six coin packs $0.99-$99.99, no real purchase ("Coming soon"), `Settings.store_open` false and prod-locked, the debug panel's Store row; BALANCING 88); **every weapon's description says its damage** (a beam's a second; BALANCING 89); the Level Editor's animation previews have a **poses** select (smooth / 12 / 10 / 8, StripPlayer.setPoseRate, the Frames view and Show on screen follow it). Waiting on Garry: the rocks' look (pass 146), Pip's known faults under pass 147 in docs/HISTORY.md.
 
+Pass 148: **Brimstone Brand is open, Counterpunch behind the Fire Bug task** (`unlock_counterpunch`, Save.RENAMED_QUESTS); **the rocks sit in the sand** (props.json `foot`, prop_billboard `foot_*`, on for the four rocks; the rocks repainted at the game's pitch by tools/blender_rocks.py + tools/gen_rocks_pitch.py); **the Horseman plays BUC-I**, made from `horseman.glb` (repo root) by the puppet method (every older line here that names BUC-H as played is history). BALANCING 90, 91.
+
 **Outlaws** ("heroes" in code; title order): Drifter (Revolver; free), Astro (Gravity Gun), Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), Pip (id `fadeaway`; Fadeaway until pass 143, The Robot until pass 147: a huge black bull in a red #22 basketball kit, look FAD-I, drawn wider by design; the Basketball: evade per level, Heat shown on the ball itself, the Timeout
-trampoline perk Hang Time, Buzzer Beater), the Horseman (id `buck`, Jeżyk until pass 143: a horse-headed outlaw in an indigo serape, look BUC-H; starts with the Frisbee, favourite the
+trampoline perk Hang Time, Buzzer Beater), the Horseman (id `buck`, Jeżyk until pass 143: a horse-headed outlaw in an indigo serape, look BUC-I since pass 148; starts with the Frisbee, favourite the
 Salt, momentum, Salt Flats), May (renamed from Mamy in pass 69: attack speed, Trigger Happy on the Tommy Gun, the
 Inflatable May decoy, thrown as a puck that inflates) and Mira (an unattainable requirement). Since pass 129 Astro, Calavera, Solenne,
 Fadeaway, Jeżyk and May are **Trail nodes** (levels 9, 16, 23, 30, 38, 45 at their JSON prices: "Reach Trail Level N", owned once the
@@ -695,7 +697,7 @@ Dad is `hidden`. No HUD gauge for any hero (pass 69). The Heroes screen (`ui/Her
 hero; one not owned shows as a black silhouette, "Unknown", with his requirement or a BUY button. Each hero's trait is 1-2 stats that grow per level
 (`trait_per_level`, `Run.hero_sheet`), a favourite weapon or passive (arrives at a bonus level, marked on cards), perks,
 and a hero mutation. The title plaque opens the hero's Wanted-poster sheet (`ui/wanted/WHeroSheet.gd`). Art variants
-(`variants` / `variant` in the JSON; the Horseman plays BUC-H, Pip FAD-I (pass 147; neither sells a skin), May MAY-G (her base since pass 70); Garry picks them in the arena or in the Level Editor's look grid; a look may be
+(`variants` / `variant` in the JSON; the Horseman plays BUC-I, Pip FAD-I (pass 147; neither sells a skin), May MAY-G (her base since pass 70); Garry picks them in the arena or in the Level Editor's look grid; a look may be
 `shelved` out of the chips, a landed one is `fresh` until approved): see the art-variants memory. A hero JSON carries
 `availability` (available | purchase | hidden: only hidden hides him), `price` and `currency_type` (gold), the unlock
 quest edited from the Heroes tab (memory `88fits-hero-purchase-parked`: decided in pass 69).

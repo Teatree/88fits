@@ -1,0 +1,412 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the face to the dark muzzle, two large dark eyes, two upright pointed horse ears, a short dark-brown mane and forelock; he wears a heavy woven serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging straight down over his shoulders and arms like a blanket to the middle of his thighs, open at the front over a cream-white long-sleeved shirt; a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs, no hat; standing straight, both arms down at his sides under the poncho, gloved empty hands",
+ "renders": {
+  "front": {
+   "seed": 2016101,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is a 3D render of the character: redraw it as a hand-painted 2D anime game character in the art style of the first image, keeping exactly the render's pose, his lean build under the heavy poncho and proportions, his colours, his size and his place in the frame: a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the middle of the face to the dark muzzle, two large dark eyes, exactly two upright pointed horse ears, a short dark-brown mane and forelock; a heavy woven serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging straight down over his shoulders and arms like a blanket to the middle of his thighs, open at the front over a cream-white long-sleeved shirt; a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs; no hat, no tail, no hooves, no human face. Full body, front view, facing the viewer, standing straight as in the render, the poncho hanging down over both arms, both gloved hands showing at the poncho's sides, empty hands, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/buck_i_front_render_green.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 349,
+     "right": 349,
+     "top": 107,
+     "bottom": 107,
+     "height": 809,
+     "width": 325
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 16159,
+   "prompt": "The first reference image shows the character as he is painted: a hand-painted 2D anime man with a horse head in a striped poncho. The second reference image is a 3D render of the same character in another view or pose. One single figure alone in the frame: redraw the figure of the second reference image in exactly its pose, its view, its very broad and bulky build, its size and its place in the frame, painted exactly like the character of the first reference image (the same line art, cel shading, colours, horse head, poncho and clothes): a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the middle of the face to the dark muzzle, two large dark eyes, exactly two upright pointed horse ears, a short dark-brown mane and forelock; a heavy woven serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging straight down over his shoulders and arms like a blanket to the middle of his thighs, open at the front over a cream-white long-sleeved shirt; a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs; no hat, no tail, no hooves, no human face. Full body, seen directly from behind as in the render: the back of the horse head with its two upright ears and the short dark mane down the back of the neck, no eyes, no muzzle, no face on the back of the head; the back of the poncho with its horizontal bands and fringed hem, both arms down at his sides under the poncho, gloved empty hands; the heels of the boots; feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_i_front_ref.png",
+    "88fits/buck_i_back_render.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 348,
+     "right": 348,
+     "top": 97,
+     "bottom": 100,
+     "height": 826,
+     "width": 327
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "side": {
+   "seed": 16160,
+   "prompt": "The first reference image shows the character as he is painted: a hand-painted 2D anime man with a horse head in a striped poncho. The second reference image is a 3D render of the same character in another view or pose. One single figure alone in the frame: redraw the figure of the second reference image in exactly its pose, its view, its very broad and bulky build, its size and its place in the frame, painted exactly like the character of the first reference image (the same line art, cel shading, colours, horse head, poncho and clothes): a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the middle of the face to the dark muzzle, two large dark eyes, exactly two upright pointed horse ears, a short dark-brown mane and forelock; a heavy woven serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging straight down over his shoulders and arms like a blanket to the middle of his thighs, open at the front over a cream-white long-sleeved shirt; a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs; no hat, no tail, no hooves, no human face. Full body, in strict side profile facing right as in the render: the long horse head in profile with its muzzle pointing right, one eye, both ears upright, the mane down the back of the neck; the poncho hanging straight down over the near arm, the gloved near hand showing below it, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_i_front_ref.png",
+    "88fits/buck_i_side_render.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 373,
+     "right": 375,
+     "top": 92,
+     "bottom": 99,
+     "height": 832,
+     "width": 275
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "fd": {
+   "seed": 16161,
+   "prompt": "The first reference image shows the character as he is painted: a hand-painted 2D anime man with a horse head in a striped poncho. The second reference image is a 3D render of the same character in another view or pose. One single figure alone in the frame: redraw the figure of the second reference image in exactly its pose, its view, its very broad and bulky build, its size and its place in the frame, painted exactly like the character of the first reference image (the same line art, cel shading, colours, horse head, poncho and clothes): a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the middle of the face to the dark muzzle, two large dark eyes, exactly two upright pointed horse ears, a short dark-brown mane and forelock; a heavy woven serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging straight down over his shoulders and arms like a blanket to the middle of his thighs, open at the front over a cream-white long-sleeved shirt; a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs; no hat, no tail, no hooves, no human face. Full body, three-quarter front view, turned towards the lower right as in the render, his face with the white blaze and both eyes visible, the poncho hanging over his arms, empty gloved hands, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_i_front_ref.png",
+    "88fits/buck_i_fd_render.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 348,
+     "right": 373,
+     "top": 104,
+     "bottom": 102,
+     "height": 817,
+     "width": 302
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "bd": {
+   "seed": 16162,
+   "prompt": "The first reference image shows the character as he is painted: a hand-painted 2D anime man with a horse head in a striped poncho. The second reference image is a 3D render of the same character in another view or pose. One single figure alone in the frame: redraw the figure of the second reference image in exactly its pose, its view, its very broad and bulky build, its size and its place in the frame, painted exactly like the character of the first reference image (the same line art, cel shading, colours, horse head, poncho and clothes): a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the middle of the face to the dark muzzle, two large dark eyes, exactly two upright pointed horse ears, a short dark-brown mane and forelock; a heavy woven serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging straight down over his shoulders and arms like a blanket to the middle of his thighs, open at the front over a cream-white long-sleeved shirt; a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs; no hat, no tail, no hooves, no human face. Full body, three-quarter back view, turned away from the viewer towards the upper right as in the render: the back and the near side of the horse head with its two ears and the mane, no eyes, no muzzle, no face on the back of the head; the back of the poncho with its bands and fringed hem; feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_i_front_ref.png",
+    "88fits/buck_i_bd_render.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 373,
+     "right": 379,
+     "top": 100,
+     "bottom": 96,
+     "height": 827,
+     "width": 271
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "cheer": {
+   "seed": 16163,
+   "prompt": "One single figure alone in the frame: the exact same character seen directly from behind, cheering with joy, both arms thrown up high above his head with his gloved fists raised, the poncho's sides lifted with his arms and falling in folds from them; the back of the horse head with its two upright ears and the mane, no eyes, no muzzle, no face on the back of the head. Keep the same horseman, the same poncho with its bands and fringed hem, the same colours, proportions, size and art style as the reference; standing on both feet, feet fully visible. No hat, no tail, no motion lines. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_i_cheer_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 262,
+     "right": 263,
+     "top": 97,
+     "bottom": 100,
+     "height": 826,
+     "width": 498
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_back": {
+   "seed": 43092,
+   "prompt": "Edit the reference image: one single figure alone in the frame, the exact same man with a horse's head seen directly from behind, we see only the back of his horse head and the back of the poncho, no face at all, flinching in pain from a hit: his horse head bowed forward and facing straight away from the viewer so that only the back of the head, the ears and the mane show, his shoulders hunched under the poncho, his long chestnut horse head kept exactly a horse's head as in the reference (the white blaze, the long muzzle, the mane), only its eyes squeezed shut and its ears pinned back, the body jolting; no human face, no human skin, no human ears, no teeth, still standing on both feet, feet fully visible. Keep the same horseman, his lean build under the heavy poncho, the same outfit, colours, proportions, pose scale and art style as the reference; no face on the back of his head, no eyes, no muzzle, no face on the back of the head. No hat, no tail, no motion lines, no impact marks.  isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_i_hurt_back_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 347,
+     "right": 349,
+     "top": 102,
+     "bottom": 100,
+     "height": 821,
+     "width": 327
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_front": {
+   "seed": 19311,
+   "prompt": "Edit the reference image: one single figure alone in the frame, the exact same man with a horse's head facing the viewer, flinching in pain from a hit: leaning back a little, his shoulders hunched under the poncho, one gloved hand raised towards his chest, his long chestnut horse head kept exactly a horse's head as in the reference (the white blaze, the long muzzle, the mane), only its eyes squeezed shut and its ears pinned back, the body jolting; no human face, no human skin, no human ears, no teeth, still standing on both feet, feet fully visible. Keep the same horseman, his lean build under the heavy poncho, the same outfit, colours, proportions, pose scale and art style as the reference. No hat, no tail, no motion lines, no impact marks.  isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_i_hurt_front_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 350,
+     "right": 349,
+     "top": 87,
+     "bottom": 114,
+     "height": 822,
+     "width": 324
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_side": {
+   "seed": 19313,
+   "prompt": "Edit the reference image: one single figure alone in the frame, the exact same man with a horse's head in strict side profile facing right, flinching in pain from a hit: leaning back a little, his shoulders hunched under the poncho, one gloved hand raised towards his chest, his long chestnut horse head kept exactly a horse's head as in the reference (the white blaze, the long muzzle, the mane), only its eyes squeezed shut and its ears pinned back, the body jolting; no human face, no human skin, no human ears, no teeth, still standing on both feet, feet fully visible. Keep the same horseman, his lean build under the heavy poncho, the same outfit, colours, proportions, pose scale and art style as the reference. No hat, no tail, no motion lines, no impact marks.  isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_i_hurt_side_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 328,
+     "right": 344,
+     "top": 96,
+     "bottom": 99,
+     "height": 828,
+     "width": 351
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_bd": {
+   "seed": 19314,
+   "prompt": "Edit the reference image: one single figure alone in the frame, the exact same man with a horse's head in three-quarter back view, flinching in pain from a hit: leaning back a little, his shoulders hunched under the poncho, one gloved hand raised towards his chest, his long chestnut horse head kept exactly a horse's head as in the reference (the white blaze, the long muzzle, the mane), only its eyes squeezed shut and its ears pinned back, the body jolting; no human face, no human skin, no human ears, no teeth, still standing on both feet, feet fully visible. Keep the same horseman, his lean build under the heavy poncho, the same outfit, colours, proportions, pose scale and art style as the reference; no face on the back of his head, no eyes, no muzzle, no face on the back of the head. No hat, no tail, no motion lines, no impact marks.  isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_i_hurt_bd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 312,
+     "right": 315,
+     "top": 74,
+     "bottom": 79,
+     "height": 870,
+     "width": 396
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "hurt_fd": {
+   "seed": 19312,
+   "prompt": "Edit the reference image: one single figure alone in the frame, the exact same man with a horse's head in three-quarter front view, flinching in pain from a hit: leaning back a little, his shoulders hunched under the poncho, one gloved hand raised towards his chest, his long chestnut horse head kept exactly a horse's head as in the reference (the white blaze, the long muzzle, the mane), only its eyes squeezed shut and its ears pinned back, the body jolting; no human face, no human skin, no human ears, no teeth, still standing on both feet, feet fully visible. Keep the same horseman, his lean build under the heavy poncho, the same outfit, colours, proportions, pose scale and art style as the reference. No hat, no tail, no motion lines, no impact marks.  isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_i_hurt_fd_src.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 339,
+     "right": 362,
+     "top": 104,
+     "bottom": 102,
+     "height": 817,
+     "width": 322
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "dead": {
+   "seed": 16164,
+   "prompt": "The first reference image shows the character as he is painted: a hand-painted 2D anime man with a horse head in a striped poncho. The second reference image is a 3D render of the same character in another view or pose. One single figure alone in the frame: redraw the figure of the second reference image in exactly its pose, its view, its very broad and bulky build, its size and its place in the frame, painted exactly like the character of the first reference image (the same line art, cel shading, colours, horse head, poncho and clothes): a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the middle of the face to the dark muzzle, two large dark eyes, exactly two upright pointed horse ears, a short dark-brown mane and forelock; a heavy woven serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging straight down over his shoulders and arms like a blanket to the middle of his thighs, open at the front over a cream-white long-sleeved shirt; a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs; no hat, no tail, no hooves, no human face. He lies flat on the ground on his back, knocked out, limbs sprawled exactly as in the render, the poncho spread under and over him, the whole body visible, seen from a little above, his eyes closed. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_i_front_ref.png",
+    "88fits/buck_i_dead_render.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 101,
+     "right": 100,
+     "top": 398,
+     "bottom": 250,
+     "height": 375,
+     "width": 822
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "art_prompt": "a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the face to the dark muzzle, two large dark eyes, two upright pointed horse ears, a short dark-brown mane and forelock; he wears a heavy woven serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging straight down over his shoulders and arms like a blanket to the middle of his thighs, open at the front over a cream-white long-sleeved shirt; a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs, no hat; standing straight, both arms down at his sides under the poncho, gloved empty hands",
+  "anim_hint": "a man with a long chestnut-brown horse head (a white blaze, two upright ears, a short dark mane) in a heavy indigo-blue serape poncho with cream, red and mustard bands that hangs straight down over his shoulders and arms like a blanket, a cream shirt, a red bandana, dark brown trousers, brown cowboy boots and brown gloves, a normal upright run",
+  "anim_negative": "a human face, human ears, hair, a hat, a centaur, a horse body, four legs, hooves, a tail, extra arms, extra legs, extra hands, a second head, a face on the back of the head, a cape, a cloak flying open, the poncho flying up, the poncho's lining, wings, a golden, orange or yellow poncho, a green tint, text, logos",
+  "stills": "i",
+  "screen": "green",
+  "seed_offset": 1480,
+  "method": "hero_puppet",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "pose_drivers": {
+   "front": "buck_horse_run",
+   "fd": "buck_horse_run",
+   "side": "buck_horse_run",
+   "bd": "buck_horse_run",
+   "back": "buck_horse_run"
+  },
+  "ctl_drivers": {
+   "front": "buck_horse_run_depth",
+   "bd": "buck_horse_run_depth",
+   "back": "buck_horse_run_depth"
+  },
+  "pose_motion": "running in place on the spot like on a treadmill at a steady natural run, upright, his arms swinging only a little, close to his sides under the heavy poncho, the thick wool poncho hanging straight down over his shoulders and arms to his thighs and never flying open",
+  "run_fit": "tools/dl/drivers/buck_horse_run/silhouette.json",
+  "run_scale": {
+   "front": 0.98,
+   "fd": 1.02,
+   "side": 1.02,
+   "bd": 0.976,
+   "back": 0.926
+  },
+  "fringe_remap": true,
+  "polish": [
+   {
+    "mode": "hue",
+    "ranges": [
+     [
+      66,
+      175
+     ]
+    ],
+    "to": 30,
+    "sat": 0.6,
+    "min_sat": 0.1
+   }
+  ],
+  "puppet": {
+   "source": "horseman.glb",
+   "rig": "tools/dl/p148/HORSE/scripts/rig_horse.py (the T-pose draped: arms turned down, the poncho's wings pressed in to a blanket; Mixamo names; bone heat on a voxel proxy; the poncho on the spine)",
+   "glb": "tools/dl/puppet/buck_horse/buck_puppet.glb",
+   "clip": "running.fbx, the arms x0.5 round their mean (scripts/arms_half.py)",
+   "idle": "puppet_blender's procedural standing idle",
+   "frame": "soles",
+   "face": "nose"
+  }
+ },
+ "clip_kind": {
+  "back": "control",
+  "front": "control",
+  "side": "pose",
+  "bd": "control",
+  "fd": "pose"
+ },
+ "fringe_remap": true,
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

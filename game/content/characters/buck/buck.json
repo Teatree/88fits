@@ -50,10 +50,10 @@
     "eyes": 2,
     "shape": "blob"
   },
-  "art_prompt": "a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the face to the muzzle, two large dark eyes, two upright pointed horse ears, a soft dark muzzle, a short dark-brown mane down the back of the neck; he wears a striped serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging over his shoulders to the middle of his thighs, a cream-white long-sleeved shirt, a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs, no hat; standing straight, both arms relaxed at his sides, empty hands",
-  "motion": "running in place at a fast determined pace, arms pumping at his sides, the poncho swinging, empty hands",
-  "anim_hint": "a man with a long chestnut-brown horse head (a white blaze, two upright ears, a short dark mane) in an indigo-blue serape poncho with cream, red and mustard bands over a cream shirt, a red bandana, dark brown trousers, brown cowboy boots and brown gloves, a fast determined run, the poncho swinging",
-  "anim_negative": "a human face, human ears, hair, a hat, a centaur, a horse body, four legs, hooves, a tail, extra arms, extra legs, extra hands, a second head, a face on the back of the head, text, logos",
+  "art_prompt": "a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the face to the dark muzzle, two large dark eyes, two upright pointed horse ears, a short dark-brown mane and forelock; he wears a heavy woven serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging straight down over his shoulders and arms like a blanket to the middle of his thighs, open at the front over a cream-white long-sleeved shirt; a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs, no hat; standing straight, both arms down at his sides under the poncho, gloved empty hands",
+  "motion": "running in place at a steady natural run, upright, his arms swinging only a little under the heavy poncho, the poncho hanging straight down over his shoulders and arms and never flying open, empty hands",
+  "anim_hint": "a man with a long chestnut-brown horse head (a white blaze, two upright ears, a short dark mane) in a heavy indigo-blue serape poncho with cream, red and mustard bands that hangs straight down over his shoulders and arms like a blanket, a cream shirt, a red bandana, dark brown trousers, brown cowboy boots and brown gloves, a normal upright run",
+  "anim_negative": "a human face, human ears, hair, a hat, a centaur, a horse body, four legs, hooves, a tail, extra arms, extra legs, extra hands, a second head, a face on the back of the head, a cape, a cloak flying open, the poncho flying up, the poncho's lining, wings, a golden, orange or yellow poncho, a green tint, text, logos",
   "anim_seed": 47,
   "portrait_prompt": "head and shoulders of a man with a long chestnut-brown horse head with a white blaze, two upright ears and a short dark mane, a calm steady stare, a red bandana knotted at his neck and the indigo-blue striped serape poncho on his shoulders, facing the viewer",
   "hurt_hint": "flinching with his eyes squeezed shut and his big teeth gritted, one arm raised across the chest",
@@ -95,7 +95,7 @@
   "price": 3500,
   "currency_type": "gold",
   "variant_base": "BUC-A",
-  "variant": "BUC-H",
+  "variant": "BUC-I",
   "variants": {
     "BUC-A": {
       "note": "the deer, the top-level strip before the Level Editor's looks (shelved in pass 69: the top-level words are Jeżyk's tracksuit now; BUC-B keeps the deer's words)",
@@ -579,7 +579,108 @@
       },
       "icon": "buck_icon_h.png",
       "icon_picked": true,
-      "title": "hero_buck_h.png"
+      "title": "hero_buck_h.png",
+      "shelved": true
+    },
+    "BUC-I": {
+      "note": "pass 148: the Horseman from Garry's T-pose picture as a textured 3D model first (horseman.glb at the repo root: Hunyuan3D 2mv shape, Hunyuan3D-2.1 Paint PBR, a normal map baked from the raw shape; the back's mirrored shirt strip, the side slit and the missing white blaze repainted on the texture), then the puppet method: the model rigged in an arms-down rest with its poncho pressed from wings into a blanket (tools/dl/p148/HORSE/scripts/rig_horse.py), Mixamo Running retargeted in place with the arms swinging half as far (BUC-H's normal run, the poncho hanging); the stills are Klein paintings of renders of the textured model in each view (green screen; the cheer an edit of the painted back; the hurts edits of the painted views with the horse head held word for word), walked on the puppet's depth guides (buck_horse_run_depth, Wan 2.2 Fun Control) sized by its silhouette (run_fit, run_scale = the 25 / 8 degree standing ratio), polished (green to brown)",
+      "recipe": {
+        "art_prompt": "a lean man with the head of a horse on a human neck: a long chestnut-brown horse head with a narrow white blaze down the face to the dark muzzle, two large dark eyes, two upright pointed horse ears, a short dark-brown mane and forelock; he wears a heavy woven serape poncho in deep indigo blue with horizontal bands of cream white, red and mustard yellow and a short fringed hem, hanging straight down over his shoulders and arms like a blanket to the middle of his thighs, open at the front over a cream-white long-sleeved shirt; a red bandana knotted at the neck, a brown leather belt with a silver buckle, dark brown trousers, brown leather cowboy boots and brown leather gloves; two human arms and two human legs, no hat; standing straight, both arms down at his sides under the poncho, gloved empty hands",
+        "anim_hint": "a man with a long chestnut-brown horse head (a white blaze, two upright ears, a short dark mane) in a heavy indigo-blue serape poncho with cream, red and mustard bands that hangs straight down over his shoulders and arms like a blanket, a cream shirt, a red bandana, dark brown trousers, brown cowboy boots and brown gloves, a normal upright run",
+        "anim_negative": "a human face, human ears, hair, a hat, a centaur, a horse body, four legs, hooves, a tail, extra arms, extra legs, extra hands, a second head, a face on the back of the head, a cape, a cloak flying open, the poncho flying up, the poncho's lining, wings, a golden, orange or yellow poncho, a green tint, text, logos",
+        "stills": "i",
+        "screen": "green",
+        "seed_offset": 1480,
+        "method": "hero_puppet",
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        },
+        "pose_drivers": {
+          "front": "buck_horse_run",
+          "fd": "buck_horse_run",
+          "side": "buck_horse_run",
+          "bd": "buck_horse_run",
+          "back": "buck_horse_run"
+        },
+        "ctl_drivers": {
+          "front": "buck_horse_run_depth",
+          "bd": "buck_horse_run_depth",
+          "back": "buck_horse_run_depth"
+        },
+        "pose_motion": "running in place on the spot like on a treadmill at a steady natural run, upright, his arms swinging only a little, close to his sides under the heavy poncho, the thick wool poncho hanging straight down over his shoulders and arms to his thighs and never flying open",
+        "run_fit": "tools/dl/drivers/buck_horse_run/silhouette.json",
+        "run_scale": {
+          "front": 0.98,
+          "fd": 1.02,
+          "side": 1.02,
+          "bd": 0.976,
+          "back": 0.926
+        },
+        "fringe_remap": true,
+        "polish": [
+          {
+            "mode": "hue",
+            "ranges": [
+              [
+                66,
+                175
+              ]
+            ],
+            "to": 30,
+            "sat": 0.6,
+            "min_sat": 0.1
+          }
+        ],
+        "head_grow": {
+          "rows": [
+            "run_s"
+          ],
+          "scale": 1.25,
+          "feather": 4,
+          "below": 6,
+          "tool": "tools/dl/p143/HORSE/scripts/head_grow.py (after the polish; run again after any new walk)"
+        },
+        "puppet": {
+          "source": "horseman.glb",
+          "rig": "tools/dl/p148/HORSE/scripts/rig_horse.py (the T-pose draped: arms turned down, the poncho's wings pressed in to a blanket; Mixamo names; bone heat on a voxel proxy; the poncho on the spine)",
+          "glb": "tools/dl/puppet/buck_horse/buck_puppet.glb",
+          "clip": "running.fbx, the arms x0.5 round their mean (scripts/arms_half.py)",
+          "idle": "puppet_blender's procedural standing idle",
+          "frame": "soles",
+          "face": "nose"
+        }
+      },
+      "fresh": true,
+      "sprite": "buck_sprite_i.png",
+      "icon": "buck_icon_i.png",
+      "icon_picked": true,
+      "title": "hero_buck_i.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
     }
   }
 }
