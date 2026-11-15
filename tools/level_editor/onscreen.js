@@ -84,11 +84,16 @@ const OnScreen = (() => {
 
   // ------------------------------------------------------------------ the estimate at a second
 
-  /** The stage run's estimate for stage s (the Timeline's assumptions) and its window. */
+  /** Pass 152: seconds of Endless the pop-up plays without an Endless window (the stage tab's own 2:00). */
+  const AFTER_STAGE = 120;
+  /** The stage run's estimate for stage s (the Timeline's assumptions) and its window. Pass 152: through the boss
+   *  fight, the portal's countdown and Endless (three cycles of an Endless window, as the stage tab shows them). */
   function estimateFor(s) {
     const w = App.stageWindow(s);
+    const tl = App.tl();
+    const after = Model.portalTimer(tl, s) + Math.max(AFTER_STAGE, App.endlessSpan ? App.endlessSpan(s) : 0);
     // the Timeline's assumptions, the run clock to this stage's window (the page's `end` is the open tab's)
-    const opts = Object.assign({}, App.spawnOpts(), { stage: s, end: w.end + App.portalSeconds() });
+    const opts = Object.assign({}, App.spawnOpts(), { stage: s, end: w.end + after });
     const est = Model.spawnEstimate(App.tl(), App.S.enemies, opts);
     return { est, w, opts };
   }
@@ -105,6 +110,106 @@ const OnScreen = (() => {
     let best = null;
     for (const p of est.points) if (!p.after && p.t >= w.start && p.t <= w.end && (!best || p.alive > best.alive)) best = p;
     return best ? best.t : w.start;
+  }
+
+  // ------------------------------------------------------------------ pass 152: the whole run on one clock
+  //
+  // Garry (2026-11-15): "I'd want the Show on Screen feature to support the Boss and the Endless cycle as well. I should
+  // be able to just point at a minute of the run (including boss and endless and see it)". The slider walks run seconds
+  // through four parts: the stage (its own clock), the boss fight (a clock of its own: the estimate's run clock stands
+  // still while the boss lives, so the fight's seconds are model.js's fightPoints), the portal's countdown, Endless.
+
+  /** The parts of stage s's run on one clock of run seconds: [{kind 'stage'|'fight'|'portal'|'endless', name, u0, len}]. */
+  function runSegments(est, w) {
+    const segs = [{ kind: 'stage', name: 'Stage', u0: 0, len: w.length }];
+    let u = w.length;
+    const fp = est && Array.isArray(est.fightPoints) ? est.fightPoints : [];
+    const F = fp.length ? fp[fp.length - 1].fight : 0;
+    if (F > 0) { segs.push({ kind: 'fight', name: 'Boss fight', u0: u, len: F }); u += F; }
+    const st = est && est.stage ? est.stage : {};
+    const P = Number(st.portal) || 0;
+    if (P > 0) { segs.push({ kind: 'portal', name: 'Portal', u0: u, len: P }); u += P; }
+    const E = Number(st.endless) || 0;
+    if (E > 0) { segs.push({ kind: 'endless', name: 'Endless', u0: u, len: E }); u += E; }
+    return segs;
+  }
+  const runLength = (segs) => { const g = segs[segs.length - 1]; return g.u0 + g.len; };
+  /** The part run second u falls in and the seconds into it (the stage runs [0, its length), the fight's second 0 is
+   *  the boss's arrival). */
+  function segAt(segs, u) {
+    for (let i = segs.length - 1; i >= 0; i--) if (u >= segs[i].u0 - 1e-9) return { seg: segs[i], sec: Math.max(0, u - segs[i].u0) };
+    return { seg: segs[0], sec: 0 };
+  }
+  /** The map second of run second u (the fight's is the boss's second: the map clock stands still in it). */
+  function mapT(state, u) {
+    const { seg, sec } = segAt(state.segs, u);
+    const w = state.w;
+    if (seg.kind === 'stage') return w.start + sec;
+    if (seg.kind === 'fight') return w.end;
+    if (seg.kind === 'portal') return w.end + sec;
+    const portal = state.segs.find((g) => g.kind === 'portal');
+    return w.end + (portal ? portal.len : 0) + sec;
+  }
+  /** Run second u of a map second t (the Timeline's cursor): the stage's own, or after the boss (the fight's seconds
+   *  skipped: the Timeline draws the fight as no time). */
+  function runSecondOf(state, t) {
+    const w = state.w;
+    if (t < w.end) return Math.max(0, t - w.start);
+    const fight = state.segs.find((g) => g.kind === 'fight');
+    return w.length + (fight ? fight.len : 0) + (t - w.end);
+  }
+  /** The estimate's point at run second u. */
+  function pointAt(state, u) {
+    const { seg, sec } = segAt(state.segs, u);
+    if (seg.kind === 'fight') {
+      const fp = state.est.fightPoints;
+      let best = fp[0];
+      for (const p of fp) if (p.fight <= sec + 1e-9) best = p;
+      return best;
+    }
+    // at the stage's last second the point before the fight; after it the portal's own points (the fight's end first)
+    return Model.estimateAt(state.est, mapT(state, u), seg.kind === 'stage');
+  }
+  /** What spawns in the part u falls in: the stage's rows, or in a fight / Endless with its window the window's rows
+   *  first (their tallies under 'bossrow:<s>:<i>:' / 'endlessrow:<s>:<i>:', open by the window's clock and cycle) and the
+   *  stage's after them (the leftovers, closed). {rows, keys, isOpen, win {kind, cycle, ct, len}} */
+  function rowsFor(state, u) {
+    const tl = App.tl();
+    const s = state.stage;
+    const stageRows = Array.isArray(tl.roster) ? tl.roster : [];
+    const { seg, sec } = segAt(state.segs, u);
+    const kind = seg.kind === 'fight' ? 'boss' : seg.kind === 'endless' ? 'endless' : null;
+    if (!kind || !Model.windowOn(tl, s, kind)) return { rows: stageRows, keys: null, isOpen: null, win: null };
+    const b = Model.windowBlock(tl, s, kind);
+    const wr = Model.bossFightRows(b);
+    const len = Model.windowLen(b, kind);
+    const cyc = Math.floor(sec / len + 1e-9);
+    const ct = sec - cyc * len;
+    const pre = (kind === 'boss' ? 'bossrow:' : 'endlessrow:') + s + ':';
+    const keys = wr.map((_, i) => pre + i + ':').concat(stageRows.map((_, i) => 'roster:' + i));
+    const isOpen = (ri) => {
+      if (ri >= wr.length) return false;
+      const r = wr[ri];
+      const t0 = Number(r.t) || 0;
+      const t1 = r.until == null || r.until === '' ? Infinity : Number(r.until);
+      return ct >= t0 && ct < t1 && Model.rowInCycle(r, cyc + 1);
+    };
+    return { rows: wr.concat(stageRows), keys, isOpen, win: { kind, cycle: cyc + 1, ct, len } };
+  }
+  /** Where run second u is, in words: "Endless 2:15 of 6:00 · cycle 2 (0:15 of 2:00)". */
+  function whereText(state, u) {
+    const { seg, sec } = segAt(state.segs, u);
+    const R = rowsFor(state, u);
+    let s = `${seg.name} ${U.fmtT(sec)} of ${U.fmtT(seg.len)}`;
+    if (R.win && seg.kind === 'endless') s += ` · cycle ${R.win.cycle} (${U.fmtT(R.win.ct)} of ${U.fmtT(R.win.len)})`;
+    return s;
+  }
+  /** The run's peak: the run second with the most bodies alive (every part). */
+  function peakRun(state) {
+    let best = 0, bestN = -1;
+    const total = runLength(state.segs);
+    for (let u = 0; u <= total; u++) { const p = pointAt(state, u); const n = p ? Number(p.alive) || 0 : 0; if (n > bestN) { bestN = n; best = u; } }
+    return best;
   }
 
   /** The hero the scene shows: the Sim tab's pick (its form, else the browser's copy of it), else the Drifter. */
@@ -131,7 +236,7 @@ const OnScreen = (() => {
     const onKey = (e) => {
       if (!document.body.contains(back)) return;
       if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(); }
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { if (e.target && e.target.tagName === 'INPUT') return; e.preventDefault(); setTime(state.t + (e.key === 'ArrowLeft' ? -1 : 1)); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { if (e.target && e.target.tagName === 'INPUT') return; e.preventDefault(); setTime(state.t + (e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 60 : 1)); }
       else if (String(e.key).toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey) { if (e.target && e.target.tagName === 'INPUT') return; reroll(); }
     };
     state.onKey = onKey;
@@ -162,7 +267,7 @@ const OnScreen = (() => {
   function buildShell(state) {
     const box = state.box;
     box.appendChild(el('h3', { text: "What's on screen at second t" }));
-    box.appendChild(el('p', { class: 'muted small onscreen-note', text: 'The crowd the On screen estimate expects at this second of the stage, laid out round the Outlaw as the rows spawn it (the fresh ones far out, the old ones close in, a ring row on its ring, nothing overlapping). Each body wears its row\'s look and size, a crown for an Elite modifier or an Elite boss, a rim for a special, the stage\'s filter over all. Fractions are rolled (Re-roll draws them again). Every figure plays run, run turned, die, 2 s each.' }));
+    box.appendChild(el('p', { class: 'muted small onscreen-note', text: 'The crowd the On screen estimate expects at this second of the run (the stage, its boss fight, the portal\'s countdown and Endless: the bar under the controls), laid out round the Outlaw as the rows spawn it (the fresh ones far out, the old ones close in, a ring row on its ring, nothing overlapping). Each body wears its row\'s look and size, a crown for an Elite modifier or an Elite boss, a rim for a special, the stage\'s filter over all. Fractions are rolled (Re-roll draws them again). Every figure plays run, run turned, die, 2 s each.' }));
     const ctl = el('div', { class: 'onscreen-ctl' });
     // the stage
     state.stageSel = el('select', { class: 'onscreen-stage', title: 'the stage whose run the estimate plays (a fresh Outlaw from its start)' });
@@ -170,13 +275,13 @@ const OnScreen = (() => {
     state.stageSel.addEventListener('change', () => setStage(state, Number(state.stageSel.value), null));
     ctl.appendChild(el('label', { class: 'onscreen-field' }, el('span', { class: 'muted small', text: 'Stage' }), state.stageSel));
     // the second
-    const minus = el('button', { class: 'btn small', type: 'button', text: '−1 s', title: 'one second earlier (left arrow)', onclick: () => setTime(state.t - 1) });
-    const plus = el('button', { class: 'btn small', type: 'button', text: '+1 s', title: 'one second later (right arrow)', onclick: () => setTime(state.t + 1) });
-    state.slider = el('input', { type: 'range', class: 'onscreen-slider', min: 0, max: 100, step: 1, value: 0, title: 'the second of the stage (its own clock, as the Timeline\'s stage tab counts it)' });
-    state.slider.addEventListener('input', () => setTime(state.w.start + Number(state.slider.value)));
+    const minus = el('button', { class: 'btn small', type: 'button', text: '−1 s', title: 'one second earlier (left arrow; Shift: a minute)', onclick: () => setTime(state.t - 1) });
+    const plus = el('button', { class: 'btn small', type: 'button', text: '+1 s', title: 'one second later (right arrow; Shift: a minute)', onclick: () => setTime(state.t + 1) });
+    state.slider = el('input', { type: 'range', class: 'onscreen-slider', min: 0, max: 100, step: 1, value: 0, title: 'the second of the run: the stage (its own clock), its boss fight, the portal\'s countdown, Endless' });
+    state.slider.addEventListener('input', () => setTime(Number(state.slider.value)));
     state.timeEl = el('b', { class: 'onscreen-time', text: '0:00' });
     ctl.appendChild(el('span', { class: 'onscreen-field onscreen-timebox' }, minus, state.slider, plus, state.timeEl));
-    const peak = el('button', { class: 'btn small', type: 'button', text: 'Peak', title: 'jump to the second with the most bodies alive in this stage', onclick: () => setTime(peakSecond(state.est, state.w)) });
+    const peak = el('button', { class: 'btn small', type: 'button', text: 'Peak', title: 'jump to the second with the most bodies alive in this run (the boss fight and Endless in)', onclick: () => setTime(peakRun(state)) });
     ctl.appendChild(peak);
     // the roll and the zoom
     ctl.appendChild(el('button', { class: 'btn small', type: 'button', text: 'Re-roll', title: 'draw the fractions and the places again from a new seed (R)', onclick: reroll }));
@@ -186,6 +291,9 @@ const OnScreen = (() => {
     ctl.appendChild(state.zoomSel);
     ctl.appendChild(el('button', { class: 'btn small', type: 'button', text: 'Close', title: 'close (Escape)', onclick: close }));
     box.appendChild(ctl);
+    // pass 152: the run's parts, each as wide as its seconds; click one to jump there (where in it you click)
+    state.segBar = el('div', { class: 'onscreen-segs' });
+    box.appendChild(state.segBar);
     const row = el('div', { class: 'onscreen-row' });
     state.canvas = el('canvas', { class: 'onscreen-canvas', width: W, height: H });
     row.appendChild(el('div', { class: 'onscreen-stage-box' }, state.canvas));
@@ -204,21 +312,47 @@ const OnScreen = (() => {
     state.filter = O.filterMults(entry && entry.filter);
     state.filterEntry = entry && entry.filter ? entry.filter : null;
     state.strips.clear();   // the tint changes with the stage
-    state.slider.min = 0; state.slider.max = Math.max(1, Math.round(state.w.length));
-    let want = t != null && t >= state.w.start && t <= state.w.end ? t : null;
-    if (want == null) { const c = typeof Timeline !== 'undefined' ? Timeline.cursorT : null; want = c != null && c >= state.w.start && c <= state.w.end ? c : peakSecond(state.est, state.w); }
+    state.segs = runSegments(state.est, state.w);
+    state.slider.min = 0; state.slider.max = Math.max(1, Math.round(runLength(state.segs)));
+    buildSegBar(state);
+    // a map second (the caller's, else the Timeline's cursor) inside this stage's run, else the stage's peak
+    const runEndT = state.w.end + state.segs.filter((g) => g.kind === 'portal' || g.kind === 'endless').reduce((a, g) => a + g.len, 0);
+    let want = t != null && t >= state.w.start && t <= runEndT ? runSecondOf(state, t) : null;
+    if (want == null) { const c = typeof Timeline !== 'undefined' ? Timeline.cursorT : null; want = c != null && c >= state.w.start && c <= runEndT ? runSecondOf(state, c) : peakSecond(state.est, state.w) - state.w.start; }
     setTime(want);
+  }
+
+  /** Pass 152: the bar of the run's parts under the controls. */
+  function buildSegBar(state) {
+    U.clear(state.segBar);
+    const total = runLength(state.segs);
+    state.segEls = [];
+    for (const g of state.segs) {
+      const d = el('div', { class: 'onscreen-seg seg-' + g.kind, title: `${g.name}: ${U.fmtT(g.len)} (click to jump; where you click is the second)` },
+        el('span', { text: `${g.name} ${U.fmtT(g.len)}` }));
+      d.style.flex = `${Math.max(g.len, total * 0.06)} 1 0`;
+      d.addEventListener('mousedown', (e) => {
+        const r = d.getBoundingClientRect();
+        const f = r.width > 0 ? Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1) : 0;
+        setTime(g.u0 + f * g.len);
+      });
+      state.segBar.appendChild(d);
+      state.segEls.push({ g, d });
+    }
   }
 
   /** The second (map seconds): the estimate's point there, the layout, the strips, the numbers. */
   function setTime(t) {
     const state = dlg;
     if (!state || !state.w) return;
-    const tt = Math.max(state.w.start, Math.min(state.w.end, Math.round(Number(t) || 0)));
+    // pass 152: t is a run second (the stage, its fight, the portal, Endless on one clock)
+    const tt = Math.max(0, Math.min(Math.round(runLength(state.segs)), Math.round(Number(t) || 0)));
     state.t = tt;
-    state.slider.value = String(tt - state.w.start);
-    state.timeEl.textContent = `${U.fmtT(tt - state.w.start)} of ${U.fmtT(state.w.length)}`;
-    state.timeEl.title = `map ${U.fmtT(tt)}`;
+    state.slider.value = String(tt);
+    state.timeEl.textContent = whereText(state, tt);
+    state.timeEl.title = `run ${U.fmtT(tt)} · map ${U.fmtT(mapT(state, tt))}`;
+    const at = segAt(state.segs, tt);
+    for (const x of state.segEls || []) x.d.classList.toggle('on', x.g === at.seg);
     relay(state);
   }
 
@@ -231,14 +365,26 @@ const OnScreen = (() => {
 
   /** The layout for the second and seed in hand, then the strips it needs (drawn as they land). */
   function relay(state) {
-    const p = Model.estimateAt(state.est, state.t);
-    const before = Model.estimateAt(state.est, state.t - O.ATTRIB_WINDOW);
+    // pass 152: the point at the run second, the rows of its part (a window's first), the boss in a fight
+    const p = pointAt(state, state.t);
+    const before = pointAt(state, Math.max(state.t - O.ATTRIB_WINDOW, 0));
     const tl = App.tl();
-    const spd = Model.speedOf(tl, { speed: 1 }, {}, state.t);
-    const L = O.layout(p, before, tl.roster || [], App.S.byId, { seed: state.seed + state.t * 131, turnover: turnoverAt(state.opts, state.t, state.stage, state.w),
-      sides: tl.spawn_sides, specialDefaults: tl.special_defaults, speedMult: spd.spd > 0 ? spd.spd : 1, maxBodies: Model.MAX_BODIES,
+    const t = mapT(state, state.t);
+    const at = segAt(state.segs, state.t);
+    const R = rowsFor(state, state.t);
+    const spd = Model.speedOf(tl, { speed: 1 }, {}, t);
+    let speedMult = spd.spd > 0 ? spd.spd : 1;
+    if (at.seg.kind === 'endless') {
+      // Endless's speed step (endless.speed_growth a wave)
+      const every = Math.max(Number(Model.endlessValue(tl, 'every', state.stage)) || 10, 1);
+      const em = Model.endlessMults(tl, Math.floor(at.sec / every) + 1, state.stage);
+      if (em && em.speed > 0) speedMult *= em.speed;
+    }
+    state.where = { seg: at.seg, sec: at.sec, win: R.win, t };
+    const L = O.layout(p, before, R.rows, App.S.byId, { seed: state.seed + state.t * 131, turnover: turnoverAt(state.opts, t, state.stage, state.w),
+      sides: tl.spawn_sides, specialDefaults: tl.special_defaults, speedMult, maxBodies: Model.MAX_BODIES,
       // pass 150 (lane EDITOR): a row's variation tabs bring their own creatures, looks and settings
-      variations: Model });
+      variations: Model, keys: R.keys, isOpen: R.isOpen, boss: at.seg.kind === 'fight' && p && p.boss ? { id: p.boss } : null });
     state.point = p;
     state.layout = L;
     // the looks the scene needs
@@ -260,8 +406,12 @@ const OnScreen = (() => {
     if (!L) return;
     const alive = Number(p.alive) || 0;
     side.appendChild(el('div', { class: 'onscreen-head' }, el('b', { text: `On screen ≈ ${U.fmtN(alive, 1)}` }), el('span', { class: 'muted small', text: ` · drawn ${L.total}` })));
-    side.appendChild(el('div', { class: 'small', text: `cap ${p.cap != null ? p.cap : '–'} load · hard cap ${Model.MAX_BODIES} bodies (the pool)${p.full > 0 ? ` · cap full ${Math.round(p.full * 100)}% of the checks` : ''}` }));
-    side.appendChild(el('div', { class: 'muted small', text: `Stage ${state.stage + 1}, ${state.w.name} · ${U.fmtT(state.t - state.w.start)} (map ${U.fmtT(state.t)}) · seed ${state.seed}${state.busy ? ' · ' + state.busy : ''}` }));
+    // pass 152: a window's Max count counts bodies; the stage's cap counts load
+    const wh = state.where || {};
+    const capText = p.win ? `Max count ${p.cap != null ? p.cap : '–'} bodies (the ${p.win === 'endless' ? 'Endless' : 'boss fight'} window${wh.win && p.win === 'endless' ? `, cycle ${wh.win.cycle}` : ''})` : `cap ${p.cap != null ? p.cap : '–'} load`;
+    side.appendChild(el('div', { class: 'small', text: `${capText} · hard cap ${Model.MAX_BODIES} bodies (the pool)${p.full > 0 ? ` · cap full ${Math.round(p.full * 100)}% of the checks` : ''}` }));
+    side.appendChild(el('div', { class: 'muted small', text: `Stage ${state.stage + 1}, ${state.w.name} · ${whereText(state, state.t)} (run ${U.fmtT(state.t)}, map ${U.fmtT(wh.t != null ? wh.t : state.t)}) · seed ${state.seed}${state.busy ? ' · ' + state.busy : ''}` }));
+    if (wh.seg && wh.seg.kind === 'fight') side.appendChild(el('div', { class: 'muted small', text: 'The boss fight: the map clock stands still while the boss lives (the Timeline draws it as no time); its seconds are the estimate\'s own, the fight as long as the Timeline assumes.' }));
     side.appendChild(el('div', { class: 'muted small onscreen-filter', text: state.filter.on ? `filter ${state.filterEntry.color} at ${Math.round((Number(state.filterEntry.strength) || 0) * 100)}% (creatures ${Math.round((Number(state.filterEntry.strength) || 0) * (state.filterEntry.actors != null ? Number(state.filterEntry.actors) : O.ACTORS_DEFAULT) * 100)}%)` : 'no stage filter (daylight)' }));
     state.phaseEl = el('div', { class: 'muted small onscreen-phase' });
     side.appendChild(state.phaseEl);
@@ -412,5 +562,5 @@ const OnScreen = (() => {
     g.restore();
   }
 
-  return { open, close, creatureLook, heroLook, heroId, peakSecond, get state() { return dlg; } };
+  return { open, close, creatureLook, heroLook, heroId, peakSecond, runSegments, segAt, get state() { return dlg; } };
 })();

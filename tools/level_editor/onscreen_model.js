@@ -41,6 +41,8 @@ const OnScreenModel = (() => {
   const ATTRIB_WINDOW = 20;
   /** A creature wearing an elite modifier is bigger by its kind, x1.4 to x1.6 in the game (docs/waves_schema.md pass 58). */
   const ELITE_SCALE = 1.4;
+  /** Pass 152: a fighting boss stands this far up the screen from the outlaw (its own radius and a step clear of him). */
+  const BOSS_DIST = 6.5;
   /** The outlaw's body radius (Player: 0.5 m) and his painting's height (Player.gd:165: the quad is 1.9 m tall). */
   const HERO_RADIUS = 0.5, HERO_SIZE = 1.9;
   /** The estimate's default kill rate (model.js EST_DEF.turnover): a body lives 1 / turnover seconds on average. */
@@ -126,15 +128,28 @@ const OnScreenModel = (() => {
   /** How many bodies of `id` each row gets: the rows that spawn it weighed by what they spawned in the past window
    *  (`srcNow` - `srcBefore`, each row's tally x its share of the id), else by their presence now, else the first row of
    *  it; [{ri, w}] (empty: the id has no row). */
-  function rowWeights(id, rows, srcNow, srcBefore, t, vm) {
+  function rowWeights(id, rows, srcNow, srcBefore, t, vm, keys, isOpen) {
     const cands = [];
     rows.forEach((r, ri) => { for (const x of rowIdsAll(r, vm)) if (x.id === id) cands.push({ ri, share: x.share }); });
     if (!cands.length) return [];
-    const recent = cands.map((c) => ({ ri: c.ri, w: Math.max(num(srcNow['roster:' + c.ri], 0) - num(srcBefore['roster:' + c.ri], 0), 0) * c.share }));
+    // pass 152: a row's tally under its own key (`keys[ri]`: 'roster:<i>', or a window row's 'endlessrow:<s>:<i>:' whose
+    // tabs are summed)
+    const keyOf = (ri) => (Array.isArray(keys) && keys[ri] ? keys[ri] : 'roster:' + ri);
+    const recent = cands.map((c) => ({ ri: c.ri, w: Math.max(tally(srcNow, keyOf(c.ri)) - tally(srcBefore, keyOf(c.ri)), 0) * c.share }));
     if (recent.some((x) => x.w > 1e-9)) return recent.filter((x) => x.w > 1e-9);
-    const open = cands.filter((c) => rowOpen(rows[c.ri], t)).map((c) => ({ ri: c.ri, w: c.share }));
+    const open = cands.filter((c) => (typeof isOpen === 'function' ? isOpen(c.ri) : rowOpen(rows[c.ri], t))).map((c) => ({ ri: c.ri, w: c.share }));
     if (open.length) return open;
     return [{ ri: cands[0].ri, w: 1 }];
+  }
+
+  /** Pass 152: what the estimate's `src` holds under a key: the key itself, or every key under a prefix ending in ':'
+   *  (a window row's tabs, 'endlessrow:<s>:<i>:<tab>'). */
+  function tally(src, key) {
+    if (!isObj(src)) return 0;
+    if (!String(key).endsWith(':')) return num(src[key], 0);
+    let n = 0;
+    for (const k of Object.keys(src)) if (k.startsWith(key)) n += num(src[k], 0);
+    return n;
   }
 
   /** A size override: a number, or [min, max] rolled per body (docs/waves_schema.md pass 58); null = none. */
@@ -184,7 +199,9 @@ const OnScreenModel = (() => {
    *  earlier (or null), `rows` the timeline's roster, `byId` the creatures' records by id (server: size, radius, speed,
    *  archetype, variance, play), `opts` {seed, turnover (the estimate's kill rate: mean life = 1 / it), sides
    *  (tl.spawn_sides), specialDefaults (tl.special_defaults), speedMult (the stage's and the map's creature speed
-   *  multiple), maxBodies (default 320)}. Returns {bodies [{id, ri, x, z, size, radius, special, elite, crown, tint,
+   *  multiple), maxBodies (default 320), pass 152: keys [per row: the `src` key its tally is under, 'roster:<i>' by
+   *  default], isOpen (ri) => whether row ri is open now (default: its t / until on the map clock), boss {id} (a boss
+   *  fight: the boss stands BOSS_DIST m up the screen and keeps its ground, the crowd pushed off it)}. Returns {bodies [{id, ri, x, z, size, radius, special, elite, crown, tint,
    *  glow, look, age, dist}], counts [{id, expected, n, special, elite}], total, expected, cap, seed}. x right, z down the
    *  screen (towards the camera), metres from the outlaw. */
   function layout(point, before, rows, byId, opts) {
@@ -216,11 +233,25 @@ const OnScreenModel = (() => {
     // 2. rows and bodies
     const bodies = [];
     const rings = new Map();   // a ring row's rings: ri -> [{age, start, n, k}]
+    // pass 152: the boss of a fight, up the screen in front of the outlaw
+    const bossId = isObj(o.boss) && o.boss.id ? String(o.boss.id) : '';
+    if (bossId) {
+      const cr = byIdMap[bossId] || null;
+      const size = Math.max(num(cr && cr.size, 4), 0.05);
+      const radius = Math.max(num(cr && cr.radius, size * 0.3), 0.3);
+      const dist = Math.max(BOSS_DIST, HERO_RADIUS + radius + 1);
+      // no Elite crown: the boss is the big one (the King's own painting wears his)
+      bodies.push({ id: bossId, ri: -1, x: 0, z: -dist, size, radius, special: false, elite: false, crown: false, tint: '', glow: 0,
+        look: cr && (cr.play || cr.variant) ? String(cr.play || cr.variant) : '', age: 0, dist, boss: true });
+      counts.unshift({ id: bossId, expected: 1, n: 1, special: 0, elite: 0, boss: true });
+      total += 1;
+    }
     for (const c of counts) {
       const cr = byIdMap[c.id] || null;
       // pass 150 (lane EDITOR): `o.variations` (the page's Model) lets a row's variation tabs bring their own creatures
       const vm = o.variations && typeof o.variations.variationPercents === 'function' ? o.variations : null;
-      const ws = rowWeights(c.id, list, srcNow, srcBefore, t, vm);
+      if (c.boss) continue;
+      const ws = rowWeights(c.id, list, srcNow, srcBefore, t, vm, o.keys, o.isOpen);
       let W = 0;
       for (const w of ws) W += w.w;
       const tally = by[c.id];
@@ -313,8 +344,10 @@ const OnScreenModel = (() => {
             if (d < 1e-6) { const ang = r.randf() * TAU; ex = Math.cos(ang); ez = Math.sin(ang); d = 1e-6; }
             const push = (want - d) * RELAX_STEP;
             const ux = ex / d, uz = ez / d;
-            a.x -= ux * push * 0.5; a.z -= uz * push * 0.5;
-            b.x += ux * push * 0.5; b.z += uz * push * 0.5;
+            // pass 152: a fighting boss stands its ground: the other takes the whole push
+            const fa = a.boss ? 0 : b.boss ? 1 : 0.5, fb = b.boss ? 0 : a.boss ? 1 : 0.5;
+            a.x -= ux * push * fa; a.z -= uz * push * fa;
+            b.x += ux * push * fb; b.z += uz * push * fb;
             moved++;
           }
         }
@@ -381,7 +414,7 @@ const OnScreenModel = (() => {
     return { world: lerp(k), actors: lerp(k * a), on: k > 0 };
   }
 
-  const api = { SPAWN_NEAR, SPAWN_FAR, RING_RADIUS, ATTRIB_WINDOW, ELITE_SCALE, HERO_RADIUS, HERO_SIZE, TURNOVER_DEF, PHASES, PHASE_SECONDS, DEPTH, ACTORS_DEFAULT,
+  const api = { BOSS_DIST, tally, SPAWN_NEAR, SPAWN_FAR, RING_RADIUS, ATTRIB_WINDOW, ELITE_SCALE, HERO_RADIUS, HERO_SIZE, TURNOVER_DEF, PHASES, PHASE_SECONDS, DEPTH, ACTORS_DEFAULT,
     rng, rollCount, rowIds, rowIdsAll, tabRow, rowOpen, rowWeights, sizeOf, specialOf, spawnAngle, layout, relax, worstOverlap, facingOf, phaseAt, project, filterMults };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

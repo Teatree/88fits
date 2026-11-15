@@ -1555,6 +1555,8 @@ const Model = (() => {
         for (const b of bossBrood(d.script, d.cooldown, bossSteps / EST_HZ, pace)) fight.brood.push({ step: play + Math.max(1, Math.round(b.t * EST_HZ)), id: b.id, n: b.n * pk.share });
       }
       fight.brood.sort((a, b) => a.step - b.step);
+      // pass 152: the fight's second 0 (the boss stands, nothing of its window has come yet)
+      if (SR) fightPoints.push(fightPoint(0));
       marks.push({ t: clock(), kind: 'boss', id: picks[0].id, n: 1 });
     }
     function runEvent(ev, p) {
@@ -1889,7 +1891,16 @@ const Model = (() => {
 
     // ---- the points: one a run second, and one after each boss fight
     const points = [];
+    // pass 152: a stage run's boss fight, a point a second of the fight's own clock (the run clock stands still in it, so
+    // `points` cannot hold them): Show on screen points at a second of the fight. {fight: seconds in, boss, t: the
+    // boss's second, ...a point}
+    const fightPoints = [];
     function record(after) {
+      points.push(snapPoint(after));
+      checks = 0; fullChecks = 0; starveN = {};
+    }
+    /** The run as it stands: one point's numbers (record() keeps it and starts the next second's checks). */
+    function snapPoint(after) {
       const by = {};
       for (const id of Object.keys(cum)) by[id] = [cum[id], col[id] || 0, mod[id] || 0];
       // pass 84 (lane SPAWN): the cap, the regular load, the floor, the share of the second's checks the channel was
@@ -1900,12 +1911,14 @@ const Model = (() => {
       const starve = {};
       for (const key of Object.keys(starveN)) starve[key] = checks > 0 ? starveN[key] / checks : 0;
       const hl = loadOf(hellIds(rowsAt(phase === 0 ? now() : now() - 1, true)));
-      points.push({ t: SR && srAfter > 0 ? SR.end + srAfter : clock(), after, all: total(), reg: cat.reg, col: cat.col, mod: cat.mod, elite: cat.elite, special: cat.special, boss: cat.boss, minion: cat.minion,
+      return { t: SR && srAfter > 0 ? SR.end + srAfter : clock(), after, all: total(), reg: cat.reg, col: cat.col, mod: cat.mod, elite: cat.elite, special: cat.special, boss: cat.boss, minion: cat.minion,
         colForced: cat.colForced, modRow: cat.modRow, both: cat.both, kills, alive: bodies(), by, src: Object.assign({}, srcCum),
         cap: capNow(), load: loadAll() - hl, floor: floorCurve.length ? samplePoints(floorCurve, now()) : 0, full: checks > 0 ? fullChecks / checks : 0, aliveBy, starve,
         // pass 151: the window playing ('boss' | 'endless', else null): its cap is the window's Max count in BODIES, not load
-        win: phase === 1 && bossWin ? 'boss' : phase === 3 && enWin ? 'endless' : null });
-      checks = 0; fullChecks = 0; starveN = {};
+        win: phase === 1 && bossWin ? 'boss' : phase === 3 && enWin ? 'endless' : null };
+    }
+    function fightPoint(sec) {
+      return Object.assign(snapPoint(true), { fight: sec, boss: fight ? fight.boss : '' });
     }
     record(false);
 
@@ -1944,6 +1957,8 @@ const Model = (() => {
           const n = Math.min(b.n, Math.max(MAX_BODIES - bodies(), 0));
           if (d && n > 0) { add(d, n, 'reg'); cat.minion += n; fight.minions += n; }
         }
+        // pass 152: a stage run's fight, a point at each whole second of it
+        if (SR && (bossSteps - phaseLeft) % EST_HZ === 0) fightPoints.push(fightPoint((bossSteps - phaseLeft) / EST_HZ));
         if (phaseLeft <= 0) {
           // the boss falls: the portal opens with its wave (WaveDirector._on_boss_died)
           bossAlive = null; kills += 1;
@@ -2013,7 +2028,7 @@ const Model = (() => {
 
     const last = points[points.length - 1].by;
     const ids = Object.keys(last).sort((a, b) => last[b][0] - last[a][0] || (a < b ? -1 : a > b ? 1 : 0));
-    return { points, ids, marks, fights, colourAt, assume: { turnover: tvCurve || tvStages || tvFlat, bossSeconds: bossSteps / EST_HZ, portalSeconds: portalSteps / EST_HZ, end },
+    return { points, fightPoints, ids, marks, fights, colourAt, assume: { turnover: tvCurve || tvStages || tvFlat, bossSeconds: bossSteps / EST_HZ, portalSeconds: portalSteps / EST_HZ, end },
       stage: SR ? { i: SR.i, start: SR.start, end: SR.end, portal: srPortalSteps / EST_HZ, endless: srEndlessSteps / EST_HZ, waves: enWave,
         // pass 151: whether the fight and Endless played their windows (windowStepper), and Endless's cycles
         bossWindow: windowOn(tl, SR.i, 'boss'), endlessWindow: windowOn(tl, SR.i, 'endless'),

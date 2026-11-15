@@ -5020,3 +5020,34 @@ of that one - black, brown and white".
   window row by its key (timeline.js `windowNumbers`); a late row's chips stay inside its panel. The Python copy of the
   estimate (selftest.py) plays the windows step for step and the agreement check runs two stage runs through them;
   methods.json and jobs.py gained the death's `turn` / `turn_dir` fields; docs/level_editor.md "Pass 151". 17,310 checks.
+
+## Pass 152 (2026-11-15): Show on screen walks the whole run; the wolf as a 3D hell hound
+
+Garry: "I'd want the Show on Screen feature to support the Boss and the Endless cycle as well. I should be able to just
+point at a minute of the run (including boss and endless and see it)". And: "check if our local 3d model can create
+materials and normals maps for our wolf 3d object, but ones that make him look like a hell hound. It should be that the
+mesh itself stays the same ... save it as a new 3d glb for me to view in the root of the project."
+
+- **Show on screen** (tools/level_editor/onscreen.js, onscreen_model.js): the slider walks run seconds through the stage,
+  its boss fight, the portal's countdown and Endless (three cycles of an Endless window), a bar of the four parts under
+  the controls (click to jump), Shift + arrows a minute, Peak over the whole run. The run estimate keeps a point a second
+  of a stage run's fight (model.js `fightPoints`: the map clock stands still in a fight, so `points` cannot hold them;
+  the charts and the Python copy are unchanged). In a fight or an Endless window bodies are given to the window's rows
+  by their tallies (`keys`, prefix tallies summing the tabs) or by the window's open rows and cycle (`isOpen`), the
+  leftovers to the stage's rows; the boss stands 6.5 m up the screen and keeps its ground (`boss`, no crown); the cap
+  line says the window's Max count in bodies. selftest_P152.py; docs/level_editor.md "Pass 152". 17,336 checks.
+- **The hell hound wolf**: `wolf_hellhound.glb` at the repo root (8.6 MB): Garry's wolf (`_REFERENCES/3d/Wolf_walk-cycle_
+  Animated.glb`) with its mesh, its 45-bone rig and its walk clip as they were, in a new material. **What the local 3D
+  model can do**: Hunyuan3D-2.1 Paint paints base colour, metallic and roughness onto a given mesh from one reference
+  picture; it makes no normal map and no emission. The pipeline (tools/reskin/, README.md there): the rest-pose mesh
+  turned side-on to the paint model's front camera and rendered; four Klein edits of that render into a hell hound
+  (charred black fur, lava cracks, ember eyes, a glowing mouth), the render's silhouette as the alpha, k0 picked; the
+  paint on the shape cut into four with 12 views (~5 min on the server, under the ComfyUI lock, ComfyUI stopped and
+  started); baked in Cycles onto a new UV map on the wolf's own mesh (its own UVs are mirrored: both sides on the same
+  texels, so an asymmetric painting could not live there; the glTF now has that map only, TEXCOORD_0); the emission from
+  the painting's hot, bright, saturated colours (strength 3, KHR_materials_emissive_strength); the normal map baked from
+  the wolf's own fur normal map with the cracks pressed in; the wolf's own alpha cut (its fur fringes, MASK 0.657) kept;
+  the source's stray 2 m Icosphere left out. Lessons: copying the painted mesh's xatlas UVs onto the wolf (same geometry)
+  left chevron streaks at seams, baking onto a fresh UV map is clean; without the source's alpha the fur fringes showed as
+  opaque flaps. The game already has a `hellhound` creature (Blood Moon rows): this model could become one of its looks
+  by creature_ctl (not done). Work files tools/dl/p152/HELL/.

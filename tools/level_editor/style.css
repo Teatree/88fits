@@ -1247,7 +1247,16 @@ b.zone-hard { color: #ff6b6b; background: none; }
 .onscreen-field { display: inline-flex; gap: 6px; align-items: center; }
 .onscreen-timebox { flex: 1 1 320px; }
 .onscreen-slider { flex: 1 1 200px; min-width: 160px; }
-.onscreen-time { min-width: 110px; font-variant-numeric: tabular-nums; }
+.onscreen-time { min-width: 230px; font-variant-numeric: tabular-nums; }
+/* pass 152: the run's parts under the controls (stage, boss fight, portal, Endless), click to jump */
+.onscreen-segs { display: flex; gap: 3px; margin: 0 0 8px; user-select: none; }
+.onscreen-seg { min-width: 0; padding: 3px 6px; border-radius: 5px; cursor: pointer; font-size: 0.76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid transparent; color: var(--ink-2); }
+.onscreen-seg.seg-stage { background: rgba(80, 130, 210, 0.28); }
+.onscreen-seg.seg-fight { background: rgba(208, 59, 59, 0.34); }
+.onscreen-seg.seg-portal { background: rgba(160, 120, 220, 0.30); }
+.onscreen-seg.seg-endless { background: rgba(250, 178, 25, 0.26); }
+.onscreen-seg:hover { border-color: var(--border-2); }
+.onscreen-seg.on { border-color: var(--ink); color: var(--ink); }
 .onscreen-row { display: flex; gap: 14px; min-height: 0; flex: 1 1 auto; overflow: hidden; }
 .onscreen-stage-box { flex: 0 0 auto; overflow: hidden; border: 1px solid var(--border-2); border-radius: 8px; background: #000; line-height: 0; }
 .onscreen-canvas { display: block; width: auto; height: min(900px, calc(96vh - 160px)); }

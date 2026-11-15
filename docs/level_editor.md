@@ -2808,3 +2808,26 @@ a while; the Sim and the Watch show real rolls.
 
 The window panel's chips of a row near the cycle's end stay inside the drawing. The page needs a reload (no server
 change); `selftest_P151.py` holds the checks, and the Python copy of the estimate in `selftest.py` plays the windows too.
+
+## Pass 152: Show on screen walks the whole run (the boss fight and Endless)
+
+Garry (2026-11-15): "I'd want the Show on Screen feature to support the Boss and the Endless cycle as well. I should be
+able to just point at a minute of the run (including boss and endless and see it)".
+
+**One clock for the whole run.** The pop-up's slider now walks run seconds through four parts, shown as a bar under the
+controls, each as wide as its seconds (click a part to jump; where you click is the second): the **Stage** (its own
+clock), its **Boss fight**, the **Portal**'s countdown and **Endless** (three cycles of an Endless window, as the stage
+tab shows them; two minutes without one). The time beside the slider says where you are ("Endless 2:30 of 6:00 · cycle 2
+(0:30 of 2:00)"); Shift + the arrow keys move a minute; **Peak** finds the fullest second of the whole run.
+
+**The boss fight** lasts as long as the Timeline assumes (the Sim's measured fight, else its default). The Timeline
+draws it as no time (the map clock stands still while the boss lives), so the estimate now keeps a point a second of the
+fight beside its run points (model.js `fightPoints`; nothing else reads them, the charts are unchanged). The boss stands
+6.5 m up the screen and keeps its ground; the crowd is pushed off it.
+
+**Whose bodies.** In a fight or an Endless window each body is given to the window's rows by what they spawned in the
+past 20 s (their tallies, every tab summed), else to the rows open on the window's clock and cycle; the stage's leftover
+creatures to the stage's rows. So a body wears the window row's look, size, Elite crown or Special rim and its tab's
+creature. The cap line says the window's Max count in bodies ("Max count 175 bodies (the Endless window, cycle 2)").
+
+`selftest_P152.py` holds the checks; the page needs a reload (no server change).

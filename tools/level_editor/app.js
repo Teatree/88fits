@@ -1788,6 +1788,7 @@ const App = (() => {
     tl, stageLength, stages, runEnd, viewEnd, stageAt, stageName, stageMult, samplePoints, capAt, capRawAt, capCut, hellCapAt,
     // pass 87 (lane STOOLS): the stage windows and the stage tabs
     stageList, stageStart, stageEnd, stageLen, stageWindow, viewStage, viewStart, setStageView, portalSeconds, stageOffset, fmtClock,
+    endlessSpan, ENDLESS_VIEW_CYCLES,   // pass 151/152: the Endless a stage tab (and Show on screen) shows
     hpTimeMult, dmgTimeMult, hpMultAt, dmgMultAt, creatureAt, rowNumbers, eventNumbers, sourceName, actual, actualAt, knockbackOf, rowWeight, rosterAt, waveEnd, wavesAt, nextEvent,
     eventLabel, eventShares, waveAlts, snapshot, pushHistory, apply, undo, redo, dirty, selected, select, selKey, newWave,
     newRow, newRowPreset, splitRow, convertRow, newEvent, deleteSelected, duplicateSelected, moveRow, moveRowTo, shiftWeights, sortPoints, nudge, validate,
