@@ -926,6 +926,19 @@ const Timeline = (() => {
 
   /** The source key's creature: a row's (or a list row's when the estimate names it: 'roster:3:skeleton'), a wave
    *  alternative's; '' when the source brings several (the estimate files those under their creatures). */
+  /** Pass 151: the window row a source key names ('bossrow:<s>:<i>:<tab>' / 'endlessrow:<s>:<i>:<tab>', model.js
+   *  makeWin): {kind, s, r (the tab's merged row)}, null for any other key. */
+  function winRowOf(k) {
+    const parts = String(k).split(':');
+    const kind = parts[0] === 'bossrow' ? 'boss' : parts[0] === 'endlessrow' ? 'endless' : '';
+    if (!kind || parts.length < 3) return null;
+    const s = Number(parts[1]), i = Number(parts[2]), tab = Number(parts[3] || 0);
+    const row = App.winRows(kind, s)[i];
+    if (!U.isObj(row)) return null;
+    const r = tab > 0 ? Model.variationRow(row, tab) : row;
+    return r ? { kind, s, r } : null;
+  }
+
   function srcCreatureOf(k) {
     const tl = App.tl();
     const parts = k.split(':');
@@ -940,6 +953,10 @@ const Timeline = (() => {
       const a = w ? App.waveAlts(w)[Number(parts[2])] : null;
       return a ? String(a.alt.enemy || '') : '';
     }
+    // pass 151: a window row's tab ('bossrow:<s>:<i>:<tab>', 'endlessrow:<s>:<i>:<tab>'): its own creature, '' for a list
+    // or "roster" (filed under its creatures, as a roster row's)
+    const wr = winRowOf(k);
+    if (wr) return typeof wr.r.enemy === 'string' && wr.r.enemy !== 'roster' ? wr.r.enemy : '';
     return '';
   }
 
@@ -964,6 +981,7 @@ const Timeline = (() => {
       let c = null, stats = null, t0 = null;
       if (parts[0] === 'roster') { const r = rows[Number(parts[1])]; if (r) { c = App.creature(ser.keyId[key]); stats = r.stats; t0 = Number(r.t) || 0; } }
       else if (parts[0] === 'wave') { const w = waves[Number(parts[1])]; const a = w ? App.waveAlts(w)[Number(parts[2])] : null; if (a) { c = App.creature(a.alt.enemy); stats = a.alt.stats; t0 = Number(w.t) || 0; } }
+      else if (parts[0] === 'bossrow' || parts[0] === 'endlessrow') return windowNumbers(key, t);
       else c = App.creature(parts.slice(1).join(':'));
       if (!c) return null;
       // a row's numbers are fixed from its start: only the stage (and an endless wave) moves them; the others (swarms,
@@ -979,6 +997,31 @@ const Timeline = (() => {
       // Coloured specials, else the game's)
       const forced = parts[0] === 'roster' && !!rows[Number(parts[1])] && rows[Number(parts[1])].special === true;
       const x = { hp: at.hp, atk: at.atk, bite: Number(st.contact_cd != null ? st.contact_cd : (c.contact_cd != null ? c.contact_cd : 0.6)) || 0.6, boss: at.arch === 'boss', spHp: forced ? Model.forcedSpecial(c, st, dflt).hp : vs.chance > 0 ? Model.specialValue(vs.sp, dflt, 'hp') : 1 };
+      cache.set(ck, x);
+      return x;
+    }
+    /** Pass 151: a window row's tab in numbers (WaveDirector.source_for's rule for the windows): its own stats, fixed
+     *  from its stage's last second (the run clock stands there through the fight, the portal and Endless), and in an
+     *  Endless window times Endless's growth step at that second of Endless (WaveTimeline.endless_mults: hp and atk). */
+    function windowNumbers(key, t) {
+      const wr = winRowOf(key);
+      if (!wr) return null;
+      const c = App.creature(typeof wr.r.enemy === 'string' ? wr.r.enemy : '');
+      if (!c) return null;
+      const end = App.stageEnd(wr.s);
+      const enStart = end + Model.portalTimer(tl, wr.s);
+      const every = Math.max(Model.endlessValue(tl, 'every', wr.s), 1);
+      const wave = wr.kind === 'endless' ? Math.max(Math.floor(Math.max(t - enStart, 0) / every) + 1, 1) : 0;
+      const ck = `${key}|${wave}`;
+      if (cache.has(ck)) return cache.get(ck);
+      const st = U.isObj(wr.r.stats) ? wr.r.stats : {};
+      const at = App.creatureAt(c, st, end - 0.5, end - 0.5);
+      const m = wave > 0 ? Model.endlessMults(tl, wave, wr.s) : { hp: 1, atk: 1 };
+      const vs = Model.varianceSpecial(c, st, dflt);
+      const forced = wr.r.special === true;
+      const x = { hp: at.hp * (at.arch === 'regular' || at.arch == null ? m.hp : 1), atk: at.atk * (at.arch === 'regular' || at.arch == null ? m.atk : 1),
+        bite: Number(st.contact_cd != null ? st.contact_cd : (c.contact_cd != null ? c.contact_cd : 0.6)) || 0.6, boss: at.arch === 'boss',
+        spHp: forced ? Model.forcedSpecial(c, st, dflt).hp : vs.chance > 0 ? Model.specialValue(vs.sp, dflt, 'hp') : 1 };
       cache.set(ck, x);
       return x;
     }
@@ -1003,10 +1046,14 @@ const Timeline = (() => {
       const cap = pt.cap != null ? Number(pt.cap) : App.capAt(t);
       const load = pt.load != null ? Number(pt.load) : L.load;
       v.reg[j] = L.bodies; v.hell[j] = L.hellBodies; v.cap[j] = cap;
-      v.capB[j] = TimelineModel.capBodies(cap, load, L.bodies, 1);
+      // pass 151: in a boss fight or Endless window the cap is the window's Max count, already a count of bodies
+      // (BossFightWindow / EndlessWindow.room: Max count - alive_count), so it is not turned from load at the mix
+      const win = pt.win || null;
+      v.capB[j] = win ? cap : TimelineModel.capBodies(cap, load, L.bodies, 1);
       const EL = TimelineModel.effectiveLimit(cap, load, L.bodies, hardCap, 1);
-      v.lim[j] = EL.limit; v.per[j] = EL.per;
-      v.limits[j] = { t, binds: EL.binds, capBodies: EL.capBodies, hard: EL.hard, per: EL.per, alive: L.bodies, raw: App.capRawAt(t) };
+      if (win) EL.capBodies = cap;
+      v.lim[j] = win ? Math.min(cap, EL.hard) : EL.limit; v.per[j] = EL.per;
+      v.limits[j] = { t, binds: win ? (cap <= EL.hard ? 'cap' : 'hard') : EL.binds, capBodies: EL.capBodies, hard: EL.hard, per: EL.per, alive: L.bodies, raw: App.capRawAt(t), win };
       v.full[j] = pt.full != null ? (Number(pt.full) >= 0.5 ? 1 : 0) : (cap > 0 && load >= cap * TimelineModel.FULL_AT ? 1 : 0);
       const cr = TimelineModel.crowdAt(ser, j, numbersOf);
       v.crowd[j] = cr;
@@ -1165,6 +1212,16 @@ const Timeline = (() => {
     const L = v.limits[j];
     const hardTxt = isFinite(L.hard) ? `${fmtCount(L.hard)} bodies` : 'none';
     box.appendChild(el('div', { class: 'hc-line limit-head' }, 'Limit now: ', el('b', { text: `${fmtCount(v.lim[j])} bodies` }), ', the lower of:'));
+    // pass 151: a window's Max count counts bodies (the boss and whoever is left over count too)
+    if (L.win) {
+      box.appendChild(el('div', { class: 'hc-line limit-row' + (L.binds === 'cap' ? ' binds' : '') },
+        el('b', { text: `Max count ${fmtCount(L.capBodies)} bodies` }), L.win === 'endless'
+          ? " (the stage's Endless window: its Max count this cycle, Max count growth added each cycle)"
+          : " (the stage's boss fight window: the boss, his summons and the leftovers count)"));
+      box.appendChild(el('div', { class: 'hc-line limit-row' + (L.binds === 'hard' ? ' binds' : '') },
+        el('b', { text: `hard cap ${hardTxt}` }), ' (hard_cap: a count of bodies, whatever their share)'));
+      return;
+    }
     const capRow = el('div', { class: 'hc-line limit-row' + (L.binds === 'cap' ? ' binds' : '') },
       el('b', { text: `cap ${fmtCount(v.cap[j])} load` }), ` (the Cap lane, load units: a creature counts its cap_share, a goblin 0.5) = ${fmtCount(L.capBodies)} bodies at this mix (${fmtN(L.per, 2)} load a body)`,
       capMaxNote(L.raw, v.cap[j]));
@@ -3673,7 +3730,8 @@ const Timeline = (() => {
     const lj = view && view.n ? TimelineModel.indexAt(view.ser, t) : -1;
     const LL = lj >= 0 ? view.limits[lj] : null;
     readout.appendChild(el('div', { class: 'ro-line' }, `cap ${cap} load${capMaxNote(App.capRawAt(t), cap)}`, hell > 0 ? ` + hell ${Math.floor(hell)}` : '',
-      LL ? ` ≈ ${fmtCount(LL.capBodies)} bodies at the mix · hard cap ${isFinite(LL.hard) ? fmtCount(LL.hard) : 'none'} · limit ${fmtCount(view.lim[lj])} bodies (the ${LL.binds === 'hard' ? 'hard cap' : 'cap'} binds)` : ''));
+      LL && LL.win ? ` · in the ${LL.win === 'endless' ? 'Endless' : 'boss fight'} window: Max count ${fmtCount(LL.capBodies)} bodies · limit ${fmtCount(view.lim[lj])} bodies` : '',
+      LL && !LL.win ? ` ≈ ${fmtCount(LL.capBodies)} bodies at the mix · hard cap ${isFinite(LL.hard) ? fmtCount(LL.hard) : 'none'} · limit ${fmtCount(view.lim[lj])} bodies (the ${LL.binds === 'hard' ? 'hard cap' : 'cap'} binds)` : ''));
     const sp = lastSpawn ? Model.estimateAt(lastSpawn.est, t) : null;
     if (sp) {
       // pass 120 (lane EDITOR): the elite-modified and the coloured with what rows always bring and what comes by chance

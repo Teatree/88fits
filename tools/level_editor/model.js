@@ -1270,6 +1270,8 @@ const Model = (() => {
     let srDone = false, srAfter = 0;
     // pass 87: Endless after the portal's countdown (phase 3): its clock in steps, the wave that came last, its pool
     let enSteps = 0, enWave = 0, enPool = null;
+    // pass 151: the windows playing now (windowStepper): the boss fight's while the boss lives, Endless's from its start
+    let bossWin = null, enWin = null;
     let fight = null;
     let endless = false, enNextBoss = 0, enNextElite = 0, enNextEliteBoss = 0, enBossI = 0;
     const clock = () => k / EST_HZ;
@@ -1290,6 +1292,9 @@ const Model = (() => {
       const t = now();
       const base = curve.length ? samplePoints(curve, t) : trunc(g('cap_start')) + g('cap_per_minute') * (t / 60);
       const cap = Math.min(trunc(base + capPerStage * stage), capMax);
+      // pass 151: a fight or an Endless that plays its window keeps the window's Max count (bodies; -1 = the hard cap)
+      if (phase === 1 && bossWin) return bossWin.maxNow < 0 ? hard : bossWin.maxNow;
+      if (phase === 3 && enWin) return enWin.maxNow < 0 ? hard : enWin.maxNow;
       if (phase === 1) return trunc(cap * bossFrac);
       if (phase === 3) return trunc(cap * Math.max(endlessValue(tl, 'cap', stage), 0));
       if (phase === 2) {
@@ -1541,6 +1546,8 @@ const Model = (() => {
       cat.boss += 1;
       bossAlive = { share };
       phase = 1; phaseLeft = bossSteps;
+      // pass 151: the stage's boss fight window, when it has one, is all that spawns while the boss lives
+      bossWin = windowOn(tl, stage, 'boss') ? makeWin('boss') : null;
       fight = { t: clock(), boss: picks[0].id, seconds: bossSteps / EST_HZ, portal: portalSteps / EST_HZ, before: total() - 1, spawned: 0, minions: 0, brood: [] };
       // what the boss's own script brings in the fight (its spawn_ring), by the boss's share when the event names several
       for (const pk of picks) {
@@ -1773,6 +1780,44 @@ const Model = (() => {
       endlessAdd(Math.min(burst / (sh / W), left));
     }
 
+    /** Pass 151: a stage's window (kind 'boss' | 'endless') played by the game's rules (windowStepper) inside this run:
+     *  its bodies come into this crowd (the same kills, lifetimes and charts), tallied under 'bossrow:<s>:<i>:<tab>' /
+     *  'endlessrow:<s>:<i>:<tab>' (the Timeline reads a tab's own creature and stats from the key). A "roster" row draws the window's open mix rows by weight; a list by enemy_weights; a crowned
+     *  Elite counts as an Elite, a row's elite modifier (colour open) or an elite arrival as modified, `special` as forced. */
+    function makeWin(kind) {
+      const s = stage;
+      const b = windowBlock(tl, s, kind);
+      const pre = kind === 'boss' ? 'bossrow:' : 'endlessrow:';
+      const W = windowStepper(tl, b, kind, byId, EST_HZ, {
+        bodies: () => bodies(),
+        aliveOf: (id) => { let n = 0; for (const a of alive.values()) if (a.id === id) n += a.n; return n; },
+        put: (x, n) => winPut(W, x, n, pre + s + ':' + x.i + ':' + x.tab),
+      });
+      return W;
+    }
+    function winPut(W, x, n, key) {
+      const r = x.r;
+      const st = isObj(r.stats) ? r.stats : {};
+      bump(srcCum, key, n);
+      const el = rowElite(r) !== '';
+      const kindOf = (d) => {
+        if (d.arch !== 'regular') return 'elite';
+        if (r.special === true) return el ? 'forced_mod' : 'forced';
+        if (x.eliteArr || (el && colourOpen())) return 'mod';
+        return 'reg';
+      };
+      if (r.enemy === ROW_ENEMY_ROSTER) {
+        const mix = W.mixNow();
+        let tw = 0;
+        for (const m of mix) tw += m.w;
+        if (!(tw > 0)) return;
+        const own = Object.keys(st).length > 0;
+        for (const m of mix) { const d = defOf(String(m.r.enemy), own ? st : (isObj(m.r.stats) ? m.r.stats : {})); if (d) add(d, n * m.w / tw, kindOf(d)); }
+        return;
+      }
+      for (const pk of pickShares(r.enemy, r.enemy_weights)) { const d = defOf(pk.id, st); if (d) add(d, n * pk.share, kindOf(d)); }
+    }
+
     /** WaveDirector.spawn_portal_wave: `count` bodies of the regular rows as the stage ended, by weight, a pack a draw. */
     function portalWave() {
       if (portalWaveCount <= 0) return;
@@ -1857,7 +1902,9 @@ const Model = (() => {
       const hl = loadOf(hellIds(rowsAt(phase === 0 ? now() : now() - 1, true)));
       points.push({ t: SR && srAfter > 0 ? SR.end + srAfter : clock(), after, all: total(), reg: cat.reg, col: cat.col, mod: cat.mod, elite: cat.elite, special: cat.special, boss: cat.boss, minion: cat.minion,
         colForced: cat.colForced, modRow: cat.modRow, both: cat.both, kills, alive: bodies(), by, src: Object.assign({}, srcCum),
-        cap: capNow(), load: loadAll() - hl, floor: floorCurve.length ? samplePoints(floorCurve, now()) : 0, full: checks > 0 ? fullChecks / checks : 0, aliveBy, starve });
+        cap: capNow(), load: loadAll() - hl, floor: floorCurve.length ? samplePoints(floorCurve, now()) : 0, full: checks > 0 ? fullChecks / checks : 0, aliveBy, starve,
+        // pass 151: the window playing ('boss' | 'endless', else null): its cap is the window's Max count in BODIES, not load
+        win: phase === 1 && bossWin ? 'boss' : phase === 3 && enWin ? 'endless' : null });
       checks = 0; fullChecks = 0; starveN = {};
     }
     record(false);
@@ -1890,6 +1937,7 @@ const Model = (() => {
         if (SR && phase === 0 && k >= srEndK) { phase = 2; phaseLeft = srPortalSteps; portalT = 0; portalWave(); record(true); }
       } else if (phase === 1) {
         phaseLeft--;
+        if (bossWin) { bossWin.begin(); bossWin.spawn(); }
         while (fight && fight.brood.length && fight.brood[0].step <= play) {
           const b = fight.brood.shift();
           const d = defOf(b.id, null);
@@ -1899,6 +1947,7 @@ const Model = (() => {
         if (phaseLeft <= 0) {
           // the boss falls: the portal opens with its wave (WaveDirector._on_boss_died)
           bossAlive = null; kills += 1;
+          bossWin = null;
           phase = 2; phaseLeft = SR ? srPortalSteps : portalSteps; portalT = 0;
           portalWave();
           // pass 87: a stage run's fight is over: its point at the boss's second, then the portal's seconds after it
@@ -1909,25 +1958,32 @@ const Model = (() => {
         enSteps++;
         srAfter = (srPortalSteps + enSteps) / EST_HZ;
         const w = Math.floor(enSteps / enEvery) + 1;
-        if (w > enWave) { enWave = w; endlessWave(w); }
+        if (w > enWave) { enWave = w; if (!enWin) endlessWave(w); }
+        // pass 151: the stage's Endless window (its cycle on Endless's own clock)
+        if (enWin) { enWin.begin(); enWin.spawn(); }
       } else {
         phaseLeft--;
         portalT += 1 / EST_HZ;
         if (SR) srAfter = (srPortalSteps - phaseLeft) / EST_HZ;
       }
       // the specials' clock in the stage and its boss fight (pass 87: not in the portal wait nor in Endless)
-      if (phase < 2) tickSpecials();
+      // pass 151: a fight that plays its window stands them still too (BossFightWindow: only its rows spawn)
+      const inWin = (phase === 1 && bossWin) || (phase === 3 && enWin);
+      if (phase < 2 && !inWin) tickSpecials();
       spawnStep--;
-      if (spawnStep <= 0) { spawnStep = burstEvery; if (phase === 3) endlessFill(); else spawnBurst(); }
-      if (phase !== 3) { tickRowIntervals(); floorFill(); }
+      if (spawnStep <= 0) { spawnStep = burstEvery; if (phase === 3) { if (!enWin) endlessFill(); } else if (!inWin) spawnBurst(); }
+      if (phase !== 3 && !inWin) { tickRowIntervals(); floorFill(); }
       if (SR && phase === 2) {
         // pass 87: a stage run's portal countdown, a point a second after the boss; at 0 Endless (or the view's end)
         if ((play % EST_HZ === 0 && srAfter > 0) || phaseLeft <= 0) record(false);
         if (phaseLeft <= 0) {
           if (fight) { delete fight.brood; fights.push(fight); fight = null; }
           if (srEndlessSteps > 0) {
-            // WaveDirector.start_endless: the pool, wave 1 at once
-            phase = 3; enSteps = 0; enPool = endlessPool(); enWave = 1; endlessWave(1);
+            // WaveDirector.start_endless: the pool, wave 1 at once; pass 151: or the stage's Endless window, its first
+            // second at once (EndlessWindow.begin + tick(0) + spawn_check)
+            phase = 3; enSteps = 0; enWave = 1;
+            enWin = windowOn(tl, SR.i, 'endless') ? makeWin('endless') : null;
+            if (enWin) { enPool = []; enWin.begin(); enWin.spawn(); } else { enPool = endlessPool(); endlessWave(1); }
           } else srDone = true;
         }
         continue;
@@ -1958,7 +2014,10 @@ const Model = (() => {
     const last = points[points.length - 1].by;
     const ids = Object.keys(last).sort((a, b) => last[b][0] - last[a][0] || (a < b ? -1 : a > b ? 1 : 0));
     return { points, ids, marks, fights, colourAt, assume: { turnover: tvCurve || tvStages || tvFlat, bossSeconds: bossSteps / EST_HZ, portalSeconds: portalSteps / EST_HZ, end },
-      stage: SR ? { i: SR.i, start: SR.start, end: SR.end, portal: srPortalSteps / EST_HZ, endless: srEndlessSteps / EST_HZ, waves: enWave } : null,
+      stage: SR ? { i: SR.i, start: SR.start, end: SR.end, portal: srPortalSteps / EST_HZ, endless: srEndlessSteps / EST_HZ, waves: enWave,
+        // pass 151: whether the fight and Endless played their windows (windowStepper), and Endless's cycles
+        bossWindow: windowOn(tl, SR.i, 'boss'), endlessWindow: windowOn(tl, SR.i, 'endless'),
+        endlessCycles: enWin ? enWin.cycle + 1 : 0 } : null,
       // pass 120 (lane EDITOR): every elite row's wave that waited for colour (at null: its window closed first)
       colourWaits };
   }
@@ -2775,43 +2834,27 @@ const Model = (() => {
 
   /** The steps a second of the cycle estimate plays. */
   const BOSS_CYCLE_HZ = 10;
-  /** What stage s's window of a kind brings over `cycles` cycles (default 2 for a boss fight, 3 for Endless), an estimate
-   *  in expected numbers like the Spawned so far lane's, played by the game's rules (BossFightWindow.gd) on the window's
-   *  clock: the hero kills `turnover` of the crowd a second (default EST_DEF.turnover); the window starts with nothing
-   *  alive but the boss (`start` more bodies left over, default 0); a boss counts as a body against Max count (an Endless
-   *  window has none). Each step: the waves and once rows fall due (t + offset + k × every, the middle of a range; a
-   *  presence of 0 holds a wave; a chance below 1 scales it), bring `count` cut to the hard cap, the creature's max_alive
-   *  and (Respect the cap) the room under Max count, at least one while there is any, the rest owed until the next wave;
-   *  coloured-elite rows (elite without a pattern) come on top; at each spawn check (every spawn_interval, or a row's own
-   *  Draw every from when it opens) the drawn rows bring a mean burst ((burst_min + burst_max) / 2 creatures) times their
-   *  share of the drawn rows' weight, cut to the room. At each new cycle every row starts afresh (what a wave owed is
-   *  dropped), the rows its from_cycle / until_cycle close sit it out, and an Endless window's Max count grows by its
-   *  max_count_growth (pass 150). A row's variations play as one row per tab, each its share (expandVariations). A
-   *  creature named by id must be in `byId` (the page's creature list) for its pack and max_alive; a list counts as its
-   *  first. {length, max, maxBy [per cycle], cycles, turnover, alive [bodies a second, the boss in], spawned [per cycle],
-   *  peak, full (seconds at Max count), rows [{i, id, enemy, pace, waves [per cycle], spawned [per cycle], perWave}] (one
-   *  per window row, its tabs summed)}; null without a window. */
-  function windowCycle(tl, s, byId, opts, kind) {
+  /** Pass 151: one window's rules as a stepper (BossFightWindow.gd / EndlessWindow.gd on the window's own clock), driven
+   *  by the cycle estimate below and by the run estimate's boss fight and Endless (spawnEstimate), so the Timeline's
+   *  On screen, Composition and Challenge charts play what the windows bring. `hz` steps a second; `api`: bodies() (every
+   *  body alive, the boss in), aliveOf(id), put(x, n, ct) (bring n of row x: x.r the merged row of one tab, x.i the parent
+   *  row's index, x.id its first creature). begin() moves the clock one step (a new cycle starts every row afresh: what a
+   *  wave owed is dropped; the rows from_cycle / until_cycle close sit it out; Max count is the cycle's, grown on an
+   *  Endless window) and returns the cycle second; spawn() plays the waves and once rows due, then at a spawn check
+   *  (every spawn_interval, or a row's own Draw every) what waves owe and the drawn rows' mean burst by weight, cut to
+   *  the room under Max count, the hard cap and each creature's max_alive. A row's variations play as one row per tab,
+   *  each its share (expandVariations). */
+  function windowStepper(tl, b, kind, byId, hz, api) {
     const K = windowKind(kind);
-    const b = windowBlock(tl, s, K.kind);
-    if (!b) return null;
-    const o = isObj(opts) ? opts : {};
     const by = isObj(byId) ? byId : {};
-    const len = windowLen(b, K.kind), max = windowMax(b, K.kind);
+    const len = windowLen(b, K.kind);
     const hardN = num(tl.hard_cap, 300);
     const hard = hardN > 0 ? hardN : 300;
-    const boss = K.bodyOfBoss;
     const si = num(tl.spawn_interval, 0.5) > 0 ? num(tl.spawn_interval, 0.5) : 0.5;
     const lo = Math.max(Math.trunc(num(tl.burst_min, 5)), 0), hi = Math.max(Math.trunc(num(tl.burst_max, 20)), lo);
     const burstMean = (lo + hi) / 2;
     const lateT = num(tl.weight_late_t, DEF.weight_late_t);
-    const tv = Math.max(num(o.turnover, EST_DEF.turnover), 0);
-    const cycles = Math.max(1, Math.min(10, Math.trunc(num(o.cycles, K.cycles))));
-    const dt = 1 / BOSS_CYCLE_HZ;
-    const steps = Math.round(cycles * len * BOSS_CYCLE_HZ);
-    const checkSteps = Math.max(1, Math.round(si * BOSS_CYCLE_HZ));
-    const maxBy = [];
-    for (let c = 0; c < cycles; c++) maxBy.push(windowMaxAt(b, K.kind, c, hard));
+    const checkSteps = Math.max(1, Math.round(si * hz));
     const rows = [];
     for (const xr of expandVariations(bossFightRows(b))) {
       const r = xr.r, i = xr.i;
@@ -2819,33 +2862,24 @@ const Model = (() => {
       const c = by[id] || null;
       const st = isObj(r.stats) ? r.stats : {};
       const maxAlive = Math.trunc(num(st.max_alive, num(c && c.max_alive, 0)));
-      rows.push({ r, i, id, c, maxAlive: rowSingleEnemy(r) ? maxAlive : 0, paced: rowPaced(r), drawn: rowDrawn(r), timer: rowTimer(r),
+      rows.push({ r, i, tab: xr.tab, id, c, maxAlive: rowSingleEnemy(r) ? maxAlive : 0, paced: rowPaced(r), drawn: rowDrawn(r), timer: rowTimer(r),
         eliteArr: !!rowElite(r) && !('pattern' in r), p: rowPaced(r) ? clamp(num(r.chance, 1), 0, 1) : 1,
         t: num(r.t, 0), until: r.until == null || r.until === '' ? Infinity : num(r.until, Infinity),
-        own: rowHasInterval(r), ivSteps: rowHasInterval(r) ? Math.max(1, Math.round(rowDrawInterval(r, si) * BOSS_CYCLE_HZ)) : 0,
-        perWave: rowWaveCount(r, c), wk: -1, owed: 0, next: null, left: 0, seen: false,
-        waves: new Array(cycles).fill(0), spawned: new Array(cycles).fill(0) });
+        own: rowHasInterval(r), ivSteps: rowHasInterval(r) ? Math.max(1, Math.round(rowDrawInterval(r, si) * hz)) : 0,
+        perWave: rowWaveCount(r, c), wk: -1, owed: 0, next: null, left: 0, seen: false, waves: [], spawned: [] });
     }
-    let alive = Math.max(num(o.start, 0), 0);
-    const aliveBy = {};
-    const spawned = new Array(cycles).fill(0);
-    const series = [];
-    let peak = boss + alive, full = 0;
-    let cyc = 0;
-    let maxNow = maxBy[0];
-    const room = () => (maxNow < 0 ? Infinity : maxNow - (alive + boss));
-    const hardRoom = () => hard - (alive + boss);
+    let k = -1, cyc = -1, ct = 0, maxNow = windowMaxAt(b, K.kind, 0, hard);
+    const room = () => (maxNow < 0 ? Infinity : maxNow - api.bodies());
+    const hardRoom = () => hard - api.bodies();
     const put = (x, n) => {
       if (!(n > 0)) return;
-      alive += n;
-      aliveBy[x.id] = (aliveBy[x.id] || 0) + n;
-      x.spawned[cyc] += n;
-      spawned[cyc] += n;
+      x.spawned[cyc] = (x.spawned[cyc] || 0) + n;
+      api.put(x, n, ct);
     };
     const owedSpawn = (x) => {
       let n = x.owed;
-      n = x.r.respect_hard_cap === false ? Math.min(n, Math.max(MAX_BODIES - alive - boss, 0)) : Math.min(n, Math.max(hardRoom(), 0));
-      if (x.maxAlive > 0) n = Math.min(n, Math.max(x.maxAlive - (aliveBy[x.id] || 0), 0));
+      n = x.r.respect_hard_cap === false ? Math.min(n, Math.max(MAX_BODIES - api.bodies(), 0)) : Math.min(n, Math.max(hardRoom(), 0));
+      if (x.maxAlive > 0) n = Math.min(n, Math.max(x.maxAlive - api.aliveOf(x.id), 0));
       if (n > 0 && x.r.respect_cap !== false) {
         const rm = room();
         if (!(rm > 0)) return;
@@ -2855,22 +2889,20 @@ const Model = (() => {
       put(x, n);
       x.owed = Math.max(x.owed - n, 0);
     };
-    for (let k = 0; k <= steps; k++) {
-      const ft = k * dt;
-      const c2 = Math.min(Math.floor(ft / len + 1e-9), cycles - 1);
-      if (k === steps) { series.push(alive + boss); break; }
-      if (c2 !== cyc || k === 0) {
+    const isOpen = (x) => ct >= x.t && ct < x.until && ct < len && rowInCycle(x.r, cyc + 1);
+    function begin() {
+      k += 1;
+      const ft = k / hz;
+      const c2 = Math.floor(ft / len + 1e-9);
+      if (c2 !== cyc) {
         cyc = c2;
-        maxNow = maxBy[cyc];
+        maxNow = windowMaxAt(b, K.kind, cyc, hard);
         for (const x of rows) { x.wk = -1; x.owed = 0; x.next = null; x.left = 0; x.seen = false; }
       }
-      const ct = ft - cyc * len;
-      if (k % BOSS_CYCLE_HZ === 0) series.push(alive + boss);
-      // the hero's kills this step
-      const f = Math.min(tv * dt, 1);
-      alive *= 1 - f;
-      for (const id of Object.keys(aliveBy)) aliveBy[id] *= 1 - f;
-      const isOpen = (x) => ct >= x.t && ct < x.until && ct < len && rowInCycle(x.r, cyc + 1);
+      ct = ft - cyc * len;
+      return ct;
+    }
+    function spawn() {
       // the waves and once rows
       for (const x of rows) {
         if (!x.paced || !isOpen(x) || !(x.p > 0)) continue;
@@ -2889,7 +2921,7 @@ const Model = (() => {
         }
         x.wk = i; x.owed = 0;
         if (!(rowWeight(x.r, wt, lateT) > 0)) continue;
-        x.waves[cyc] += 1;
+        x.waves[cyc] = (x.waves[cyc] || 0) + 1;
         if (x.eliteArr) { put(x, Math.max(Math.trunc(num(x.r.count, 1)), 1) * x.p); continue; }
         x.owed = x.perWave * x.p;
         owedSpawn(x);
@@ -2897,7 +2929,7 @@ const Model = (() => {
       // the spawn check: what a wave still owes first, then the drawn rows
       const check = k % checkSteps === 0;
       if (check) for (const x of rows) if (x.paced && x.owed > 0) { if (!isOpen(x)) x.owed = 0; else owedSpawn(x); }
-      const drawn = rows.filter((x) => x.drawn && isOpen(x) && !(x.maxAlive > 0 && (aliveBy[x.id] || 0) >= x.maxAlive - 1e-9));
+      const drawn = rows.filter((x) => x.drawn && isOpen(x) && !(x.maxAlive > 0 && api.aliveOf(x.id) >= x.maxAlive - 1e-9));
       const due = [];
       for (const x of drawn) {
         if (x.own) {
@@ -2916,18 +2948,72 @@ const Model = (() => {
           if (n > 0) for (const x of due) put(x, n * rowWeight(x.r, ct, lateT) / part);
         }
       }
+    }
+    /** The window's mix rows open now (one creature, no elite, not special, not once; WaveTimeline.row_in_mix), with
+     *  their weights: what a "roster" row draws its creatures from. [{r, w}] */
+    function mixNow() {
+      const out = [];
+      for (const x of rows) if (rowInMix(x.r) && isOpen(x)) { const w = rowWeight(x.r, ct, lateT); if (w > 0) out.push({ r: x.r, w }); }
+      return out;
+    }
+    return { begin, spawn, mixNow, rows, len, kind: K.kind, get cycle() { return cyc; }, get maxNow() { return maxNow; }, get time() { return k / hz; } };
+  }
+
+  /** What stage s's window of a kind brings over `cycles` cycles (default 2 for a boss fight, 3 for Endless), an estimate
+   *  in expected numbers like the Spawned so far lane's, played by the game's rules (windowStepper) on the window's
+   *  clock: the hero kills `turnover` of the crowd a second (default EST_DEF.turnover); the window starts with nothing
+   *  alive but the boss (`start` more bodies left over, default 0); a boss counts as a body against Max count (an Endless
+   *  window has none). A creature named by id must be in `byId` (the page's creature list) for its pack and max_alive; a
+   *  list counts as its first. {length, max, maxBy [per cycle], cycles, turnover, alive [bodies a second, the boss in],
+   *  spawned [per cycle], peak, full (seconds at Max count), rows [{i, id, enemy, pace, waves [per cycle], spawned [per
+   *  cycle], perWave}] (one per window row, its tabs summed)}; null without a window. */
+  function windowCycle(tl, s, byId, opts, kind) {
+    const K = windowKind(kind);
+    const b = windowBlock(tl, s, K.kind);
+    if (!b) return null;
+    const o = isObj(opts) ? opts : {};
+    const len = windowLen(b, K.kind), max = windowMax(b, K.kind);
+    const hardN = num(tl.hard_cap, 300);
+    const hard = hardN > 0 ? hardN : 300;
+    const boss = K.bodyOfBoss;
+    const tv = Math.max(num(o.turnover, EST_DEF.turnover), 0);
+    const cycles = Math.max(1, Math.min(10, Math.trunc(num(o.cycles, K.cycles))));
+    const dt = 1 / BOSS_CYCLE_HZ;
+    const steps = Math.round(cycles * len * BOSS_CYCLE_HZ);
+    const maxBy = [];
+    for (let c = 0; c < cycles; c++) maxBy.push(windowMaxAt(b, K.kind, c, hard));
+    let alive = Math.max(num(o.start, 0), 0);
+    const aliveBy = {};
+    const spawned = new Array(cycles).fill(0);
+    const W = windowStepper(tl, b, K.kind, byId, BOSS_CYCLE_HZ, {
+      bodies: () => alive + boss,
+      aliveOf: (id) => aliveBy[id] || 0,
+      put: (x, n) => { alive += n; aliveBy[x.id] = (aliveBy[x.id] || 0) + n; spawned[Math.min(W.cycle, cycles - 1)] += n; },
+    });
+    const series = [];
+    let peak = boss + alive, full = 0;
+    for (let k = 0; k <= steps; k++) {
+      if (k === steps) { series.push(alive + boss); break; }
+      W.begin();
+      if (k % BOSS_CYCLE_HZ === 0) series.push(alive + boss);
+      // the hero's kills this step
+      const f = Math.min(tv * dt, 1);
+      alive *= 1 - f;
+      for (const id of Object.keys(aliveBy)) aliveBy[id] *= 1 - f;
+      W.spawn();
       peak = Math.max(peak, alive + boss);
-      if (maxNow >= 0 && alive + boss >= maxNow - 0.5) full += dt;
+      if (W.maxNow >= 0 && alive + boss >= W.maxNow - 0.5) full += dt;
     }
     // one entry per window row: its tabs summed (the waves are the most any of its tabs fired)
     const per = new Map();
-    for (const x of rows) {
+    const arr = (a) => { const out = new Array(cycles).fill(0); for (let c = 0; c < cycles; c++) out[c] = a[c] || 0; return out; };
+    for (const x of W.rows) {
       const e = per.get(x.i);
       if (!e) {
-        per.set(x.i, { i: x.i, id: x.id, enemy: x.r.enemy, pace: rowPaced(x.r) ? String(x.r.pace) : 'continuous', perWave: x.perWave, waves: x.waves.slice(), spawned: x.spawned.slice() });
+        per.set(x.i, { i: x.i, id: x.id, enemy: x.r.enemy, pace: rowPaced(x.r) ? String(x.r.pace) : 'continuous', perWave: x.perWave, waves: arr(x.waves), spawned: arr(x.spawned) });
         continue;
       }
-      for (let c = 0; c < cycles; c++) { e.waves[c] = Math.max(e.waves[c], x.waves[c]); e.spawned[c] += x.spawned[c]; }
+      for (let c = 0; c < cycles; c++) { e.waves[c] = Math.max(e.waves[c], x.waves[c] || 0); e.spawned[c] += x.spawned[c] || 0; }
     }
     return { length: len, max, maxBy, cycles, turnover: tv, alive: series, spawned, peak, full: round(full, 1), rows: Array.from(per.values()).sort((a, c) => a.i - c.i) };
   }
@@ -3282,7 +3368,7 @@ const Model = (() => {
   // cycles, and the row variations (a row's `variations` tabs)
   Object.assign(api, {
     ENDLESS_WINDOW_DEF, ENDLESS_WINDOW_KEYS, WINDOW_KINDS, WINDOW_KIND_IDS, windowKind, windowBlock, windowOn, windowLen, windowMax,
-    windowGrowth, windowMaxAt, newWindow, windowRowEnd, rowCycles, rowInCycle, windowRowsAt, windowChecks, cycleKeyIssues, windowCycle,
+    windowGrowth, windowMaxAt, newWindow, windowRowEnd, rowCycles, rowInCycle, windowRowsAt, windowChecks, cycleKeyIssues, windowCycle, windowStepper,
     VARIATION_SHARED, VARIATION_FORM_SHARED, variationList, hasVariations, variationPercents, variationRow, newVariation,
     setVariationPercent, addVariation, removeVariation, variationView, variationChecks, tidyVariations, scaleRowShare, expandVariations,
   });

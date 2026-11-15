@@ -1584,6 +1584,8 @@
     {"key": "roll_dir", "type": "number", "default": 1, "help": "flip_curl: 1 or -1, which way it rolls."},
     {"key": "roll_start", "type": "number", "default": 0.08, "help": "flip_curl: seconds before the roll starts."},
     {"key": "roll_time", "type": "number", "default": 0.4, "help": "flip_curl: seconds the roll takes."},
+    {"key": "turn", "type": "number", "default": 0.0, "help": "flip_curl (pass 151, the wolf): degrees it swings round the vertical while it rolls, on the roll's timing; 90 with roll 90 lands it on its side seen in profile from the front camera (the one view a death is filmed from)."},
+    {"key": "turn_dir", "type": "number", "default": 1.0, "help": "flip_curl: 1 or -1, which way it turns."},
     {"key": "curl", "type": "number", "default": 70, "help": "flip_curl: degrees each knee folds in towards the belly (the spider: 55)."},
     {"key": "curl_root", "type": "number", "default": 40, "help": "flip_curl: degrees each hip swings its leg towards the belly (the spider: 70)."},
     {"key": "curl_start", "type": "number", "default": 0.05, "help": "flip_curl: seconds when the curl starts."},

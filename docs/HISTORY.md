@@ -5009,3 +5009,14 @@ of that one - black, brown and white".
   this pass's first ship): not a game fault. A revive at 97.50 s fell on the frame of a 0.5 s check, which read the HP before
   the revive set it (the next check had him at 40, inside the revive's 2 s of invulnerability); the test now skips a check
   within one recorded frame of the revive. Shipped: 88fits.apk / .exe / outlaw_survivors.aab (version code 41) in Drive.
+- **The Level Editor's run charts play the windows** (Garry: "I added conditional controls to the endless mode, but I don't
+  see it reflected in the composition section of the timeline. I'm concerned that the endless section doesn't seem to
+  encompass the entirety of the cycle"). Pass 150 had drawn the windows only in their own panels' cycle estimates; the run
+  estimate (model.js spawnEstimate) still played the old Endless and the old fight. Now `windowStepper` (lifted out of
+  `windowCycle`, which runs on it, output unchanged) plays a stage's boss fight window while the boss lives and its Endless
+  window from Endless's start inside the run estimate: On screen, Composition, Challenge and Spawned so far show the
+  windows' rows, tabs, Max count growth and From / Until cycle; a stage tab shows three whole cycles of Endless (app.js
+  `endlessSpan`); the limit line takes a window's Max count as bodies (estimate points carry `win`); Challenge prices a
+  window row by its key (timeline.js `windowNumbers`); a late row's chips stay inside its panel. The Python copy of the
+  estimate (selftest.py) plays the windows step for step and the agreement check runs two stage runs through them;
+  methods.json and jobs.py gained the death's `turn` / `turn_dir` fields; docs/level_editor.md "Pass 151". 17,310 checks.

@@ -2764,8 +2764,8 @@ tab's own JSON. Checks: tabs adding up past 100% (the Original never comes), a t
 each tab's creature, look and numbers like a row's (its words start "Variation N:").
 
 **Estimates.** The On screen / Composition / Spawned so far estimate, Show on screen and the window cycle estimates play
-a row's tabs by their shares (a drawn row's presence split by the shares, a paced row's waves by chance). The run charts
-still draw a boss fight and Endless without their windows.
+a row's tabs by their shares (a drawn row's presence split by the shares, a paced row's waves by chance). (Pass 151: the
+run charts play the windows too, see below.)
 
 **The row form is 25% wider** (538 px; 463 px on a screen under 1440 px).
 
@@ -2775,3 +2775,36 @@ alone).
 
 Data: `docs/waves_schema.md` "Pass 150" (the game's rules: `WaveTimeline.VARIATION_SHARED`, the Endless window). The page
 needs a reload (no server change); `selftest_P150.py` holds the checks.
+
+## Pass 151: the run charts play the boss fight and Endless windows
+
+Garry (2026-11-15): "I added conditional controls to the endless mode, but I don't see it reflected in the composition
+section of the timeline. I'm concerned that the endless section doesn't seem to encompass the entirety of the cycle".
+
+**The run estimate plays the windows** (model.js `spawnEstimate` with `windowStepper`, the rules of the cycle estimate
+`windowCycle` and of the game's BossFightWindow / EndlessWindow, now one piece of code for both). While the boss lives,
+a stage with a boss fight window spawns only that window's rows; from the start of Endless, a stage with an Endless
+window spawns only its rows: their creatures, their tabs at their shares, Max count (bodies) growing by its growth each
+cycle, From cycle / Until cycle, waves, once rows, Elites and Specials. The stage's own rows, the floor and the specials
+stand still inside a window, as in the game. A stage whose window is off still plays the old Endless (its first wave,
+the waves every N seconds and the late rows between them). So **On screen, Composition, Challenge, Spawned so far** and
+the Timeline's hover cards show the windows; Spawned so far lists a window row as `endlessrow:<stage>:<row>:<tab>` /
+`bossrow:...` (each tab its own source).
+
+**A stage tab shows three whole cycles of its Endless window** after the portal (Sundown: 7:10 + the portal's 1:00 +
+3 x 2:00 = 14:10), so rows that open in cycle 2 or 3 are on the charts; a stage without a window keeps the two minutes.
+
+**The limit line** on On screen is the window's Max count as bodies there (stepping up a cycle in Endless); its hover
+says "Max count N bodies" instead of the cap at the crowd's mix. The boss fight is still a pause on the stage's clock
+(the "+N in the fight" mark on Spawned so far), so its window shows in the totals and the mix after it, not as seconds.
+
+**Challenge** prices a window row's tab with its creature's numbers at the stage's end, times Endless's growth for the
+wave the second falls in (the growth on regular creatures only, as in the game).
+
+**How the tabs are predicted** (unchanged since pass 150): each tab is played as a row of its own with its share folded
+in (a drawn row's presence x the tab's %, a paced row's chance x the tab's %), so a 30% tab brings 30% of the row's
+bodies on average. The estimate is an expectation: a real run rolls each spawn decision and strays from the shares for
+a while; the Sim and the Watch show real rolls.
+
+The window panel's chips of a row near the cycle's end stay inside the drawing. The page needs a reload (no server
+change); `selftest_P151.py` holds the checks, and the Python copy of the estimate in `selftest.py` plays the windows too.

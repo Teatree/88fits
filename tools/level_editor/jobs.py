@@ -297,6 +297,9 @@ SPECS = {
         "roll_dir": _f("float", 1.0, False, "flip_curl: 1 or -1, which way it rolls"),
         "roll_start": _f("float", 0.08, False, "flip_curl: seconds before the roll starts"),
         "roll_time": _f("float", 0.4, False, "flip_curl: seconds the roll takes"),
+        # pass 151 (the wolf): it swings round the vertical while it rolls (90 with roll 90: lands on its side in profile)
+        "turn": _f("float", 0.0, False, "flip_curl: degrees it swings round the vertical while it rolls, on the roll's timing (90 with roll 90: on its side, seen in profile)"),
+        "turn_dir": _f("float", 1.0, False, "flip_curl: 1 or -1, which way it turns"),
         "curl": _f("float", 70.0, False, "flip_curl: degrees each knee folds in towards the belly"),
         "curl_root": _f("float", 40.0, False, "flip_curl: degrees each hip swings the leg towards the belly"),
         "curl_start": _f("float", 0.05, False, "flip_curl: seconds when the curl starts"),
@@ -3467,7 +3470,7 @@ GAIT_KEYS = SCALE_KEYS + (("legs", ""), ("base", ""), ("gait", "alternate"), ("s
              # pass 119 (lane ART)
              ("splay", 0.0), ("splay_front", 0.0))
 DEATH_KEYS = SCALE_KEYS + (("legs", ""), ("base", ""), ("seconds", 1.2), ("roll_axis", "side"), ("roll", 180.0), ("roll_dir", 1.0), ("roll_start", 0.08),
-              ("roll_time", 0.4), ("curl", 70.0), ("curl_root", 40.0), ("curl_start", 0.05), ("curl_end", 0.75), ("bounce", 0.12),
+              ("roll_time", 0.4), ("turn", 0.0), ("turn_dir", 1.0), ("curl", 70.0), ("curl_root", 40.0), ("curl_start", 0.05), ("curl_end", 0.75), ("bounce", 0.12),
               ("twitch", 6.0), ("spasm_deg", 22.0), ("hold", 0.85))
 
 

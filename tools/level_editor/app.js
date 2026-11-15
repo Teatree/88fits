@@ -286,8 +286,15 @@ const App = (() => {
   /** The axis runs a little into endless, so open rows and timers show where they go on; a stage tab shows its window,
    *  the portal's timer after its boss and two minutes of Endless. */
   const viewEnd = () => (viewStage() == null
-    ? runEnd() + Math.max(120, Math.round(stageLen(stages() - 1) * 0.35))
-    : stageEnd(viewStage()) + portalSeconds() + AFTER_STAGE);
+    ? runEnd() + Math.max(120, Math.round(stageLen(stages() - 1) * 0.35), portalSeconds() + endlessSpan(stages() - 1))
+    : stageEnd(viewStage()) + portalSeconds() + Math.max(AFTER_STAGE, endlessSpan(viewStage())));
+  /** Pass 151: the seconds of Endless the view shows for stage s: ENDLESS_VIEW_CYCLES whole cycles of its Endless window
+   *  (the cycles its own estimate plays, so the rows that open from cycle 2 or 3 show in the charts), 0 without one. */
+  const ENDLESS_VIEW_CYCLES = 3;
+  function endlessSpan(s) {
+    if (s == null || s < 0 || !M.windowOn(tl(), s, 'endless')) return 0;
+    return ENDLESS_VIEW_CYCLES * M.windowLen(M.windowBlock(tl(), s, 'endless'), 'endless');
+  }
   const stageViewKey = (id) => `88fits-editor-stageview-${id}`;
   /** Open a stage tab (null / 'all' = the whole map); the browser remembers it per map. */
   function setStageView(v) {

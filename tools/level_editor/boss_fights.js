@@ -214,20 +214,26 @@ const WindowPanels = (kind) => {
       verts.push([x1, yW(App.rowWeight(r, tEnd))]);
       g.appendChild(svg('path', { d: `M${x0},${yb} ${verts.map(([vx, vy]) => `L${vx},${vy}`).join(' ')} L${x1},${yb} Z`, class: 'w-area', fill: col }));
       g.appendChild(svg('polyline', { points: verts.map(([vx, vy]) => `${vx},${vy}`).join(' '), class: 'w-edge', stroke: col }));
-      // what it brings, as on the Rows lane
-      let tx = x0 + 6;
-      tx = chip(g, tx, y0 + 2, TimelineModel.quantityText(r, Model.rowWaveCount(r, c), null), 'chip-qty' + (pace !== 'continuous' ? ' paced' : ''), pace === 'continuous' ? 'continuous: drawn at every spawn check into the room under Max count' : pace === 'once' ? 'one wave a cycle' : 'paced as waves');
+      // what it brings, as on the Rows lane; pass 151: the chips of a row near the cycle's end are moved left so they end
+      // inside the drawing (a late once row's chips ran off its right edge)
+      const chips = [];
+      chips.push([TimelineModel.quantityText(r, Model.rowWaveCount(r, c), null), 'chip-qty' + (pace !== 'continuous' ? ' paced' : ''), pace === 'continuous' ? 'continuous: drawn at every spawn check into the room under Max count' : pace === 'once' ? 'one wave a cycle' : 'paced as waves']);
       // pass 150: the cycles it comes in
       const cyc = Model.rowCycles(r);
-      if (cyc.from > 1 || cyc.until < Infinity) tx = chip(g, tx, y0 + 2, cyc.until < Infinity ? (cyc.from === cyc.until ? `cycle ${cyc.from} only` : `cycles ${cyc.from}–${cyc.until}`) : `from cycle ${cyc.from}`, 'chip-cycle', `it spawns only in ${cyc.until < Infinity ? `cycles ${cyc.from} to ${cyc.until}` : `cycle ${cyc.from} and every one after`} (From cycle / Until cycle)`);
-      if (r.elite != null && r.elite !== '') tx = chip(g, tx, y0 + 2, `★ ${r.elite === 'random' ? 'elite' : r.elite}`, 'chip-elite');
-      if (r.special === true) tx = chip(g, tx, y0 + 2, '◆ special', 'chip-special');
-      if (r.respect_cap === false && pace !== 'continuous') tx = chip(g, tx, y0 + 2, 'no cap', 'chip-nocap', 'on top of Max count (the hard cap still holds)');
-      if (r.variant) tx = chip(g, tx, y0 + 2, r.variant, 'chip-variant');
-      if (r.pattern && r.pattern !== 'pack') tx = chip(g, tx, y0 + 2, r.pattern === 'in_front' ? 'In front' : r.pattern, 'chip-pattern');
-      if (r.stats && Object.keys(r.stats).length) tx = chip(g, tx, y0 + 2, 'overrides', 'chip-wrench');
+      if (cyc.from > 1 || cyc.until < Infinity) chips.push([cyc.until < Infinity ? (cyc.from === cyc.until ? `cycle ${cyc.from} only` : `cycles ${cyc.from}–${cyc.until}`) : `from cycle ${cyc.from}`, 'chip-cycle', `it spawns only in ${cyc.until < Infinity ? `cycles ${cyc.from} to ${cyc.until}` : `cycle ${cyc.from} and every one after`} (From cycle / Until cycle)`]);
+      if (r.elite != null && r.elite !== '') chips.push([`★ ${r.elite === 'random' ? 'elite' : r.elite}`, 'chip-elite']);
+      if (r.special === true) chips.push(['◆ special', 'chip-special']);
+      if (r.respect_cap === false && pace !== 'continuous') chips.push(['no cap', 'chip-nocap', 'on top of Max count (the hard cap still holds)']);
+      if (r.variant) chips.push([r.variant, 'chip-variant']);
+      if (r.pattern && r.pattern !== 'pack') chips.push([r.pattern === 'in_front' ? 'In front' : r.pattern, 'chip-pattern']);
+      if (r.stats && Object.keys(r.stats).length) chips.push(['overrides', 'chip-wrench']);
       // pass 150: its variation tabs
-      if (Model.hasVariations(r)) chip(g, tx, y0 + 2, Timeline.variationChipText(r), 'chip-vars', Timeline.variationTip(r));
+      if (Model.hasVariations(r)) chips.push([Timeline.variationChipText(r), 'chip-vars', Timeline.variationTip(r)]);
+      let chipsW = 0;
+      for (const ch of chips) chipsW += textWidth(ch[0], 10) + 14;
+      let tx = x0 + 6;
+      if (tx + chipsW > W - PAD_R) tx = Math.max(LEFT + 4, W - PAD_R - chipsW);
+      for (const ch of chips) tx = chip(g, tx, y0 + 2, ch[0], ch[1], ch[2]);
       // the yellow etches: each wave that comes; a tick at each draw of a drawn row
       const et = svg('g', { class: 'etches' + (Model.rowPaced(r) ? ' paced' : '') });
       const spp = len / Math.max(span, 1);

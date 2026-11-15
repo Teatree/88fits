@@ -631,6 +631,284 @@ def endless_wave_size_py(tl, wave, s=None):
 STAGE_EDGE = 0.5
 
 
+# ---------------------------------------------------------------- pass 150 / 151: variations and the windows (model.js)
+
+VARIATION_SHARED = ["id", "t", "until", "pace", "every", "offset", "interval", "weights", "chance", "t_jitter", "trickle",
+                    "channel", "from_cycle", "until_cycle", "variations", "percent"]
+WINDOW_DEFS = {"boss": {"key": "boss_fight", "length": 120, "max_count": 40},
+               "endless": {"key": "endless_window", "length": 180, "max_count": 100}}
+
+
+def variation_list_py(r):
+    return r["variations"] if is_obj(r) and isinstance(r.get("variations"), list) else []
+
+
+def variation_percents_py(r):
+    """model.js variationPercents."""
+    vs = [max(numv(v.get("percent"), 0), 0) if is_obj(v) else 0 for v in variation_list_py(r)]
+    s = sum(vs)
+    if s > 100:
+        return [0] + [p * 100 / s for p in vs]
+    return [100 - s] + vs
+
+
+def variation_row_py(r, j):
+    """model.js variationRow: tab j's merged row (j 0 the row itself)."""
+    if not is_obj(r):
+        return None
+    k = trunc(numv(j, 0))
+    if k <= 0:
+        return r
+    vl = variation_list_py(r)
+    v = vl[k - 1] if k - 1 < len(vl) else None
+    if not is_obj(v):
+        return None
+    m = json.loads(json.dumps(v))
+    for key in VARIATION_SHARED:
+        if key in ("variations", "percent"):
+            m.pop(key, None)
+            continue
+        if key in r:
+            m[key] = json.loads(json.dumps(r[key]))
+        else:
+            m.pop(key, None)
+    return m
+
+
+def scale_row_share_py(m, share):
+    """model.js scaleRowShare: a tab's share folded into its row (a paced row's chance, a drawn row's presence)."""
+    if not share < 1 - 1e-12:
+        return m
+    c = dict(m)
+    if row_paced_py(c):
+        c["chance"] = min(max(numv(c.get("chance"), 1), 0), 1) * share
+    if row_drawn_py(c):
+        if isinstance(c.get("weights"), list):
+            c["weights"] = [[p[0], numv(p[1], 0) * share] + p[2:] if isinstance(p, list) else p for p in c["weights"]]
+        if c.get("weight") not in (None, ""):
+            c["weight"] = numv(c["weight"], 0) * share
+        if c.get("weight_late") not in (None, ""):
+            c["weight_late"] = numv(c["weight_late"], 0) * share
+    return c
+
+
+def expand_variations_py(rows):
+    """model.js expandVariations: [{r, i (the parent's index), tab, share}]."""
+    out = []
+    for i, r in enumerate(rows if isinstance(rows, list) else []):
+        if not is_obj(r):
+            continue
+        if not variation_list_py(r):
+            out.append({"r": r, "i": i, "tab": 0, "share": 1})
+            continue
+        for j, p in enumerate(variation_percents_py(r)):
+            if not p > 1e-9:
+                continue
+            m = dict(r) if j == 0 else variation_row_py(r, j)
+            if m is None:
+                continue
+            m.pop("variations", None)
+            out.append({"r": scale_row_share_py(m, p / 100), "i": i, "tab": j, "share": p / 100})
+    return out
+
+
+def row_cycles_py(r):
+    frm = max(trunc(numv(r.get("from_cycle") if is_obj(r) else None, 1)), 1)
+    u = r.get("until_cycle") if is_obj(r) else None
+    until = trunc(numv(u, math.inf)) if u not in (None, "") and math.isfinite(numv(u, math.inf)) else math.inf
+    return frm, until
+
+
+def row_in_cycle_py(r, cycle):
+    frm, until = row_cycles_py(r)
+    k = max(trunc(numv(cycle, 1)), 1)
+    return frm <= k <= until
+
+
+def row_wave_count_win_py(r, c):
+    """model.js rowWaveCount."""
+    st = r.get("stats") if is_obj(r.get("stats")) else {}
+    pack = numv(st.get("pack"), numv(c.get("pack_size") if c else None, 1))
+    return max(trunc(numv(r.get("count"), numv(r.get("pack"), pack))), 1)
+
+
+def window_block_py(tl, s, kind):
+    """model.js windowBlock: stage s's block of a kind as the file has it, None without one."""
+    entries = [e for e in (tl.get("stage_list") if isinstance(tl.get("stage_list"), list) else []) if is_obj(e)]
+    k = int(math.floor(numv(s, -1)))
+    if not (0 <= k < len(entries)):
+        return None
+    b = entries[k].get(WINDOW_DEFS[kind]["key"])
+    return b if is_obj(b) else None
+
+
+def window_on_py(tl, s, kind):
+    b = window_block_py(tl, s, kind)
+    return b is not None and b.get("enabled") is not False
+
+
+def window_len_py(b, kind):
+    return max(numv(b.get("length") if is_obj(b) else None, WINDOW_DEFS[kind]["length"]), 1)
+
+
+def window_max_at_py(b, kind, c, hard):
+    m = trunc(numv(b.get("max_count") if is_obj(b) else None, WINDOW_DEFS[kind]["max_count"]))
+    if m < 0:
+        return -1
+    g = max(numv(b.get("max_count_growth") if is_obj(b) else None, 0), 0) if kind == "endless" else 0
+    h = hard if numv(hard, math.inf) > 0 else math.inf
+    return min(m + math.floor(g * max(math.floor(numv(c, 0)), 0)), h)
+
+
+class WindowStepperPy:
+    """model.js windowStepper, step for step."""
+
+    def __init__(self, tl, b, kind, by_id, hz, api):
+        self.b, self.kind, self.api = b, kind, api
+        self.len = window_len_py(b, kind)
+        hard_n = numv(tl.get("hard_cap"), 300)
+        self.hard = hard_n if hard_n > 0 else 300
+        si = numv(tl.get("spawn_interval"), 0.5)
+        si = si if si > 0 else 0.5
+        lo = max(trunc(numv(tl.get("burst_min"), 5)), 0)
+        hi = max(trunc(numv(tl.get("burst_max"), 20)), lo)
+        self.burst_mean = (lo + hi) / 2
+        self.late_t = numv(tl.get("weight_late_t"), 600)
+        self.check_steps = max(1, js_round(si * hz))
+        self.hz = hz
+        self.rows = []
+        for xr in expand_variations_py(b.get("roster") if isinstance(b.get("roster"), list) else []):
+            r, i = xr["r"], xr["i"]
+            e = r.get("enemy")
+            cid = str(e[0] if e else "") if isinstance(e, list) else ("" if e == ROW_ENEMY_ROSTER else str("" if e is None else e))
+            c = by_id.get(cid)
+            st = r.get("stats") if is_obj(r.get("stats")) else {}
+            max_alive = trunc(numv(st.get("max_alive"), numv(c.get("max_alive") if c else None, 0)))
+            paced = row_paced_py(r)
+            own = row_has_interval_py(r)
+            u = r.get("until")
+            self.rows.append({"r": r, "i": i, "tab": xr["tab"], "id": cid, "c": c, "maxAlive": max_alive if row_single_enemy_py(r) else 0,
+                              "paced": paced, "drawn": row_drawn_py(r), "timer": row_timer_py(r),
+                              "eliteArr": row_elite_py(r) != "" and "pattern" not in r,
+                              "p": min(max(numv(r.get("chance"), 1), 0), 1) if paced else 1,
+                              "t": numv(r.get("t"), 0), "until": math.inf if u in (None, "") else numv(u, math.inf),
+                              "own": own, "ivSteps": max(1, js_round(row_draw_interval_py(r, si) * hz)) if own else 0,
+                              "perWave": row_wave_count_win_py(r, c), "wk": -1, "owed": 0, "next": None, "left": 0, "seen": False})
+        self.k, self.cycle, self.ct = -1, -1, 0.0
+        self.max_now = window_max_at_py(b, kind, 0, self.hard)
+
+    def room(self):
+        return math.inf if self.max_now < 0 else self.max_now - self.api["bodies"]()
+
+    def hard_room(self):
+        return self.hard - self.api["bodies"]()
+
+    def put(self, x, n):
+        if not n > 0:
+            return
+        self.api["put"](x, n, self.ct)
+
+    def owed_spawn(self, x):
+        n = x["owed"]
+        if x["r"].get("respect_hard_cap") is False:
+            n = min(n, max(MAX_BODIES - self.api["bodies"](), 0))
+        else:
+            n = min(n, max(self.hard_room(), 0))
+        if x["maxAlive"] > 0:
+            n = min(n, max(x["maxAlive"] - self.api["alive_of"](x["id"]), 0))
+        if n > 0 and x["r"].get("respect_cap") is not False:
+            rm = self.room()
+            if not rm > 0:
+                return
+            n = min(n, max(rm, 1))
+        if not n > 0:
+            return
+        self.put(x, n)
+        x["owed"] = max(x["owed"] - n, 0)
+
+    def is_open(self, x):
+        return x["t"] <= self.ct < x["until"] and self.ct < self.len and row_in_cycle_py(x["r"], self.cycle + 1)
+
+    def begin(self):
+        self.k += 1
+        ft = self.k / self.hz
+        c2 = math.floor(ft / self.len + 1e-9)
+        if c2 != self.cycle:
+            self.cycle = c2
+            self.max_now = window_max_at_py(self.b, self.kind, self.cycle, self.hard)
+            for x in self.rows:
+                x["wk"], x["owed"], x["next"], x["left"], x["seen"] = -1, 0, None, 0, False
+        self.ct = ft - self.cycle * self.len
+        return self.ct
+
+    def spawn(self):
+        ct = self.ct
+        for x in self.rows:
+            if not x["paced"] or not self.is_open(x) or not x["p"] > 0:
+                continue
+            start, every = row_wave_start_py(x["r"]), row_wave_every_py(x["r"])
+            if ct < start - 1e-9:
+                continue
+            if x["timer"]:
+                if x["next"] is None:
+                    x["next"] = start
+                if ct < x["next"] - 1e-9:
+                    continue
+                i, wt = x["wk"] + 1, ct
+                x["next"] = ct + every if every > 0 else math.inf
+            else:
+                i = math.floor((ct - start) / every + 1e-6) if every > 0 else 0
+                if i <= x["wk"]:
+                    continue
+                wt = start + (i * every if every > 0 else 0)
+            x["wk"], x["owed"] = i, 0
+            if not roster_weight(x["r"], wt, self.late_t) > 0:
+                continue
+            if x["eliteArr"]:
+                self.put(x, max(trunc(numv(x["r"].get("count"), 1)), 1) * x["p"])
+                continue
+            x["owed"] = x["perWave"] * x["p"]
+            self.owed_spawn(x)
+        check = self.k % self.check_steps == 0
+        if check:
+            for x in self.rows:
+                if x["paced"] and x["owed"] > 0:
+                    if not self.is_open(x):
+                        x["owed"] = 0
+                    else:
+                        self.owed_spawn(x)
+        drawn = [x for x in self.rows if x["drawn"] and self.is_open(x) and not (x["maxAlive"] > 0 and self.api["alive_of"](x["id"]) >= x["maxAlive"] - 1e-9)]
+        due = []
+        for x in drawn:
+            if x["own"]:
+                if not x["seen"]:
+                    x["seen"], x["left"] = True, 0
+                x["left"] -= 1
+                if x["left"] <= 0:
+                    due.append(x)
+                    x["left"] = x["ivSteps"]
+            elif check:
+                due.append(x)
+        if due:
+            total = sum(roster_weight(x["r"], ct, self.late_t) for x in drawn)
+            part = sum(roster_weight(x["r"], ct, self.late_t) for x in due)
+            if total > 0 and part > 0:
+                rm = self.room()
+                n = min(self.burst_mean * (part / total), rm if rm > 0 else 0, max(self.hard_room(), 0))
+                if n > 0:
+                    for x in due:
+                        self.put(x, n * roster_weight(x["r"], ct, self.late_t) / part)
+
+    def mix_now(self):
+        out = []
+        for x in self.rows:
+            if row_in_mix_py(x["r"]) and self.is_open(x):
+                w = roster_weight(x["r"], self.ct, self.late_t)
+                if w > 0:
+                    out.append({"r": x["r"], "w": w})
+        return out
+
+
 def spawn_estimate(tl, creatures, opts=None):
     """model.js spawnEstimate, step for step."""
     o = opts if is_obj(opts) else {}
@@ -880,6 +1158,11 @@ def spawn_estimate(tl, creatures, opts=None):
         t = now()
         base = sample_points(curve, t) if curve else trunc(g("cap_start")) + g("cap_per_minute") * (t / 60)
         cap = min(trunc(base + cap_per_stage * S["stage"]), cap_max)
+        # pass 151: a window's Max count (bodies; -1 = the hard cap)
+        if S["phase"] == 1 and S["boss_win"] is not None:
+            return hard if S["boss_win"].max_now < 0 else S["boss_win"].max_now
+        if S["phase"] == 3 and S["en_win"] is not None:
+            return hard if S["en_win"].max_now < 0 else S["en_win"].max_now
         if S["phase"] == 1:
             return trunc(cap * boss_frac)
         if S["phase"] == 3:
@@ -1164,6 +1447,7 @@ def spawn_estimate(tl, creatures, opts=None):
         cat["boss"] += 1
         S["boss_alive"] = {"share": share}
         S["phase"], S["phase_left"] = 1, boss_steps
+        S["boss_win"] = make_win("boss") if window_on_py(tl, S["stage"], "boss") else None
         S["fight"] = {"t": clock(), "boss": picks[0]["id"], "seconds": boss_steps / EST_HZ, "portal": portal_steps / EST_HZ,
                       "before": total() - 1, "spawned": 0, "minions": 0, "brood": []}
         for pk in picks:
@@ -1397,6 +1681,51 @@ def spawn_estimate(tl, creatures, opts=None):
                 out.append({"d": d, "w": 1, "key": ""})
         return out
 
+    def make_win(kind):
+        """model.js makeWin (pass 151)."""
+        st_i = S["stage"]
+        b = window_block_py(tl, st_i, kind)
+        pre = "bossrow:" if kind == "boss" else "endlessrow:"
+        box = {}
+
+        def alive_of(cid):
+            return sum(a["n"] for a in alive.values() if a["id"] == cid)
+
+        def put(x, n, _ct):
+            win_put(box["w"], x, n, "%s%d:%d:%d" % (pre, st_i, x["i"], x["tab"]))
+        box["w"] = WindowStepperPy(tl, b, kind, by_id, EST_HZ, {"bodies": bodies, "alive_of": alive_of, "put": put})
+        return box["w"]
+
+    def win_put(W, x, n, key):
+        r = x["r"]
+        st = r.get("stats") if is_obj(r.get("stats")) else {}
+        bump(src_cum, key, n)
+        el = row_elite_py(r) != ""
+
+        def kind_of(d):
+            if d["arch"] != "regular":
+                return "elite"
+            if r.get("special") is True:
+                return "forced_mod" if el else "forced"
+            if x["eliteArr"] or (el and colour_open()):
+                return "mod"
+            return "reg"
+        if r.get("enemy") == ROW_ENEMY_ROSTER:
+            mix = W.mix_now()
+            tw = sum(m["w"] for m in mix)
+            if not tw > 0:
+                return
+            own = len(st) > 0
+            for m in mix:
+                d = def_of(str(m["r"].get("enemy")), st if own else (m["r"].get("stats") if is_obj(m["r"].get("stats")) else {}))
+                if d:
+                    add(d, n * m["w"] / tw, kind_of(d))
+            return
+        for pk in pick_shares(r.get("enemy"), r.get("enemy_weights")):
+            d = def_of(pk["id"], st)
+            if d:
+                add(d, n * pk["share"], kind_of(d))
+
     def endless_add(n):
         W = sum(p["w"] for p in S["en_pool"])
         if not (W > 0) or not (n > 0):
@@ -1530,7 +1859,8 @@ def spawn_estimate(tl, creatures, opts=None):
                        "colForced": cat["colForced"], "modRow": cat["modRow"], "both": cat["both"], "kills": S["kills"], "alive": bodies(), "by": by,
                        "src": dict(src_cum), "cap": cap_now(), "load": load_all() - hl,
                        "floor": sample_points(floor_curve, now()) if floor_curve else 0,
-                       "full": T["full"] / T["checks"] if T["checks"] > 0 else 0, "aliveBy": alive_by, "starve": starve})
+                       "full": T["full"] / T["checks"] if T["checks"] > 0 else 0, "aliveBy": alive_by, "starve": starve,
+                       "win": "boss" if S["phase"] == 1 and S["boss_win"] is not None else "endless" if S["phase"] == 3 and S["en_win"] is not None else None})
         T["checks"], T["full"], T["starve"] = 0, 0, {}
 
     if SR is not None:
@@ -1544,6 +1874,8 @@ def spawn_estimate(tl, creatures, opts=None):
     sr_endless_steps = max(0, js_round((end - SR["end"]) * EST_HZ) - sr_portal_steps) if SR is not None else 0
     en_every = max(1, js_round(max(endless_value_py(tl, "every", SR["i"]), 1) * EST_HZ)) if SR is not None else 1
     S["en_steps"], S["en_wave"], S["en_pool"] = 0, 0, None
+    # pass 151: the windows playing now
+    S["boss_win"], S["en_win"] = None, None
     sr_end_k = js_round(SR["end"] * EST_HZ) if SR is not None else 0
     guard = 0
     while (not S["sr_done"] if SR is not None else True) and (S["k"] < end_k or S["phase"] != 0) and guard < 4000000:
@@ -1578,6 +1910,9 @@ def spawn_estimate(tl, creatures, opts=None):
                 record(True)
         elif S["phase"] == 1:
             S["phase_left"] -= 1
+            if S["boss_win"] is not None:
+                S["boss_win"].begin()
+                S["boss_win"].spawn()
             while S["fight"] and S["fight"]["brood"] and S["fight"]["brood"][0]["step"] <= S["play"]:
                 b = S["fight"]["brood"].pop(0)
                 d = def_of(b["id"], None)
@@ -1589,6 +1924,7 @@ def spawn_estimate(tl, creatures, opts=None):
             if S["phase_left"] <= 0:
                 S["boss_alive"] = None
                 S["kills"] += 1
+                S["boss_win"] = None
                 S["phase"], S["phase_left"], S["portal_t"] = 2, sr_portal_steps if SR is not None else portal_steps, 0.0
                 portal_wave()
                 if SR is not None:
@@ -1600,22 +1936,28 @@ def spawn_estimate(tl, creatures, opts=None):
             w = S["en_steps"] // en_every + 1
             if w > S["en_wave"]:
                 S["en_wave"] = w
-                endless_wave(w)
+                if S["en_win"] is None:
+                    endless_wave(w)
+            if S["en_win"] is not None:
+                S["en_win"].begin()
+                S["en_win"].spawn()
         else:
             S["phase_left"] -= 1
             S["portal_t"] += 1 / EST_HZ
             if SR is not None:
                 S["sr_after"] = (sr_portal_steps - S["phase_left"]) / EST_HZ
-        if S["phase"] < 2:
+        in_win = (S["phase"] == 1 and S["boss_win"] is not None) or (S["phase"] == 3 and S["en_win"] is not None)
+        if S["phase"] < 2 and not in_win:
             tick_specials()
         S["spawn_step"] -= 1
         if S["spawn_step"] <= 0:
             S["spawn_step"] = burst_every
             if S["phase"] == 3:
-                endless_fill()
-            else:
+                if S["en_win"] is None:
+                    endless_fill()
+            elif not in_win:
                 spawn_burst()
-        if S["phase"] != 3:
+        if S["phase"] != 3 and not in_win:
             tick_row_intervals()
             floor_fill()
         if SR is not None and S["phase"] == 2:
@@ -1628,9 +1970,15 @@ def spawn_estimate(tl, creatures, opts=None):
                     S["fight"] = None
                 if sr_endless_steps > 0:
                     S["phase"], S["en_steps"] = 3, 0
-                    S["en_pool"] = endless_pool()
                     S["en_wave"] = 1
-                    endless_wave(1)
+                    S["en_win"] = make_win("endless") if window_on_py(tl, SR["i"], "endless") else None
+                    if S["en_win"] is not None:
+                        S["en_pool"] = []
+                        S["en_win"].begin()
+                        S["en_win"].spawn()
+                    else:
+                        S["en_pool"] = endless_pool()
+                        endless_wave(1)
                 else:
                     S["sr_done"] = True
             continue
@@ -1661,7 +2009,9 @@ def spawn_estimate(tl, creatures, opts=None):
     ids = sorted(last, key=lambda cid: (-last[cid][0], cid))
     return {"points": points, "ids": ids, "marks": marks, "fights": fights, "colourAt": S["colour_at"],
             "stage": {"i": SR["i"], "start": SR["start"], "end": SR["end"], "portal": sr_portal_steps / EST_HZ,
-                      "endless": sr_endless_steps / EST_HZ, "waves": S["en_wave"]} if SR is not None else None}
+                      "endless": sr_endless_steps / EST_HZ, "waves": S["en_wave"],
+                      "bossWindow": window_on_py(tl, SR["i"], "boss"), "endlessWindow": window_on_py(tl, SR["i"], "endless"),
+                      "endlessCycles": S["en_win"].cycle + 1 if S["en_win"] is not None else 0} if SR is not None else None}
 
 
 # ---------------------------------------------------------------- model.js under node
@@ -2173,6 +2523,9 @@ def estimate_diff(js, py):
         for k in ("all", "reg", "col", "mod", "elite", "special", "boss", "minion", "kills", "alive", "colForced", "modRow", "both"):
             if not est_close(pj[k], pp[k]):
                 out.append("%s at %s: js %s py %s" % (k, pj["t"], pj[k], pp[k]))
+        # pass 151: the window playing at that point
+        if pj.get("win") != pp.get("win"):
+            out.append("window at %s: js %s py %s" % (pj["t"], pj.get("win"), pp.get("win")))
         if set(pj["by"]) != set(pp["by"]):
             out.append("ids at %s: js %s py %s" % (pj["t"], sorted(pj["by"]), sorted(pp["by"])))
         else:
@@ -2233,6 +2586,9 @@ def estimate_checks():
         [rc_tl, creatures, dict(rc_opts, turnover=[[30, 0.03], [90, 0.07], [330, 0.09], [600, 0.05]])],
         [EST_C_TL, EST_C_CR, dict(EST_C_OPTS, turnover=7, bossSeconds=1e9, portalSeconds=-5, end=300)],
         [EST_D_TL, EST_D_CR, {"turnover": 0.1, "end": 100}],
+        # pass 151: stage runs through the boss fight window and three cycles of the Endless window
+        [rc_tl, creatures, dict(rc_opts, stage=0, end=430 + 60 + 370)],
+        [rc_tl, creatures, dict(rc_opts, stage=3, end=1810 + 960 + 60 + 370)],
     ]
     king = [{"name": "roll", "windup": 1.0, "duration": 1.2}, {"name": "tumbleweed_volley", "windup": 0.8, "count": 12},
             {"name": "spawn_ring", "windup": 0.8, "count": 12, "enemy": "tumbleweed_minion"}, {"name": "slam", "windup": 1.2}]
@@ -2247,7 +2603,8 @@ def estimate_checks():
         return
     if not res:
         return
-    names = ["hand-checked", "nothing dies", "every rule", "Red Canyon flat", "Red Canyon per stage", "Red Canyon curve", "silly numbers", "Actual by hand"]
+    names = ["hand-checked", "nothing dies", "every rule", "Red Canyon flat", "Red Canyon per stage", "Red Canyon curve", "silly numbers", "Actual by hand",
+             "Red Canyon Sundown's windows", "Red Canyon Blood Moon's windows"]
     import time
     t0 = time.time()
     pys = [spawn_estimate(tl, cr, opts) for tl, cr, opts in cases]

@@ -223,7 +223,10 @@ def _stage_checks(check, st, server):
     p0 = e1["points"][0]
     check(p0["t"] == 100 and p0["all"] == 0 and p0["alive"] == 0, "stools87: stage 2's run starts at its window (1:40) with nothing spawned (%s)" % [p0["t"], p0["all"]])
     check([f["t"] for f in e1["fights"]] == [240] and e1["fights"][0]["boss"] == "bossy2", "stools87: stage 2's run meets only its own boss, at its end (%s)" % e1["fights"])
-    check(e1["stage"] == {"i": 1, "start": 100, "end": 240, "portal": 60, "endless": 120, "waves": 13}, "stools87: the run says its window, the portal's countdown and its Endless (%s)" % e1["stage"])
+    # pass 151: the stage result also says whether the fight and Endless played their windows (none here)
+    check(e1["stage"] == {"i": 1, "start": 100, "end": 240, "portal": 60, "endless": 120, "waves": 13,
+                          "bossWindow": False, "endlessWindow": False, "endlessCycles": 0},
+          "stools87: the run says its window, the portal's countdown and its Endless (%s)" % e1["stage"])
     check(abs(e1["points"][-1]["t"] - 420) < 1e-9, "stools87: the portal's minute and then Endless are drawn after its end, to the view's end 7:00 (%s)" % e1["points"][-1]["t"])
     portal_pts = [p for p in e1["points"] if 240 < p["t"] <= 300]
     check(len(portal_pts) == 60 and all(abs(p["all"] - portal_pts[0]["all"]) < 1e-9 for p in portal_pts), "stools87: nothing comes in the portal's minute after a portal wave (%d points)" % len(portal_pts))
