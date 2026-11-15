@@ -5005,3 +5005,7 @@ of that one - black, brown and white".
 - **The local model's checks**: tools/dl/p151/WOLF/llm_check.py (Qwen3.6 27B in LM Studio, JSON rubrics: side, views, walk,
   death, compare; answers in tools/dl/p151/WOLF/llm_checks.json) beside gen_ctl's own QA (Qwen2.5-VL 7B). Review sheets
   tools/dl/p151/WOLF/look_sheet.py (review/), arena captures game/tools/_p151_WOLF_shots.gd -- out=<dir> looks=<codes>.
+- **The replay test's revive check** (pass120_REPLAY "stands up with the same HP", the flake since pass 147, failing 3 in 3 on
+  this pass's first ship): not a game fault. A revive at 97.50 s fell on the frame of a 0.5 s check, which read the HP before
+  the revive set it (the next check had him at 40, inside the revive's 2 s of invulnerability); the test now skips a check
+  within one recorded frame of the revive. Shipped: 88fits.apk / .exe / outlaw_survivors.aab (version code 41) in Drive.
