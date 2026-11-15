@@ -1,0 +1,429 @@
+{
+  "id": "wolf",
+  "name": "Wolf",
+  "flavour": "It followed the smell of trouble all the way here.",
+  "archetype": "runner",
+  "brain": "chase",
+  "hp": 18,
+  "speed": 2.88,
+  "damage": 7,
+  "knockback": 4.5,
+  "radius": 0.55,
+  "size": 1.6,
+  "blood": "#A8141C",
+  "pack_size": 4,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.35,
+    "gold": 0.05,
+    "chest": 0.0002
+  },
+  "frame_px": 160,
+  "xp_mult": 2.5,
+  "cap_share": 1.0,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_beetle_die"
+  },
+  "placeholder": {
+    "color": "#7E7A76",
+    "ears": "pointed",
+    "eyes": 2,
+    "shape": "wide"
+  },
+  "art_prompt": "a real grey wolf with thick grey fur, darker charcoal-grey fur along its back and the top of its tail, pale cream fur on its chest, belly, legs and muzzle, amber eyes, a black nose and pointed upright ears, four legs, standing on all fours facing the viewer, its bushy tail low behind it",
+  "variance": {
+    "size": 0.12,
+    "speed": 0.1,
+    "tints": [
+      "#FFFFFF",
+      "#E8DCCB",
+      "#D8D8E8"
+    ],
+    "tint_strength": 0.15,
+    "special_chance": 0.0089,
+    "special": {
+      "size": 1.5,
+      "hp": 15.0,
+      "damage": 3.5,
+      "xp": 3.0,
+      "tint": "#5A1010",
+      "tint_strength": 0.45
+    }
+  },
+  "doc": "A fast runner in packs of four (pass 151, from Garry's 3D wolf, walked on its own clip in eight directions): about a hellhound's pace with less health. On no row yet.",
+  "variant": "WOLF-C",
+  "variants": {
+    "WOLF-A": {
+      "note": "Pass 151: as close to the 3D model as it gets: the model's clay repainted with little freedom (img2img 0.7), no style anchor, a realistic grey wolf",
+      "fresh": true,
+      "recipe": {
+        "method": "creature_ctl",
+        "drivers": "wolf_walk",
+        "noun": "a wolf",
+        "blockout": "a rough grey 3D model of a wolf: a long narrow muzzle, two upright pointed ears, a deep chest, a lean body, four long thin legs ending in paws and a long bushy tail, prowling with its head held low; its flat facets and jagged fur tufts are only the model's rough surface, not part of the wolf",
+        "anatomy": "exactly four legs, two front legs and two hind legs, each leg one single continuous limb ending in one paw, exactly one head with one long muzzle and two pointed ears, exactly one bushy tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the long muzzle at the right end, held low, the bushy tail at the left end, the four long legs below the body",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the muzzle at the bottom middle, nearest the viewer, held low, the body behind and above it, the front legs at both sides of the chest, the tail hidden behind the body, the whole body narrow, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and muzzle at the lower right, nearest the viewer, the body and the bushy tail at the upper left, farther away",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: its hindquarters and bushy tail nearest the viewer at the lower left, the head farther away at the upper right, partly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: its hindquarters nearest the viewer in the middle, the bushy tail hanging down the middle of the picture towards the viewer, the head beyond the shoulders with only the ear tips showing, the whole body narrow, not turned sideways"
+        },
+        "motion": "prowling in place on its four long legs like a real wolf: the legs step in diagonal pairs, each paw lifting, swinging forward and planting again, the head held low and level, the bushy tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second wolf, standing upright, ghost legs, transparent legs, smeared legs, blurry legs",
+        "death_drivers": "wolf_death",
+        "death_motion": "its legs buckle, it collapses onto its side and lies dead stretched out on its side, its four legs limp and reaching towards the viewer, its eyes closed, its tail flat on the ground",
+        "dead": "lying dead on its side, stretched out, its four legs limp",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "outline_color": "#1C1A19",
+        "side_seeds": 3,
+        "paint_mode": "repaint",
+        "anchor": false,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "init": {
+          "denoise": 0.7,
+          "tint": "#9C9892",
+          "blur": 3
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 28
+        },
+        "prompt": "a real grey wolf with thick grey fur, darker charcoal-grey fur along its back and the top of its tail, pale cream fur on its chest, belly, legs and muzzle, amber eyes, a black nose and pointed upright ears",
+        "detail": "a real wolf's anatomy and proportions, natural fur, no cartoon face",
+        "style": "a realistic digital painting of a real wolf with natural fur and soft lighting, true-to-life proportions and colours, like a wildlife illustration. Game asset"
+      },
+      "sprite": "wolf_sprite_a.png",
+      "icon": "wolf_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.688,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "WOLF-B": {
+      "note": "Pass 151: the model repainted in the house style lightly (img2img 0.82, the style anchor): a real wolf's anatomy, our colours and finish",
+      "fresh": true,
+      "recipe": {
+        "method": "creature_ctl",
+        "drivers": "wolf_walk",
+        "noun": "a wolf",
+        "blockout": "a rough grey 3D model of a wolf: a long narrow muzzle, two upright pointed ears, a deep chest, a lean body, four long thin legs ending in paws and a long bushy tail, prowling with its head held low; its flat facets and jagged fur tufts are only the model's rough surface, not part of the wolf",
+        "anatomy": "exactly four legs, two front legs and two hind legs, each leg one single continuous limb ending in one paw, exactly one head with one long muzzle and two pointed ears, exactly one bushy tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the long muzzle at the right end, held low, the bushy tail at the left end, the four long legs below the body",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the muzzle at the bottom middle, nearest the viewer, held low, the body behind and above it, the front legs at both sides of the chest, the tail hidden behind the body, the whole body narrow, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and muzzle at the lower right, nearest the viewer, the body and the bushy tail at the upper left, farther away",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: its hindquarters and bushy tail nearest the viewer at the lower left, the head farther away at the upper right, partly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: its hindquarters nearest the viewer in the middle, the bushy tail hanging down the middle of the picture towards the viewer, the head beyond the shoulders with only the ear tips showing, the whole body narrow, not turned sideways"
+        },
+        "motion": "prowling in place on its four long legs like a real wolf: the legs step in diagonal pairs, each paw lifting, swinging forward and planting again, the head held low and level, the bushy tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second wolf, standing upright, ghost legs, transparent legs, smeared legs, blurry legs",
+        "death_drivers": "wolf_death",
+        "death_motion": "its legs buckle, it collapses onto its side and lies dead stretched out on its side, its four legs limp and reaching towards the viewer, its eyes closed, its tail flat on the ground",
+        "dead": "lying dead on its side, stretched out, its four legs limp",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "outline_color": "#1C1A19",
+        "side_seeds": 3,
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "init": {
+          "denoise": 0.82,
+          "tint": "#9C9892",
+          "blur": 6
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 28
+        },
+        "prompt": "a real grey wolf with thick grey fur, darker charcoal-grey fur along its back and the top of its tail, pale cream fur on its chest, belly, legs and muzzle, amber eyes, a black nose and pointed upright ears",
+        "detail": "a real wolf's anatomy and proportions, a natural wolf face, menacing"
+      },
+      "sprite": "wolf_sprite_b.png",
+      "icon": "wolf_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.475,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "WOLF-C": {
+      "note": "Pass 151: the house style on the model's shapes (img2img 0.92, the style anchor): a fierce game wolf, a bigger head and mane, a snarl",
+      "fresh": true,
+      "recipe": {
+        "method": "creature_ctl",
+        "drivers": "wolf_walk",
+        "noun": "a wolf",
+        "blockout": "a rough grey 3D model of a wolf: a long narrow muzzle, two upright pointed ears, a deep chest, a lean body, four long thin legs ending in paws and a long bushy tail, prowling with its head held low; its flat facets and jagged fur tufts are only the model's rough surface, not part of the wolf",
+        "anatomy": "exactly four legs, two front legs and two hind legs, each leg one single continuous limb ending in one paw, exactly one head with one long muzzle and two pointed ears, exactly one bushy tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the long muzzle at the right end, held low, the bushy tail at the left end, the four long legs below the body",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the muzzle at the bottom middle, nearest the viewer, held low, the body behind and above it, the front legs at both sides of the chest, the tail hidden behind the body, the whole body narrow, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and muzzle at the lower right, nearest the viewer, the body and the bushy tail at the upper left, farther away",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: its hindquarters and bushy tail nearest the viewer at the lower left, the head farther away at the upper right, partly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: its hindquarters nearest the viewer in the middle, the bushy tail hanging down the middle of the picture towards the viewer, the head beyond the shoulders with only the ear tips showing, the whole body narrow, not turned sideways"
+        },
+        "motion": "prowling in place on its four long legs like a real wolf: the legs step in diagonal pairs, each paw lifting, swinging forward and planting again, the head held low and level, the bushy tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second wolf, standing upright, ghost legs, transparent legs, smeared legs, blurry legs",
+        "death_drivers": "wolf_death",
+        "death_motion": "its legs buckle, it collapses onto its side and lies dead stretched out on its side, its four legs limp and reaching towards the viewer, its eyes closed, its tail flat on the ground",
+        "dead": "lying dead on its side, stretched out, its four legs limp",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "outline_color": "#1C1A19",
+        "side_seeds": 3,
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "init": {
+          "denoise": 0.92,
+          "tint": "#9C9892",
+          "blur": 10
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 28
+        },
+        "prompt": "a fierce grey timber wolf with a shaggy mane of thick grey fur round its neck, darker charcoal fur along its back, cream fur on its belly and muzzle, glowing yellow eyes, bared white fangs in a snarl, ears laid back",
+        "detail": "slightly stylized game-creature proportions: a bigger head, a shaggy mane and chunky paws, a fierce snarling face, clean bold shapes",
+        "remap_hues": {
+          "ranges": [
+            [
+              250,
+              335
+            ]
+          ],
+          "to": 35,
+          "sat": 0.25,
+          "min_sat": 0.1
+        }
+      },
+      "sprite": "wolf_sprite_c.png",
+      "icon": "wolf_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.662,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "WOLF-D": {
+      "note": "Pass 151: the full house cartoon (the classic redraw: the style anchor first, the clay for anatomy and pose only): big angry eyes, exaggerated proportions",
+      "fresh": true,
+      "recipe": {
+        "method": "creature_ctl",
+        "drivers": "wolf_walk",
+        "noun": "a wolf",
+        "blockout": "a rough grey 3D model of a wolf: a long narrow muzzle, two upright pointed ears, a deep chest, a lean body, four long thin legs ending in paws and a long bushy tail, prowling with its head held low; its flat facets and jagged fur tufts are only the model's rough surface, not part of the wolf",
+        "anatomy": "exactly four legs, two front legs and two hind legs, each leg one single continuous limb ending in one paw, exactly one head with one long muzzle and two pointed ears, exactly one bushy tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the long muzzle at the right end, held low, the bushy tail at the left end, the four long legs below the body",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the muzzle at the bottom middle, nearest the viewer, held low, the body behind and above it, the front legs at both sides of the chest, the tail hidden behind the body, the whole body narrow, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and muzzle at the lower right, nearest the viewer, the body and the bushy tail at the upper left, farther away",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: its hindquarters and bushy tail nearest the viewer at the lower left, the head farther away at the upper right, partly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: its hindquarters nearest the viewer in the middle, the bushy tail hanging down the middle of the picture towards the viewer, the head beyond the shoulders with only the ear tips showing, the whole body narrow, not turned sideways"
+        },
+        "motion": "prowling in place on its four long legs like a real wolf: the legs step in diagonal pairs, each paw lifting, swinging forward and planting again, the head held low and level, the bushy tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second wolf, standing upright, ghost legs, transparent legs, smeared legs, blurry legs",
+        "death_drivers": "wolf_death",
+        "death_motion": "its legs buckle, it collapses onto its side and lies dead stretched out on its side, its four legs limp and reaching towards the viewer, its eyes closed, its tail flat on the ground",
+        "dead": "lying dead on its side, stretched out, its four legs limp",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "outline_color": "#1C1A19",
+        "side_seeds": 3,
+        "prompt": "a cartoon anime wolf with exaggerated proportions: a big head with a long muzzle, a huge shaggy grey mane, a lean body on long legs, big round angry yellow eyes with small black pupils under heavy angry brows, a toothy snarl showing white fangs, a big bushy grey tail, grey fur with a cream belly and muzzle",
+        "detail": "a cartoon face with big angry eyes on the front of its head, exaggerated cartoon proportions, the head bigger than a real wolf's"
+      },
+      "sprite": "wolf_sprite_d.png",
+      "icon": "wolf_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.613,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "WOLF-E": {
+      "note": "Pass 151: the black wolf, a recolour of WOLF-C (the greys lifted to charcoal, the cream belly and its pale highlights to dark grey, the dark warm edges to charcoal; the yellow eyes and white teeth kept)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "WOLF-C",
+        "recolour_passes": [
+          "--mode lift --ranges 0-360 --min-sat 0 --max-sat 0.26 --min-val 0.125 --max-val 0.8 --src-hi 0.75 --to 220 --set-sat 0.06 --v-lo 0.13 --v-hi 0.36",
+          "--mode lift --ranges 15-65 --min-sat 0.26 --max-sat 0.7 --min-val 0.3 --max-val 0.95 --src-hi 0.95 --to 220 --set-sat 0.05 --v-lo 0.28 --v-hi 0.45",
+          "--mode lift --ranges 30-70 --min-sat 0.12 --max-sat 0.45 --min-val 0.6 --src-hi 1.0 --to 220 --set-sat 0.05 --v-lo 0.34 --v-hi 0.5",
+          "--mode lift --ranges 10-60 --min-sat 0.2 --max-sat 0.95 --min-val 0.125 --max-val 0.35 --src-hi 0.35 --to 220 --set-sat 0.05 --v-lo 0.13 --v-hi 0.3"
+        ]
+      },
+      "sprite": "wolf_sprite_e.png",
+      "icon": "wolf_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.662,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "WOLF-F": {
+      "note": "Pass 151: the brown wolf, a recolour of WOLF-C (the greys to a warm brown, the tan belly kept)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "WOLF-C",
+        "recolour_passes": [
+          "--mode lift --ranges 0-360 --min-sat 0 --max-sat 0.26 --min-val 0.125 --max-val 0.8 --src-hi 0.75 --to 26 --set-sat 0.48 --v-lo 0.16 --v-hi 0.62"
+        ]
+      },
+      "sprite": "wolf_sprite_f.png",
+      "icon": "wolf_icon_f.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.662,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "WOLF-G": {
+      "note": "Pass 151: the white wolf, a recolour of WOLF-C (the greys lifted to a cool white, the cream belly to pale cream, the dark warm edges to light grey)",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "WOLF-C",
+        "recolour_passes": [
+          "--mode lift --ranges 0-360 --min-sat 0 --max-sat 0.26 --min-val 0.125 --src-hi 0.75 --to 215 --set-sat 0.05 --v-lo 0.62 --v-hi 0.97",
+          "--mode lift --ranges 15-65 --min-sat 0.26 --max-sat 0.7 --min-val 0.3 --src-hi 0.95 --to 42 --set-sat 0.12 --v-lo 0.85 --v-hi 0.98",
+          "--mode lift --ranges 10-60 --min-sat 0.2 --max-sat 0.95 --min-val 0.125 --max-val 0.4 --src-hi 0.4 --to 215 --set-sat 0.06 --v-lo 0.58 --v-hi 0.74"
+        ]
+      },
+      "sprite": "wolf_sprite_g.png",
+      "icon": "wolf_icon_g.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.662,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    }
+  }
+}

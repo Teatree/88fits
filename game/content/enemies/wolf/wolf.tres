@@ -1,0 +1,312 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/wolf/wolf_icon_c.png" id="1_uwx34"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_8tkmr"]
+
+[resource]
+script = ExtResource("2_8tkmr")
+archetype = "runner"
+doc = "A fast runner in packs of four (pass 151, from Garry's 3D wolf, walked on its own clip in eight directions): about a hellhound's pace with less health. On no row yet."
+hp = 18.0
+speed = 2.88
+damage = 7.0
+radius = 0.55
+size = 1.6
+pack_size = 4
+drops = {
+"chest": 0.0002,
+"gold": 0.05,
+"medium": 0.35,
+"small": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+}
+sprite_path = "res://content/enemies/wolf/wolf_sprite_c.png"
+sprite_file = "wolf_sprite_c.png"
+frame_px = 160
+strip_cols = 91
+fps = {
+"die": 12.0,
+"run": 20.0
+}
+knockback = 4.5
+head = 0.662
+blood = Color(0.65882355, 0.078431375, 0.10980392, 1)
+variants = {
+"WOLF-A": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.688,
+"icon": "res://content/enemies/wolf/wolf_icon_a.png",
+"note": "Pass 151: as close to the 3D model as it gets: the model's clay repainted with little freedom (img2img 0.7), no style anchor, a realistic grey wolf",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/wolf/wolf_sprite_a.png",
+"sprite_file": "wolf_sprite_a.png",
+"strip_cols": 91
+},
+"WOLF-B": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.475,
+"icon": "res://content/enemies/wolf/wolf_icon_b.png",
+"note": "Pass 151: the model repainted in the house style lightly (img2img 0.82, the style anchor): a real wolf's anatomy, our colours and finish",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/wolf/wolf_sprite_b.png",
+"sprite_file": "wolf_sprite_b.png",
+"strip_cols": 91
+},
+"WOLF-C": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.662,
+"icon": "res://content/enemies/wolf/wolf_icon_c.png",
+"note": "Pass 151: the house style on the model's shapes (img2img 0.92, the style anchor): a fierce game wolf, a bigger head and mane, a snarl",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/wolf/wolf_sprite_c.png",
+"sprite_file": "wolf_sprite_c.png",
+"strip_cols": 91
+},
+"WOLF-D": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.613,
+"icon": "res://content/enemies/wolf/wolf_icon_d.png",
+"note": "Pass 151: the full house cartoon (the classic redraw: the style anchor first, the clay for anatomy and pose only): big angry eyes, exaggerated proportions",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/wolf/wolf_sprite_d.png",
+"sprite_file": "wolf_sprite_d.png",
+"strip_cols": 91
+},
+"WOLF-E": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.662,
+"icon": "res://content/enemies/wolf/wolf_icon_e.png",
+"note": "Pass 151: the black wolf, a recolour of WOLF-C (the greys lifted to charcoal, the cream belly and its pale highlights to dark grey, the dark warm edges to charcoal; the yellow eyes and white teeth kept)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/wolf/wolf_sprite_e.png",
+"sprite_file": "wolf_sprite_e.png",
+"strip_cols": 91
+},
+"WOLF-F": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.662,
+"icon": "res://content/enemies/wolf/wolf_icon_f.png",
+"note": "Pass 151: the brown wolf, a recolour of WOLF-C (the greys to a warm brown, the tan belly kept)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/wolf/wolf_sprite_f.png",
+"sprite_file": "wolf_sprite_f.png",
+"strip_cols": 91
+},
+"WOLF-G": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.662,
+"icon": "res://content/enemies/wolf/wolf_icon_g.png",
+"note": "Pass 151: the white wolf, a recolour of WOLF-C (the greys lifted to a cool white, the cream belly to pale cream, the dark warm edges to light grey)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/wolf/wolf_sprite_g.png",
+"sprite_file": "wolf_sprite_g.png",
+"strip_cols": 91
+}
+}
+variant = "WOLF-C"
+sfx = {
+"die": "en_beetle_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 2.5
+variance = {
+"size": 0.12,
+"special": {
+"damage": 3.5,
+"hp": 15.0,
+"size": 1.5,
+"tint": "#5A1010",
+"tint_strength": 0.45,
+"xp": 3.0
+},
+"special_chance": 0.0089,
+"speed": 0.1,
+"tint_strength": 0.15,
+"tints": ["#FFFFFF", "#E8DCCB", "#D8D8E8"]
+}
+id = "wolf"
+display_name = "Wolf"
+flavour = "It followed the smell of trouble all the way here."
+icon = ExtResource("1_uwx34")
+icon_file = "wolf_icon.png"
+placeholder = {
+"color": "#7E7A76",
+"ears": "pointed",
+"eyes": 2.0,
+"shape": "wide"
+}

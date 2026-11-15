@@ -42,6 +42,9 @@ The death (mode=flip_curl), over the clip's `total` frames, a timeline in second
   roll=180         degrees it turns over (170 leaves it tipped a little to one side, which reads better than flat)
   roll_dir=1       which way it rolls (-1: the other way)
   roll_start=0.08  seconds when the roll starts; roll_time=0.4 seconds it takes
+  turn=0           pass 151 (the wolf): degrees it swings round the vertical while it rolls, the same timing (90 with roll=90:
+                   it falls onto its side and lands seen in profile from the front camera, the one view a death is filmed
+                   from); turn_dir=1 which way (-1: the other)
   curl=70          degrees each knee folds in towards the belly at the end; curl_root=40 the hips' share
   curl_start=0.05, curl_end=0.75  seconds the curl happens over (it keeps folding after it lands)
   bounce=0.12      the share of its height it bounces when it lands on its back (two hops, dying away)
@@ -71,6 +74,7 @@ GAIT_DEFAULTS = {"gait": "alternate", "swing": 14.0, "lift": 18.0, "flex": 14.0,
                  "step": "swing", "stride": 0.22, "raise": 0.12, "crouch": 0.1, "knee": "up", "splay": 0.0, "splay_front": 0.0}
 SCALE_DEFAULTS = {"body_scale": 1.0, "head_scale": 1.0, "leg_scale": 1.0, "scale_bones": "", "head_pitch": 0.0}
 DEATH_DEFAULTS = {"seconds": 1.2, "spasm": 0.12, "spasm_deg": 22.0, "roll_axis": "side", "roll": 180.0, "roll_dir": 1.0,
+                  "turn": 0.0, "turn_dir": 1.0,
                   "roll_start": 0.08, "roll_time": 0.4, "curl": 70.0, "curl_root": 40.0, "curl_start": 0.05, "curl_end": 0.75,
                   "bounce": 0.12, "twitch": 6.0, "hold": 0.85}
 
@@ -190,7 +194,9 @@ def death_curve(t, o):
     spasm = math.sin(math.pi * min(t / sp, 1.0)) if sp > 0 and t < sp else 0.0
     r0, rt = float(o["roll_start"]), max(float(o["roll_time"]), 1e-3)
     u = (t - r0) / rt
-    roll = float(o["roll"]) * (0.0 if u <= 0 else (1.0 if u >= 1 else (u * u * u * (u * (u * 6 - 15) + 10))))
+    uf = 0.0 if u <= 0 else (1.0 if u >= 1 else (u * u * u * (u * (u * 6 - 15) + 10)))
+    roll = float(o["roll"]) * uf
+    turn = float(o.get("turn", 0.0)) * uf
     c0, c1 = float(o["curl_start"]), max(float(o["curl_end"]), float(o["curl_start"]) + 1e-3)
     curl = ease((t - c0) / (c1 - c0))
     land = r0 + rt
@@ -205,7 +211,7 @@ def death_curve(t, o):
     if float(o["twitch"]) > 0 and t > c1 and hold_t > c1:
         v = (t - c1) / (hold_t - c1)
         tw = math.sin(2.0 * math.pi * 3.0 * v) * (1.0 - v)
-    return {"spasm": spasm, "roll": roll, "curl": curl, "hop": hop, "twitch": tw}
+    return {"spasm": spasm, "roll": roll, "curl": curl, "hop": hop, "twitch": tw, "turn": turn}
 
 
 # ---------------------------------------------------------------- the rig (Blender only)
@@ -489,6 +495,12 @@ class Legs:
         axis = self.fwd if o["roll_axis"] == "side" else self.right
         if st["roll"]:
             W = (Matrix.Translation(self.centre) @ Matrix.Rotation(math.radians(st["roll"] * float(o["roll_dir"])), 4, axis)
+                 @ Matrix.Translation(-self.centre))
+            self.root.matrix_world = W @ self.root.matrix_world
+            bpy.context.view_layer.update()
+        # pass 151: the swing round the vertical, after the roll (it lands seen in profile)
+        if st.get("turn"):
+            W = (Matrix.Translation(self.centre) @ Matrix.Rotation(math.radians(st["turn"] * float(o.get("turn_dir", 1.0))), 4, self.up)
                  @ Matrix.Translation(-self.centre))
             self.root.matrix_world = W @ self.root.matrix_world
             bpy.context.view_layer.update()

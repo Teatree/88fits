@@ -4976,3 +4976,32 @@ Garry's list (four items; one lead and one lane, EDITOR, forked with the schema 
   6.2 max HP lost a minute against 5.8, Nightfall 1.3 against 4.2 (the old one opened with ~250 lesser scorpions), the
   crowd about half (100-160 against 200-300) and varied, 2-4 chests in 130 s from elite-modded creatures (the old Endless
   had no Elites).
+
+## Pass 151 (2026-11-15): the Wolf, from Garry's 3D wolf, in four styles and three colours
+
+Garry: "I added a wolf enemy reference called Wolf_walk-cycle_Animated.glb. Make me a new 8 direction enemy that is this kind
+of a wolf. Make 4 variations. One closest to the 3d, and then 3 which differ by the degree of how much it's trying to imitate
+our style. Use the actual 3d to 2d method ... make sure that the local LLM checks the results ... The death pose should be that
+of wolf lying on it's side. ... choose the one that you think fits most for us and has fewest artifacts and make 3 more version
+of that one - black, brown and white".
+
+- **The drivers**: `tools/dl/drivers/wolf_walk` (the model's own 17-frame clip "CINEMA_4D_Main" resampled to 12 x 2 in five
+  views, `forward=auto`, `amp=1.25` on the legs, the front legs named UpperArm/ForeArm/Hand in this rig) and
+  `tools/dl/drivers/wolf_death` (made: `mode=flip_curl roll=90 roll_dir=-1 turn=90 forward=yaw:-54 curl=5 curl_root=0`:
+  it falls onto its side and lands in profile, legs towards the viewer). **blender_gait.py gained `turn` / `turn_dir`**: a
+  swing round the vertical with the roll's timing, so a creature that dies on its side is seen in profile from the front
+  camera, the one view a death is filmed from. The made death starts from the model's REST pose, which on this GLB faces
+  90 degrees away from its clip (auto read 36 there): forward=yaw:-54 found by rendering the four quarters.
+- **content/enemies/wolf** (creature_ctl on Klein 28 steps, every look `fresh`): WOLF-A as close to the model as it gets
+  (repaint img2img 0.7, no style anchor, a realistic style line), WOLF-B a light house style (repaint 0.82 + anchor), WOLF-C
+  the house style on the model's shapes (repaint 0.92 + anchor, a mane and a snarl; `remap_hues` 250-335 -> warm grey for
+  purple paw tints), WOLF-D the full cartoon (the classic redraw). Side picks k0, k0, k1, k1, the same as the local model's.
+  **The game plays WOLF-C**: the most consistent across the five views, a clean walk and death. A: a yellow-green cast and the
+  colours drifting between views; B: a tiny khaki front and yellow patches; D: clean, but its front painting raised the head
+  (the redraw does not keep the model's pose), so the front walk and the death came out at 0.71 of the size.
+- **The colours** as recolours of C (tools/recolour_look.py, lift passes; the strip's warm greys at saturation 0.05-0.15, the
+  cream at 0.3-0.6): WOLF-E black (four passes: greys, cream, pale highlights, dark warm edges), WOLF-F brown (one), WOLF-G
+  white (three). Stats a fast runner: hp 18, speed 2.88, damage 7, size 1.6, packs of 4; on no row.
+- **The local model's checks**: tools/dl/p151/WOLF/llm_check.py (Qwen3.6 27B in LM Studio, JSON rubrics: side, views, walk,
+  death, compare; answers in tools/dl/p151/WOLF/llm_checks.json) beside gen_ctl's own QA (Qwen2.5-VL 7B). Review sheets
+  tools/dl/p151/WOLF/look_sheet.py (review/), arena captures game/tools/_p151_WOLF_shots.gd -- out=<dir> looks=<codes>.
