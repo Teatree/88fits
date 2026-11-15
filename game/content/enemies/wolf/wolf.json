@@ -267,6 +267,203 @@
         "die": 12
       }
     },
+    "WOLF-H": {
+      "note": "Pass 152: a hell hound recolour of WOLF-C: the grey fur crimson-black (its lit parts deep crimson, its shadows near black), the cream of the chest, muzzle and mane ember orange, the pale highlights yellow-orange",
+      "fresh": true,
+      "recipe": {
+        "recolour_of": "WOLF-C",
+        "recolour_passes": [
+          "--mode lift --ranges 0-360 --min-sat 0 --max-sat 0.26 --min-val 0.5 --max-val 0.8 --src-hi 0.75 --to 2 --set-sat 0.72 --v-lo 0.2 --v-hi 0.44",
+          "--mode lift --ranges 0-360 --min-sat 0 --max-sat 0.26 --min-val 0.125 --max-val 0.5 --src-hi 0.5 --to 0 --set-sat 0.25 --v-lo 0.05 --v-hi 0.18",
+          "--mode lift --ranges 15-65 --min-sat 0.26 --max-sat 0.7 --min-val 0.3 --max-val 0.95 --src-hi 0.95 --to 24 --set-sat 0.95 --v-lo 0.65 --v-hi 1.0",
+          "--mode lift --ranges 30-70 --min-sat 0.12 --max-sat 0.45 --min-val 0.6 --src-hi 1.0 --to 40 --set-sat 0.85 --v-lo 0.85 --v-hi 1.0",
+          "--mode lift --ranges 10-60 --min-sat 0.2 --max-sat 0.95 --min-val 0.125 --max-val 0.35 --src-hi 0.35 --to 4 --set-sat 0.45 --v-lo 0.08 --v-hi 0.25"
+        ]
+      },
+      "sprite": "wolf_sprite_h.png",
+      "icon": "wolf_icon_h.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.662,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "WOLF-I": {
+      "note": "Pass 152: a hell hound painted from scratch on the hell hound 3D model (wolf_hellhound.glb, its own colours as the start picture, img2img 0.86, the style anchor, the Klein hell hound picture as the look): close to the model's texture, bold lava cracks all over",
+      "fresh": true,
+      "recipe": {
+        "method": "creature_ctl",
+        "drivers": "hellwolf_walk",
+        "noun": "a wolf",
+        "blockout": "a rough 3D model of a hell hound wolf, charred black with thin orange cracks of lava painted on it: a long narrow muzzle, two upright pointed ears, a deep chest, a lean body, four long thin legs ending in paws and a long bushy tail, prowling with its head held low; its flat facets and jagged fur tufts are only the model's rough surface, not part of the wolf",
+        "anatomy": "exactly four legs, two front legs and two hind legs, each leg one single continuous limb ending in one paw, exactly one head with one long muzzle and two pointed ears, exactly one bushy tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the long muzzle at the right end, held low, the bushy tail at the left end, the four long legs below the body",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the muzzle at the bottom middle, nearest the viewer, held low, the body behind and above it, the front legs at both sides of the chest, the tail hidden behind the body, the whole body narrow, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and muzzle at the lower right, nearest the viewer, the body and the bushy tail at the upper left, farther away",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: its hindquarters and bushy tail nearest the viewer at the lower left, the head farther away at the upper right, partly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: its hindquarters nearest the viewer in the middle, the bushy tail hanging down the middle of the picture towards the viewer, the head beyond the shoulders with only the ear tips showing, the whole body narrow, not turned sideways"
+        },
+        "motion": "prowling in place on its four long legs like a real wolf: the legs step in diagonal pairs, each paw lifting, swinging forward and planting again, the head held low and level, the bushy tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second wolf, standing upright, ghost legs, transparent legs, smeared legs, blurry legs",
+        "death_drivers": "wolf_death",
+        "death_motion": "its legs buckle, it collapses onto its side and lies dead stretched out on its side, its four legs limp and reaching towards the viewer, its eyes closed, its tail flat on the ground",
+        "dead": "lying dead on its side, stretched out, its four legs limp",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "outline_color": "#1C1A19",
+        "side_seeds": 3,
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "init": {
+          "denoise": 0.86,
+          "tint": "keep",
+          "gain": 1.1,
+          "blur": 3
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 28
+        },
+        "prompt": "a hell hound: a fierce wolf with charred black fur, jagged cracks of glowing molten lava, bright orange and yellow, running along its ribs, shoulders, spine, neck and legs like cooling magma under burnt skin, glowing ember-red eyes, a fiery orange glow in its snarling mouth, bared white fangs, the tips of its mane and tail fur smouldering orange like embers, dark claws",
+        "detail": "slightly stylized game-creature proportions: a bigger head, a shaggy mane and chunky paws, a fierce snarling face, clean bold shapes; the lava cracks bold and bright, readable at a small size",
+        "remap_hues": {
+          "ranges": [
+            [
+              250,
+              335
+            ]
+          ],
+          "to": 8,
+          "sat": 0.35,
+          "min_sat": 0.1
+        },
+        "look_ref": "tools/dl/p152/HELL/ref/cand_0.png"
+      },
+      "sprite": "wolf_sprite_i.png",
+      "icon": "wolf_icon_i.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.65,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "WOLF-J": {
+      "note": "Pass 152: a hell hound painted from scratch on the hell hound 3D model (img2img 0.92 like WOLF-C, the style anchor, the Klein hell hound picture as the look): the house style, a mane and tail tip glowing like embers, fewer cracks; painted again without the flames over the mane (their glow kept a pale fringe through the keying)",
+      "fresh": true,
+      "recipe": {
+        "method": "creature_ctl",
+        "drivers": "hellwolf_walk",
+        "noun": "a wolf",
+        "blockout": "a rough 3D model of a hell hound wolf, charred black with thin orange cracks of lava painted on it: a long narrow muzzle, two upright pointed ears, a deep chest, a lean body, four long thin legs ending in paws and a long bushy tail, prowling with its head held low; its flat facets and jagged fur tufts are only the model's rough surface, not part of the wolf",
+        "anatomy": "exactly four legs, two front legs and two hind legs, each leg one single continuous limb ending in one paw, exactly one head with one long muzzle and two pointed ears, exactly one bushy tail, one body, no extra legs",
+        "words": {
+          "side": "seen from the side and a little above: its head with the long muzzle at the right end, held low, the bushy tail at the left end, the four long legs below the body",
+          "front": "seen from the front and a little above, walking straight towards the viewer: its head with the muzzle at the bottom middle, nearest the viewer, held low, the body behind and above it, the front legs at both sides of the chest, the tail hidden behind the body, the whole body narrow, not turned sideways",
+          "fd": "seen three-quarters from the front and a little above, walking towards the lower right: its head and muzzle at the lower right, nearest the viewer, the body and the bushy tail at the upper left, farther away",
+          "bd": "seen three-quarters from behind and a little above, walking away towards the upper right: its hindquarters and bushy tail nearest the viewer at the lower left, the head farther away at the upper right, partly hidden",
+          "back": "seen from straight behind and a little above, walking straight away from the viewer: its hindquarters nearest the viewer in the middle, the bushy tail hanging down the middle of the picture towards the viewer, the head beyond the shoulders with only the ear tips showing, the whole body narrow, not turned sideways"
+        },
+        "motion": "prowling in place on its four long legs like a real wolf: the legs step in diagonal pairs, each paw lifting, swinging forward and planting again, the head held low and level, the bushy tail swaying a little",
+        "anim_negative": "extra legs, five legs, six legs, three legs, legs merging, a second tail, two heads, a second wolf, standing upright, ghost legs, transparent legs, smeared legs, blurry legs",
+        "death_drivers": "wolf_death",
+        "death_motion": "its legs buckle, it collapses onto its side and lies dead stretched out on its side, its four legs limp and reaching towards the viewer, its eyes closed, its tail flat on the ground",
+        "dead": "lying dead on its side, stretched out, its four legs limp",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.014,
+        "outline_color": "#1C1A19",
+        "side_seeds": 3,
+        "paint_mode": "repaint",
+        "anchor": true,
+        "clay_src": "look",
+        "clay_fill": 0.8,
+        "init": {
+          "denoise": 0.92,
+          "tint": "keep",
+          "gain": 1.15,
+          "blur": 6
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 28
+        },
+        "prompt": "a hell hound: a fierce black wolf with a big shaggy mane whose fur tips glow orange and red like hot embers, dark charcoal fur with a few glowing orange cracks of lava on its shoulders, flanks and legs, burning yellow-orange eyes, bared white fangs in a snarl with a fiery glow in its mouth, ears laid back, the tip of its bushy tail glowing like an ember; no flames and no fire rising from it, nothing outside its outline",
+        "detail": "slightly stylized game-creature proportions: a bigger head, a big fiery shaggy mane and chunky paws, a fierce snarling face, clean bold shapes, bold outlines",
+        "remap_hues": {
+          "ranges": [
+            [
+              250,
+              335
+            ]
+          ],
+          "to": 8,
+          "sat": 0.35,
+          "min_sat": 0.1
+        },
+        "look_ref": "tools/dl/p152/HELL/ref/cand_0.png"
+      },
+      "sprite": "wolf_sprite_j.png",
+      "icon": "wolf_icon_j.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.481,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
     "WOLF-D": {
       "note": "Pass 151: the full house cartoon (the classic redraw: the style anchor first, the clay for anatomy and pose only): big angry eyes, exaggerated proportions",
       "fresh": true,

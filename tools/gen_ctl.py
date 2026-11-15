@@ -247,7 +247,9 @@ def tinted_clay(clay, recipe, bg, side=None):
     clay keyed, its shading coloured like the look ("auto": the side painting's median figure colour) on the pure screen."""
     ini = recipe.get("init") if isinstance(recipe.get("init"), dict) else {}
     t = str(ini.get("tint", "#C4A8E2"))
-    if t == "auto" and side is not None:
+    if t == "keep":
+        rgb = np.array([255, 255, 255], np.float32)
+    elif t == "auto" and side is not None:
         a = np.asarray(artkit.key_background(side.convert("RGB")))
         m = a[..., 3] > 200
         rgb = np.median(a[..., :3][m], axis=0) if m.any() else np.array([196, 168, 226])
@@ -271,6 +273,10 @@ def tinted_clay(clay, recipe, bg, side=None):
         q = np.clip((lum - lo) / max(hi - lo, 1e-3), 0, 0.999)
         lum = lo + (np.floor(q * pz) + 0.5) / pz * (hi - lo)
     col = np.clip(lum[..., None] * float(ini.get("gain", 1.25)) * np.asarray(rgb, np.float32)[None, None, :], 0, 255)
+    # pass 152: "tint": "keep" starts from the clay's own colours (a textured model's look, clay_src "look": the hell hound
+    # wolf's charred fur and lava cracks), x gain, instead of its shading in one colour
+    if t == "keep":
+        col = np.clip(a[..., :3] * float(ini.get("gain", 1.0)), 0, 255)
     al = a[..., 3:4] / 255.0
     scr = np.array((0, 0, 255) if bg == g.BG_BLUE else (0, 255, 0), np.float32)
     out = Image.fromarray((col * al + scr[None, None, :] * (1 - al)).astype(np.uint8), "RGB")

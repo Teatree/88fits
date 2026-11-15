@@ -276,6 +276,105 @@ variants = {
 "sprite": "res://content/enemies/wolf/wolf_sprite_g.png",
 "sprite_file": "wolf_sprite_g.png",
 "strip_cols": 91
+},
+"WOLF-H": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.662,
+"icon": "res://content/enemies/wolf/wolf_icon_h.png",
+"note": "Pass 152: a hell hound recolour of WOLF-C: the grey fur crimson-black (its lit parts deep crimson, its shadows near black), the cream of the chest, muzzle and mane ember orange, the pale highlights yellow-orange",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/wolf/wolf_sprite_h.png",
+"sprite_file": "wolf_sprite_h.png",
+"strip_cols": 91
+},
+"WOLF-I": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.65,
+"icon": "res://content/enemies/wolf/wolf_icon_i.png",
+"note": "Pass 152: a hell hound painted from scratch on the hell hound 3D model (wolf_hellhound.glb, its own colours as the start picture, img2img 0.86, the style anchor, the Klein hell hound picture as the look): close to the model's texture, bold lava cracks all over",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/wolf/wolf_sprite_i.png",
+"sprite_file": "wolf_sprite_i.png",
+"strip_cols": 91
+},
+"WOLF-J": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"attack_throw": false,
+"attack_views": "",
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.481,
+"icon": "res://content/enemies/wolf/wolf_icon_j.png",
+"note": "Pass 152: a hell hound painted from scratch on the hell hound 3D model (img2img 0.92 like WOLF-C, the style anchor, the Klein hell hound picture as the look): the house style, a mane and tail tip glowing like embers, fewer cracks; painted again without the flames over the mane (their glow kept a pale fringe through the keying)",
+"shadow": {},
+"shelved": false,
+"sprite": "res://content/enemies/wolf/wolf_sprite_j.png",
+"sprite_file": "wolf_sprite_j.png",
+"strip_cols": 91
 }
 }
 variant = "WOLF-C"

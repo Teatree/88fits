@@ -562,7 +562,9 @@ def has_image_texture(obj):
         if m is None or m.node_tree is None:
             continue
         for n in m.node_tree.nodes:
-            if n.type == "TEX_IMAGE" and n.image is not None and n.image.has_data:
+            # pass 152: a packed image a GLB brings is not loaded yet (has_data False until something reads it), so
+            # its look rendered as plain grey: a packed or file-backed image counts too
+            if n.type == "TEX_IMAGE" and n.image is not None and (n.image.has_data or n.image.packed_file is not None or n.image.filepath):
                 return True
     return False
 
