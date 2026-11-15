@@ -152,7 +152,9 @@ func test_the_hero_stands_up_with_the_same_hp() -> void:
 		if str(e[1]) != "revive":
 			continue
 		for c: Dictionary in checks:
-			if float(c["t"]) > float(e[0]):
+			# pass 151: not a check taken in the revive's own frame (a revive at 97.50 beside a check at 97.50 read the HP
+			# before the revive set it: the next check had him up at 40); the recording runs at 47 frames a second
+			if float(c["t"]) > float(e[0]) + 0.03:
 				assert_float(float(c["hp"])).is_greater(0.0)
 				n += 1
 				break
