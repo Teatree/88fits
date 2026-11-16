@@ -9,6 +9,8 @@
 ## the continuous draw under max_count, the waves and once rows, "roster", the elite rows, from_cycle / until_cycle, the
 ## variations), with these differences:
 ##   - nothing holds it (no boss, no bullet heaven);
+##   - pass 153: it may pulse (WaveTimeline.endless_window_pulse: quiet stretches, a share of the drawn rows a pulse, a
+##     bigger burst; BossFightWindow.quiet / _pulse_begin);
 ##   - max_count grows by `max_count_growth` bodies each later cycle (cycle c, 0-based), never past the hard cap;
 ##   - the numbers: each row's creatures are fixed from the stage's end (the run clock stands there) and the hero's level,
 ##     then times Endless's growth step (WaveDirector.source_for: hp, atk afresh at every Endless wave, `endless.every`
@@ -51,6 +53,12 @@ func begin(d, p_stage: int) -> bool:
 	max_count = base_max
 	rows = tl.endless_window_rows(stage)
 	t0_run = tl.stage_end(stage)
+	# pass 153: the pulse (quiet stretches, a share of the drawn rows a pulse, a bigger burst)
+	var pz := tl.endless_window_pulse(stage)
+	pulse_on = float(pz["on"]) if bool(pz["active"]) else 0.0
+	pulse_off = float(pz["off"]) if bool(pz["active"]) else 0.0
+	pulse_rows = float(pz["rows"])
+	pulse_burst = float(pz["burst"])
 	active = true
 	_new_cycle(0)
 	return true

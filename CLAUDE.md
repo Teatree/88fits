@@ -692,6 +692,8 @@ Pass 150: **every stage's Endless plays its own window** (`stage_list[k].endless
 
 Pass 151: **the Wolf** (content/enemies/wolf, from Garry's `_REFERENCES/3d/Wolf_walk-cycle_Animated.glb` by creature_ctl on drivers wolf_walk / wolf_death: eight directions, a death on its side; looks WOLF-A (closest to the model) .. WOLF-D (full cartoon), plays WOLF-C, recolours WOLF-E black, F brown, G white, all fresh; on no row); `blender_gait.py` death `turn=` (lands in profile); the local model's art checks tools/dl/p151/WOLF/llm_check.py. The Level Editor's run charts (On screen, Composition, Challenge, Spawned so far) now play each stage's boss fight and Endless windows (model.js `windowStepper`, docs/level_editor.md "Pass 151"), a stage tab showing three whole Endless cycles.
 
+Pass 153: **Endless pulses** (an Endless window's `pulse_on` / `pulse_off` / `pulse_rows` / `pulse_burst`: every stage 6 s on, 3 s quiet, 60% of the drawn rows a pulse, burst x1.5; horde rows x1.5) and **Endless's kill chests at 0.9 of the stage's own rate** (`endless.chest_share`, WaveDirector.kill_chest_ok); the Trail's **choice card** (BUY on a choice shows every member, changeable there: TrailScreen.open_choice); the Level Editor's row card shows each variation tab's HP · ATK · SPD. BALANCING 95.
+
 Pass 152: the Level Editor's **Show on screen** walks the whole run (the stage, its boss fight, the portal, Endless; model.js `fightPoints`, docs/level_editor.md "Pass 152"); **wolf_hellhound.glb** at the repo root (Garry's wolf, mesh, rig and walk kept, in a hell hound material by Hunyuan3D-2.1 Paint + Blender bakes: tools/reskin/).
 
 **Outlaws** ("heroes" in code; title order): Drifter (Revolver; free), Astro (Gravity Gun), Calavera (Guitarra), Ironwood (the Spear =

@@ -3562,6 +3562,10 @@ func _special_chest_drop(i: int, def: EnemyDef, elite: EliteModDef) -> bool:
 	var chance := clampf(EnemyDef.special_value(def.variance.get("special", {}), special_defaults, "chest_chance"), 0.0, 1.0)
 	if chance <= 0.0 or _rng.randf() >= chance:
 		return false
+	# pass 153: Endless's kill chests come at a share of the stage's rate (WaveDirector.kill_chest_ok)
+	var dirn = game.get("director")
+	if dirn != null and dirn.has_method("kill_chest_ok") and not dirn.kill_chest_ok():
+		return false
 	special_chests += 1
 	pk.spawn_chest(pos[i])
 	return true

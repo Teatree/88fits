@@ -751,6 +751,15 @@ def window_len_py(b, kind):
     return max(numv(b.get("length") if is_obj(b) else None, WINDOW_DEFS[kind]["length"]), 1)
 
 
+def window_pulse_py(b, kind):
+    """model.js windowPulse (pass 153)."""
+    e = kind == "endless" and is_obj(b)
+    on = max(numv(b.get("pulse_on"), 0), 0) if e else 0
+    off = max(numv(b.get("pulse_off"), 0), 0) if e else 0
+    return {"on": on, "off": off, "rows": min(max(numv(b.get("pulse_rows"), 1), 0), 1) if e else 1,
+            "burst": max(numv(b.get("pulse_burst"), 1), 0) if e else 1, "active": on > 0 and off > 0}
+
+
 def window_max_at_py(b, kind, c, hard):
     m = trunc(numv(b.get("max_count") if is_obj(b) else None, WINDOW_DEFS[kind]["max_count"]))
     if m < 0:
@@ -796,6 +805,9 @@ class WindowStepperPy:
                               "perWave": row_wave_count_win_py(r, c), "wk": -1, "owed": 0, "next": None, "left": 0, "seen": False})
         self.k, self.cycle, self.ct = -1, -1, 0.0
         self.max_now = window_max_at_py(b, kind, 0, self.hard)
+        # pass 153: the pulse (the estimates play every drawn row's share: no row subset without a realisation)
+        self.pz = window_pulse_py(b, kind)
+        self.quiet = False
 
     def room(self):
         return math.inf if self.max_now < 0 else self.max_now - self.api["bodies"]()
@@ -839,9 +851,13 @@ class WindowStepperPy:
             for x in self.rows:
                 x["wk"], x["owed"], x["next"], x["left"], x["seen"] = -1, 0, None, 0, False
         self.ct = ft - self.cycle * self.len
+        p = self.pz
+        self.quiet = bool(p["active"]) and math.fmod(math.fmod(self.ct, p["on"] + p["off"]) + p["on"] + p["off"], p["on"] + p["off"]) >= p["on"] - 1e-6
         return self.ct
 
     def spawn(self):
+        if self.quiet:
+            return
         ct = self.ct
         for x in self.rows:
             if not x["paced"] or not self.is_open(x) or not x["p"] > 0:
@@ -894,7 +910,7 @@ class WindowStepperPy:
             part = sum(roster_weight(x["r"], ct, self.late_t) for x in due)
             if total > 0 and part > 0:
                 rm = self.room()
-                n = min(self.burst_mean * (part / total), rm if rm > 0 else 0, max(self.hard_room(), 0))
+                n = min(self.burst_mean * self.pz["burst"] * (part / total), rm if rm > 0 else 0, max(self.hard_room(), 0))
                 if n > 0:
                     for x in due:
                         self.put(x, n * roster_weight(x["r"], ct, self.late_t) / part)
@@ -1012,7 +1028,9 @@ def spawn_estimate(tl, creatures, opts=None):
         return d
 
     roster = []
-    for ri, r in enumerate(tl.get("roster") if isinstance(tl.get("roster"), list) else []):
+    # pass 150 / 153: a row with variations plays as one row per tab (model.js expandVariations), each under its parent's key
+    for xr in expand_variations_py(tl.get("roster") if isinstance(tl.get("roster"), list) else []):
+        r, ri = xr["r"], xr["i"]
         if not is_obj(r):
             continue
         # pass 84 (lane SPAWN): model.js's list / "roster" rows

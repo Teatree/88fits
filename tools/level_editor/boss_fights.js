@@ -63,7 +63,7 @@ const WindowPanels = (kind) => {
     if (ENDLESS) {
       host.appendChild(el('div', { class: 'bf-intro muted small' },
         el('b', { text: 'What spawns in Endless. ' }),
-        'A stage with an Endless window: from the moment its portal closes and Endless starts, only the window\'s rows spawn (the old Endless waves stop), as a cycle on the Endless clock (0:00 = Endless starts) that starts again every cycle, kept under the window\'s Max count (bodies alive), which grows by Growth / cycle every new cycle (never past the hard cap). The creatures still get tougher every few seconds by Settings → Endless (HP, ATK and speed growth), and their numbers are fixed from the stage\'s end. A row\'s From cycle / Until cycle bring it only in those cycles (new threats on later loops). A stage without one plays the old Endless: a big first wave, then a stronger wave every few seconds from the stage\'s late rows. Drag a bar or its ends; click it to edit it with the usual row form. The line under the rows is the window\'s own estimate (alive over three cycles); the run charts above still draw Endless without its window.'));
+        'A stage with an Endless window: from the moment its portal closes and Endless starts, only the window\'s rows spawn (the old Endless waves stop), as a cycle on the Endless clock (0:00 = Endless starts) that starts again every cycle, kept under the window\'s Max count (bodies alive), which grows by Growth / cycle every new cycle (never past the hard cap). The creatures still get tougher every few seconds by Settings → Endless (HP, ATK and speed growth), and their numbers are fixed from the stage\'s end. A row\'s From cycle / Until cycle bring it only in those cycles (new threats on later loops). A stage without one plays the old Endless: a big first wave, then a stronger wave every few seconds from the stage\'s late rows. Drag a bar or its ends; click it to edit it with the usual row form. The line under the rows is the window\'s own estimate (alive over three cycles); the run charts above play the window too. Pulse: the window spawns for Spawn for seconds, then nothing for Quiet for seconds (shaded on the rows), from every cycle\'s 0:00; each pulse draws from Rows a pulse of the continuous rows (one variation tab each), their burst x Burst ×.'));
     } else {
       host.appendChild(el('div', { class: 'bf-intro muted small' },
         el('b', { text: 'What spawns while the boss lives. ' }),
@@ -128,6 +128,19 @@ const WindowPanels = (kind) => {
       if (confirm(ENDLESS ? `Remove stage ${s + 1}'s Endless window and its ${n} rows? Its Endless then plays the old waves (Ctrl+Z undoes).` : `Remove stage ${s + 1}'s boss fight window and its ${n} rows? The fight then plays as before (Ctrl+Z undoes).`)) App.removeWindow(kind, s);
     } }));
     box.appendChild(head);
+    // pass 153 (Garry: "some brief 'quiet' moments between enemy spawns ... bigger numbers ... less variety"): an Endless
+    // window's pulse (WaveTimeline.endless_window_pulse): spawning for On s, then Quiet s with nothing, from each cycle's
+    // 0:00; each pulse brings Rows a pulse of the continuous rows (one variation tab each), their burst x Burst
+    if (ENDLESS) {
+      const pz = Model.windowPulse(b, kind);
+      const prow = el('div', { class: 'bf-head bf-pulse' }, el('b', { class: 'small', text: 'Pulse' }));
+      prow.appendChild(numBox(s, b, 'pulse_on', 'Spawn for', 's', 'seconds the window spawns, then Quiet for seconds with nothing; the pulse starts again at every cycle\'s 0:00 (0 or empty = no pulse: it spawns all the time)', 0, 0, false));
+      prow.appendChild(numBox(s, b, 'pulse_off', 'Quiet for', 's', 'seconds with no spawn after each Spawn for (a wave or once row due then comes as the next pulse begins); 0 or empty = no pulse', 0, 0, false));
+      prow.appendChild(numBox(s, b, 'pulse_rows', 'Rows a pulse', '', 'the share (0 to 1) of the continuous rows open as a pulse begins that it draws from, picked by their weight (rounded, at least one); each brings one variation tab the whole pulse. 1 = every row (less variety below 1)', 1, 0, false));
+      prow.appendChild(numBox(s, b, 'pulse_burst', 'Burst ×', '', 'the continuous draw\'s burst (burst_min..burst_max a spawn check) times this while the window plays (1.5 = half as many again)', 1, 0, false));
+      prow.appendChild(el('span', { class: 'muted small', text: pz.active ? `spawns ${fmtN(pz.on, 1)} s, quiet ${fmtN(pz.off, 1)} s (${Math.round(100 * pz.off / (pz.on + pz.off))}% quiet), ${Math.round(pz.rows * 100)}% of the rows a pulse, burst ×${fmtN(pz.burst, 2)}` : 'no pulse: the window spawns all the time' }));
+      box.appendChild(prow);
+    }
     if (b.enabled === false) box.appendChild(el('div', { class: 'bf-offnote small', text: ENDLESS ? 'Off: Endless plays the old waves (a big first wave, then one every few seconds from the stage\'s late rows); the rows below are kept for later.' : 'Off: the fight plays as before (the stage\'s rows still open at its end, boss_cap_frac of the cap); the rows below are kept for later.' }));
     box.appendChild(drawRows(s, b, len, drawWidth(lastHost)));
     box.appendChild(drawSpark(s, b, len, drawWidth(lastHost)));
@@ -162,6 +175,15 @@ const WindowPanels = (kind) => {
     const span = W - LEFT - PAD_R;
     const x = (t) => LEFT + (Math.max(0, Math.min(len, t)) / len) * span;
     const s0 = svg('svg', { class: 'bf-svg', width: W, height: H, viewBox: `0 0 ${W} ${H}` });
+    // pass 153: the pulse's quiet stretches shaded across the rows
+    const pzq = Model.windowPulse(b, kind);
+    if (pzq.active) {
+      for (let q = pzq.on; q < len; q += pzq.on + pzq.off) {
+        const g0 = svg('rect', { x: x(q), y: AXIS_H, width: Math.max(x(Math.min(q + pzq.off, len)) - x(q), 1), height: H - AXIS_H, class: 'bf-quiet' });
+        g0.appendChild(svg('title', {}, `quiet ${fmtT(q)}–${fmtT(Math.min(q + pzq.off, len))}: nothing spawns (the pulse)`));
+        s0.appendChild(g0);
+      }
+    }
     // the axis: a tick every 10 s, a label every 30 (every 60 on a long cycle), the loop at the end
     const step = len > 240 ? 60 : 30;
     for (let t = 0; t <= len + 1e-9; t += 10) {
@@ -228,7 +250,8 @@ const WindowPanels = (kind) => {
       if (r.pattern && r.pattern !== 'pack') chips.push([r.pattern === 'in_front' ? 'In front' : r.pattern, 'chip-pattern']);
       if (r.stats && Object.keys(r.stats).length) chips.push(['overrides', 'chip-wrench']);
       // pass 150: its variation tabs
-      if (Model.hasVariations(r)) chips.push([Timeline.variationChipText(r), 'chip-vars', Timeline.variationTip(r)]);
+      // pass 153: each tab's HP and ATK as the window brings them (the stage's end: a window row's numbers are fixed there)
+      if (Model.hasVariations(r)) chips.push([Timeline.variationChipText(r), 'chip-vars', Timeline.variationTip(r, App.stageEnd(s))]);
       let chipsW = 0;
       for (const ch of chips) chipsW += textWidth(ch[0], 10) + 14;
       let tx = x0 + 6;

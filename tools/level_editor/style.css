@@ -568,6 +568,16 @@ input.sw-color.ph { opacity: 0.45; }
 .hc-line.muted { color: var(--muted); font-size: 11px; }
 .hc-line.others { color: #ffb366; font-size: 11px; }
 .hc-line.bad { color: var(--s8); }
+/* pass 153: a row's variation tabs side by side in its card (two a line), the card widened for them */
+.hovercard.wide { max-width: 640px; }
+/* pass 153: an Endless window's pulse row and its quiet stretches */
+.bf-pulse { margin-top: 4px; }
+.bf-quiet { fill: rgba(120, 140, 200, 0.10); }
+.hc-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; margin-top: 5px; }
+.hc-tab { background: var(--surface-2); border: 1px solid var(--grid); border-radius: 7px; padding: 5px 7px; min-width: 0; }
+.hc-tab.zero { opacity: 0.55; }
+.hc-tab .hc-block { border-top: 0; margin-top: 0; padding-top: 0; }
+.hc-tab-head { font-weight: 600; color: var(--s4); }
 
 /* the Creatures tab (pass 58): the default look as an always-visible strip of pictures, the confirm line, the blood row */
 .look-wrap { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--grid); padding-top: 8px; }

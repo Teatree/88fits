@@ -2831,3 +2831,19 @@ creatures to the stage's rows. So a body wears the window row's look, size, Elit
 creature. The cap line says the window's Max count in bodies ("Max count 175 bodies (the Endless window, cycle 2)").
 
 `selftest_P152.py` holds the checks; the page needs a reload (no server change).
+
+## Pass 153: a variation row's card, the Endless pulse
+
+**A row with variation tabs** (Garry: "When highlighting the enemy node which has probabilities I need to be able to see
+how much HP each variation will have, as well as ATK and etc."): its hover card shows every tab side by side, two a line
+in a wider card: the tab and its share, the creature and its look, HP · ATK · SPD as that tab brings them (its own
+overrides, fixed from the row's start like the row's), its pacing and pattern, and what it wears (★ an elite modifier,
+◆ Special). The ⧉ chip's tooltip on a bar (the Timeline's and the window panels') names each tab's HP, ATK and SPD too.
+
+**An Endless window's pulse** (BALANCING 95.PULSE; docs/waves_schema.md "Pass 153"): under the window's head a Pulse
+row: **Spawn for** (s), **Quiet for** (s), **Rows a pulse** (0 to 1), **Burst ×**, and the sum in words; the quiet
+stretches are shaded across the window's rows. Every stage's window plays 6 / 3 / 0.6 / 1.5 since pass 153 (and its horde
+rows' counts x 1.5). The run charts and Show on screen play the quiet stretches and the burst.
+
+`selftest_P153.py` holds the checks; the page needs a reload (no server change). The Python copy of the estimate now
+plays the stage rows' variation tabs too (it played only the windows'; Garry's wolf tabs on r55 / r59 showed it).

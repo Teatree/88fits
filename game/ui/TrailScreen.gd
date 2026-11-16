@@ -20,7 +20,8 @@
 ## It opens centred on the node bought last (a new save: level 1) with the next node to buy chosen; opened by
 ## TrailScreen.open_on(type, id) (a "Reach Trail Level N" line, through Nav.to_trail) it centres on that thing's node,
 ## chosen and ringed in gold, and Back returns to the screen the player came from (Nav.back). A tap on a tile chooses
-## it. BUY buys it (Trail.buy); a choice and a node whose upgrade warns ask once more (WConfirm). A purchase pops the
+## it. BUY buys it (Trail.buy); a node whose upgrade warns asks once more (WConfirm); a choice opens the choice card (pass
+## 153: every member of the group side by side, the one tapped chosen, changeable there, BUY buys the one chosen). A purchase pops the
 ## tile, lights its rails and names the gift in a toast; a level done slides the line up and shows "TRAIL LEVEL n".
 ## Pass 139 (lane POP): an unlock (an outlaw, a skin, an item, a stage, a structure, a power-up, a feature) shows the
 ## unlock pop-up instead of its toast (ui/wanted/WUnlockPop.gd, at most 1.85 s, a tap hurries it); a level it finishes
@@ -748,17 +749,171 @@ func press_buy() -> void:
 	var g: Dictionary = n["gives"]
 	var warn := str(Trail.upgrade(str(g.get("upgrade", ""))).get("warn", "")) if str(g.get("type", "")) == "upgrade" else ""
 	var sib := siblings_of(n)
-	if sib.is_empty() and warn == "":
+	if not sib.is_empty():
+		open_choice(n)
+		return
+	if warn == "":
 		buy_selected()
 		return
-	var lines: Array = []
-	if not sib.is_empty():
-		lines.append(Loc.t("ui.trail.closes", {"nodes": join(sib)}))
-	if warn != "":
-		lines.append(warn)
+	var lines: Array = [warn]
 	var cur := Trail.currency_of(selected)
 	WConfirm.open(self, Loc.t("ui.trail.confirm_title", {"node": name_of(n)}), " ".join(lines), Loc.t("ui.trail.confirm_buy"), Loc.t("ui.trail.not_now"), func() -> void: buy_selected(),
 		Callable(), "buy", WButton.price_parts(Trail.price(selected), Loc.t("ui.trail.buy"), R.MODAL_BUTTON_PX, cur))
+
+
+# ---------------------------------------------------------------- the choice card (pass 153)
+
+## Pass 153 (Garry: "Currently Player gets a pop-up when there is a Choice asking for a confirmation with the choice. To
+## change his choice he needs to close the pop-up go to the Trail, select a different Update and then go through the
+## confirm again. Let's make it so the pop-up that Player sees already features the choice, so they can change it right
+## there"): BUY on a choice opens one card in the modal shell: "CHOOSE ONE", the title, then every member of the group
+## side by side as an option (named "Option_<id>"): its tile as the track draws it (the picture, its price plate under
+## it, the chosen one ringed in cream), its name and what it gives; the chosen option sits in a gold frame. A tap on
+## another option chooses it there (the track's choice and the dock follow). Under them one line: what the chosen one
+## closes for good, then its warning in red (an upgrade's `warn`). NOT NOW closes the card; BUY carries the chosen one's
+## price (the grey of a short purse, which only says no) and buys it. A member that cannot be taken yet (its level or the
+## nodes it comes from) is shown locked with why, and cannot be chosen.
+const CHOICE_GAP := 16.0
+const CHOICE_GOLD := Color("f5b82a")
+var _choice: WConfirm = null
+var _choice_ids: Array = []
+
+
+func open_choice(n: Dictionary) -> WConfirm:
+	var id := str(n["id"])
+	_choice_ids = []
+	for m: Variant in Trail.group(id):
+		if Trail.state(str(m)) != "closed":
+			_choice_ids.append(str(m))
+	if not _choice_ids.has(id):
+		_choice_ids.push_front(id)
+	var cur := Trail.currency_of(id)
+	_choice = WConfirm.shell(self, {"star": Loc.t("ui.trail.choice_star"), "title": Loc.t("ui.trail.choice_title"),
+		"buttons": [{"id": "cancel", "text": Loc.t("ui.trail.not_now"), "role": WButton.SLATE},
+			{"id": "confirm", "parts": WButton.price_parts(Trail.price(id), Loc.t("ui.trail.buy"), R.MODAL_BUTTON_PX, cur), "role": WButton.GREEN}],
+		"keep_open": true, "on_answer": _choice_answer})
+	_fill_choice()
+	return _choice
+
+
+## The card open (tests, tools; null when none).
+func choice_card() -> WConfirm:
+	return _choice if _choice and is_instance_valid(_choice) and WConfirm.current(self) == _choice else null
+
+
+## Chooses option `id` on the open choice card (a tap on it): the track's choice moves there too.
+func choose_option(id: String) -> void:
+	if choice_card() == null or not _choice_ids.has(id) or Trail.state(id) != "open":
+		W.sfx("ui_locked")
+		return
+	if id != selected:
+		W.sfx("ui_tap")
+		select(id)
+	_fill_choice()
+
+
+func _choice_answer(answer_id: String) -> void:
+	if answer_id != "confirm":
+		return
+	if not Trail.can_buy(selected):
+		W.sfx("ui_locked")
+		return
+	var c := _choice
+	_choice = null
+	if c and is_instance_valid(c):
+		c.close()
+	buy_selected()
+
+
+## The card's rows: the options, then the line under them; the BUY button's price and colour for the one chosen.
+func _fill_choice() -> void:
+	var c := choice_card()
+	if c == null:
+		return
+	for k in c.body_box.get_children():
+		c.body_box.remove_child(k)
+		k.queue_free()
+	var count := maxi(_choice_ids.size(), 1)
+	var inner := float(R.MODAL_W) - 2.0 * R.MODAL_PAD.x - 2.0 * R.PANEL_EDGE
+	var w := floorf((inner - CHOICE_GAP * float(count - 1)) / float(count))
+	var side := 170.0 if count <= 2 else (148.0 if count == 3 else 118.0)
+	var row := HBoxContainer.new()
+	row.name = "Options"
+	row.add_theme_constant_override("separation", int(CHOICE_GAP))
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.body_box.add_child(row)
+	for oid: String in _choice_ids:
+		row.add_child(_choice_option(Trail.node(oid), w, side))
+	# the line under them: what the chosen one closes, its warning in red
+	var n := Trail.node(selected)
+	var sib := siblings_of(n)
+	var g: Dictionary = n.get("gives", {})
+	var warn := str(Trail.upgrade(str(g.get("upgrade", ""))).get("warn", "")) if str(g.get("type", "")) == "upgrade" else ""
+	var note := Loc.t("ui.trail.choice_closes", {"node": name_of(n), "nodes": join(sib)}) if not sib.is_empty() else ""
+	var line := W.serif_text(note, 28, R.SECONDARY, 500, false, HORIZONTAL_ALIGNMENT_CENTER, 34.0, true, false)
+	line.name = "ChoiceNote"
+	c.body_box.add_child(line)
+	if warn != "":
+		var wl := W.serif_text(warn, 26, R.SHORT_INK, 500, false, HORIZONTAL_ALIGNMENT_CENTER, 32.0, true, false)
+		wl.name = "ChoiceWarn"
+		c.body_box.add_child(wl)
+	var b := c.button("confirm")
+	if b:
+		var short := not Trail.can_buy(selected)
+		b.set_role("locked" if short else WButton.GREEN)
+		b.set_parts(WButton.price_parts(Trail.price(selected), Loc.t("ui.trail.buy"), R.MODAL_BUTTON_PX, Trail.currency_of(selected)))
+		b.set_meta("short", maxi(Trail.price(selected) - Currency.balance(Trail.currency_of(selected)), 0) if short else 0)
+
+
+## One option: its tile (the track's look: the picture, the price plate, the cream ring when chosen), its name and what it
+## gives, in a cell framed gold when chosen; locked members are aged and say why.
+func _choice_option(m: Dictionary, w: float, side: float) -> Control:
+	var oid := str(m["id"])
+	var on := oid == selected
+	var st := Trail.state(oid)
+	var opt := WTap.new()
+	opt.name = "Option_%s" % oid
+	opt.set_meta("node", oid)
+	opt.custom_minimum_size = Vector2(w, 0.0)
+	var bx := W.cell_box(Vector2(12, 14))
+	if on:
+		bx.border = 5
+		bx.border_color = CHOICE_GOLD
+		bx.fill = Color("26325a")
+	opt.box = bx
+	opt.locked = st != "open"
+	opt.pressed.connect(choose_option.bind(oid))
+	var v := VBoxContainer.new()
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_theme_constant_override("separation", 8)
+	opt.add_child(v)
+	# the tile in a holder that leaves room for its ring (17 px) and its price plate (48 px under it)
+	var hold := Control.new()
+	hold.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hold.custom_minimum_size = Vector2(side + 40.0, side + Tile.BASE + 8.0 + 48.0 + 20.0)
+	hold.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(hold)
+	var t := Tile.new()
+	t.inert = true
+	t.name = "Tile"
+	hold.add_child(t)
+	_set_tile(t, m, side)
+	t.named = ""
+	t.chosen = on
+	t.position = Vector2(20.0, 20.0)
+	t.refresh()
+	var room := w - 24.0 - 2.0 * R.CELL_EDGE
+	var nm := W.slab_text(name_of(m).to_upper(), 30 if side >= 148.0 else 24, R.CREAM if on else R.SECONDARY, HORIZONTAL_ALIGNMENT_CENTER, 36.0)
+	nm.name = "Name"
+	_fit(nm, room, 18)
+	v.add_child(nm)
+	var words := Trail.give_text(m) if st == "open" else state_words(m)
+	var gv := W.serif_text(words, 24 if side >= 148.0 else 21, R.WHITE if on else R.SECONDARY, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 30.0, true, false)
+	gv.name = "Gives"
+	gv.max_lines = 3
+	gv.custom_minimum_size = Vector2(room, 0.0)
+	v.add_child(gv)
+	return opt
 
 
 ## Buys the node chosen (Trail.buy) and shows it: the tile pops, its rails light, the gift in a toast; a level done

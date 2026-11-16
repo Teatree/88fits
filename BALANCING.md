@@ -11588,3 +11588,35 @@ window row (a boss fight's too). The four windows (tools/dl/p150/ENDLESS/make_en
 
 Every elite-modded creature drops its chest as before, so Endless gives a few more chests than the old Endless (which
 had no Elites): measured below. Coins stay at the old rule (`coin_chance` 0.05 of the usual roll).
+
+## 95. Pass 153: Endless's chests at the stage's rate, Endless in pulses, the Trail's choice card
+
+Garry (2026-11-16): "Endless Mode has way too high a Chest drop rate. Make it the same as what it is during the normal
+game, but -10% rarer. Also change the pacing of all of them such that there are some brief 'quiet' moments between
+enemy spawns. And when they spawn they spawn in bigger numbers (+50% than what it is now for all Stages) and with less
+variety (-25% of what it is now in terms of variety of different enemies spawning within 2 seconds of each other)."
+
+**95.CHEST** Endless's kill chests (an elite-modded creature's chest, a crowned Elite's purple chest, a creature's
+`drops.chest` roll, a special's chest) come at most at `endless.chest_share` (0.9) of the rate the run's own stage dropped
+them: the stage and its boss fight count their kill chests and seconds; in Endless a chest is owed every 1 / (0.9 x that
+rate) seconds, one at most at a time (WaveDirector.kill_chest_ok). A kill chest due while none is owed is not dropped.
+Not limited: boss chests, the bounty's, the dice's, Hot Sauce's (a passive item's own); a share below 0; a stage run of
+under 60 s (a tool that starts Endless at once). Garry's last run before the rule: 9 kill chests in the stage's 716 s
+(0.75 a minute), 13 in Endless's first 70 s (11 a minute); the probe with the rule: 1-2 in 170 s (0.72 a minute owed
+from the start, the first after about 83 s), 5 to 106 held back.
+
+**95.PULSE** Every stage's Endless window pulses (red_canyon.json `stage_list[k].endless_window`: `pulse_on` 6,
+`pulse_off` 3, `pulse_rows` 0.6, `pulse_burst` 1.5; WaveTimeline.endless_window_pulse, BossFightWindow.quiet /
+_pulse_begin): it spawns for 6 s, then nothing for 3 s, from every cycle's 0:00 (a wave or once row due in the quiet comes
+as the next pulse begins); each pulse draws its continuous creatures from 60% of the drawn rows open as it begins (by
+weight, rounded to the nearest, at least one), each of them bringing one variation tab the whole pulse; the continuous
+burst is x 1.5. Every horde row's count (a waves or once row bringing 4 or more, its tabs' own counts too) x 1.5,
+rounded; the Elites, specials and the few big ones (3 or fewer a wave) keep theirs. Measured played (the Endless probe,
+one seed, 170 s, tools/dl/p153/ENDLESS/): a spawn moment (a half second with spawns) Sundown 8.8 -> 13.8 bodies,
+Nightfall 7.4 -> 10.3, Dust Bowl 7.5 -> 10.9, Blood Moon 5.7 -> 9.6 (+39% to +68%: the quiet leaves room the next pulse
+fills); creatures a 2 s window 2.58 -> 1.53, 2.32 -> 1.56, 2.05 -> 1.49, 2.08 -> 1.67 (-41%, -33%, -27%, -20%; a mean of
+-30%; Rows a pulse is the knob, 1 = today's variety); quiet 3-17% of the seconds -> 33-43%, stretches of about 3 s.
+
+**95.CHOICE** The Trail's BUY on a choice node opens the choice card (TrailScreen.open_choice): every member of the group
+side by side, the one tapped chosen, a tap on another chooses it there, BUY buys the one chosen, NOT NOW closes. No rule
+of the Trail changed (Trail.buy as before).

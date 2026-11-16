@@ -629,11 +629,45 @@ const Timeline = (() => {
     App.toast(`Gave ${todo.length} row${todo.length === 1 ? '' : 's'} a role (Ctrl+Z undoes)`, { undo: true });
   }
 
+  /** Pass 153 (Garry: "When highlighting the enemy node which has probabilities I need to be able to see how much HP
+   *  each variation will have, as well as ATK and etc."): a row with variation tabs shows each tab side by side in its
+   *  card (two a line): the tab and its share, the creature with its look, HP · ATK · SPD as that tab brings them (its
+   *  own overrides, fixed from the row's start like the row's), its pacing and pattern, and what it wears (an elite
+   *  modifier, Special). The card is widened for it (`wide`). `t` the second hovered, `t0` the row's start. */
+  function variationGrid(r, t, t0) {
+    const pct = Model.variationPercents(r);
+    const grid = el('div', { class: 'hc-tabs' });
+    pct.forEach((p, j) => {
+      const m = Model.variationRow(r, j);
+      if (!m) return;
+      const label = `${j === 0 ? 'Original' : `Variation ${j}`} · ${fmtN(p, p >= 10 ? 0 : 1)}%`;
+      const cell = el('div', { class: 'hc-tab' + (p > 0 ? '' : ' zero') });
+      if (m.enemy === 'roster') {
+        cell.appendChild(el('div', { class: 'hc-tab-head', text: label }));
+        cell.appendChild(el('div', { class: 'hc-line muted', text: 'the roster draw: each creature with its own row\'s HP and ATK' }));
+      } else {
+        const b = creatureBlock(firstEnemy(m), m.variant, m.stats, t, { t0, from: 'row', modded: !!m.elite, forced: !!m.special, elite: m.elite || '', schedule: m, small: true, share: label });
+        b.classList.add('hc-tab-block');
+        cell.appendChild(b);
+      }
+      const wears = [m.elite != null && m.elite !== '' ? `★ ${m.elite === 'random' ? 'a random elite modifier' : m.elite}` : '', m.special === true ? '◆ Special' : '',
+        Array.isArray(m.enemy) && m.enemy.length > 1 ? `one of ${m.enemy.map((id) => App.creatureName(id)).join(', ')}` : ''].filter(Boolean);
+      if (wears.length) cell.appendChild(el('div', { class: 'hc-line muted', text: wears.join(' · ') }));
+      grid.appendChild(cell);
+    });
+    // the card grows to hold two tabs a line (place() keeps it inside the window)
+    requestAnimationFrame(() => { if (card && card.contains(grid)) card.classList.add('wide'); });
+    const wrap = el('div', { class: 'hc-block' }, el('div', { class: 'hc-line', text: `${Model.variationList(r).length + 1} tabs: each spawn of this row rolls one by its share (the timing is the Original's)` }), grid);
+    return wrap;
+  }
+
   /** Pass 150 (lane EDITOR): a row's variation chip ("⧉ 2": its tabs beside the Original) and its tooltip: each tab's %
    *  and what it brings (creature, look, elite, special). */
   function variationChipText(r) { return `⧉ ${Model.variationList(r).length}`; }
-  function variationTip(r) {
+  function variationTip(r, t) {
     const pct = Model.variationPercents(r);
+    // pass 153: each tab's HP and ATK (at `t`; the row's start without one), so the chip's tooltip answers it too
+    const at0 = t != null ? t : Number(r.t) || 0;
     const lines = [`${Model.variationList(r).length} variation${Model.variationList(r).length === 1 ? '' : 's'}: each spawn of this row rolls one tab (its timing stays the Original's)`];
     pct.forEach((p, j) => {
       const m = Model.variationRow(r, j);
@@ -644,6 +678,13 @@ const Timeline = (() => {
       if (m.special === true) bits.push('◆ special');
       if (m.count != null && Model.rowPaced(m)) bits.push(`${m.count} a wave`);
       if (m.stats && Object.keys(m.stats).length) bits.push('overrides');
+      const c = App.creature(firstEnemy(m));
+      if (c) {
+        try {
+          const a = App.creatureAt(c, U.isObj(m.stats) ? m.stats : {}, at0, Number(r.t) || 0);
+          bits.push(`HP ${fmtN(a.hp, a.hp >= 100 ? 0 : 1)} · ATK ${fmtN(a.atk, 1)} · SPD ${fmtN(Model.speedOf(App.tl(), c, U.isObj(m.stats) ? m.stats : {}, at0).spd, 2)}`);
+        } catch (_) { /* a creature the page cannot price */ }
+      }
       lines.push(`${j === 0 ? 'Original' : `Variation ${j}`} ${fmtN(p, 1)}%: ${bits.join(' · ')}`);
     });
     return lines.join('\n');
@@ -3432,7 +3473,8 @@ const Timeline = (() => {
       // pass 120 (lane EDITOR): the schedule at the numbers' weight, as a creature's card has it
       const sl = scheduleLines(r, null);
       box.appendChild(el('div', { class: 'hc-block' }, sl[0], sl[1], sl[2]));
-    } else box.appendChild(creatureBlock(firstEnemy(r), r.variant, r.stats, t, { t0: Number(r.t) || 0, from: 'row', modded: !!r.elite, forced: !!r.special, elite: r.elite || '', schedule: r }));
+    } else if (Model.hasVariations(r)) box.appendChild(variationGrid(r, t, Number(r.t) || 0));
+    else box.appendChild(creatureBlock(firstEnemy(r), r.variant, r.stats, t, { t0: Number(r.t) || 0, from: 'row', modded: !!r.elite, forced: !!r.special, elite: r.elite || '', schedule: r }));
     // pass 120 (lane EDITOR): an elite row that waited for colour in the estimate, or never came because of it
     const cw = colourWaitLines(i, r);
     for (const ln of cw) box.appendChild(ln);
@@ -3701,6 +3743,7 @@ const Timeline = (() => {
       if (node) {
         readout.hidden = true;
         clear(card);
+        card.classList.toggle('wide', !!node.querySelector('.hc-tabs'));
         card.appendChild(node);
         card.hidden = false;
         place(card, e.clientX, e.clientY);

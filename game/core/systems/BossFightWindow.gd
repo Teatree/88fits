@@ -54,6 +54,17 @@ var _roll: Dictionary = {}
 var _draw_left: Dictionary = {}
 ## pass 150 (lane ENDLESS): the word the director's spawn log takes for this window's spawns
 var log_kind := "bossfight"
+## Pass 153: the pulse (WaveTimeline.endless_window_pulse; EndlessWindow sets it, a boss fight has none): spawning only
+## `pulse_on` s of every `pulse_on` + `pulse_off` on the cycle clock, `pulse_rows` of the drawn rows a pulse, the
+## continuous burst x `pulse_burst`; the pulse in play (-1 none yet this cycle) and its drawn rows' keys
+var pulse_on := 0.0
+var pulse_off := 0.0
+var pulse_rows := 1.0
+var pulse_burst := 1.0
+var _pulse_k := -1
+var _pulse_keys: Dictionary = {}
+## the variation each drawn row rolled for the pulse in play (key -> the merged row): one tab a row a pulse
+var _pulse_var: Dictionary = {}
 
 
 ## The fight of stage `p_stage` begins (the boss has just arrived): true when the stage has a window (it then plays it),
@@ -137,6 +148,10 @@ func tick(delta: float) -> void:
 	if c != cycle:
 		_new_cycle(c)
 	var ct := cycle_time()
+	# pass 153: a quiet stretch of the pulse brings nothing (a wave due now comes as the next pulse begins)
+	if quiet(ct):
+		return
+	_pulse_begin(ct)
 	_tick_paced(ct)
 	_tick_intervals(delta, ct)
 
@@ -146,8 +161,69 @@ func spawn_check() -> void:
 	if not active or held():
 		return
 	var ct := cycle_time()
+	if quiet(ct):
+		return
+	_pulse_begin(ct)
 	_owed_all(ct)
 	_draw(ct, [])
+
+
+## Pass 153: whether cycle second `ct` falls in a quiet stretch of the pulse (never without one).
+func quiet(ct: float) -> bool:
+	if pulse_on <= 0.0 or pulse_off <= 0.0:
+		return false
+	return fmod(maxf(ct, 0.0), pulse_on + pulse_off) >= pulse_on - 1e-6
+
+
+## Pass 153: the pulse cycle second `ct` is in; a new one picks the drawn rows it brings: `pulse_rows` of those open now
+## (rounded to the nearest, at least one), by their weight, without putting one back; each drawn row then brings one
+## variation tab for the whole pulse (rolled at its first pack of it).
+func _pulse_begin(ct: float) -> void:
+	if pulse_on <= 0.0 or pulse_off <= 0.0:
+		return
+	var k := int(floor(maxf(ct, 0.0) / (pulse_on + pulse_off)))
+	if k == _pulse_k:
+		return
+	_pulse_k = k
+	_pulse_keys.clear()
+	_pulse_var.clear()
+	if pulse_rows >= 1.0:
+		return
+	var keys: Array = []
+	var ws: Array = []
+	for i in range(rows.size()):
+		var r: Dictionary = rows[i]
+		if not WaveTimeline.row_drawn(r) or not cycle_open(r):
+			continue
+		if ct < float(r.get("t", 0.0)) or (r.get("until") != null and ct >= float(r["until"])):
+			continue
+		var w: float = dir._roster_weight(r, ct)
+		if w <= 0.0:
+			continue
+		keys.append(key_of(r, i))
+		ws.append(w)
+	var keep := mini(maxi(int(round(pulse_rows * float(keys.size()))), 1), keys.size())
+	while _pulse_keys.size() < keep:
+		var total := 0.0
+		for j in range(keys.size()):
+			total += float(ws[j])
+		if total <= 0.0:
+			break
+		var pick: float = dir._rng.randf() * total
+		var at := keys.size() - 1
+		for j in range(keys.size()):
+			pick -= float(ws[j])
+			if pick <= 0.0:
+				at = j
+				break
+		_pulse_keys[keys[at]] = true
+		keys.remove_at(at)
+		ws.remove_at(at)
+
+
+## Pass 153: the drawn rows the pulse in play brings, by key ({} = every row: no pulse, or pulse_rows 1).
+func pulse_keys() -> Dictionary:
+	return _pulse_keys.duplicate()
 
 
 ## Pass 113 (lane BOSS; Garry's spec: "the boss-fight window's rows pause for the attack, so the screen is the pattern and
@@ -165,6 +241,9 @@ func held() -> bool:
 func _new_cycle(c: int) -> void:
 	cycle = c
 	cycles = c + 1
+	_pulse_k = -1
+	_pulse_keys.clear()
+	_pulse_var.clear()
 	_st.clear()
 	_roll.clear()
 	_draw_left.clear()
@@ -409,6 +488,9 @@ func _draw(ct: float, due: Array) -> void:
 			continue
 		if not colour and WaveTimeline.row_elite(r) != "":
 			continue
+		# pass 153: a pulse brings only the rows it picked as it began
+		if not _pulse_keys.is_empty() and not _pulse_keys.has(key_of(r, k)):
+			continue
 		if WaveTimeline.row_single_enemy(r):
 			var d0 := _def_of({"id": str(r.get("enemy", "")), "variant": str(r.get("variant", "")), "stats": dir._stats_of(r)})
 			if d0 == null or (d0.max_alive > 0 and em.alive_of(d0.id) >= d0.max_alive):
@@ -439,7 +521,7 @@ func _draw(ct: float, due: Array) -> void:
 	var bodies := hard_room()
 	if rm <= 0 or bodies <= 0:
 		return
-	var burst: float = minf(float(dir._rng.randi_range(tl.burst_min, tl.burst_max)) * frac, float(rm))
+	var burst: float = minf(float(dir._rng.randi_range(tl.burst_min, tl.burst_max)) * maxf(pulse_burst, 0.0) * frac, float(rm))
 	var guard := 0
 	while burst > 0.0 and bodies > 0 and guard < 64:
 		guard += 1
@@ -454,7 +536,14 @@ func _draw(ct: float, due: Array) -> void:
 				break
 		var key := key_of(draw[ci], int(draw_k[ci]))
 		# pass 150 (lane ENDLESS): the pack's variation (its own creature, look, pack, pattern, elite, numbers)
-		var chosen: Dictionary = dir.row_variation(draw[ci], key)
+		var chosen: Dictionary
+		# pass 153: in a pulse a drawn row brings one tab the whole pulse
+		if pulse_on > 0.0 and pulse_off > 0.0:
+			if not _pulse_var.has(key):
+				_pulse_var[key] = dir.row_variation(draw[ci], key)
+			chosen = _pulse_var[key]
+		else:
+			chosen = dir.row_variation(draw[ci], key)
 		var pick := _pick_of(chosen, str(chosen.get("_vkey", key)))
 		if pick.is_empty():
 			break

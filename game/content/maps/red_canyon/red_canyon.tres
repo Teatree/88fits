@@ -170,6 +170,19 @@ roster = [{
 },
 "t": 317.0,
 "until": 334.0,
+"variations": [{
+"count": 75.0,
+"enemy": "wolf",
+"pack": 30.0,
+"pattern": "ring",
+"percent": 50.0,
+"role": "fodder",
+"stats": {
+"damage_mult": 1.25,
+"hp_mult": 2.0,
+"size": [1.25, 2.3]
+}
+}],
 "weights": [[317.0, 5.4], [378.0, 10.1], [409.0, 10.6]]
 }, {
 "enemy": "werewolf",
@@ -185,6 +198,18 @@ roster = [{
 },
 "t": 332.0,
 "until": 389.0,
+"variations": [{
+"enemy": "wolf",
+"pack": 15.0,
+"pattern": "scatter",
+"percent": 50.0,
+"role": "fodder",
+"stats": {
+"damage_mult": 1.25,
+"hp_mult": 1.0,
+"size": [1.25, 1.75]
+}
+}],
 "weights": [[332.0, 5.4], [393.0, 10.1], [424.0, 10.6]]
 }, {
 "count": 30.0,
@@ -2529,8 +2554,12 @@ stage_list = [{
 "length": 120.0,
 "max_count": 150.0,
 "max_count_growth": 25.0,
+"pulse_burst": 1.5,
+"pulse_off": 3.0,
+"pulse_on": 6.0,
+"pulse_rows": 0.6,
 "roster": [{
-"count": 50.0,
+"count": 75.0,
 "enemy": "werewolf",
 "id": "ew1-00",
 "name": "The first wave",
@@ -2547,7 +2576,7 @@ stage_list = [{
 "t": 0.0,
 "until_cycle": 1.0,
 "variations": [{
-"count": 60.0,
+"count": 90.0,
 "enemy": "red_goblin",
 "name": "Goblin first wave",
 "pattern": "ring",
@@ -2562,7 +2591,7 @@ stage_list = [{
 }],
 "weights": [[0.0, 1.0]]
 }, {
-"count": 12.0,
+"count": 18.0,
 "enemy": "werewolf",
 "every": 10.0,
 "id": "ew1-0w",
@@ -2578,7 +2607,7 @@ stage_list = [{
 },
 "t": 2.0,
 "variations": [{
-"count": 12.0,
+"count": 18.0,
 "enemy": "cactus_walker",
 "name": "Cactus horde",
 "pack": 6.0,
@@ -2677,7 +2706,7 @@ stage_list = [{
 }],
 "weights": [[0.0, 4.0], [120.0, 4.0]]
 }, {
-"count": 40.0,
+"count": 60.0,
 "enemy": "carrion_crow",
 "id": "ew1-03",
 "name": "Crow ring",
@@ -2696,7 +2725,7 @@ stage_list = [{
 },
 "t": 8.0,
 "variations": [{
-"count": 40.0,
+"count": 60.0,
 "enemy": "carrion_crow",
 "name": "White crow ring",
 "pattern": "ring",
@@ -2823,7 +2852,7 @@ stage_list = [{
 }],
 "weights": [[55.0, 6.0], [120.0, 6.0]]
 }, {
-"count": 10.0,
+"count": 15.0,
 "enemy": "skeleton",
 "every": 10.0,
 "id": "ew1-07",
@@ -2840,7 +2869,7 @@ stage_list = [{
 "until": 110.0,
 "variant": "SK-F",
 "variations": [{
-"count": 10.0,
+"count": 15.0,
 "enemy": "skeleton_knight",
 "name": "Knight march",
 "pack": 5.0,
@@ -2855,7 +2884,7 @@ stage_list = [{
 }],
 "weights": [[60.0, 1.0]]
 }, {
-"count": 40.0,
+"count": 60.0,
 "enemy": "cactus_walker",
 "id": "ew1-08",
 "name": "Cactus ring",
@@ -2872,7 +2901,7 @@ stage_list = [{
 },
 "t": 95.0,
 "variations": [{
-"count": 30.0,
+"count": 45.0,
 "enemy": "werewolf",
 "name": "Werewolf ring",
 "pattern": "ring",
@@ -2888,7 +2917,7 @@ stage_list = [{
 }],
 "weights": [[95.0, 1.0]]
 }, {
-"count": 20.0,
+"count": 30.0,
 "enemy": "monk",
 "id": "ew1-09",
 "name": "Monks",
@@ -2902,7 +2931,7 @@ stage_list = [{
 },
 "t": 70.0,
 "variations": [{
-"count": 20.0,
+"count": 30.0,
 "enemy": "monk",
 "name": "White monks",
 "pack": 20.0,
@@ -3020,7 +3049,7 @@ stage_list = [{
 "t": 20.0,
 "weights": [[20.0, 1.0]]
 }, {
-"count": 30.0,
+"count": 45.0,
 "enemy": "werewolf",
 "from_cycle": 3.0,
 "id": "ew1-13",
@@ -3043,7 +3072,7 @@ stage_list = [{
 },
 "t": 40.0,
 "variations": [{
-"count": 14.0,
+"count": 21.0,
 "elite": "speedy",
 "enemy": "werewolf",
 "name": "Speedy werewolf ring",
@@ -3191,8 +3220,12 @@ stage_list = [{
 "length": 120.0,
 "max_count": 120.0,
 "max_count_growth": 20.0,
+"pulse_burst": 1.5,
+"pulse_off": 3.0,
+"pulse_on": 6.0,
+"pulse_rows": 0.6,
 "roster": [{
-"count": 60.0,
+"count": 90.0,
 "enemy": "goblin",
 "id": "ew2-00",
 "name": "The first wave",
@@ -3209,7 +3242,7 @@ stage_list = [{
 "t": 0.0,
 "until_cycle": 1.0,
 "variations": [{
-"count": 40.0,
+"count": 60.0,
 "enemy": "skeleton",
 "name": "Bone first wave",
 "pattern": "ring",
@@ -3225,7 +3258,7 @@ stage_list = [{
 }],
 "weights": [[0.0, 1.0]]
 }, {
-"count": 15.0,
+"count": 22.0,
 "enemy": "lesser_scorpion",
 "every": 10.0,
 "id": "ew2-0w",
@@ -3242,7 +3275,7 @@ stage_list = [{
 "t": 2.0,
 "variant": "LS-D",
 "variations": [{
-"count": 14.0,
+"count": 21.0,
 "enemy": "goblin",
 "name": "Goblin horde",
 "pack": 7.0,
@@ -3344,7 +3377,7 @@ stage_list = [{
 }],
 "weights": [[0.0, 5.0], [65.0, 5.0]]
 }, {
-"count": 24.0,
+"count": 36.0,
 "enemy": "desert_spider",
 "id": "ew2-03",
 "name": "Spider ring",
@@ -3360,7 +3393,7 @@ stage_list = [{
 },
 "t": 8.0,
 "variations": [{
-"count": 8.0,
+"count": 12.0,
 "elite": "splitter",
 "enemy": "desert_spider",
 "name": "Splitter spiders",
@@ -3510,7 +3543,7 @@ stage_list = [{
 }],
 "weights": [[55.0, 5.0], [120.0, 5.0]]
 }, {
-"count": 20.0,
+"count": 30.0,
 "enemy": "monk",
 "id": "ew2-07",
 "name": "Monk column",
@@ -3525,7 +3558,7 @@ stage_list = [{
 "t": 65.0,
 "variant": "MK-B",
 "variations": [{
-"count": 20.0,
+"count": 30.0,
 "enemy": "monk",
 "name": "Brown monks",
 "pack": 20.0,
@@ -3539,7 +3572,7 @@ stage_list = [{
 }],
 "weights": [[65.0, 1.0]]
 }, {
-"count": 16.0,
+"count": 24.0,
 "enemy": "fire_ant",
 "every": 12.0,
 "id": "ew2-08",
@@ -3556,7 +3589,7 @@ stage_list = [{
 "until": 115.0,
 "variant": "ANT-G",
 "variations": [{
-"count": 16.0,
+"count": 24.0,
 "enemy": "fire_ant",
 "name": "Red ants",
 "pack": 8.0,
@@ -3599,7 +3632,7 @@ stage_list = [{
 }],
 "weights": [[80.0, 1.0]]
 }, {
-"count": 36.0,
+"count": 54.0,
 "enemy": "carrion_crow",
 "id": "ew2-10",
 "name": "Crow flock",
@@ -3616,7 +3649,7 @@ stage_list = [{
 "t": 95.0,
 "variant": "CC-D",
 "variations": [{
-"count": 36.0,
+"count": 54.0,
 "enemy": "carrion_crow",
 "name": "Black crow flock",
 "pattern": "ring",
@@ -3632,7 +3665,7 @@ stage_list = [{
 }],
 "weights": [[95.0, 1.0]]
 }, {
-"count": 4.0,
+"count": 6.0,
 "enemy": "bull_beetle",
 "id": "ew2-11",
 "name": "Beetle swarm",
@@ -3647,7 +3680,7 @@ stage_list = [{
 "t": 108.0,
 "variant": "BB-F",
 "variations": [{
-"count": 4.0,
+"count": 6.0,
 "enemy": "bull_beetle",
 "name": "Pale beetle swarm",
 "pattern": "in_front",
@@ -3719,7 +3752,7 @@ stage_list = [{
 "t": 20.0,
 "weights": [[20.0, 1.0]]
 }, {
-"count": 10.0,
+"count": 15.0,
 "enemy": "dust_mummy",
 "from_cycle": 3.0,
 "id": "ew2-13",
@@ -3735,7 +3768,7 @@ stage_list = [{
 },
 "t": 40.0,
 "variations": [{
-"count": 10.0,
+"count": 15.0,
 "enemy": "dust_mummy",
 "name": "Red mummy ring",
 "pattern": "ring",
@@ -3879,8 +3912,12 @@ stage_list = [{
 "length": 120.0,
 "max_count": 120.0,
 "max_count_growth": 20.0,
+"pulse_burst": 1.5,
+"pulse_off": 3.0,
+"pulse_on": 6.0,
+"pulse_rows": 0.6,
 "roster": [{
-"count": 50.0,
+"count": 75.0,
 "enemy": "straw_man",
 "id": "ew3-00",
 "name": "The first wave",
@@ -3897,7 +3934,7 @@ stage_list = [{
 "t": 0.0,
 "until_cycle": 1.0,
 "variations": [{
-"count": 60.0,
+"count": 90.0,
 "enemy": "dust_bunny",
 "name": "Bunny first wave",
 "pattern": "ring",
@@ -3912,7 +3949,7 @@ stage_list = [{
 }],
 "weights": [[0.0, 1.0]]
 }, {
-"count": 12.0,
+"count": 18.0,
 "enemy": "straw_man",
 "every": 10.0,
 "id": "ew3-0w",
@@ -3928,7 +3965,7 @@ stage_list = [{
 },
 "t": 2.0,
 "variations": [{
-"count": 16.0,
+"count": 24.0,
 "enemy": "dust_bunny",
 "name": "Bunny horde",
 "pack": 8.0,
@@ -4024,7 +4061,7 @@ stage_list = [{
 }],
 "weights": [[0.0, 4.0], [65.0, 4.0]]
 }, {
-"count": 40.0,
+"count": 60.0,
 "enemy": "carrion_crow",
 "id": "ew3-03",
 "name": "Black sky",
@@ -4037,7 +4074,7 @@ stage_list = [{
 },
 "t": 8.0,
 "variations": [{
-"count": 40.0,
+"count": 60.0,
 "enemy": "carrion_crow",
 "name": "White sky",
 "pattern": "in_front",
@@ -4049,7 +4086,7 @@ stage_list = [{
 },
 "variant": "CC-D"
 }, {
-"count": 40.0,
+"count": 60.0,
 "enemy": "carrion_crow",
 "name": "Crow ring",
 "pattern": "ring",
@@ -4196,7 +4233,7 @@ stage_list = [{
 }],
 "weights": [[60.0, 1.0]]
 }, {
-"count": 20.0,
+"count": 30.0,
 "enemy": "monk",
 "id": "ew3-08",
 "name": "Monk storm",
@@ -4212,7 +4249,7 @@ stage_list = [{
 "t": 70.0,
 "variant": "MK-B",
 "variations": [{
-"count": 20.0,
+"count": 30.0,
 "enemy": "monk",
 "name": "Brown monks",
 "pack": 20.0,
@@ -4243,7 +4280,7 @@ stage_list = [{
 "t": 80.0,
 "weights": [[80.0, 1.0]]
 }, {
-"count": 40.0,
+"count": 60.0,
 "enemy": "straw_man",
 "id": "ew3-10",
 "name": "Dust storm",
@@ -4258,7 +4295,7 @@ stage_list = [{
 },
 "t": 95.0,
 "variations": [{
-"count": 16.0,
+"count": 24.0,
 "elite": "speedy",
 "enemy": "straw_man",
 "name": "Speedy scarecrow ring",
@@ -4274,7 +4311,7 @@ stage_list = [{
 }],
 "weights": [[95.0, 1.0]]
 }, {
-"count": 4.0,
+"count": 6.0,
 "enemy": "bull_beetle",
 "id": "ew3-11",
 "name": "Beetles",
@@ -4290,7 +4327,7 @@ stage_list = [{
 "t": 108.0,
 "variant": "BB-E",
 "variations": [{
-"count": 4.0,
+"count": 6.0,
 "enemy": "bull_beetle",
 "name": "Dark beetles",
 "pattern": "in_front",
@@ -4345,7 +4382,7 @@ stage_list = [{
 "t": 112.0,
 "weights": [[112.0, 1.0]]
 }, {
-"count": 4.0,
+"count": 6.0,
 "elite": "random",
 "enemy": "dust_bunny",
 "every": 40.0,
@@ -4362,7 +4399,7 @@ stage_list = [{
 "variant": "DB-C",
 "weights": [[20.0, 1.0]]
 }, {
-"count": 30.0,
+"count": 45.0,
 "enemy": "dust_bunny",
 "from_cycle": 3.0,
 "id": "ew3-13",
@@ -4378,7 +4415,7 @@ stage_list = [{
 "t": 40.0,
 "variant": "DB-D",
 "variations": [{
-"count": 14.0,
+"count": 21.0,
 "elite": "speedy",
 "enemy": "dust_bunny",
 "name": "Speedy bunny ring",
@@ -4539,8 +4576,12 @@ stage_list = [{
 "length": 120.0,
 "max_count": 160.0,
 "max_count_growth": 25.0,
+"pulse_burst": 1.5,
+"pulse_off": 3.0,
+"pulse_on": 6.0,
+"pulse_rows": 0.6,
 "roster": [{
-"count": 40.0,
+"count": 60.0,
 "enemy": "werewolf",
 "id": "ew4-00",
 "name": "The first wave",
@@ -4563,7 +4604,7 @@ stage_list = [{
 "t": 0.0,
 "until_cycle": 1.0,
 "variations": [{
-"count": 50.0,
+"count": 75.0,
 "enemy": "imp",
 "name": "Imp first wave",
 "pattern": "ring",
@@ -4579,7 +4620,7 @@ stage_list = [{
 }],
 "weights": [[0.0, 1.0]]
 }, {
-"count": 15.0,
+"count": 22.0,
 "enemy": "werewolf",
 "every": 10.0,
 "id": "ew4-0w",
@@ -4601,7 +4642,7 @@ stage_list = [{
 },
 "t": 2.0,
 "variations": [{
-"count": 18.0,
+"count": 27.0,
 "enemy": "imp",
 "name": "Imp horde",
 "pack": 6.0,
@@ -4701,7 +4742,7 @@ stage_list = [{
 }],
 "weights": [[0.0, 4.0], [65.0, 4.0]]
 }, {
-"count": 28.0,
+"count": 42.0,
 "enemy": "werewolf",
 "id": "ew4-03",
 "name": "Blood ring",
@@ -4723,7 +4764,7 @@ stage_list = [{
 },
 "t": 8.0,
 "variations": [{
-"count": 36.0,
+"count": 54.0,
 "enemy": "fire_ant",
 "name": "Ant ring",
 "pattern": "ring",
@@ -4737,7 +4778,7 @@ stage_list = [{
 },
 "variant": "ANT-G"
 }, {
-"count": 30.0,
+"count": 45.0,
 "enemy": "red_goblin",
 "name": "Goblin ring",
 "pattern": "ring",
@@ -4888,7 +4929,7 @@ stage_list = [{
 }],
 "weights": [[55.0, 4.0], [120.0, 4.0]]
 }, {
-"count": 20.0,
+"count": 30.0,
 "enemy": "monk",
 "id": "ew4-08",
 "name": "Monks",
@@ -4904,7 +4945,7 @@ stage_list = [{
 "t": 65.0,
 "variant": "MK-B",
 "variations": [{
-"count": 20.0,
+"count": 30.0,
 "enemy": "monk",
 "name": "Dark monks",
 "pack": 20.0,
@@ -4955,7 +4996,7 @@ stage_list = [{
 "variant": "HG-E",
 "weights": [[80.0, 1.0]]
 }, {
-"count": 24.0,
+"count": 36.0,
 "enemy": "skeleton_knight",
 "id": "ew4-11",
 "name": "Knight ring",
@@ -4971,7 +5012,7 @@ stage_list = [{
 "t": 95.0,
 "variant": "KN-F",
 "variations": [{
-"count": 12.0,
+"count": 18.0,
 "elite": "speedy",
 "enemy": "skeleton_knight",
 "name": "Speedy knight ring",
@@ -4988,7 +5029,7 @@ stage_list = [{
 }],
 "weights": [[95.0, 1.0]]
 }, {
-"count": 5.0,
+"count": 8.0,
 "enemy": "bull_beetle",
 "id": "ew4-12",
 "name": "Beetle swarm",
@@ -5004,7 +5045,7 @@ stage_list = [{
 "t": 108.0,
 "variant": "BB-F",
 "variations": [{
-"count": 5.0,
+"count": 8.0,
 "enemy": "bull_beetle",
 "name": "Pale beetle swarm",
 "pattern": "in_front",
@@ -5077,7 +5118,7 @@ stage_list = [{
 "t": 80.0,
 "weights": [[80.0, 1.0]]
 }, {
-"count": 4.0,
+"count": 6.0,
 "elite": "random",
 "enemy": "red_goblin_runt",
 "every": 40.0,
@@ -5095,7 +5136,7 @@ stage_list = [{
 "variant": "RR-C",
 "weights": [[20.0, 1.0]]
 }, {
-"count": 32.0,
+"count": 48.0,
 "enemy": "red_goblin_runt",
 "from_cycle": 3.0,
 "id": "ew4-15",
@@ -5112,7 +5153,7 @@ stage_list = [{
 "t": 40.0,
 "variant": "RR-C",
 "variations": [{
-"count": 14.0,
+"count": 21.0,
 "elite": "speedy",
 "enemy": "red_goblin_runt",
 "name": "Speedy runt ring",

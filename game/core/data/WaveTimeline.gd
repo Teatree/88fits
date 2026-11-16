@@ -1092,6 +1092,22 @@ func endless_window_growth(i: int) -> float:
 
 
 ## Stage `i`'s Endless window rows (the Dictionaries only), [] without a window.
+## Pass 153 (Garry: "change the pacing of all of them such that there are some brief 'quiet' moments between enemy
+## spawns. And when they spawn they spawn in bigger numbers ... and with less variety"): stage `i`'s Endless window's
+## pulse: {on, off, rows, burst}. The window spawns only `pulse_on` seconds out of every `pulse_on` + `pulse_off` on its
+## cycle clock (from each cycle's 0:00); in the `pulse_off` seconds nothing comes (a wave or once row due then comes as the
+## next pulse begins); each pulse draws its continuous creatures from `pulse_rows` (0..1, a share) of the drawn rows open
+## as it begins, picked by weight (rounded to the nearest, at least one), each of them bringing one variation tab for the
+## whole pulse; the continuous draw's burst is x `pulse_burst`. Off (the
+## default, and with either length at 0): the window spawns as before.
+func endless_window_pulse(i: int) -> Dictionary:
+	var b := endless_window(i)
+	var on := maxf(float(b.get("pulse_on", 0.0)), 0.0)
+	var off := maxf(float(b.get("pulse_off", 0.0)), 0.0)
+	return {"on": on, "off": off, "rows": clampf(float(b.get("pulse_rows", 1.0)), 0.0, 1.0),
+		"burst": maxf(float(b.get("pulse_burst", 1.0)), 0.0), "active": on > 0.0 and off > 0.0}
+
+
 func endless_window_rows(i: int) -> Array:
 	var ro = endless_window(i).get("roster", [])
 	return (ro as Array).filter(func(r) -> bool: return r is Dictionary) if ro is Array else []
@@ -1248,6 +1264,12 @@ static func boss_fight_open(rows: Array, ct: float) -> Array:
 ##                   adds only this share of a growth step (hp_growth, atk_growth, speed_growth) and Endless's knock
 ##                   resistance climbs at this share of its pace; once it is done the steps are whole again, from where
 ##                   they stand (WaveDirector._tick_endless: Run.endless_growth_lag, endless_time_lag; endless_mults_steps)
+##   chest_share     pass 153 (Garry: "Endless Mode has way too high a Chest drop rate. Make it the same as what it is
+##                   during the normal game, but -10% rarer"): Endless's kill chests (an elite-modded creature's, a crowned
+##                   Elite's purple one, a creature's drops.chest, a special's) come at most at this share of the rate the
+##                   run's stage dropped them (its chests over its seconds, the boss fight in; WaveDirector.kill_chest_ok):
+##                   a chest due while none is owed is not dropped; one is owed at a time. < 0 = no limit; a stage run of
+##                   under 60 s (a tool that starts Endless at once) is not limited
 ##   knock_resist_exempt_tag      a weapon carrying this tag (WeaponDef.tags, "explosive") pushes as before
 ##   knock_resist_exempt_sources  hit sources that are blasts without a weapon ("nuke", "revive", "powder_keg", ...):
 ##                   an Array of ids or one comma-separated String (the Level Editor's text field)
@@ -1255,7 +1277,7 @@ static func boss_fight_open(rows: Array, ct: float) -> Array:
 const ENDLESS_DEFAULTS := {"portal_seconds": 60.0, "every": 10.0, "first_wave": 120.0, "wave_size": 30.0,
 	"wave_growth": 2.0, "cap": 1.0, "hp": 1.5, "atk": 1.2, "speed": 1.15, "hp_growth": 0.15, "atk_growth": 0.1,
 	"speed_growth": 0.02, "speed_max": 1.6, "xp_share": 0.35, "coin_chance": 0.05, "roster_window": 60.0,
-	"knock_resist_seconds": 90.0, "knock_resist_max": 0.0, "open_task_growth": 0.33}
+	"knock_resist_seconds": 90.0, "knock_resist_max": 0.0, "open_task_growth": 0.33, "chest_share": 0.9}
 ## pass 103 (lane PLAY): the exempt keys' defaults (not numbers, so not in ENDLESS_DEFAULTS)
 const ENDLESS_KNOCK_EXEMPT_TAG := "explosive"
 const ENDLESS_KNOCK_EXEMPT_SOURCES := ["nuke", "revive", "powder_keg", "loose_rocket", "blast"]

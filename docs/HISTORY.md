@@ -5052,3 +5052,33 @@ mesh itself stays the same ... save it as a new 3d glb for me to view in the roo
   opaque flaps. The game already has a `hellhound` creature (Blood Moon rows): this model could become one of its looks
   by creature_ctl (not done). Work files tools/dl/p152/HELL/.
 - **Three hell hound looks of the wolf** (all `fresh`, the wolf still on no row): WOLF-H a recolour of WOLF-C (crimson-black fur, ember-orange chest, muzzle and mane; tools/recolour_look.py, five lift passes in its recipe); WOLF-I and WOLF-J painted from scratch by creature_ctl on new drivers `hellwolf_walk` (blender_depth_drivers on wolf_hellhound.glb: its own colours in look.png) with WOLF-C's recipe and `init.tint: "keep"` (new in gen_ctl: the img2img start keeps the look render's colours), the Klein hell hound picture as `look_ref`: I bold lava cracks all over (img2img 0.86), J the house style with ember mane and tail tip (0.92; its first try's flames over the mane kept a pale fringe through the keying, painted again without). Both fronts and front-quarters repainted from candidates (tails painted sticking out); J's front still stands a quarter small. blender_ref.has_image_texture now counts a packed image (a GLB's textures had rendered as grey looks).
+
+
+## Pass 153 (2026-11-16): a variation row's card, the Trail's choice card, Endless's chests and pulses
+
+Garry: "When highlighting the enemy node which has probabilities I need to be able to see how much HP each variation will
+have, as well as ATK and etc."; "Choice Pop-up in Trail ... make it so the pop-up that Player sees already features the
+choice, so they can change it right there"; "Endless Mode has way too high a Chest drop rate. Make it the same as what it
+is during the normal game, but -10% rarer"; "some brief 'quiet' moments between enemy spawns ... bigger numbers (+50%) ...
+less variety (-25%)".
+
+- **The Level Editor's row card** (timeline.js variationGrid): a row with tabs shows each tab side by side (the tab and
+  its share, the creature and look, HP · ATK · SPD, pacing, pattern, what it wears) in a wider card (`.hovercard.wide`);
+  the ⧉ chip's tooltip names each tab's numbers (variationTip(r, t); the window panels pass the stage's end). The Python
+  copy of the estimate now expands the stage rows' tabs (it only did the windows'; Garry's wolf tabs on r55 / r59 showed
+  the gap).
+- **The Trail's choice card** (TrailScreen.open_choice, choose_option, choice_card; WConfirm.shell): BUY on a choice opens
+  "CHOOSE ONE / PICK YOUR ROAD" with every member side by side (its tile as the track draws it with its price plate, its
+  name and gift; the chosen one ringed in cream in a gold frame), a tap on another chooses it there (the track's choice
+  and the dock follow), a line names what the chosen one closes (string `ui.trail.choice_closes`) and its warning in red,
+  BUY carries its price (grey when short), NOT NOW closes. A warned node that is not a choice still asks as before.
+- **Endless's chests** (WaveDirector.kill_chest_ok, `endless.chest_share` 0.9; BALANCING 95.CHEST): the stage counts its
+  kill chests; Endless owes them at 0.9 of that rate, one at a time. Garry's last run: 0.75 a minute in the stage, 11 a
+  minute in Endless (the windows' elite-modded rows and specials each dropped one).
+- **Endless in pulses** (WaveTimeline.endless_window_pulse; BossFightWindow.quiet, _pulse_begin, one tab a row a pulse;
+  model.js windowPulse / windowStepper, the Python twin; the Level Editor's Pulse row and shading; BALANCING 95.PULSE):
+  every stage's window 6 s on / 3 s quiet / 60% of the drawn rows / burst x1.5, horde rows' counts x1.5. Played (one seed,
+  170 s): spawn moments +39% to +68% bigger, 20-41% fewer creatures a 2 s window (mean -30%), 33-43% of the seconds quiet.
+  Tools: tools/dl/p153/ENDLESS/ (measure.js on the model, pace_endless.py the data change, pace_log.py the played logs),
+  game/tools/_p153_PACE_probe.gd (the Endless probe with a stage's chest rate set); the spawn84 log line prints the
+  Endless clock in Endless.

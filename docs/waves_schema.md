@@ -1538,3 +1538,17 @@ row's card, Where and how, **Relocates when far** (the effective value and where
 After a bite lands on the Outlaw (not a boss's, not a charging creature's) the biter walks `frac` slower for `seconds`.
 A slow at least as strong already on is left alone; a weaker one becomes the bite's for the longer of the two times;
 not stretched by Ducktape; no dust at its feet. `frac` 0 = off; a map without the block plays the defaults.
+
+## Pass 153: an Endless window's pulse
+
+An `endless_window` block may carry four more keys (WaveTimeline.endless_window_pulse; BALANCING 95.PULSE):
+
+| key | default | meaning |
+| --- | --- | --- |
+| `pulse_on` | 0 | seconds the window spawns, from every cycle's 0:00 |
+| `pulse_off` | 0 | seconds after each `pulse_on` with no spawn (a wave or once row due then comes as the next pulse begins) |
+| `pulse_rows` | 1 | the share (0..1) of the drawn (continuous) rows open as a pulse begins that it draws from (by weight, rounded, at least one); each brings one variation tab the whole pulse |
+| `pulse_burst` | 1 | the continuous draw's burst (burst_min..burst_max a spawn check) x this |
+
+No pulse while either length is 0. A boss fight window has no pulse. The Level Editor's estimates play the quiet
+stretches and the burst; they keep every drawn row's share (the row subset is a roll: only a realisation shows it).

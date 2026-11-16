@@ -380,7 +380,9 @@ def checks(check, run_node, server):
         check(res["maxAt"] == [60, 85, 110, 130, 130] and res["maxAtNone"] == -1, "P150: Max count grows by its growth a cycle, never past the hard cap; -1 stays: %s" % res["maxAt"])
         check(res["fresh"] == {"length": 180, "max_count": 100, "max_count_growth": 0, "roster": []} and res["freshBoss"] == {"length": 120, "max_count": 40, "roster": []},
               "P150: a new Endless window and a new boss fight window: %s %s" % (res["fresh"], res["freshBoss"]))
-        check(res["def"] == {"length": 180, "max_count": 100, "max_count_growth": 0}, "P150: ENDLESS_WINDOW_DEF matches the game's: %s" % res["def"])
+        # pass 153: the pulse's four keys (off by default, as WaveTimeline.endless_window_pulse reads a block without them)
+        check(res["def"] == {"length": 180, "max_count": 100, "max_count_growth": 0, "pulse_on": 0, "pulse_off": 0, "pulse_rows": 1, "pulse_burst": 1},
+              "P150: ENDLESS_WINDOW_DEF matches the game's: %s" % res["def"])
         check(res["kinds"] == {"boss": "boss_fight", "endless": "endless_window", "unknown": "boss"}, "P150: the two window kinds' blocks: %s" % res["kinds"])
         check(res["bossStill"] == {"block": True, "endless": True}, "P150: the boss fight window reads as before")
         check(res["ids"] == ["en1-5", "en2-2", "bf1-2", "bf1-2"], "P150: a new Endless row id is en<stage>-<n> (no window or roster row uses it): %s" % res["ids"])

@@ -314,12 +314,19 @@ func _process(delta: float) -> void:
 		tick_portal_countdown(delta)
 	elif phase == Phase.ENDLESS:
 		_tick_endless(delta)
+		# pass 153: Endless owes its kill chests at chest_share of the stage's rate (one at most at a time)
+		var share := timeline.endless_value("chest_share", Run.stage)
+		if share >= 0.0 and _stage_secs >= 60.0:
+			_chest_owed = minf(_chest_owed + share * float(_stage_chests) / _stage_secs * delta, 1.0)
 		# pass 150 (lane ENDLESS): the window's clock, its waves and its own-interval rows
 		if endless_window.active:
 			endless_window.tick(delta)
 	elif boss_window_on():
 		# pass 110 (lane BOSS): the fight clock of the stage's boss-fight window, its waves and its own-interval rows
 		boss_window.tick(delta)
+	# pass 153: the stage's seconds (its boss fight in) for Endless's chest rate
+	if phase == Phase.NORMAL or phase == Phase.BOSS:
+		_stage_secs += delta
 	if phase != Phase.NORMAL:
 		# the stage clock stands still; the buffs' clock does not (Run.buff_clock, pass 47)
 		Run.held_time += delta
@@ -1205,6 +1212,39 @@ func _tick_endless(delta: float) -> void:
 	if not endless_window.active:
 		spawn_endless_wave(w)
 	endless_wave_started.emit(w)
+
+
+## Pass 153 (Garry: "Endless Mode has way too high a Chest drop rate. Make it the same as what it is during the normal
+## game, but -10% rarer"): a kill chest (Game: an elite-modded creature's, a crowned Elite's, a drops.chest roll;
+## EnemyManager: a special's) asks here before it drops. In the stage and its boss fight it always drops and is counted;
+## in Endless one drops only while one is owed: Endless owes chests at `endless.chest_share` (0.9) of the stage's rate
+## (its chests over its seconds), one at most at a time. No limit with a share below 0 or a stage of under 60 s.
+var _stage_chests := 0
+var _stage_secs := 0.0
+var _chest_owed := 0.0
+var endless_chests_held := 0
+var endless_chests_dropped := 0
+
+
+func kill_chest_ok() -> bool:
+	if phase != Phase.ENDLESS:
+		_stage_chests += 1
+		return true
+	var share := timeline.endless_value("chest_share", Run.stage) if timeline else -1.0
+	if share < 0.0 or _stage_secs < 60.0:
+		return true
+	if _chest_owed >= 1.0 - 1e-9:
+		_chest_owed -= 1.0
+		endless_chests_dropped += 1
+		return true
+	endless_chests_held += 1
+	return false
+
+
+## Pass 153: the stage's kill chests a minute so far and what Endless owes (tests, tools).
+func chest_rate() -> Dictionary:
+	return {"chests": _stage_chests, "seconds": _stage_secs, "per_minute": 60.0 * float(_stage_chests) / maxf(_stage_secs, 1.0),
+		"owed": _chest_owed, "held": endless_chests_held, "dropped": endless_chests_dropped}
 
 
 ## Pass 116 (lane RESULTS): the share of a whole growth step Endless takes now: the map's `endless.open_task_growth`
@@ -2842,7 +2882,8 @@ static func shown_numbers(tl: WaveTimeline, r: Dictionary, t: float, level: int)
 func _log84(kind: String, id: String, n: int) -> void:
 	if n <= 0 or DisplayServer.get_name() != "headless":
 		return
-	print("spawn84 %s %s %d %.1f" % [kind, id, n, Run.elapsed])
+	# pass 153: in Endless the Endless clock (the run clock stands still there)
+	print("spawn84 %s %s %d %.1f" % [kind, id, n, Run.endless_time if Run.endless else Run.elapsed])
 
 
 # ---------------------------------------------------------------- pass 112 (lane MONK): squads

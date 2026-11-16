@@ -2308,7 +2308,9 @@ func _drop_from_kill(def: EnemyDef, at: Vector3, elite: EliteModDef) -> void:
 	# bosses dropped until pass 118 (a mutation reel that calls everything in, Chest.boss); an elite-modded creature keeps
 	# the ordinary chest
 	if elite != null or def.archetype == "elite" or (not no_random_chests and Dice.r.randf() < float(def.drops.get("chest", 0.0))):
-		pickups.spawn_chest(at, def.archetype == "elite")
+		# pass 153: Endless's kill chests come at a share of the stage's rate (WaveDirector.kill_chest_ok)
+		if director == null or director.kill_chest_ok():
+			pickups.spawn_chest(at, def.archetype == "elite")
 	# a creature's own power-up (pass 43: the giant drops a Berserk one time in three, drops.pickup {id, chance})
 	var own = def.drops.get("pickup", {})
 	if own is Dictionary and Dice.r.randf() < float(own.get("chance", 0.0)):

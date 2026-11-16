@@ -2524,9 +2524,19 @@ const Model = (() => {
   // "Pass 150").
 
   /** A new Endless window's numbers (the game's defaults for a block that leaves one out). */
-  const ENDLESS_WINDOW_DEF = { length: 180, max_count: 100, max_count_growth: 0 };
-  /** The keys of an endless_window block. */
-  const ENDLESS_WINDOW_KEYS = ['enabled', 'length', 'max_count', 'max_count_growth', 'roster'];
+  const ENDLESS_WINDOW_DEF = { length: 180, max_count: 100, max_count_growth: 0, pulse_on: 0, pulse_off: 0, pulse_rows: 1, pulse_burst: 1 };
+  /** The keys of an endless_window block (pass 153: the pulse's four). */
+  const ENDLESS_WINDOW_KEYS = ['enabled', 'length', 'max_count', 'max_count_growth', 'pulse_on', 'pulse_off', 'pulse_rows', 'pulse_burst', 'roster'];
+  /** Pass 153 (WaveTimeline.endless_window_pulse): an Endless block's pulse {on, off, rows (0..1), burst, active}; a boss
+   *  fight window never pulses. Active with both lengths above 0: the window spawns `on` seconds of every on + off of its
+   *  cycle clock (from each cycle's 0:00), nothing in the `off` seconds (a wave due then comes as the next pulse begins),
+   *  each pulse draws from `rows` of the drawn rows open as it begins (by weight, rounded up, at least one), the
+   *  continuous burst x `burst`. */
+  function windowPulse(b, kind) {
+    const e = windowKind(kind).kind === 'endless' && isObj(b);
+    const on = e ? Math.max(num(b.pulse_on, 0), 0) : 0, off = e ? Math.max(num(b.pulse_off, 0), 0) : 0;
+    return { on, off, rows: e ? clamp(num(b.pulse_rows, 1), 0, 1) : 1, burst: e ? Math.max(num(b.pulse_burst, 1), 0) : 1, active: on > 0 && off > 0 };
+  }
   /** The two kinds of window: their block key on a stage_list entry, their defaults, their selection kinds and issue keys,
    *  their new rows' id prefix and their words. */
   const WINDOW_KINDS = {
@@ -2884,6 +2894,11 @@ const Model = (() => {
         perWave: rowWaveCount(r, c), wk: -1, owed: 0, next: null, left: 0, seen: false, waves: [], spawned: [] });
     }
     let k = -1, cyc = -1, ct = 0, maxNow = windowMaxAt(b, K.kind, 0, hard);
+    // pass 153: the pulse (EndlessWindow's): quiet stretches bring nothing, the burst is x pulse.burst; with `api.rng` (a
+    // realisation, the pacing measure's) each pulse picks pulse.rows of the open drawn rows by weight as the game does;
+    // without it (the estimates: expected numbers) every drawn row keeps its share
+    const PZ = windowPulse(b, K.kind);
+    let quietNow = false, pulseK = -1, pulseSet = null;
     const room = () => (maxNow < 0 ? Infinity : maxNow - api.bodies());
     const hardRoom = () => hard - api.bodies();
     const put = (x, n) => {
@@ -2913,11 +2928,38 @@ const Model = (() => {
         cyc = c2;
         maxNow = windowMaxAt(b, K.kind, cyc, hard);
         for (const x of rows) { x.wk = -1; x.owed = 0; x.next = null; x.left = 0; x.seen = false; }
+        pulseK = -1;
       }
       ct = ft - cyc * len;
+      quietNow = PZ.active && ((ct % (PZ.on + PZ.off)) + (PZ.on + PZ.off)) % (PZ.on + PZ.off) >= PZ.on - 1e-6;
+      if (PZ.active && !quietNow) {
+        const pk = Math.floor(ct / (PZ.on + PZ.off));
+        if (pk !== pulseK) { pulseK = pk; pulseSet = pickPulse(); }
+      }
       return ct;
     }
+    /** The pulse's drawn rows (a Set of tab entries) with api.rng: one tab a row by its weight (EndlessWindow rolls one
+     *  a pulse), then pulse.rows of the rows (rounded, at least one) by weight; null = every row (the estimates). */
+    function pickPulse() {
+      if (!api || typeof api.rng !== 'function') return null;
+      const byRow = new Map();
+      for (const x of rows) if (x.drawn && isOpen(x) && rowWeight(x.r, ct, lateT) > 0) { if (!byRow.has(x.i)) byRow.set(x.i, []); byRow.get(x.i).push(x); }
+      const draw = (arr, w) => { let total = 0; for (const a of arr) total += w(a); if (!(total > 0)) return -1; let p = api.rng() * total; for (let j = 0; j < arr.length; j++) { p -= w(arr[j]); if (p <= 0) return j; } return arr.length - 1; };
+      const cand = [];
+      for (const tabs of byRow.values()) { const j = draw(tabs, (x) => rowWeight(x.r, ct, lateT)); if (j >= 0) cand.push({ x: tabs[j], w: tabs.reduce((a, x) => a + rowWeight(x.r, ct, lateT), 0) }); }
+      const keep = PZ.rows < 1 ? Math.min(Math.max(Math.round(PZ.rows * cand.length), 1), cand.length) : cand.length;
+      const set = new Set();
+      while (set.size < keep && cand.length) {
+        const at = draw(cand, (c) => c.w);
+        if (at < 0) break;
+        set.add(cand[at].x);
+        cand.splice(at, 1);
+      }
+      return set;
+    }
     function spawn() {
+      // pass 153: a quiet stretch of the pulse brings nothing
+      if (quietNow) return;
       // the waves and once rows
       for (const x of rows) {
         if (!x.paced || !isOpen(x) || !(x.p > 0)) continue;
@@ -2944,7 +2986,7 @@ const Model = (() => {
       // the spawn check: what a wave still owes first, then the drawn rows
       const check = k % checkSteps === 0;
       if (check) for (const x of rows) if (x.paced && x.owed > 0) { if (!isOpen(x)) x.owed = 0; else owedSpawn(x); }
-      const drawn = rows.filter((x) => x.drawn && isOpen(x) && !(x.maxAlive > 0 && api.aliveOf(x.id) >= x.maxAlive - 1e-9));
+      const drawn = rows.filter((x) => x.drawn && isOpen(x) && !(x.maxAlive > 0 && api.aliveOf(x.id) >= x.maxAlive - 1e-9) && !(pulseSet && !pulseSet.has(x)));
       const due = [];
       for (const x of drawn) {
         if (x.own) {
@@ -2959,7 +3001,7 @@ const Model = (() => {
         for (const x of due) part += rowWeight(x.r, ct, lateT);
         if (total > 0 && part > 0) {
           const rm = room();
-          const n = Math.min(burstMean * (part / total), rm > 0 ? rm : 0, Math.max(hardRoom(), 0));
+          const n = Math.min(burstMean * PZ.burst * (part / total), rm > 0 ? rm : 0, Math.max(hardRoom(), 0));
           if (n > 0) for (const x of due) put(x, n * rowWeight(x.r, ct, lateT) / part);
         }
       }
@@ -2971,7 +3013,7 @@ const Model = (() => {
       for (const x of rows) if (rowInMix(x.r) && isOpen(x)) { const w = rowWeight(x.r, ct, lateT); if (w > 0) out.push({ r: x.r, w }); }
       return out;
     }
-    return { begin, spawn, mixNow, rows, len, kind: K.kind, get cycle() { return cyc; }, get maxNow() { return maxNow; }, get time() { return k / hz; } };
+    return { begin, spawn, mixNow, rows, len, kind: K.kind, pulse: PZ, get cycle() { return cyc; }, get maxNow() { return maxNow; }, get time() { return k / hz; }, get quiet() { return quietNow; } };
   }
 
   /** What stage s's window of a kind brings over `cycles` cycles (default 2 for a boss fight, 3 for Endless), an estimate
@@ -3383,7 +3425,7 @@ const Model = (() => {
   // cycles, and the row variations (a row's `variations` tabs)
   Object.assign(api, {
     ENDLESS_WINDOW_DEF, ENDLESS_WINDOW_KEYS, WINDOW_KINDS, WINDOW_KIND_IDS, windowKind, windowBlock, windowOn, windowLen, windowMax,
-    windowGrowth, windowMaxAt, newWindow, windowRowEnd, rowCycles, rowInCycle, windowRowsAt, windowChecks, cycleKeyIssues, windowCycle, windowStepper,
+    windowGrowth, windowMaxAt, windowPulse, newWindow, windowRowEnd, rowCycles, rowInCycle, windowRowsAt, windowChecks, cycleKeyIssues, windowCycle, windowStepper,
     VARIATION_SHARED, VARIATION_FORM_SHARED, variationList, hasVariations, variationPercents, variationRow, newVariation,
     setVariationPercent, addVariation, removeVariation, variationView, variationChecks, tidyVariations, scaleRowShare, expandVariations,
   });
